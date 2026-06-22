@@ -1,0 +1,300 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Financeiro — SGR Indaiatuba</title>
+  <link rel="stylesheet" href="css/style.css" />
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4/dist/chart.umd.min.js"></script>
+</head>
+<body>
+<div class="app-layout">
+  <div id="sidebar-root"></div>
+  <div class="main-content">
+    <div class="page-header">
+      <div><h2>Financeiro</h2><p>Fluxo de caixa e lançamentos</p></div>
+      <button class="btn btn-primary" id="btn-novo">+ Novo Lançamento</button>
+    </div>
+    <div class="page-body">
+      <!-- KPIs -->
+      <div class="kpi-grid" style="grid-template-columns:repeat(4,1fr)">
+        <div class="kpi-card"><div class="kpi-label">Receitas do Mês</div><div class="kpi-value text-green" id="kpi-rec">—</div></div>
+        <div class="kpi-card"><div class="kpi-label">Despesas do Mês</div><div class="kpi-value text-red" id="kpi-desp">—</div></div>
+        <div class="kpi-card"><div class="kpi-label">Resultado do Mês</div><div class="kpi-value" id="kpi-res">—</div></div>
+        <div class="kpi-card"><div class="kpi-label">Fluxo de Caixa (Ano)</div><div class="kpi-value" id="kpi-fluxo">—</div></div>
+      </div>
+
+      <!-- Gráfico -->
+      <div class="chart-card mb-16" style="margin-bottom:20px">
+        <h3>Receitas x Despesas por Mês</h3>
+        <div class="chart-wrap" style="height:260px"><canvas id="chart-fin"></canvas></div>
+      </div>
+
+      <!-- Filtros -->
+      <div class="card mb-16" style="padding:16px">
+        <div class="filters-row">
+          <div class="form-group"><label>Mês</label><input type="month" id="f-mes" /></div>
+          <div class="form-group"><label>Tipo</label>
+            <select id="f-tipo">
+              <option value="">Todos</option>
+              <option value="receita">Receita</option>
+              <option value="despesa">Despesa</option>
+            </select>
+          </div>
+          <div class="form-group"><label>Categoria</label><select id="f-cat"><option value="">Todas</option></select></div>
+          <div class="form-group" style="justify-content:flex-end"><label>&nbsp;</label><button class="btn btn-primary" id="btn-filtrar">Filtrar</button></div>
+        </div>
+      </div>
+
+      <!-- Tabela lançamentos -->
+      <div class="table-card">
+        <div class="table-card-header">
+          <h3>Lançamentos</h3>
+          <span id="lanc-count" class="text-muted" style="font-size:12px"></span>
+        </div>
+        <div class="table-scroll">
+          <table>
+            <thead>
+              <tr><th>Data</th><th>Tipo</th><th>Categoria</th><th>Descrição</th><th class="text-right">Valor</th><th>Ações</th></tr>
+            </thead>
+            <tbody id="tb-lanc"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Modal: Novo/Editar Lançamento -->
+<div class="modal-backdrop" id="modal-lanc">
+  <div class="modal">
+    <div class="modal-header">
+      <h3 id="modal-lanc-title">Novo Lançamento</h3>
+      <button class="modal-close" data-close="modal-lanc">✕</button>
+    </div>
+    <div class="modal-body">
+      <form id="form-lanc">
+        <input type="hidden" name="id" />
+        <div class="form-grid">
+          <div class="form-group"><label>Data *</label><input type="date" name="data" required /></div>
+          <div class="form-group"><label>Tipo *</label>
+            <select name="tipo" required>
+              <option value="">Selecione…</option>
+              <option value="receita">Receita</option>
+              <option value="despesa">Despesa</option>
+            </select>
+          </div>
+          <div class="form-group full">
+            <label>Categoria *</label>
+            <input type="text" name="categoria" list="cat-list" required placeholder="Ex: Venda de Material, Energia, Salários…" />
+            <datalist id="cat-list">
+              <option value="Venda de Material"/>
+              <option value="Serviços"/>
+              <option value="Salários"/>
+              <option value="Energia Elétrica"/>
+              <option value="Combustível"/>
+              <option value="Manutenção"/>
+              <option value="Aluguel"/>
+              <option value="Outros"/>
+            </datalist>
+          </div>
+          <div class="form-group full"><label>Descrição</label><input type="text" name="descricao" /></div>
+          <div class="form-group full"><label>Valor (R$) *</label><input type="number" name="valor" min="0.01" step="0.01" required /></div>
+        </div>
+      </form>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-outline" data-close="modal-lanc">Cancelar</button>
+      <button class="btn btn-primary" id="btn-salvar-lanc">Salvar</button>
+    </div>
+  </div>
+</div>
+
+<div id="toast-container"></div>
+<script type="module">
+import { initPage, supabase, moeda, dataBR, toast, abrirModal, fecharModal, mesAtual, anoAtual } from './js/config.js';
+
+await initPage();
+
+const MESES = ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
+let perfil, lancData = [], chartFin;
+
+async function init() {
+  const { data: { user } } = await supabase.auth.getUser();
+  const { data: p } = await supabase.from('profiles').select('*').eq('id', user.id).single();
+  perfil = p;
+
+  /* Categorias dinâmicas */
+  const { data: cats } = await supabase.from('financeiro_lancamentos').select('categoria');
+  const uniq = [...new Set((cats||[]).map(c=>c.categoria))].sort();
+  document.getElementById('f-cat').innerHTML = '<option value="">Todas</option>' + uniq.map(c=>`<option value="${c}">${c}</option>`).join('');
+
+  document.getElementById('f-mes').value = mesAtual();
+  await Promise.all([carregarKPIs(), carregarGrafico(), carregarLancamentos()]);
+}
+
+async function carregarKPIs() {
+  const mes = document.getElementById('f-mes').value;
+  const [y,m] = mes.split('-');
+  const inicio = `${y}-${m}-01`;
+  const fim    = new Date(y, m, 0).toISOString().split('T')[0];
+
+  const { data: mes_lancs } = await supabase.from('financeiro_lancamentos')
+    .select('tipo, valor').gte('data', inicio).lte('data', fim);
+
+  const rec  = (mes_lancs||[]).filter(r=>r.tipo==='receita').reduce((s,r)=>s+r.valor,0);
+  const desp = (mes_lancs||[]).filter(r=>r.tipo==='despesa').reduce((s,r)=>s+r.valor,0);
+  const res  = rec - desp;
+
+  /* Fluxo do ano */
+  const { data: ano_lancs } = await supabase.from('financeiro_lancamentos')
+    .select('tipo, valor').gte('data', `${anoAtual()}-01-01`).lte('data', `${anoAtual()}-12-31`);
+  const fluxo = (ano_lancs||[]).reduce((s,r)=> s + (r.tipo==='receita' ? r.valor : -r.valor), 0);
+
+  document.getElementById('kpi-rec').textContent   = moeda(rec);
+  document.getElementById('kpi-desp').textContent  = moeda(desp);
+  document.getElementById('kpi-res').textContent   = moeda(res);
+  document.getElementById('kpi-res').className     = 'kpi-value ' + (res >= 0 ? 'text-green' : 'text-red');
+  document.getElementById('kpi-fluxo').textContent = moeda(fluxo);
+  document.getElementById('kpi-fluxo').className   = 'kpi-value ' + (fluxo >= 0 ? 'text-green' : 'text-red');
+}
+
+async function carregarGrafico() {
+  const ano = anoAtual();
+  const { data } = await supabase.from('financeiro_lancamentos')
+    .select('tipo, valor, data').gte('data',`${ano}-01-01`).lte('data',`${ano}-12-31`);
+
+  const rec  = Array(12).fill(0);
+  const desp = Array(12).fill(0);
+  (data||[]).forEach(r => {
+    const idx = new Date(r.data+'T00:00:00').getMonth();
+    if (r.tipo==='receita') rec[idx]  += r.valor;
+    else                    desp[idx] += r.valor;
+  });
+
+  if (chartFin) chartFin.destroy();
+  chartFin = new Chart(document.getElementById('chart-fin'), {
+    type: 'bar',
+    data: {
+      labels: MESES,
+      datasets: [
+        { label: 'Receitas',  data: rec,  backgroundColor: '#1B7A43', borderRadius: 4 },
+        { label: 'Despesas',  data: desp, backgroundColor: '#D64545', borderRadius: 4 },
+      ]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { position: 'top' } },
+      scales: {
+        x: { grid: { display: false } },
+        y: { grid: { color: '#F0F0F0' }, ticks: { callback: v => 'R$'+v.toLocaleString('pt-BR') } }
+      }
+    }
+  });
+}
+
+async function carregarLancamentos() {
+  let q = supabase.from('financeiro_lancamentos').select('*').order('data', { ascending: false });
+
+  const mes  = document.getElementById('f-mes').value;
+  const tipo = document.getElementById('f-tipo').value;
+  const cat  = document.getElementById('f-cat').value;
+
+  if (mes) {
+    const [y,m] = mes.split('-');
+    q = q.gte('data',`${y}-${m}-01`).lte('data', new Date(y,m,0).toISOString().split('T')[0]);
+  }
+  if (tipo) q = q.eq('tipo', tipo);
+  if (cat)  q = q.eq('categoria', cat);
+
+  const { data } = await q;
+  lancData = data || [];
+  document.getElementById('lanc-count').textContent = `${lancData.length} lançamentos`;
+
+  const isAdmin = perfil?.role === 'admin';
+  const tb = document.getElementById('tb-lanc');
+  if (!lancData.length) {
+    tb.innerHTML = '<tr><td colspan="6" class="table-empty">Nenhum lançamento encontrado</td></tr>';
+    return;
+  }
+  tb.innerHTML = lancData.map(r => `
+    <tr>
+      <td>${dataBR(r.data)}</td>
+      <td><span class="badge ${r.tipo==='receita'?'badge-green':'badge-red'}">${r.tipo==='receita'?'Receita':'Despesa'}</span></td>
+      <td>${r.categoria}</td>
+      <td>${r.descricao||'—'}</td>
+      <td class="text-right fw-600 ${r.tipo==='receita'?'text-green':'text-red'}">${moeda(r.valor)}</td>
+      <td>${isAdmin?`
+        <button class="btn-icon" onclick="editarLanc('${r.id}')">✏️</button>
+        <button class="btn-icon danger" onclick="excluirLanc('${r.id}')">🗑️</button>
+      `:'—'}</td>
+    </tr>
+  `).join('');
+}
+
+/* ── CRUD ── */
+document.getElementById('btn-novo').addEventListener('click', () => {
+  document.getElementById('modal-lanc-title').textContent = 'Novo Lançamento';
+  document.getElementById('form-lanc').reset();
+  document.querySelector('#form-lanc [name="id"]').value = '';
+  abrirModal('modal-lanc');
+});
+
+window.editarLanc = id => {
+  const r = lancData.find(l=>l.id===id);
+  if (!r) return;
+  document.getElementById('modal-lanc-title').textContent = 'Editar Lançamento';
+  const f = document.getElementById('form-lanc');
+  f.querySelector('[name="id"]').value        = r.id;
+  f.querySelector('[name="data"]').value      = r.data;
+  f.querySelector('[name="tipo"]').value      = r.tipo;
+  f.querySelector('[name="categoria"]').value = r.categoria;
+  f.querySelector('[name="descricao"]').value = r.descricao||'';
+  f.querySelector('[name="valor"]').value     = r.valor;
+  abrirModal('modal-lanc');
+};
+
+document.getElementById('btn-salvar-lanc').addEventListener('click', async () => {
+  const f = document.getElementById('form-lanc');
+  if (!f.checkValidity()) { f.reportValidity(); return; }
+  const fd = Object.fromEntries(new FormData(f));
+  const { data: { user } } = await supabase.auth.getUser();
+  const payload = {
+    tipo: fd.tipo, categoria: fd.categoria,
+    descricao: fd.descricao, valor: parseFloat(fd.valor),
+    data: fd.data, criado_por: user.id
+  };
+  if (fd.id) {
+    await supabase.from('financeiro_lancamentos').update(payload).eq('id', fd.id);
+    toast('Lançamento atualizado!');
+  } else {
+    await supabase.from('financeiro_lancamentos').insert(payload);
+    toast('Lançamento registrado!');
+  }
+  fecharModal('modal-lanc');
+  await Promise.all([carregarKPIs(), carregarGrafico(), carregarLancamentos()]);
+});
+
+window.excluirLanc = async id => {
+  const r = lancData.find(l=>l.id===id);
+  if (r?.descricao?.startsWith('Venda #')) {
+    if (!confirm('Este lançamento foi gerado por uma venda. Excluir mesmo assim?')) return;
+  } else {
+    if (!confirm('Excluir este lançamento?')) return;
+  }
+  await supabase.from('financeiro_lancamentos').delete().eq('id', id);
+  toast('Lançamento excluído!');
+  await Promise.all([carregarKPIs(), carregarGrafico(), carregarLancamentos()]);
+};
+
+document.getElementById('btn-filtrar').addEventListener('click', () => {
+  carregarKPIs();
+  carregarLancamentos();
+});
+document.querySelectorAll('[data-close]').forEach(btn => btn.addEventListener('click', () => fecharModal(btn.dataset.close)));
+document.querySelectorAll('.modal-backdrop').forEach(m => m.addEventListener('click', e => { if(e.target===m) fecharModal(m.id); }));
+
+await init();
+</script>
+</body>
+</html>

@@ -1,0 +1,473 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Entradas — SGR Indaiatuba</title>
+  <link rel="stylesheet" href="css/style.css" />
+</head>
+<body>
+<div class="app-layout">
+  <div id="sidebar-root"></div>
+  <div class="main-content">
+    <div class="page-header">
+      <div><h2>Entradas</h2><p>Registro de recebimento de materiais</p></div>
+      <div style="display:flex;gap:8px">
+        <button class="btn btn-outline" id="btn-importar">↑ Importar CSV</button>
+        <button class="btn btn-primary" id="btn-nova">+ Nova Entrada</button>
+      </div>
+    </div>
+    <div class="page-body">
+      <!-- Filtros -->
+      <div class="card mb-16" style="padding:16px">
+        <div class="filters-row">
+          <div class="form-group">
+            <label>Mês</label>
+            <input type="month" id="f-mes" />
+          </div>
+          <div class="form-group">
+            <label>Fornecedor</label>
+            <select id="f-fornecedor"><option value="">Todos</option></select>
+          </div>
+          <div class="form-group">
+            <label>Material</label>
+            <select id="f-material"><option value="">Todos</option></select>
+          </div>
+          <div class="form-group" style="justify-content:flex-end">
+            <label>&nbsp;</label>
+            <button class="btn btn-primary" id="btn-filtrar">Filtrar</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- KPIs rápidos -->
+      <div class="kpi-grid" style="grid-template-columns:repeat(3,1fr)">
+        <div class="kpi-card"><div class="kpi-label">Total de Entradas</div><div class="kpi-value" id="kpi-total">—</div><div class="kpi-sub">registros</div></div>
+        <div class="kpi-card"><div class="kpi-label">Peso Total</div><div class="kpi-value" id="kpi-peso">—</div><div class="kpi-sub">kg recebidos</div></div>
+        <div class="kpi-card"><div class="kpi-label">Valor Total</div><div class="kpi-value" id="kpi-valor">—</div><div class="kpi-sub">pago aos fornecedores</div></div>
+      </div>
+
+      <!-- Tabela -->
+      <div class="table-card">
+        <div class="table-card-header">
+          <h3>Registros de Entrada</h3>
+          <span id="count-label" class="text-muted" style="font-size:12px"></span>
+        </div>
+        <div class="table-scroll">
+          <table>
+            <thead>
+              <tr>
+                <th>Data</th><th>Fornecedor</th><th>Material</th>
+                <th class="text-right">Peso (kg)</th><th class="text-right">Valor</th>
+                <th>Ações</th>
+              </tr>
+            </thead>
+            <tbody id="tb-entradas"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Fornecedores CRUD -->
+      <div class="table-card">
+        <div class="table-card-header">
+          <h3>Fornecedores</h3>
+          <button class="btn btn-sm btn-primary" id="btn-novo-forn">+ Adicionar</button>
+        </div>
+        <div class="table-scroll">
+          <table>
+            <thead><tr><th>Nome</th><th>Contato</th><th>Status</th><th>Ações</th></tr></thead>
+            <tbody id="tb-fornecedores"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Modal: Nova/Editar Entrada -->
+<div class="modal-backdrop" id="modal-entrada">
+  <div class="modal">
+    <div class="modal-header">
+      <h3 id="modal-entrada-title">Nova Entrada</h3>
+      <button class="modal-close" data-close="modal-entrada">✕</button>
+    </div>
+    <div class="modal-body">
+      <form id="form-entrada">
+        <input type="hidden" name="id" />
+        <div class="form-grid">
+          <div class="form-group">
+            <label>Data *</label>
+            <input type="date" name="data" required />
+          </div>
+          <div class="form-group">
+            <label>Fornecedor *</label>
+            <select name="fornecedor_id" required><option value="">Selecione…</option></select>
+          </div>
+          <div class="form-group">
+            <label>Material *</label>
+            <select name="material_id" required><option value="">Selecione…</option></select>
+          </div>
+          <div class="form-group">
+            <label>Peso (kg) *</label>
+            <input type="number" name="peso_kg" min="0.01" step="0.01" required />
+          </div>
+          <div class="form-group full">
+            <label>Valor pago (R$) *</label>
+            <input type="number" name="valor" min="0" step="0.01" required />
+          </div>
+        </div>
+      </form>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-outline" data-close="modal-entrada">Cancelar</button>
+      <button class="btn btn-primary" id="btn-salvar-entrada">Salvar</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal: Nova/Editar Fornecedor -->
+<div class="modal-backdrop" id="modal-fornecedor">
+  <div class="modal">
+    <div class="modal-header">
+      <h3 id="modal-forn-title">Novo Fornecedor</h3>
+      <button class="modal-close" data-close="modal-fornecedor">✕</button>
+    </div>
+    <div class="modal-body">
+      <form id="form-fornecedor">
+        <input type="hidden" name="id" />
+        <div class="form-grid">
+          <div class="form-group full">
+            <label>Nome *</label>
+            <input type="text" name="nome" required />
+          </div>
+          <div class="form-group full">
+            <label>Contato</label>
+            <input type="text" name="contato" />
+          </div>
+        </div>
+      </form>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-outline" data-close="modal-fornecedor">Cancelar</button>
+      <button class="btn btn-primary" id="btn-salvar-forn">Salvar</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal: Importar CSV -->
+<div class="modal-backdrop" id="modal-csv">
+  <div class="modal">
+    <div class="modal-header">
+      <h3>Importar CSV</h3>
+      <button class="modal-close" data-close="modal-csv">✕</button>
+    </div>
+    <div class="modal-body">
+      <p style="font-size:13px;color:var(--text-muted);margin-bottom:12px">
+        Arquivo CSV com colunas: <code>fornecedor_nome, material_nome, peso_kg, valor, data</code>
+      </p>
+      <div class="form-group">
+        <label>Arquivo CSV</label>
+        <input type="file" id="csv-file" accept=".csv" />
+      </div>
+      <div id="csv-preview" style="margin-top:12px"></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-outline" data-close="modal-csv">Cancelar</button>
+      <button class="btn btn-primary" id="btn-importar-csv">Importar</button>
+    </div>
+  </div>
+</div>
+
+<div id="toast-container"></div>
+
+<script type="module">
+import { initPage, supabase, moeda, peso, dataBR, toast, abrirModal, fecharModal, mesAtual } from './js/config.js';
+
+await initPage();
+
+let perfil, fornecedores = [], materiais = [], entradasData = [], csvRows = [];
+
+async function init() {
+  const { data: { user } } = await supabase.auth.getUser();
+  const { data: p } = await supabase.from('profiles').select('*').eq('id', user.id).single();
+  perfil = p;
+
+  const [{ data: forns }, { data: mats }] = await Promise.all([
+    supabase.from('fornecedores').select('*').eq('ativo', true).order('nome'),
+    supabase.from('materiais').select('*').eq('ativo', true).order('nome'),
+  ]);
+  fornecedores = forns || [];
+  materiais    = mats  || [];
+
+  popularSelects();
+  document.getElementById('f-mes').value = mesAtual();
+  await carregarEntradas();
+  await carregarFornecedores();
+}
+
+function popularSelects() {
+  ['f-fornecedor'].forEach(id => {
+    const s = document.getElementById(id);
+    s.innerHTML = '<option value="">Todos</option>' + fornecedores.map(f=>`<option value="${f.id}">${f.nome}</option>`).join('');
+  });
+  ['f-material'].forEach(id => {
+    const s = document.getElementById(id);
+    s.innerHTML = '<option value="">Todos</option>' + materiais.map(m=>`<option value="${m.id}">${m.nome}</option>`).join('');
+  });
+
+  const formSels = document.querySelectorAll('#form-entrada [name="fornecedor_id"]');
+  formSels.forEach(s => {
+    s.innerHTML = '<option value="">Selecione…</option>' + fornecedores.map(f=>`<option value="${f.id}">${f.nome}</option>`).join('');
+  });
+  const matSels = document.querySelectorAll('#form-entrada [name="material_id"]');
+  matSels.forEach(s => {
+    s.innerHTML = '<option value="">Selecione…</option>' + materiais.map(m=>`<option value="${m.id}">${m.nome}</option>`).join('');
+  });
+}
+
+async function carregarEntradas() {
+  let q = supabase.from('entradas')
+    .select('*, fornecedores(nome), materiais(nome)')
+    .order('data', { ascending: false });
+
+  const mes  = document.getElementById('f-mes').value;
+  const forn = document.getElementById('f-fornecedor').value;
+  const mat  = document.getElementById('f-material').value;
+
+  if (mes) {
+    const [y, m] = mes.split('-');
+    q = q.gte('data', `${y}-${m}-01`).lte('data', new Date(y, m, 0).toISOString().split('T')[0]);
+  }
+  if (forn) q = q.eq('fornecedor_id', forn);
+  if (mat)  q = q.eq('material_id', mat);
+
+  const { data } = await q;
+  entradasData = data || [];
+
+  const totKg  = entradasData.reduce((s,r)=>s+r.peso_kg,0);
+  const totVal = entradasData.reduce((s,r)=>s+r.valor,0);
+  document.getElementById('kpi-total').textContent  = entradasData.length;
+  document.getElementById('kpi-peso').textContent   = peso(totKg);
+  document.getElementById('kpi-valor').textContent  = moeda(totVal);
+  document.getElementById('count-label').textContent = `${entradasData.length} registros`;
+
+  const tb = document.getElementById('tb-entradas');
+  if (!entradasData.length) {
+    tb.innerHTML = '<tr><td colspan="6" class="table-empty">Nenhuma entrada encontrada</td></tr>';
+    return;
+  }
+  const isAdmin = perfil?.role === 'admin';
+  tb.innerHTML = entradasData.map(r => `
+    <tr>
+      <td>${dataBR(r.data)}</td>
+      <td>${r.fornecedores?.nome || '—'}</td>
+      <td>${r.materiais?.nome   || '—'}</td>
+      <td class="text-right">${peso(r.peso_kg)}</td>
+      <td class="text-right">${moeda(r.valor)}</td>
+      <td>
+        ${isAdmin ? `
+          <button class="btn-icon" onclick="editarEntrada('${r.id}')">✏️</button>
+          <button class="btn-icon danger" onclick="excluirEntrada('${r.id}')">🗑️</button>
+        ` : '—'}
+      </td>
+    </tr>
+  `).join('');
+}
+
+async function carregarFornecedores() {
+  const { data } = await supabase.from('fornecedores').select('*').order('nome');
+  const isAdmin = perfil?.role === 'admin';
+  const tb = document.getElementById('tb-fornecedores');
+  tb.innerHTML = (data||[]).map(f => `
+    <tr>
+      <td>${f.nome}</td>
+      <td>${f.contato||'—'}</td>
+      <td><span class="badge ${f.ativo?'badge-green':'badge-gray'}">${f.ativo?'Ativo':'Inativo'}</span></td>
+      <td>
+        ${isAdmin ? `
+          <button class="btn-icon" onclick="editarFornecedor(${JSON.stringify(f).replace(/"/g,'&quot;')})">✏️</button>
+          <button class="btn-icon danger" onclick="toggleFornecedor('${f.id}',${f.ativo})">${f.ativo?'🚫':'✅'}</button>
+        ` : '—'}
+      </td>
+    </tr>
+  `).join('') || '<tr><td colspan="4" class="table-empty">Nenhum fornecedor</td></tr>';
+}
+
+/* ── Entrada CRUD ── */
+document.getElementById('btn-nova').addEventListener('click', () => {
+  document.getElementById('modal-entrada-title').textContent = 'Nova Entrada';
+  document.getElementById('form-entrada').reset();
+  document.querySelector('#form-entrada [name="id"]').value = '';
+  abrirModal('modal-entrada');
+});
+
+window.editarEntrada = id => {
+  const r = entradasData.find(e=>e.id===id);
+  if (!r) return;
+  document.getElementById('modal-entrada-title').textContent = 'Editar Entrada';
+  const f = document.getElementById('form-entrada');
+  f.querySelector('[name="id"]').value            = r.id;
+  f.querySelector('[name="data"]').value          = r.data;
+  f.querySelector('[name="fornecedor_id"]').value = r.fornecedor_id;
+  f.querySelector('[name="material_id"]').value   = r.material_id;
+  f.querySelector('[name="peso_kg"]').value       = r.peso_kg;
+  f.querySelector('[name="valor"]').value         = r.valor;
+  abrirModal('modal-entrada');
+};
+
+document.getElementById('btn-salvar-entrada').addEventListener('click', async () => {
+  const f = document.getElementById('form-entrada');
+  if (!f.checkValidity()) { f.reportValidity(); return; }
+  const fd = Object.fromEntries(new FormData(f));
+  const { data: { user } } = await supabase.auth.getUser();
+  const payload = {
+    fornecedor_id: fd.fornecedor_id,
+    material_id:   fd.material_id,
+    peso_kg:       parseFloat(fd.peso_kg),
+    valor:         parseFloat(fd.valor),
+    data:          fd.data,
+    criado_por:    user.id,
+  };
+
+  if (fd.id) {
+    const { error } = await supabase.from('entradas').update(payload).eq('id', fd.id);
+    if (error) { toast('Erro ao atualizar entrada','error'); return; }
+    await supabase.from('estoque_movimentacoes').delete().eq('origem_id', fd.id);
+    await supabase.from('estoque_movimentacoes').insert({
+      material_id: payload.material_id, tipo: 'entrada', peso_kg: payload.peso_kg,
+      origem_tipo: 'entrada', origem_id: fd.id, data: payload.data
+    });
+    toast('Entrada atualizada!');
+  } else {
+    const { data: novo, error } = await supabase.from('entradas').insert(payload).select().single();
+    if (error) { toast('Erro ao salvar entrada','error'); return; }
+    await supabase.from('estoque_movimentacoes').insert({
+      material_id: payload.material_id, tipo: 'entrada', peso_kg: payload.peso_kg,
+      origem_tipo: 'entrada', origem_id: novo.id, data: payload.data
+    });
+    toast('Entrada registrada!');
+  }
+  fecharModal('modal-entrada');
+  carregarEntradas();
+});
+
+window.excluirEntrada = async id => {
+  if (!confirm('Excluir esta entrada?')) return;
+  await supabase.from('estoque_movimentacoes').delete().eq('origem_id', id);
+  const { error } = await supabase.from('entradas').delete().eq('id', id);
+  if (error) { toast('Erro ao excluir','error'); return; }
+  toast('Entrada excluída!');
+  carregarEntradas();
+};
+
+/* ── Fornecedor CRUD ── */
+document.getElementById('btn-novo-forn').addEventListener('click', () => {
+  document.getElementById('modal-forn-title').textContent = 'Novo Fornecedor';
+  document.getElementById('form-fornecedor').reset();
+  document.querySelector('#form-fornecedor [name="id"]').value = '';
+  abrirModal('modal-fornecedor');
+});
+
+window.editarFornecedor = f => {
+  document.getElementById('modal-forn-title').textContent = 'Editar Fornecedor';
+  const fm = document.getElementById('form-fornecedor');
+  fm.querySelector('[name="id"]').value      = f.id;
+  fm.querySelector('[name="nome"]').value    = f.nome;
+  fm.querySelector('[name="contato"]').value = f.contato || '';
+  abrirModal('modal-fornecedor');
+};
+
+window.toggleFornecedor = async (id, ativo) => {
+  await supabase.from('fornecedores').update({ ativo: !ativo }).eq('id', id);
+  carregarFornecedores();
+};
+
+document.getElementById('btn-salvar-forn').addEventListener('click', async () => {
+  const f = document.getElementById('form-fornecedor');
+  if (!f.checkValidity()) { f.reportValidity(); return; }
+  const fd = Object.fromEntries(new FormData(f));
+  if (fd.id) {
+    await supabase.from('fornecedores').update({ nome: fd.nome, contato: fd.contato }).eq('id', fd.id);
+    toast('Fornecedor atualizado!');
+  } else {
+    await supabase.from('fornecedores').insert({ nome: fd.nome, contato: fd.contato });
+    toast('Fornecedor criado!');
+  }
+  fecharModal('modal-fornecedor');
+  carregarFornecedores();
+});
+
+/* ── Importação CSV ── */
+document.getElementById('btn-importar').addEventListener('click', () => abrirModal('modal-csv'));
+
+document.getElementById('csv-file').addEventListener('change', e => {
+  const file = e.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = ev => {
+    const lines = ev.target.result.trim().split('\n');
+    const header = lines[0].split(',').map(h=>h.trim().toLowerCase());
+    csvRows = lines.slice(1).map(l => {
+      const cols = l.split(',');
+      return Object.fromEntries(header.map((h,i)=>[h, cols[i]?.trim()]));
+    }).filter(r => r.fornecedor_nome && r.material_nome);
+    document.getElementById('csv-preview').innerHTML = `
+      <p style="font-size:12px;color:var(--text-muted)">${csvRows.length} linhas encontradas. Pré-visualização (5 primeiras):</p>
+      <table style="font-size:11.5px;width:100%;margin-top:8px">
+        <thead><tr><th>Fornecedor</th><th>Material</th><th>Peso</th><th>Valor</th><th>Data</th></tr></thead>
+        <tbody>${csvRows.slice(0,5).map(r=>`<tr><td>${r.fornecedor_nome}</td><td>${r.material_nome}</td><td>${r.peso_kg}</td><td>${r.valor}</td><td>${r.data}</td></tr>`).join('')}</tbody>
+      </table>
+    `;
+  };
+  reader.readAsText(file);
+});
+
+document.getElementById('btn-importar-csv').addEventListener('click', async () => {
+  if (!csvRows.length) { toast('Nenhum dado para importar','error'); return; }
+  const { data: { user } } = await supabase.auth.getUser();
+  let ok = 0, erro = 0;
+  for (const row of csvRows) {
+    let forn = fornecedores.find(f=>f.nome.toLowerCase()===row.fornecedor_nome.toLowerCase());
+    if (!forn) {
+      const { data: nf } = await supabase.from('fornecedores').insert({ nome: row.fornecedor_nome }).select().single();
+      forn = nf;
+      fornecedores.push(forn);
+    }
+    let mat = materiais.find(m=>m.nome.toLowerCase()===row.material_nome.toLowerCase());
+    if (!mat) {
+      const { data: nm } = await supabase.from('materiais').insert({ nome: row.material_nome }).select().single();
+      mat = nm;
+      materiais.push(mat);
+    }
+    const payload = {
+      fornecedor_id: forn.id, material_id: mat.id,
+      peso_kg: parseFloat(row.peso_kg)||0, valor: parseFloat(row.valor)||0,
+      data: row.data, criado_por: user.id
+    };
+    const { data: nova, error } = await supabase.from('entradas').insert(payload).select().single();
+    if (error) { erro++; continue; }
+    await supabase.from('estoque_movimentacoes').insert({
+      material_id: payload.material_id, tipo: 'entrada', peso_kg: payload.peso_kg,
+      origem_tipo: 'entrada', origem_id: nova.id, data: payload.data
+    });
+    ok++;
+  }
+  toast(`Importados: ${ok} | Erros: ${erro}`, ok > 0 ? 'success' : 'error');
+  fecharModal('modal-csv');
+  popularSelects();
+  carregarEntradas();
+});
+
+/* ── Eventos genéricos ── */
+document.getElementById('btn-filtrar').addEventListener('click', carregarEntradas);
+document.querySelectorAll('[data-close]').forEach(btn => {
+  btn.addEventListener('click', () => fecharModal(btn.dataset.close));
+});
+document.querySelectorAll('.modal-backdrop').forEach(m => {
+  m.addEventListener('click', e => { if (e.target === m) fecharModal(m.id); });
+});
+
+await init();
+</script>
+</body>
+</html>

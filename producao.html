@@ -1,0 +1,477 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Produção — SGR Indaiatuba</title>
+  <link rel="stylesheet" href="css/style.css" />
+</head>
+<body>
+<div class="app-layout">
+  <div id="sidebar-root"></div>
+  <div class="main-content">
+    <div class="page-header">
+      <div><h2>Produção</h2><p>Controle de processamento e equipamentos</p></div>
+      <button class="btn btn-primary" id="btn-nova">+ Novo Registro</button>
+    </div>
+    <div class="page-body">
+      <!-- Capacidade dos equipamentos hoje -->
+      <div class="card mb-16">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px">
+          <h3 style="font-size:14px;font-weight:600">Capacidade dos Equipamentos — Hoje</h3>
+          <span id="data-hoje" class="text-muted" style="font-size:12px"></span>
+        </div>
+        <div class="capacity-grid" id="capacity-grid">
+          <div class="loading-spinner"><div class="spinner"></div> Carregando…</div>
+        </div>
+      </div>
+
+      <!-- KPIs -->
+      <div class="kpi-grid" style="grid-template-columns:repeat(3,1fr)">
+        <div class="kpi-card"><div class="kpi-label">Produção do Mês</div><div class="kpi-value" id="kpi-mes">—</div><div class="kpi-sub">kg processados</div></div>
+        <div class="kpi-card"><div class="kpi-label">Registros</div><div class="kpi-value" id="kpi-regs">—</div><div class="kpi-sub">no período</div></div>
+        <div class="kpi-card"><div class="kpi-label">Média Diária</div><div class="kpi-value" id="kpi-media">—</div><div class="kpi-sub">kg/dia no mês</div></div>
+      </div>
+
+      <!-- Filtros -->
+      <div class="card mb-16" style="padding:16px">
+        <div class="filters-row">
+          <div class="form-group"><label>Mês</label><input type="month" id="f-mes" /></div>
+          <div class="form-group"><label>Equipamento</label><select id="f-equip"><option value="">Todos</option></select></div>
+          <div class="form-group"><label>Material</label><select id="f-mat"><option value="">Todos</option></select></div>
+          <div class="form-group" style="justify-content:flex-end"><label>&nbsp;</label><button class="btn btn-primary" id="btn-filtrar">Filtrar</button></div>
+        </div>
+      </div>
+
+      <!-- Tabela produção -->
+      <div class="table-card">
+        <div class="table-card-header"><h3>Registros de Produção</h3></div>
+        <div class="table-scroll">
+          <table>
+            <thead><tr><th>Data</th><th>Equipamento</th><th>Material</th><th>Operador</th><th class="text-right">Peso (kg)</th><th>Ações</th></tr></thead>
+            <tbody id="tb-producao"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Equipamentos CRUD -->
+      <div class="table-card">
+        <div class="table-card-header">
+          <h3>Equipamentos</h3>
+          <button class="btn btn-sm btn-primary" id="btn-novo-equip">+ Adicionar</button>
+        </div>
+        <div class="table-scroll">
+          <table>
+            <thead><tr><th>Nome</th><th class="text-right">Capacidade kg/dia</th><th>Status</th><th>Ações</th></tr></thead>
+            <tbody id="tb-equipamentos"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Materiais CRUD -->
+      <div class="table-card">
+        <div class="table-card-header">
+          <h3>Materiais</h3>
+          <button class="btn btn-sm btn-primary" id="btn-novo-mat">+ Adicionar</button>
+        </div>
+        <div class="table-scroll">
+          <table>
+            <thead><tr><th>Nome</th><th>Unidade</th><th>Status</th><th>Ações</th></tr></thead>
+            <tbody id="tb-materiais"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Modal: Nova/Editar Produção -->
+<div class="modal-backdrop" id="modal-prod">
+  <div class="modal">
+    <div class="modal-header">
+      <h3 id="modal-prod-title">Novo Registro de Produção</h3>
+      <button class="modal-close" data-close="modal-prod">✕</button>
+    </div>
+    <div class="modal-body">
+      <form id="form-prod">
+        <input type="hidden" name="id" />
+        <div class="form-grid">
+          <div class="form-group"><label>Data *</label><input type="date" name="data" required /></div>
+          <div class="form-group"><label>Equipamento *</label><select name="equipamento_id" required><option value="">Selecione…</option></select></div>
+          <div class="form-group"><label>Material *</label><select name="material_id" required><option value="">Selecione…</option></select></div>
+          <div class="form-group"><label>Operador</label><select name="operador_id"><option value="">— Nenhum —</option></select></div>
+          <div class="form-group full"><label>Peso Produzido (kg) *</label><input type="number" name="peso_produzido_kg" min="0.01" step="0.01" required /></div>
+        </div>
+        <div id="alerta-capacidade" style="display:none;margin-top:12px" class="badge badge-red">⚠ Produção ultrapassa a capacidade do equipamento hoje!</div>
+      </form>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-outline" data-close="modal-prod">Cancelar</button>
+      <button class="btn btn-primary" id="btn-salvar-prod">Salvar</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal: Equipamento -->
+<div class="modal-backdrop" id="modal-equip">
+  <div class="modal">
+    <div class="modal-header">
+      <h3 id="modal-equip-title">Novo Equipamento</h3>
+      <button class="modal-close" data-close="modal-equip">✕</button>
+    </div>
+    <div class="modal-body">
+      <form id="form-equip">
+        <input type="hidden" name="id" />
+        <div class="form-grid">
+          <div class="form-group full"><label>Nome *</label><input type="text" name="nome" required /></div>
+          <div class="form-group full"><label>Capacidade (kg/dia)</label><input type="number" name="capacidade_kg_dia" min="0" step="0.01" /></div>
+        </div>
+      </form>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-outline" data-close="modal-equip">Cancelar</button>
+      <button class="btn btn-primary" id="btn-salvar-equip">Salvar</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal: Material -->
+<div class="modal-backdrop" id="modal-mat">
+  <div class="modal">
+    <div class="modal-header">
+      <h3 id="modal-mat-title">Novo Material</h3>
+      <button class="modal-close" data-close="modal-mat">✕</button>
+    </div>
+    <div class="modal-body">
+      <form id="form-mat">
+        <input type="hidden" name="id" />
+        <div class="form-grid">
+          <div class="form-group full"><label>Nome *</label><input type="text" name="nome" required /></div>
+          <div class="form-group full"><label>Unidade de Medida</label><input type="text" name="unidade_medida" placeholder="kg" /></div>
+        </div>
+      </form>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-outline" data-close="modal-mat">Cancelar</button>
+      <button class="btn btn-primary" id="btn-salvar-mat">Salvar</button>
+    </div>
+  </div>
+</div>
+
+<div id="toast-container"></div>
+<script type="module">
+import { initPage, supabase, peso, dataBR, toast, abrirModal, fecharModal, mesAtual } from './js/config.js';
+
+await initPage();
+
+let perfil, equipamentos = [], materiais = [], colaboradores = [], producaoData = [];
+
+async function init() {
+  const { data: { user } } = await supabase.auth.getUser();
+  const { data: p } = await supabase.from('profiles').select('*').eq('id', user.id).single();
+  perfil = p;
+
+  const [{ data: eq }, { data: mt }, { data: col }] = await Promise.all([
+    supabase.from('equipamentos').select('*').eq('ativo', true).order('nome'),
+    supabase.from('materiais').select('*').eq('ativo', true).order('nome'),
+    supabase.from('colaboradores').select('*').eq('ativo', true).order('nome'),
+  ]);
+  equipamentos  = eq  || [];
+  materiais     = mt  || [];
+  colaboradores = col || [];
+
+  popularSelects();
+  document.getElementById('f-mes').value = mesAtual();
+
+  const hoje = new Date().toISOString().split('T')[0];
+  document.getElementById('data-hoje').textContent = dataBR(hoje);
+
+  await Promise.all([carregarCapacidades(), carregarProducao(), carregarEquipamentos(), carregarMateriais()]);
+}
+
+function popularSelects() {
+  const eqOpts = equipamentos.map(e=>`<option value="${e.id}">${e.nome}</option>`).join('');
+  const mtOpts = materiais.map(m=>`<option value="${m.id}">${m.nome}</option>`).join('');
+  const colOpts = '<option value="">— Nenhum —</option>' + colaboradores.map(c=>`<option value="${c.id}">${c.nome}</option>`).join('');
+
+  document.getElementById('f-equip').innerHTML = '<option value="">Todos</option>' + eqOpts;
+  document.getElementById('f-mat').innerHTML   = '<option value="">Todos</option>' + mtOpts;
+  document.querySelector('#form-prod [name="equipamento_id"]').innerHTML = '<option value="">Selecione…</option>' + eqOpts;
+  document.querySelector('#form-prod [name="material_id"]').innerHTML    = '<option value="">Selecione…</option>' + mtOpts;
+  document.querySelector('#form-prod [name="operador_id"]').innerHTML    = colOpts;
+}
+
+async function carregarCapacidades() {
+  const hoje = new Date().toISOString().split('T')[0];
+  const { data: prodHoje } = await supabase.from('producao')
+    .select('equipamento_id, peso_produzido_kg').eq('data', hoje);
+
+  const prodPorEquip = {};
+  (prodHoje||[]).forEach(r => {
+    prodPorEquip[r.equipamento_id] = (prodPorEquip[r.equipamento_id]||0) + r.peso_produzido_kg;
+  });
+
+  const grid = document.getElementById('capacity-grid');
+  if (!equipamentos.length) {
+    grid.innerHTML = '<p class="text-muted" style="font-size:13px">Nenhum equipamento cadastrado.</p>';
+    return;
+  }
+  grid.innerHTML = equipamentos.map(eq => {
+    const prod = prodPorEquip[eq.id] || 0;
+    const cap  = eq.capacidade_kg_dia || 0;
+    const pct  = cap > 0 ? Math.min((prod/cap)*100, 150) : 0;
+    const cls  = pct >= 100 ? 'over' : pct >= 80 ? 'warn' : '';
+    return `
+      <div class="capacity-card">
+        <h4>${eq.nome}</h4>
+        <div class="progress-bar"><div class="progress-fill ${cls}" style="width:${Math.min(pct,100)}%"></div></div>
+        <div class="capacity-info">
+          <span>${peso(prod)} produzido</span>
+          <span>Cap: ${cap > 0 ? peso(cap) : 'N/D'}</span>
+        </div>
+        ${pct >= 100 ? '<div style="font-size:11px;color:var(--danger);margin-top:6px">⚠ Capacidade excedida!</div>' : ''}
+      </div>
+    `;
+  }).join('');
+}
+
+async function carregarProducao() {
+  let q = supabase.from('producao')
+    .select('*, equipamentos(nome), materiais(nome), colaboradores(nome)')
+    .order('data', { ascending: false });
+
+  const mes  = document.getElementById('f-mes').value;
+  const eq   = document.getElementById('f-equip').value;
+  const mat  = document.getElementById('f-mat').value;
+
+  if (mes) {
+    const [y,m] = mes.split('-');
+    q = q.gte('data',`${y}-${m}-01`).lte('data', new Date(y,m,0).toISOString().split('T')[0]);
+  }
+  if (eq)  q = q.eq('equipamento_id', eq);
+  if (mat) q = q.eq('material_id', mat);
+
+  const { data } = await q;
+  producaoData = data || [];
+
+  const totKg = producaoData.reduce((s,r)=>s+r.peso_produzido_kg,0);
+  const dias  = new Set(producaoData.map(r=>r.data)).size || 1;
+  document.getElementById('kpi-mes').textContent   = peso(totKg);
+  document.getElementById('kpi-regs').textContent  = producaoData.length;
+  document.getElementById('kpi-media').textContent = peso(totKg/dias);
+
+  const isAdmin = perfil?.role === 'admin';
+  const tb = document.getElementById('tb-producao');
+  if (!producaoData.length) {
+    tb.innerHTML = '<tr><td colspan="6" class="table-empty">Nenhum registro encontrado</td></tr>';
+    return;
+  }
+  tb.innerHTML = producaoData.map(r => `
+    <tr>
+      <td>${dataBR(r.data)}</td>
+      <td>${r.equipamentos?.nome||'—'}</td>
+      <td>${r.materiais?.nome||'—'}</td>
+      <td>${r.colaboradores?.nome||'—'}</td>
+      <td class="text-right">${peso(r.peso_produzido_kg)}</td>
+      <td>${isAdmin?`
+        <button class="btn-icon" onclick="editarProd('${r.id}')">✏️</button>
+        <button class="btn-icon danger" onclick="excluirProd('${r.id}')">🗑️</button>
+      `:'—'}</td>
+    </tr>
+  `).join('');
+}
+
+async function carregarEquipamentos() {
+  const { data } = await supabase.from('equipamentos').select('*').order('nome');
+  const isAdmin = perfil?.role === 'admin';
+  document.getElementById('tb-equipamentos').innerHTML = (data||[]).map(e=>`
+    <tr>
+      <td>${e.nome}</td>
+      <td class="text-right">${e.capacidade_kg_dia ? peso(e.capacidade_kg_dia) : '—'}</td>
+      <td><span class="badge ${e.ativo?'badge-green':'badge-gray'}">${e.ativo?'Ativo':'Inativo'}</span></td>
+      <td>${isAdmin?`
+        <button class="btn-icon" onclick="editarEquip(${JSON.stringify(e).replace(/"/g,'&quot;')})">✏️</button>
+        <button class="btn-icon danger" onclick="toggleEquip('${e.id}',${e.ativo})">${e.ativo?'🚫':'✅'}</button>
+      `:'—'}</td>
+    </tr>
+  `).join('') || '<tr><td colspan="4" class="table-empty">Nenhum equipamento</td></tr>';
+}
+
+async function carregarMateriais() {
+  const { data } = await supabase.from('materiais').select('*').order('nome');
+  const isAdmin = perfil?.role === 'admin';
+  document.getElementById('tb-materiais').innerHTML = (data||[]).map(m=>`
+    <tr>
+      <td>${m.nome}</td>
+      <td>${m.unidade_medida||'kg'}</td>
+      <td><span class="badge ${m.ativo?'badge-green':'badge-gray'}">${m.ativo?'Ativo':'Inativo'}</span></td>
+      <td>${isAdmin?`
+        <button class="btn-icon" onclick="editarMat(${JSON.stringify(m).replace(/"/g,'&quot;')})">✏️</button>
+        <button class="btn-icon danger" onclick="toggleMat('${m.id}',${m.ativo})">${m.ativo?'🚫':'✅'}</button>
+      `:'—'}</td>
+    </tr>
+  `).join('') || '<tr><td colspan="4" class="table-empty">Nenhum material</td></tr>';
+}
+
+/* ── Produção CRUD ── */
+document.getElementById('btn-nova').addEventListener('click', () => {
+  document.getElementById('modal-prod-title').textContent = 'Novo Registro de Produção';
+  document.getElementById('form-prod').reset();
+  document.querySelector('#form-prod [name="id"]').value = '';
+  document.getElementById('alerta-capacidade').style.display = 'none';
+  abrirModal('modal-prod');
+});
+
+document.querySelector('#form-prod [name="peso_produzido_kg"]').addEventListener('input', verificarCapacidade);
+document.querySelector('#form-prod [name="equipamento_id"]').addEventListener('change', verificarCapacidade);
+document.querySelector('#form-prod [name="data"]').addEventListener('change', verificarCapacidade);
+
+async function verificarCapacidade() {
+  const eqId = document.querySelector('#form-prod [name="equipamento_id"]').value;
+  const data  = document.querySelector('#form-prod [name="data"]').value;
+  const peso  = parseFloat(document.querySelector('#form-prod [name="peso_produzido_kg"]').value)||0;
+  const alerta = document.getElementById('alerta-capacidade');
+  if (!eqId || !data || !peso) { alerta.style.display='none'; return; }
+
+  const eq = equipamentos.find(e=>e.id===eqId);
+  if (!eq?.capacidade_kg_dia) { alerta.style.display='none'; return; }
+
+  const { data: prod } = await supabase.from('producao')
+    .select('peso_produzido_kg').eq('equipamento_id', eqId).eq('data', data);
+  const total = (prod||[]).reduce((s,r)=>s+r.peso_produzido_kg,0) + peso;
+  alerta.style.display = total > eq.capacidade_kg_dia ? 'block' : 'none';
+}
+
+window.editarProd = id => {
+  const r = producaoData.find(p=>p.id===id);
+  if (!r) return;
+  document.getElementById('modal-prod-title').textContent = 'Editar Produção';
+  const f = document.getElementById('form-prod');
+  f.querySelector('[name="id"]').value              = r.id;
+  f.querySelector('[name="data"]').value            = r.data;
+  f.querySelector('[name="equipamento_id"]').value  = r.equipamento_id;
+  f.querySelector('[name="material_id"]').value     = r.material_id;
+  f.querySelector('[name="operador_id"]').value     = r.operador_id || '';
+  f.querySelector('[name="peso_produzido_kg"]').value = r.peso_produzido_kg;
+  abrirModal('modal-prod');
+};
+
+document.getElementById('btn-salvar-prod').addEventListener('click', async () => {
+  const f = document.getElementById('form-prod');
+  if (!f.checkValidity()) { f.reportValidity(); return; }
+  const fd = Object.fromEntries(new FormData(f));
+  const { data: { user } } = await supabase.auth.getUser();
+  const payload = {
+    equipamento_id:    fd.equipamento_id,
+    material_id:       fd.material_id,
+    operador_id:       fd.operador_id || null,
+    peso_produzido_kg: parseFloat(fd.peso_produzido_kg),
+    data:              fd.data,
+    criado_por:        user.id,
+  };
+  if (fd.id) {
+    await supabase.from('producao').update(payload).eq('id', fd.id);
+    await supabase.from('estoque_movimentacoes').delete().eq('origem_id', fd.id);
+    await supabase.from('estoque_movimentacoes').insert({
+      material_id: payload.material_id, tipo: 'entrada', peso_kg: payload.peso_produzido_kg,
+      origem_tipo: 'producao', origem_id: fd.id, data: payload.data
+    });
+    toast('Produção atualizada!');
+  } else {
+    const { data: nova, error } = await supabase.from('producao').insert(payload).select().single();
+    if (error) { toast('Erro ao salvar','error'); return; }
+    await supabase.from('estoque_movimentacoes').insert({
+      material_id: payload.material_id, tipo: 'entrada', peso_kg: payload.peso_produzido_kg,
+      origem_tipo: 'producao', origem_id: nova.id, data: payload.data
+    });
+    toast('Produção registrada!');
+  }
+  fecharModal('modal-prod');
+  carregarProducao();
+  carregarCapacidades();
+});
+
+window.excluirProd = async id => {
+  if (!confirm('Excluir este registro?')) return;
+  await supabase.from('estoque_movimentacoes').delete().eq('origem_id', id);
+  await supabase.from('producao').delete().eq('id', id);
+  toast('Registro excluído!');
+  carregarProducao();
+  carregarCapacidades();
+};
+
+/* ── Equipamento CRUD ── */
+document.getElementById('btn-novo-equip').addEventListener('click', () => {
+  document.getElementById('modal-equip-title').textContent = 'Novo Equipamento';
+  document.getElementById('form-equip').reset();
+  document.querySelector('#form-equip [name="id"]').value = '';
+  abrirModal('modal-equip');
+});
+window.editarEquip = e => {
+  document.getElementById('modal-equip-title').textContent = 'Editar Equipamento';
+  const f = document.getElementById('form-equip');
+  f.querySelector('[name="id"]').value              = e.id;
+  f.querySelector('[name="nome"]').value            = e.nome;
+  f.querySelector('[name="capacidade_kg_dia"]').value = e.capacidade_kg_dia||'';
+  abrirModal('modal-equip');
+};
+window.toggleEquip = async (id, ativo) => {
+  await supabase.from('equipamentos').update({ ativo: !ativo }).eq('id', id);
+  carregarEquipamentos();
+};
+document.getElementById('btn-salvar-equip').addEventListener('click', async () => {
+  const f = document.getElementById('form-equip');
+  if (!f.checkValidity()) { f.reportValidity(); return; }
+  const fd = Object.fromEntries(new FormData(f));
+  const payload = { nome: fd.nome, capacidade_kg_dia: parseFloat(fd.capacidade_kg_dia)||null };
+  if (fd.id) { await supabase.from('equipamentos').update(payload).eq('id', fd.id); toast('Equipamento atualizado!'); }
+  else       { await supabase.from('equipamentos').insert(payload); toast('Equipamento criado!'); }
+  fecharModal('modal-equip');
+  const { data: eq } = await supabase.from('equipamentos').select('*').eq('ativo',true).order('nome');
+  equipamentos = eq||[];
+  popularSelects();
+  carregarEquipamentos();
+  carregarCapacidades();
+});
+
+/* ── Material CRUD ── */
+document.getElementById('btn-novo-mat').addEventListener('click', () => {
+  document.getElementById('modal-mat-title').textContent = 'Novo Material';
+  document.getElementById('form-mat').reset();
+  document.querySelector('#form-mat [name="id"]').value = '';
+  abrirModal('modal-mat');
+});
+window.editarMat = m => {
+  document.getElementById('modal-mat-title').textContent = 'Editar Material';
+  const f = document.getElementById('form-mat');
+  f.querySelector('[name="id"]').value            = m.id;
+  f.querySelector('[name="nome"]').value          = m.nome;
+  f.querySelector('[name="unidade_medida"]').value = m.unidade_medida||'';
+  abrirModal('modal-mat');
+};
+window.toggleMat = async (id, ativo) => {
+  await supabase.from('materiais').update({ ativo: !ativo }).eq('id', id);
+  carregarMateriais();
+};
+document.getElementById('btn-salvar-mat').addEventListener('click', async () => {
+  const f = document.getElementById('form-mat');
+  if (!f.checkValidity()) { f.reportValidity(); return; }
+  const fd = Object.fromEntries(new FormData(f));
+  const payload = { nome: fd.nome, unidade_medida: fd.unidade_medida||'kg' };
+  if (fd.id) { await supabase.from('materiais').update(payload).eq('id', fd.id); toast('Material atualizado!'); }
+  else       { await supabase.from('materiais').insert(payload); toast('Material criado!'); }
+  fecharModal('modal-mat');
+  const { data: mt } = await supabase.from('materiais').select('*').eq('ativo',true).order('nome');
+  materiais = mt||[];
+  popularSelects();
+  carregarMateriais();
+});
+
+document.getElementById('btn-filtrar').addEventListener('click', carregarProducao);
+document.querySelectorAll('[data-close]').forEach(btn => btn.addEventListener('click', () => fecharModal(btn.dataset.close)));
+document.querySelectorAll('.modal-backdrop').forEach(m => m.addEventListener('click', e => { if(e.target===m) fecharModal(m.id); }));
+
+await init();
+</script>
+</body>
+</html>

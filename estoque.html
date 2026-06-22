@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Estoque — SGR Indaiatuba</title>
+  <link rel="stylesheet" href="css/style.css" />
+</head>
+<body>
+<div class="app-layout">
+  <div id="sidebar-root"></div>
+  <div class="main-content">
+    <div class="page-header">
+      <div><h2>Estoque</h2><p>Saldo e movimentações de materiais</p></div>
+    </div>
+    <div class="page-body">
+      <!-- Saldo por material -->
+      <div class="table-card mb-16">
+        <div class="table-card-header">
+          <h3>Saldo Atual por Material</h3>
+          <span class="text-muted" style="font-size:12px">Calculado automaticamente</span>
+        </div>
+        <div class="table-scroll">
+          <table>
+            <thead>
+              <tr>
+                <th>Material</th>
+                <th class="text-right">Entradas (kg)</th>
+                <th class="text-right">Saídas (kg)</th>
+                <th class="text-right">Saldo (kg)</th>
+                <th>Situação</th>
+              </tr>
+            </thead>
+            <tbody id="tb-saldo"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- KPIs -->
+      <div class="kpi-grid" style="grid-template-columns:repeat(4,1fr)">
+        <div class="kpi-card"><div class="kpi-label">Saldo Total</div><div class="kpi-value" id="kpi-saldo">—</div><div class="kpi-sub">kg em estoque</div></div>
+        <div class="kpi-card"><div class="kpi-label">Total Entradas</div><div class="kpi-value" id="kpi-ent">—</div><div class="kpi-sub">kg (all time)</div></div>
+        <div class="kpi-card"><div class="kpi-label">Total Saídas</div><div class="kpi-value" id="kpi-sai">—</div><div class="kpi-sub">kg (all time)</div></div>
+        <div class="kpi-card"><div class="kpi-label">Materiais</div><div class="kpi-value" id="kpi-mats">—</div><div class="kpi-sub">em estoque positivo</div></div>
+      </div>
+
+      <!-- Filtros movimentações -->
+      <div class="card mb-16" style="padding:16px">
+        <div class="filters-row">
+          <div class="form-group"><label>Período</label><input type="month" id="f-mes" /></div>
+          <div class="form-group"><label>Material</label><select id="f-mat"><option value="">Todos</option></select></div>
+          <div class="form-group"><label>Tipo</label>
+            <select id="f-tipo">
+              <option value="">Todos</option>
+              <option value="entrada">Entrada</option>
+              <option value="saida">Saída</option>
+            </select>
+          </div>
+          <div class="form-group"><label>Origem</label>
+            <select id="f-origem">
+              <option value="">Todas</option>
+              <option value="entrada">Recebimento</option>
+              <option value="producao">Produção</option>
+              <option value="venda">Venda</option>
+              <option value="ajuste">Ajuste</option>
+            </select>
+          </div>
+          <div class="form-group" style="justify-content:flex-end"><label>&nbsp;</label><button class="btn btn-primary" id="btn-filtrar">Filtrar</button></div>
+        </div>
+      </div>
+
+      <!-- Histórico de movimentações -->
+      <div class="table-card">
+        <div class="table-card-header">
+          <h3>Histórico de Movimentações</h3>
+          <span id="mov-count" class="text-muted" style="font-size:12px"></span>
+        </div>
+        <div class="table-scroll">
+          <table>
+            <thead>
+              <tr>
+                <th>Data</th><th>Material</th><th>Tipo</th><th>Origem</th>
+                <th class="text-right">Peso (kg)</th>
+              </tr>
+            </thead>
+            <tbody id="tb-movimentacoes"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+<div id="toast-container"></div>
+
+<script type="module">
+import { initPage, supabase, peso, dataBR } from './js/config.js';
+
+await initPage();
+
+async function init() {
+  const { data: mats } = await supabase.from('materiais').select('*').order('nome');
+  const matSel = document.getElementById('f-mat');
+  matSel.innerHTML = '<option value="">Todos</option>' + (mats||[]).map(m=>`<option value="${m.id}">${m.nome}</option>`).join('');
+
+  await Promise.all([carregarSaldo(), carregarMovimentacoes()]);
+}
+
+async function carregarSaldo() {
+  const { data: movs } = await supabase.from('estoque_movimentacoes')
+    .select('material_id, tipo, peso_kg, materiais(nome)');
+
+  const map = {};
+  (movs||[]).forEach(r => {
+    const nome = r.materiais?.nome || r.material_id;
+    if (!map[nome]) map[nome] = { ent: 0, sai: 0 };
+    if (r.tipo === 'entrada') map[nome].ent += r.peso_kg;
+    else                      map[nome].sai += r.peso_kg;
+  });
+
+  const rows = Object.entries(map).sort((a,b)=>a[0].localeCompare(b[0]));
+  let totEnt = 0, totSai = 0, totSaldo = 0, posCount = 0;
+  rows.forEach(([,v]) => { totEnt += v.ent; totSai += v.sai; });
+
+  const tb = document.getElementById('tb-saldo');
+  if (!rows.length) {
+    tb.innerHTML = '<tr><td colspan="5" class="table-empty">Nenhuma movimentação registrada</td></tr>';
+  } else {
+    tb.innerHTML = rows.map(([nome, v]) => {
+      const saldo = v.ent - v.sai;
+      if (saldo > 0) { totSaldo += saldo; posCount++; }
+      const badge = saldo > 0 ? 'badge-green' : saldo === 0 ? 'badge-gray' : 'badge-red';
+      const label = saldo > 0 ? 'OK' : saldo === 0 ? 'Zerado' : 'Negativo';
+      return `<tr>
+        <td>${nome}</td>
+        <td class="text-right">${peso(v.ent)}</td>
+        <td class="text-right">${peso(v.sai)}</td>
+        <td class="text-right fw-600">${peso(saldo)}</td>
+        <td><span class="badge ${badge}">${label}</span></td>
+      </tr>`;
+    }).join('');
+  }
+
+  document.getElementById('kpi-saldo').textContent = peso(totSaldo);
+  document.getElementById('kpi-ent').textContent   = peso(totEnt);
+  document.getElementById('kpi-sai').textContent   = peso(totSai);
+  document.getElementById('kpi-mats').textContent  = posCount;
+}
+
+async function carregarMovimentacoes() {
+  let q = supabase.from('estoque_movimentacoes')
+    .select('*, materiais(nome)')
+    .order('data', { ascending: false })
+    .limit(500);
+
+  const mes    = document.getElementById('f-mes').value;
+  const mat    = document.getElementById('f-mat').value;
+  const tipo   = document.getElementById('f-tipo').value;
+  const origem = document.getElementById('f-origem').value;
+
+  if (mes) {
+    const [y,m] = mes.split('-');
+    q = q.gte('data',`${y}-${m}-01`).lte('data', new Date(y,m,0).toISOString().split('T')[0]);
+  }
+  if (mat)    q = q.eq('material_id', mat);
+  if (tipo)   q = q.eq('tipo', tipo);
+  if (origem) q = q.eq('origem_tipo', origem);
+
+  const { data } = await q;
+  const movs = data || [];
+  document.getElementById('mov-count').textContent = `${movs.length} registros`;
+
+  const origemLabel = { entrada:'Recebimento', producao:'Produção', venda:'Venda', ajuste:'Ajuste' };
+  const tb = document.getElementById('tb-movimentacoes');
+  if (!movs.length) {
+    tb.innerHTML = '<tr><td colspan="5" class="table-empty">Nenhuma movimentação encontrada</td></tr>';
+    return;
+  }
+  tb.innerHTML = movs.map(r => `
+    <tr>
+      <td>${dataBR(r.data)}</td>
+      <td>${r.materiais?.nome||'—'}</td>
+      <td><span class="badge ${r.tipo==='entrada'?'badge-green':'badge-red'}">${r.tipo==='entrada'?'Entrada':'Saída'}</span></td>
+      <td>${origemLabel[r.origem_tipo]||r.origem_tipo}</td>
+      <td class="text-right ${r.tipo==='entrada'?'text-green':'text-red'}">${r.tipo==='saida'?'-':''}${peso(r.peso_kg)}</td>
+    </tr>
+  `).join('');
+}
+
+document.getElementById('btn-filtrar').addEventListener('click', carregarMovimentacoes);
+await init();
+</script>
+</body>
+</html>

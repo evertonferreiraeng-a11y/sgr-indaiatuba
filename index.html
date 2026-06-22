@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>SGR Indaiatuba — Login</title>
+  <link rel="stylesheet" href="css/style.css" />
+  <style>
+    .login-error {
+      background: var(--danger-light);
+      color: var(--danger);
+      border: 1px solid #FECACA;
+      border-radius: 7px;
+      padding: 10px 14px;
+      font-size: 13px;
+      display: none;
+      margin-bottom: 14px;
+    }
+  </style>
+</head>
+<body>
+<div class="login-page">
+  <div class="login-card">
+    <div class="login-logo">
+      <svg width="48" height="48" viewBox="0 0 48 48" fill="none" style="margin-bottom:8px">
+        <circle cx="24" cy="24" r="24" fill="#1B7A43"/>
+        <path d="M14 28l6-8 5 6 4-5 5 7H14z" fill="#fff" opacity=".9"/>
+        <path d="M20 20l-6 8h24l-5-7-4 5-5-6z" fill="#fff"/>
+      </svg>
+      <h1>SGR Indaiatuba</h1>
+      <p>Sistema de Gestão de Resíduos — UVRR</p>
+    </div>
+    <div class="login-error" id="login-error"></div>
+    <form class="login-form" id="login-form">
+      <div class="form-group">
+        <label for="email">E-mail</label>
+        <input type="email" id="email" name="email" placeholder="seu@email.com" required />
+      </div>
+      <div class="form-group">
+        <label for="senha">Senha</label>
+        <input type="password" id="senha" name="senha" placeholder="••••••••" required />
+      </div>
+      <button type="submit" class="btn btn-primary" id="btn-entrar">Entrar</button>
+    </form>
+  </div>
+</div>
+<div id="toast-container"></div>
+
+<script type="module">
+import { supabase, redirectIfAuth, toast } from './js/config.js';
+
+redirectIfAuth();
+
+document.getElementById('login-form').addEventListener('submit', async e => {
+  e.preventDefault();
+  const btn = document.getElementById('btn-entrar');
+  const errEl = document.getElementById('login-error');
+  const email = document.getElementById('email').value.trim();
+  const senha = document.getElementById('senha').value;
+
+  btn.disabled = true;
+  btn.textContent = 'Entrando…';
+  errEl.style.display = 'none';
+
+  const { error } = await supabase.auth.signInWithPassword({ email, password: senha });
+
+  if (error) {
+    errEl.textContent = 'E-mail ou senha inválidos.';
+    errEl.style.display = 'block';
+    btn.disabled = false;
+    btn.textContent = 'Entrar';
+  } else {
+    location.href = 'dashboard.html';
+  }
+});
+</script>
+</body>
+</html>
