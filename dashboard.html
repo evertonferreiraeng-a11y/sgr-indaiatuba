@@ -235,7 +235,7 @@ async function carregarKPIs(inicio, fim) {
   const [{ data: ents }, { data: vends }, { data: mats }] = await Promise.all([
     supabase.from('entradas').select('peso_kg, peso_liquido_descontos, rejeito_uvr').gte('data', inicio).lte('data', fim),
     supabase.from('vendas').select('peso_kg, valor').gte('data', inicio).lte('data', fim),
-    supabase.from('materiais').select('estoque_kg, no_estoque').eq('no_estoque', true),
+    supabase.from('materiais').select('estoque_kg, valor_unitario, no_estoque').eq('no_estoque', true),
   ]);
 
   const recicKg  = (ents||[]).reduce((s,r)=>s+parseFloat(r.peso_liquido_descontos??r.peso_kg??0), 0);
@@ -245,6 +245,7 @@ async function carregarKPIs(inicio, fim) {
   const expVal   = (vends||[]).reduce((s,r)=>s+(r.valor||0), 0);
 
   const saldoKg  = (mats||[]).reduce((s,r)=>s+parseFloat(r.estoque_kg||0), 0);
+  const saldoVal = (mats||[]).reduce((s,r)=>s+(parseFloat(r.estoque_kg||0)*parseFloat(r.valor_unitario||0)), 0);
 
   const pct = (n, d) => d > 0 ? (n/d*100).toFixed(1)+'%' : '0%';
   document.getElementById('kpi-rec-kg').textContent  = peso(recicKg);
@@ -254,7 +255,7 @@ async function carregarKPIs(inicio, fim) {
   document.getElementById('kpi-exp-kg').textContent  = peso(expKg);
   document.getElementById('kpi-exp-pct').textContent = pct(expKg, totalEnt);
   document.getElementById('kpi-est-kg').textContent  = peso(saldoKg);
-  document.getElementById('kpi-est-val').textContent = moeda(expVal);
+  document.getElementById('kpi-est-val').textContent = moeda(saldoVal);
 
   const taxa = totalEnt > 0 ? Math.min((expKg/totalEnt)*100, 100) : 0;
   atualizarGauge(taxa);
