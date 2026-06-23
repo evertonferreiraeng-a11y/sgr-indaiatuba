@@ -632,6 +632,7 @@ document.getElementById('csv-import').addEventListener('change', async function(
       transportadora:    col(row,'transportadora') || null,
       tipo_movimentacao: 'entrada',
       destino:           col(row,'destino') || null,
+      valor:             0,
     };
 
     const { error } = await supabase.from('entradas').insert(payload);
