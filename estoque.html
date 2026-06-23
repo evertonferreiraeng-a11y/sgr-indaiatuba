@@ -5,289 +5,227 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Estoque — SGR Indaiatuba</title>
   <link rel="stylesheet" href="css/style.css" />
+  <style>
+    .edit-cell { cursor:pointer; border-bottom:1px dashed #94a3b8; }
+    .edit-cell:hover { background:#f8fafc; }
+    .inline-input { border:1px solid #2563eb; border-radius:4px; padding:3px 6px; font-size:14px; width:100%; box-sizing:border-box; }
+  </style>
 </head>
 <body>
 <div class="app-layout">
   <div id="sidebar-root"></div>
   <div class="main-content">
     <div class="page-header">
-      <div><h2>Estoque</h2><p>Saldo e movimentações de materiais</p></div>
-      <button class="btn btn-primary" id="btn-novo-ajuste">+ Novo Ajuste</button>
+      <div><h2>Estoque</h2><p>Saldo atual de materiais</p></div>
     </div>
     <div class="page-body">
 
-      <!-- Saldo por material -->
-      <div class="table-card mb-16">
-        <div class="table-card-header">
-          <h3>Saldo Atual por Material</h3>
-          <span class="text-muted" style="font-size:12px">Calculado automaticamente</span>
-        </div>
-        <div class="table-scroll">
-          <table>
-            <thead>
-              <tr><th>Material</th><th class="text-right">Entradas (kg)</th><th class="text-right">Saídas (kg)</th><th class="text-right">Saldo (kg)</th><th>Situação</th></tr>
-            </thead>
-            <tbody id="tb-saldo"></tbody>
-          </table>
-        </div>
-      </div>
-
       <!-- KPIs -->
-      <div class="kpi-grid" style="grid-template-columns:repeat(4,1fr)">
-        <div class="kpi-card"><div class="kpi-label">Saldo Total</div><div class="kpi-value" id="kpi-saldo">—</div><div class="kpi-sub">kg em estoque</div></div>
-        <div class="kpi-card"><div class="kpi-label">Total Entradas</div><div class="kpi-value" id="kpi-ent">—</div><div class="kpi-sub">kg (all time)</div></div>
-        <div class="kpi-card"><div class="kpi-label">Total Saídas</div><div class="kpi-value" id="kpi-sai">—</div><div class="kpi-sub">kg (all time)</div></div>
-        <div class="kpi-card"><div class="kpi-label">Materiais</div><div class="kpi-value" id="kpi-mats">—</div><div class="kpi-sub">em estoque positivo</div></div>
-      </div>
-
-      <!-- Filtros movimentações -->
-      <div class="card mb-16" style="padding:16px">
-        <div class="filters-row">
-          <div class="form-group"><label>Período</label><input type="month" id="f-mes" /></div>
-          <div class="form-group"><label>Material</label><select id="f-mat"><option value="">Todos</option></select></div>
-          <div class="form-group"><label>Tipo</label>
-            <select id="f-tipo">
-              <option value="">Todos</option>
-              <option value="entrada">Entrada</option>
-              <option value="saida">Saída</option>
-            </select>
-          </div>
-          <div class="form-group"><label>Origem</label>
-            <select id="f-origem">
-              <option value="">Todas</option>
-              <option value="entrada">Recebimento</option>
-              <option value="producao">Produção</option>
-              <option value="venda">Venda</option>
-              <option value="ajuste">Ajuste</option>
-            </select>
-          </div>
-          <div class="form-group" style="justify-content:flex-end"><label>&nbsp;</label><button class="btn btn-primary" id="btn-filtrar">Filtrar</button></div>
+      <div class="kpi-grid" style="grid-template-columns:repeat(2,1fr);max-width:500px">
+        <div class="kpi-card">
+          <div class="kpi-label">Volume Total em Estoque</div>
+          <div class="kpi-value" id="kpi-kg">—</div>
+          <div class="kpi-sub">kg</div>
+        </div>
+        <div class="kpi-card">
+          <div class="kpi-label">Valor Total em Estoque</div>
+          <div class="kpi-value" id="kpi-valor">—</div>
+          <div class="kpi-sub">R$</div>
         </div>
       </div>
 
-      <!-- Histórico de movimentações -->
+      <!-- Tabela de estoque -->
       <div class="table-card">
         <div class="table-card-header">
-          <h3>Histórico de Movimentações</h3>
-          <span id="mov-count" class="text-muted" style="font-size:12px"></span>
+          <h3>Saldo por Material</h3>
+          <span class="text-muted" style="font-size:12px">Clique no valor unitário ou observação para editar</span>
         </div>
         <div class="table-scroll">
           <table>
             <thead>
-              <tr><th>Data</th><th>Material</th><th>Tipo</th><th>Origem</th><th class="text-right">Peso (kg)</th><th>Ações</th></tr>
+              <tr>
+                <th>Material</th>
+                <th class="text-right">Kg em Estoque</th>
+                <th class="text-right">Valor Unitário (R$/kg)</th>
+                <th class="text-right">Valor Total</th>
+                <th>Observação</th>
+              </tr>
             </thead>
-            <tbody id="tb-movimentacoes"></tbody>
+            <tbody id="tb-estoque"></tbody>
+            <tfoot id="tf-estoque"></tfoot>
           </table>
         </div>
       </div>
-    </div>
-  </div>
-</div>
 
-<!-- Modal: Novo Ajuste Manual -->
-<div class="modal-backdrop" id="modal-ajuste">
-  <div class="modal">
-    <div class="modal-header">
-      <h3 id="modal-ajuste-title">Novo Ajuste de Estoque</h3>
-      <button class="modal-close" data-close="modal-ajuste">✕</button>
-    </div>
-    <div class="modal-body">
-      <form id="form-ajuste">
-        <input type="hidden" name="id" />
-        <div class="form-grid">
-          <div class="form-group"><label>Data *</label><input type="date" name="data" required /></div>
-          <div class="form-group"><label>Tipo *</label>
-            <select name="tipo" required>
-              <option value="">Selecione…</option>
-              <option value="entrada">Entrada (adicionar)</option>
-              <option value="saida">Saída (remover)</option>
-            </select>
-          </div>
-          <div class="form-group full"><label>Material *</label><select name="material_id" required><option value="">Selecione…</option></select></div>
-          <div class="form-group full"><label>Peso (kg) *</label><input type="number" name="peso_kg" min="0.01" step="0.01" required /></div>
-          <div class="form-group full"><label>Observação</label><input type="text" name="observacao" placeholder="Motivo do ajuste…" /></div>
-        </div>
-      </form>
-    </div>
-    <div class="modal-footer">
-      <button class="btn btn-outline" data-close="modal-ajuste">Cancelar</button>
-      <button class="btn btn-primary" id="btn-salvar-ajuste">Salvar</button>
     </div>
   </div>
 </div>
 
 <div id="toast-container"></div>
 <script type="module">
-import { initPage, supabase, peso, dataBR, toast, abrirModal, fecharModal } from './js/config.js';
+import { initPage, supabase, peso, moeda, toast } from './js/config.js';
 
 await initPage();
 
-let perfil, movData = [];
+let perfil, matsData = [];
 
 async function init() {
   const { data: { user } } = await supabase.auth.getUser();
   const { data: p } = await supabase.from('profiles').select('*').eq('id', user.id).single();
   perfil = p;
-
-  const { data: mats } = await supabase.from('materiais').select('*').order('nome');
-  const matOpts = (mats||[]).map(m=>`<option value="${m.id}">${m.nome}</option>`).join('');
-  document.getElementById('f-mat').innerHTML = '<option value="">Todos</option>' + matOpts;
-  document.querySelector('#form-ajuste [name="material_id"]').innerHTML = '<option value="">Selecione…</option>' + matOpts;
-
-  await Promise.all([carregarSaldo(), carregarMovimentacoes()]);
+  await carregar();
 }
 
-async function carregarSaldo() {
-  const { data: movs } = await supabase.from('estoque_movimentacoes')
-    .select('material_id, tipo, peso_kg, materiais(nome)');
+async function carregar() {
+  // Busca materiais com valor_unitario e observacao
+  const { data: mats, error: e1 } = await supabase.from('materiais').select('*').order('nome');
+  if (e1) { console.error(e1); }
 
-  const map = {};
-  (movs||[]).forEach(r => {
-    const nome = r.materiais?.nome || r.material_id;
-    if (!map[nome]) map[nome] = { ent: 0, sai: 0 };
-    if (r.tipo === 'entrada') map[nome].ent += r.peso_kg;
-    else                      map[nome].sai += r.peso_kg;
+  // Busca movimentações de ENTRADA para calcular saldo
+  const { data: movs, error: e2 } = await supabase
+    .from('estoque_movimentacoes')
+    .select('material_id, tipo, peso_kg');
+  if (e2) console.error(e2);
+
+  // Busca entradas direto da tabela entradas (peso_liquido_descontos por material)
+  const { data: ents } = await supabase
+    .from('entradas')
+    .select('material_id, peso_liquido_descontos, peso_kg');
+
+  // Calcula saldo por material_id a partir de movimentações
+  const saldoMap = {};
+  (movs || []).forEach(r => {
+    if (!saldoMap[r.material_id]) saldoMap[r.material_id] = 0;
+    if (r.tipo === 'entrada') saldoMap[r.material_id] += parseFloat(r.peso_kg) || 0;
+    else                      saldoMap[r.material_id] -= parseFloat(r.peso_kg) || 0;
   });
 
-  const rows = Object.entries(map).sort((a,b)=>a[0].localeCompare(b[0]));
-  let totEnt = 0, totSai = 0, totSaldo = 0, posCount = 0;
-  rows.forEach(([,v]) => { totEnt += v.ent; totSai += v.sai; });
+  // Adiciona peso das entradas diretas (se material_id existir)
+  (ents || []).forEach(r => {
+    if (!r.material_id) return;
+    if (!saldoMap[r.material_id]) saldoMap[r.material_id] = 0;
+    saldoMap[r.material_id] += parseFloat(r.peso_liquido_descontos || r.peso_kg) || 0;
+  });
 
-  const tb = document.getElementById('tb-saldo');
-  if (!rows.length) {
-    tb.innerHTML = '<tr><td colspan="5" class="table-empty">Nenhuma movimentação registrada</td></tr>';
-  } else {
-    tb.innerHTML = rows.map(([nome, v]) => {
-      const saldo = v.ent - v.sai;
-      if (saldo > 0) { totSaldo += saldo; posCount++; }
-      const badge = saldo > 0 ? 'badge-green' : saldo === 0 ? 'badge-gray' : 'badge-red';
-      const label = saldo > 0 ? 'OK' : saldo === 0 ? 'Zerado' : 'Negativo';
-      return `<tr>
-        <td>${nome}</td>
-        <td class="text-right">${peso(v.ent)}</td>
-        <td class="text-right">${peso(v.sai)}</td>
-        <td class="text-right fw-600">${peso(saldo)}</td>
-        <td><span class="badge ${badge}">${label}</span></td>
-      </tr>`;
-    }).join('');
-  }
+  matsData = (mats || []).map(m => ({
+    ...m,
+    kg: Math.max(0, saldoMap[m.id] || 0),
+    valor_unitario: m.valor_unitario || 0,
+    observacao: m.observacao || '',
+  }));
 
-  document.getElementById('kpi-saldo').textContent = peso(totSaldo);
-  document.getElementById('kpi-ent').textContent   = peso(totEnt);
-  document.getElementById('kpi-sai').textContent   = peso(totSai);
-  document.getElementById('kpi-mats').textContent  = posCount;
+  renderTabela();
 }
 
-async function carregarMovimentacoes() {
-  let q = supabase.from('estoque_movimentacoes')
-    .select('*, materiais(nome)')
-    .order('data', { ascending: false })
-    .limit(500);
-
-  const mes    = document.getElementById('f-mes').value;
-  const mat    = document.getElementById('f-mat').value;
-  const tipo   = document.getElementById('f-tipo').value;
-  const origem = document.getElementById('f-origem').value;
-
-  if (mes) {
-    const [y,m] = mes.split('-');
-    q = q.gte('data',`${y}-${m}-01`).lte('data', new Date(y,m,0).toISOString().split('T')[0]);
-  }
-  if (mat)    q = q.eq('material_id', mat);
-  if (tipo)   q = q.eq('tipo', tipo);
-  if (origem) q = q.eq('origem_tipo', origem);
-
-  const { data } = await q;
-  movData = data || [];
-  document.getElementById('mov-count').textContent = `${movData.length} registros`;
-
-  const origemLabel = { entrada:'Recebimento', producao:'Produção', venda:'Venda', ajuste:'Ajuste Manual' };
+function renderTabela() {
   const isAdmin = perfil?.role === 'admin';
-  const tb = document.getElementById('tb-movimentacoes');
-  if (!movData.length) {
-    tb.innerHTML = '<tr><td colspan="6" class="table-empty">Nenhuma movimentação encontrada</td></tr>';
+  const tb = document.getElementById('tb-estoque');
+
+  if (!matsData.length) {
+    tb.innerHTML = '<tr><td colspan="5" class="table-empty">Nenhum material cadastrado</td></tr>';
+    document.getElementById('kpi-kg').textContent    = '0';
+    document.getElementById('kpi-valor').textContent = 'R$ 0,00';
     return;
   }
-  tb.innerHTML = movData.map(r => `
-    <tr>
-      <td>${dataBR(r.data)}</td>
-      <td>${r.materiais?.nome||'—'}</td>
-      <td><span class="badge ${r.tipo==='entrada'?'badge-green':'badge-red'}">${r.tipo==='entrada'?'Entrada':'Saída'}</span></td>
-      <td>${origemLabel[r.origem_tipo]||r.origem_tipo}</td>
-      <td class="text-right ${r.tipo==='entrada'?'text-green':'text-red'} fw-600">${r.tipo==='saida'?'-':''}${peso(r.peso_kg)}</td>
-      <td>
-        ${isAdmin ? `
-          ${r.origem_tipo === 'ajuste' ? `<button class="btn-icon" onclick="editarMov('${r.id}')">✏️</button>` : ''}
-          <button class="btn-icon danger" onclick="excluirMov('${r.id}','${r.origem_tipo}')">🗑️</button>
-        ` : '—'}
-      </td>
-    </tr>
-  `).join('');
+
+  let totalKg = 0, totalValor = 0;
+
+  tb.innerHTML = matsData.map(m => {
+    const valorTotal = m.kg * (m.valor_unitario || 0);
+    totalKg    += m.kg;
+    totalValor += valorTotal;
+
+    const valorUnitCell = isAdmin
+      ? `<td class="text-right edit-cell" title="Clique para editar" onclick="editarCelula(this,'${m.id}','valor_unitario',${m.valor_unitario||0})">${formatValor(m.valor_unitario)}</td>`
+      : `<td class="text-right">${formatValor(m.valor_unitario)}</td>`;
+
+    const obsCell = isAdmin
+      ? `<td class="edit-cell" title="Clique para editar" onclick="editarCelulaTexto(this,'${m.id}','observacao','${(m.observacao||'').replace(/'/g,"&#39;")}')">${m.observacao || '<span style="color:#94a3b8;font-size:12px">Clique para adicionar…</span>'}</td>`
+      : `<td>${m.observacao || '—'}</td>`;
+
+    return `<tr>
+      <td><strong>${m.nome}</strong></td>
+      <td class="text-right fw-600">${pesoFmt(m.kg)}</td>
+      ${valorUnitCell}
+      <td class="text-right fw-600${valorTotal > 0 ? ' text-green' : ''}">${moeda ? moeda(valorTotal) : 'R$ ' + valorTotal.toLocaleString('pt-BR',{minimumFractionDigits:2})}</td>
+      ${obsCell}
+    </tr>`;
+  }).join('');
+
+  // Rodapé totais
+  document.getElementById('tf-estoque').innerHTML = `
+    <tr style="background:#f8fafc;font-weight:700;border-top:2px solid #e2e8f0">
+      <td>TOTAL</td>
+      <td class="text-right">${pesoFmt(totalKg)}</td>
+      <td></td>
+      <td class="text-right text-green">${fmtMoeda(totalValor)}</td>
+      <td></td>
+    </tr>`;
+
+  document.getElementById('kpi-kg').textContent    = pesoFmt(totalKg);
+  document.getElementById('kpi-valor').textContent = fmtMoeda(totalValor);
 }
 
-/* ── Ajuste manual ── */
-document.getElementById('btn-novo-ajuste').addEventListener('click', () => {
-  document.getElementById('modal-ajuste-title').textContent = 'Novo Ajuste de Estoque';
-  document.getElementById('form-ajuste').reset();
-  document.querySelector('#form-ajuste [name="id"]').value = '';
-  const hoje = new Date().toISOString().split('T')[0];
-  document.querySelector('#form-ajuste [name="data"]').value = hoje;
-  abrirModal('modal-ajuste');
-});
+function pesoFmt(v) {
+  try { return peso(v); } catch { return v.toLocaleString('pt-BR',{maximumFractionDigits:2}) + ' kg'; }
+}
+function fmtMoeda(v) {
+  try { return moeda ? moeda(v) : 'R$ ' + v.toLocaleString('pt-BR',{minimumFractionDigits:2}); }
+  catch { return 'R$ ' + v.toLocaleString('pt-BR',{minimumFractionDigits:2}); }
+}
+function formatValor(v) {
+  if (!v) return '<span style="color:#94a3b8">0,00</span>';
+  return v.toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2});
+}
 
-window.editarMov = id => {
-  const r = movData.find(m=>m.id===id);
-  if (!r) return;
-  document.getElementById('modal-ajuste-title').textContent = 'Editar Ajuste';
-  const f = document.getElementById('form-ajuste');
-  f.querySelector('[name="id"]').value          = r.id;
-  f.querySelector('[name="data"]').value        = r.data;
-  f.querySelector('[name="tipo"]').value        = r.tipo;
-  f.querySelector('[name="material_id"]').value = r.material_id;
-  f.querySelector('[name="peso_kg"]').value     = r.peso_kg;
-  abrirModal('modal-ajuste');
-};
+// ── Edição inline — Valor Unitário ────────────────────────────────────────────
+window.editarCelula = (td, matId, campo, valorAtual) => {
+  if (td.querySelector('input')) return;
+  const orig = td.innerHTML;
+  td.innerHTML = `<input class="inline-input" type="number" min="0" step="0.01" value="${valorAtual}" />`;
+  const inp = td.querySelector('input');
+  inp.focus(); inp.select();
 
-document.getElementById('btn-salvar-ajuste').addEventListener('click', async () => {
-  const f = document.getElementById('form-ajuste');
-  if (!f.checkValidity()) { f.reportValidity(); return; }
-  const fd = Object.fromEntries(new FormData(f));
-  const payload = {
-    material_id: fd.material_id,
-    tipo:        fd.tipo,
-    peso_kg:     parseFloat(fd.peso_kg),
-    origem_tipo: 'ajuste',
-    data:        fd.data,
+  const salvar = async () => {
+    const novoVal = parseFloat(inp.value) || 0;
+    const { error } = await supabase.from('materiais').update({ [campo]: novoVal }).eq('id', matId);
+    if (error) { toast('Erro ao salvar: ' + error.message, 'error'); td.innerHTML = orig; return; }
+    const m = matsData.find(x => x.id === matId);
+    if (m) m[campo] = novoVal;
+    renderTabela();
+    toast('Valor atualizado!');
   };
-  if (fd.id) {
-    const { error } = await supabase.from('estoque_movimentacoes').update(payload).eq('id', fd.id);
-    if (error) { toast('Erro ao atualizar','error'); return; }
-    toast('Ajuste atualizado!');
-  } else {
-    const { error } = await supabase.from('estoque_movimentacoes').insert(payload);
-    if (error) { toast('Erro ao salvar','error'); return; }
-    toast('Ajuste registrado!');
-  }
-  fecharModal('modal-ajuste');
-  carregarSaldo();
-  carregarMovimentacoes();
-});
 
-window.excluirMov = async (id, origem) => {
-  const aviso = origem !== 'ajuste'
-    ? `Esta movimentação foi gerada automaticamente (${origem}). Excluir mesmo assim?`
-    : 'Excluir este ajuste?';
-  if (!confirm(aviso)) return;
-  const { error } = await supabase.from('estoque_movimentacoes').delete().eq('id', id);
-  if (error) { toast('Erro ao excluir','error'); return; }
-  toast('Movimentação excluída!');
-  carregarSaldo();
-  carregarMovimentacoes();
+  inp.addEventListener('blur', salvar);
+  inp.addEventListener('keydown', e => {
+    if (e.key === 'Enter') { e.preventDefault(); inp.blur(); }
+    if (e.key === 'Escape') { td.innerHTML = orig; }
+  });
 };
 
-document.getElementById('btn-filtrar').addEventListener('click', carregarMovimentacoes);
-document.querySelectorAll('[data-close]').forEach(btn => btn.addEventListener('click', () => fecharModal(btn.dataset.close)));
-document.querySelectorAll('.modal-backdrop').forEach(m => m.addEventListener('click', e => { if(e.target===m) fecharModal(m.id); }));
+// ── Edição inline — Observação ────────────────────────────────────────────────
+window.editarCelulaTexto = (td, matId, campo, valorAtual) => {
+  if (td.querySelector('input')) return;
+  const orig = td.innerHTML;
+  td.innerHTML = `<input class="inline-input" type="text" value="${valorAtual}" placeholder="Observação…" />`;
+  const inp = td.querySelector('input');
+  inp.focus(); inp.select();
+
+  const salvar = async () => {
+    const novoVal = inp.value.trim() || null;
+    const { error } = await supabase.from('materiais').update({ [campo]: novoVal }).eq('id', matId);
+    if (error) { toast('Erro ao salvar: ' + error.message, 'error'); td.innerHTML = orig; return; }
+    const m = matsData.find(x => x.id === matId);
+    if (m) m[campo] = novoVal || '';
+    renderTabela();
+  };
+
+  inp.addEventListener('blur', salvar);
+  inp.addEventListener('keydown', e => {
+    if (e.key === 'Enter') { e.preventDefault(); inp.blur(); }
+    if (e.key === 'Escape') { td.innerHTML = orig; }
+  });
+};
 
 await init();
 </script>
