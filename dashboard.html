@@ -351,14 +351,14 @@ document.getElementById('btn-salvar-equipe').addEventListener('click', async () 
 /* ── Alertas Vencimento Experiência ── */
 async function carregarAlertasExp() {
   const { data: colabs } = await supabase.from('colaboradores')
-    .select('id, nome, admissao').is('demissao', null);
+    .select('id, nome, data_admissao').is('demissao', null);
 
   const hoje = new Date(); hoje.setHours(0,0,0,0);
   const alertas = [];
 
   (colabs||[]).forEach(c => {
     [{ dias: 45, label: '1ª' }, { dias: 90, label: '2ª' }].forEach(({ dias, label }) => {
-      const base = new Date(c.admissao + 'T00:00:00');
+      const base = new Date(c.data_admissao + 'T00:00:00');
       const venc = new Date(base); venc.setDate(venc.getDate() + dias);
       const diff = Math.ceil((venc - hoje) / 86400000);
       if (diff >= 0 && diff <= 10) {
