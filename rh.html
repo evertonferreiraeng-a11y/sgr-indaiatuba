@@ -128,21 +128,14 @@
 <div class="modal-backdrop" id="modal-aval">
   <div class="modal" style="max-width:680px">
     <div class="modal-header">
-      <h3 id="modal-aval-title">Nova Avaliação de Experiência</h3>
+      <h3 id="modal-aval-title">Nova Avaliação de Desempenho</h3>
       <button class="modal-close" data-close="modal-aval">✕</button>
     </div>
     <div class="modal-body">
       <form id="form-aval">
         <input type="hidden" name="id" />
         <div class="form-grid" style="grid-template-columns:repeat(2,1fr);margin-bottom:16px">
-          <div class="form-group"><label>Colaborador *</label><select name="colaborador_id" required><option value="">Selecione…</option></select></div>
-          <div class="form-group"><label>Período *</label>
-            <select name="periodo" required>
-              <option value="">Selecione…</option>
-              <option value="45dias">1º Período — 45 dias</option>
-              <option value="90dias">2º Período — 90 dias</option>
-            </select>
-          </div>
+          <div class="form-group full"><label>Colaborador *</label><select name="colaborador_id" required><option value="">Selecione…</option></select></div>
           <div class="form-group"><label>Data da Avaliação *</label><input type="date" name="data_avaliacao" required /></div>
           <div class="form-group"><label>Avaliador</label><input type="text" name="avaliador" /></div>
         </div>
@@ -363,11 +356,11 @@ function cardHTML(c, isAdm, hoje, iniMes, fimMes) {
   if (notaAtual === null || isNaN(notaAtual))
     rec = { cls:'rec-nd', icon:'📋', texto:'SEM AVALIAÇÃO — Registre avaliações para acompanhar o desempenho' };
   else if (notaAtual >= 7)
-    rec = { cls:'rec-ok', icon:'✅', texto:`DESEMPENHO ALTO (${notaAtual.toFixed(1)}) — Colaborador recomendado para manutenção` };
+    rec = { cls:'rec-ok', icon:'✅', texto:`RECOMENDADO (${notaAtual.toFixed(1)}) — Manter colaborador` };
   else if (notaAtual >= 5)
-    rec = { cls:'rec-att', icon:'⚠️', texto:`DESEMPENHO MÉDIO (${notaAtual.toFixed(1)}) — Acompanhar de perto, conversa recomendada` };
+    rec = { cls:'rec-att', icon:'⚠️', texto:`EM OBSERVAÇÃO (${notaAtual.toFixed(1)}) — Acompanhar de perto` };
   else
-    rec = { cls:'rec-no', icon:'❌', texto:`DESEMPENHO BAIXO (${notaAtual.toFixed(1)}) — Avaliar desligamento imediato` };
+    rec = { cls:'rec-no', icon:'❌', texto:`NÃO RECOMENDADO (${notaAtual.toFixed(1)}) — Avaliar desligamento` };
 
   // Avaliações HTML inline
   const avalsHTML = avals.length ? avals.map(a => {
@@ -377,8 +370,7 @@ function cardHTML(c, isAdm, hoje, iniMes, fimMes) {
     return `<div class="aval-item">
       <div class="aval-top">
         <div>
-          ${per ? `<span style="background:#dbeafe;color:#1e40af;padding:2px 7px;border-radius:10px;font-size:11px;font-weight:600">${per}</span>` : ''}
-          <span style="font-size:12px;color:#64748b;margin-left:6px">${dataBR(a.data_avaliacao)||''}${a.avaliador ? ` · ${a.avaliador}` : ''}</span>
+          <span style="font-size:12px;color:#64748b">${dataBR(a.data_avaliacao)||''}${a.avaliador ? ` · ${a.avaliador}` : ''}</span>
         </div>
         <div style="display:flex;align-items:center;gap:6px">
           <span class="aval-nota" style="color:${cor}">${media !== null ? media.toFixed(1) : '—'}</span>
@@ -521,7 +513,7 @@ document.getElementById('btn-salvar-colab').addEventListener('click', async () =
 
 // ── Avaliações ────────────────────────────────────────────────────────────────
 window.novaAvalPara = colabId => {
-  document.getElementById('modal-aval-title').textContent = 'Nova Avaliação de Experiência';
+  document.getElementById('modal-aval-title').textContent = 'Nova Avaliação de Desempenho';
   document.getElementById('form-aval').reset();
   document.querySelector('#form-aval [name="id"]').value = '';
   document.querySelector('#form-aval [name="data_avaliacao"]').value = new Date().toISOString().split('T')[0];
@@ -560,7 +552,7 @@ document.getElementById('btn-salvar-aval').addEventListener('click', async () =>
   const vals  = Object.values(notas).filter(v => v !== null);
   const media = vals.length ? vals.reduce((a,b)=>a+b,0)/vals.length : null;
   const payload = {
-    colaborador_id: fd.colaborador_id, periodo: fd.periodo,
+    colaborador_id: fd.colaborador_id,
     data: fd.data_avaliacao, data_avaliacao: fd.data_avaliacao,
     avaliador: fd.avaliador||null, observacoes: fd.observacoes||null,
     nota_media: media, ...notas,
