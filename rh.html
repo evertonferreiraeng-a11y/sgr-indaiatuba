@@ -308,34 +308,58 @@ async function init() {
 }
 
 async function recarregarTudo() {
-  // Cada query é independente — erro em uma não afeta as outras
-  const r1 = await supabase.from('cargos').select('*').order('nome');
-  const r2 = await supabase.from('colaboradores').select('*').order('nome');
-  const r3 = await supabase.from('colaborador_avaliacoes').select('*');
-  const r4 = await supabase.from('ocorrencias').select('*, colaboradores(nome)').order('data', { ascending: false });
+  try {
+    // Carrega cada tabela independentemente
+    const r1 = await supabase.from('cargos').select('*').order('nome');
+    const r2 = await supabase.from('colaboradores').select('*').order('nome');
+    const r3 = await supabase.from('colaborador_avaliacoes').select('*');
+    const r4 = await supabase.from('ocorrencias').select('*, colaboradores(nome)').order('data', { ascending: false });
 
-  if (r1.error) console.warn('cargos:', r1.error.message);
-  if (r2.error) console.warn('colaboradores:', r2.error.message);
-  if (r3.error) console.warn('avaliacoes:', r3.error.message);
-  if (r4.error) console.warn('ocorrencias:', r4.error.message);
+    cargoData = r1.data || [];
+    colabData = r2.data || [];
+    avalData  = r3.data || [];
+    ocData    = r4.data || [];
 
-  cargoData = r1.data || [];
-  colabData = r2.data || [];
-  avalData  = r3.data || [];
-  ocData    = r4.data || [];
+    // Logs para diagnóstico
+    console.log('colaboradores carregados:', colabData.length);
+    if (r2.error) console.error('Erro colaboradores:', r2.error.message);
+    if (r4.error) console.warn('Ocorrências não carregadas (tabela pode não existir):', r4.error?.message);
 
-  // Preenche selects
-  const cargoOpts = cargoData.map(c => `<option value="${c.id}">${c.nome}</option>`).join('');
-  document.querySelector('#form-colab [name="cargo_id"]').innerHTML = '<option value="">Selecione…</option>' + cargoOpts;
+    // Preenche selects de cargo
+    const cargoOpts = cargoData.map(c => `<option value="${c.id}">${c.nome}</option>`).join('');
+    const elCargo = document.querySelector('#form-colab [name="cargo_id"]');
+    if (elCargo) elCargo.innerHTML = '<option value="">Selecione…</option>' + cargoOpts;
 
-  const colabOpts = colabData.map(c => `<option value="${c.id}">${c.nome}</option>`).join('');
-  document.getElementById('f-aval-colab').innerHTML = '<option value="">Todos</option>' + colabOpts;
-  document.getElementById('f-oc-colab').innerHTML   = '<option value="">Todos</option>' + colabOpts;
-  document.querySelector('#form-aval [name="colaborador_id"]').innerHTML = '<option value="">Selecione…</option>' + colabOpts;
-  document.querySelector('#form-oc  [name="colaborador_id"]').innerHTML  = '<option value="">Selecione…</option>' + colabOpts;
+    // Preenche selects de colaborador — usa 'uuid' se 'id' não existir
+    const colabOpts = colabData.map(c => {
+      const val = c.id || c.uuid || '';
+      return `<option value="${val}">${c.nome}</option>`;
+    }).join('');
 
-  renderKPIs();
-  renderColaboradores();
+    const setOpts = (id, prefix) => {
+      const el = document.getElementById(id);
+      if (el) el.innerHTML = prefix + colabOpts;
+    };
+    setOpts('f-aval-colab', '<option value="">Todos</option>');
+    setOpts('f-oc-colab',   '<option value="">Todos</option>');
+
+    const setOptsSel = (sel, prefix) => {
+      const el = document.querySelector(sel);
+      if (el) el.innerHTML = prefix + colabOpts;
+    };
+    setOptsSel('#form-aval [name="colaborador_id"]', '<option value="">Selecione…</option>');
+    setOptsSel('#form-oc [name="colaborador_id"]',   '<option value="">Selecione…</option>');
+
+    renderKPIs();
+    renderColaboradores();
+
+  } catch(e) {
+    console.error('Erro em recarregarTudo:', e);
+    document.getElementById('grid-colaboradores').innerHTML =
+      `<div style="padding:16px;color:#dc2626;background:#fee2e2;border-radius:8px">
+        <strong>Erro ao carregar colaboradores:</strong><br>${e.message}
+      </div>`;
+  }
 }
 
 // ── KPIs ─────────────────────────────────────────────────────────────────────
