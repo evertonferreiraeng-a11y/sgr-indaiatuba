@@ -3,100 +3,95 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Equipamentos — SGR Indaiatuba</title>
+  <title>Produção — SGR Indaiatuba</title>
   <link rel="stylesheet" href="css/style.css" />
-  <style>
-    .status-btn {
-      display:inline-flex; align-items:center; gap:6px;
-      padding:5px 12px; border-radius:20px; font-size:12px; font-weight:700;
-      border:2px solid transparent; cursor:pointer; transition:all .15s;
-    }
-    .status-operando  { background:#d1fae5; color:#065f46; border-color:#6ee7b7; }
-    .status-restricao { background:#fef3c7; color:#92400e; border-color:#fcd34d; }
-    .status-parado    { background:#fee2e2; color:#991b1b; border-color:#fca5a5; }
-    .status-btn:hover { filter:brightness(0.95); }
-
-    .util-bar { height:10px; border-radius:5px; background:#e2e8f0; overflow:hidden; margin-top:6px; }
-    .util-fill { height:100%; border-radius:5px; transition:width .4s; }
-
-    .kpi-eq { border-left:4px solid; }
-    .kpi-eq-op  { border-color:#10b981; }
-    .kpi-eq-res { border-color:#f59e0b; }
-    .kpi-eq-par { border-color:#ef4444; }
-
-    .dot { width:10px; height:10px; border-radius:50%; display:inline-block; flex-shrink:0; }
-    .dot-op  { background:#10b981; }
-    .dot-res { background:#f59e0b; }
-    .dot-par { background:#ef4444; }
-  </style>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4/dist/chart.umd.min.js"></script>
 </head>
 <body>
 <div class="app-layout">
   <div id="sidebar-root"></div>
   <div class="main-content">
     <div class="page-header">
-      <div><h2>Equipamentos</h2><p>Gestão e status dos equipamentos da unidade</p></div>
-      <button class="btn btn-primary" id="btn-novo-eq">+ Novo Equipamento</button>
+      <div><h2>Produção</h2><p>Controle de processamento e equipamentos</p></div>
+      <button class="btn btn-primary" id="btn-nova">+ Novo Registro</button>
     </div>
     <div class="page-body">
 
-      <!-- KPIs -->
-      <div class="kpi-grid" style="grid-template-columns:repeat(4,1fr)">
-        <div class="kpi-card">
-          <div class="kpi-label">Total de Equipamentos</div>
-          <div class="kpi-value" id="kpi-total">—</div>
-          <div class="kpi-sub">cadastrados</div>
+      <!-- Capacidade dos equipamentos hoje -->
+      <div class="card mb-16">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px">
+          <h3 style="font-size:14px;font-weight:600">Capacidade dos Equipamentos — Hoje</h3>
+          <span id="data-hoje" class="text-muted" style="font-size:12px"></span>
         </div>
-        <div class="kpi-card kpi-eq kpi-eq-op">
-          <div class="kpi-label">✅ Operando</div>
-          <div class="kpi-value" id="kpi-op">—</div>
-          <div class="kpi-sub" id="kpi-op-pct">—</div>
-        </div>
-        <div class="kpi-card kpi-eq kpi-eq-res">
-          <div class="kpi-label">⚠️ Com Restrição</div>
-          <div class="kpi-value" id="kpi-res">—</div>
-          <div class="kpi-sub" id="kpi-res-pct">—</div>
-        </div>
-        <div class="kpi-card kpi-eq kpi-eq-par">
-          <div class="kpi-label">❌ Parado</div>
-          <div class="kpi-value" id="kpi-par">—</div>
-          <div class="kpi-sub" id="kpi-par-pct">—</div>
+        <div class="capacity-grid" id="capacity-grid">
+          <div class="loading-spinner"><div class="spinner"></div> Carregando…</div>
         </div>
       </div>
 
-      <!-- Barra de utilização -->
+      <!-- KPIs do mês -->
+      <div class="kpi-grid" style="grid-template-columns:repeat(auto-fill,minmax(160px,1fr))">
+        <div class="kpi-card"><div class="kpi-label">Produção do Mês</div><div class="kpi-value" id="kpi-mes">—</div><div class="kpi-sub">kg processados</div></div>
+        <div class="kpi-card"><div class="kpi-label">Registros</div><div class="kpi-value" id="kpi-regs">—</div><div class="kpi-sub">no período</div></div>
+        <div class="kpi-card"><div class="kpi-label">Média por Dia</div><div class="kpi-value" id="kpi-dia">—</div><div class="kpi-sub">kg/dia no mês</div></div>
+        <div class="kpi-card"><div class="kpi-label">Média por Pessoa</div><div class="kpi-value" id="kpi-pessoa">—</div><div class="kpi-sub">kg/colaborador ativo</div></div>
+        <div class="kpi-card"><div class="kpi-label">Eficiência</div><div class="kpi-value" id="kpi-efic">—</div><div class="kpi-sub">produção / entradas</div></div>
+      </div>
+
+      <!-- Filtros -->
       <div class="card mb-16" style="padding:16px">
-        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
-          <span style="font-size:13px;font-weight:600;color:#374151">Taxa de Utilização do Equipamento</span>
-          <span id="taxa-label" style="font-size:14px;font-weight:700;color:#10b981">—</span>
-        </div>
-        <div class="util-bar">
-          <div class="util-fill" id="util-fill-op"  style="background:#10b981;float:left;width:0%"></div>
-          <div class="util-fill" id="util-fill-res" style="background:#f59e0b;float:left;width:0%"></div>
-        </div>
-        <div style="display:flex;gap:16px;margin-top:8px;font-size:12px;color:#64748b">
-          <span><span class="dot dot-op"></span> Operando</span>
-          <span><span class="dot dot-res"></span> Com restrição</span>
-          <span><span class="dot dot-par"></span> Parado</span>
+        <div class="filters-row">
+          <div class="form-group"><label>Mês</label><input type="month" id="f-mes" /></div>
+          <div class="form-group"><label>Equipamento</label><select id="f-equip"><option value="">Todos</option></select></div>
+          <div class="form-group"><label>Material</label><select id="f-mat"><option value="">Todos</option></select></div>
+          <div class="form-group" style="justify-content:flex-end"><label>&nbsp;</label><button class="btn btn-primary" id="btn-filtrar">Filtrar</button></div>
         </div>
       </div>
 
-      <!-- Tabela -->
-      <div class="table-card">
+      <!-- Gráficos produção -->
+      <div class="charts-grid" style="margin-bottom:20px">
+        <div class="chart-card">
+          <h3>Produção Diária no Mês (kg)</h3>
+          <div class="chart-wrap"><canvas id="chart-diario"></canvas></div>
+        </div>
+        <div class="chart-card">
+          <h3>Produção por Operador (kg)</h3>
+          <div class="chart-wrap"><canvas id="chart-operador"></canvas></div>
+        </div>
+      </div>
+
+      <!-- Ranking operadores -->
+      <div class="table-card" style="margin-bottom:20px">
+        <div class="table-card-header"><h3>Ranking de Operadores no Período</h3></div>
         <div class="table-scroll">
           <table>
-            <thead>
-              <tr>
-                <th>Equipamento</th>
-                <th>Nº Equipamento</th>
-                <th>Descrição</th>
-                <th>Função</th>
-                <th>Capacidade</th>
-                <th>Status</th>
-                <th></th>
-              </tr>
-            </thead>
-            <tbody id="tb-equip"></tbody>
+            <thead><tr><th>#</th><th>Operador</th><th class="text-right">Registros</th><th class="text-right">Total (kg)</th><th class="text-right">Média por Dia</th></tr></thead>
+            <tbody id="tb-ranking"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Tabela produção -->
+      <div class="table-card">
+        <div class="table-card-header"><h3>Registros de Produção</h3><span id="prod-count" class="text-muted" style="font-size:12px"></span></div>
+        <div class="table-scroll">
+          <table>
+            <thead><tr><th>Data</th><th>Equipamento</th><th>Material</th><th>Operador</th><th class="text-right">Peso (kg)</th><th>Ações</th></tr></thead>
+            <tbody id="tb-producao"></tbody>
+          </table>
+        </div>
+      </div>
+
+
+      <!-- Materiais CRUD -->
+      <div class="table-card">
+        <div class="table-card-header">
+          <h3>Materiais</h3>
+          <button class="btn btn-sm btn-primary" id="btn-novo-mat">+ Adicionar</button>
+        </div>
+        <div class="table-scroll">
+          <table>
+            <thead><tr><th>Nome</th><th>Unidade</th><th>Categoria</th><th>Status</th><th>Ações</th></tr></thead>
+            <tbody id="tb-materiais"></tbody>
           </table>
         </div>
       </div>
@@ -105,208 +100,472 @@
   </div>
 </div>
 
-<!-- Modal: Equipamento -->
-<div class="modal-backdrop" id="modal-eq">
-  <div class="modal" style="max-width:600px">
+<!-- Modal: Nova/Editar Produção -->
+<div class="modal-backdrop" id="modal-prod">
+  <div class="modal">
     <div class="modal-header">
-      <h3 id="modal-eq-title">Novo Equipamento</h3>
-      <button class="modal-close" data-close="modal-eq">✕</button>
+      <h3 id="modal-prod-title">Novo Registro de Produção</h3>
+      <button class="modal-close" data-close="modal-prod">✕</button>
     </div>
     <div class="modal-body">
-      <form id="form-eq">
+      <form id="form-prod">
         <input type="hidden" name="id" />
-        <div class="form-grid" style="grid-template-columns:repeat(2,1fr)">
-          <div class="form-group"><label>Equipamento *</label><input type="text" name="nome" required /></div>
-          <div class="form-group"><label>Nº Equipamento</label><input type="text" name="frota" /></div>
-          <div class="form-group full"><label>Descrição</label><input type="text" name="descricao" placeholder="Marca, modelo, nº série…" /></div>
-          <div class="form-group"><label>Função</label><input type="text" name="funcao" /></div>
-          <div class="form-group"><label>Capacidade</label><input type="text" name="capacidade" /></div>
-          <div class="form-group"><label>Status *</label>
-            <select name="status" required id="sel-status-eq" onchange="toggleCapPct(this.value)">
-              <option value="operando">✅ Operando</option>
-              <option value="restricao">⚠️ Operando com Restrição</option>
-              <option value="parado">❌ Parado / Manutenção</option>
+        <div class="form-grid">
+          <div class="form-group"><label>Data *</label><input type="date" name="data" required /></div>
+          <div class="form-group"><label>Equipamento *</label><select name="equipamento_id" required><option value="">Selecione…</option></select></div>
+          <div class="form-group"><label>Material *</label><select name="material_id" required><option value="">Selecione…</option></select></div>
+          <div class="form-group"><label>Operador</label><select name="operador_id"><option value="">— Nenhum —</option></select></div>
+          <div class="form-group full"><label>Peso Produzido (kg) *</label><input type="number" name="peso_produzido_kg" min="0.01" step="0.01" required /></div>
+        </div>
+        <div id="alerta-capacidade" style="display:none;margin-top:12px;padding:8px 12px;background:var(--danger-light);color:var(--danger);border-radius:6px;font-size:12px">
+          ⚠ Produção ultrapassa a capacidade do equipamento hoje!
+        </div>
+      </form>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-outline" data-close="modal-prod">Cancelar</button>
+      <button class="btn btn-primary" id="btn-salvar-prod">Salvar</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal: Equipamento -->
+<div class="modal-backdrop" id="modal-equip">
+  <div class="modal">
+    <div class="modal-header">
+      <h3 id="modal-equip-title">Novo Equipamento</h3>
+      <button class="modal-close" data-close="modal-equip">✕</button>
+    </div>
+    <div class="modal-body">
+      <form id="form-equip">
+        <input type="hidden" name="id" />
+        <div class="form-grid">
+          <div class="form-group full"><label>Nome *</label><input type="text" name="nome" required /></div>
+          <div class="form-group full"><label>Capacidade (kg/dia)</label><input type="number" name="capacidade_kg_dia" min="0" step="0.01" /></div>
+        </div>
+      </form>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-outline" data-close="modal-equip">Cancelar</button>
+      <button class="btn btn-primary" id="btn-salvar-equip">Salvar</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal: Material -->
+<div class="modal-backdrop" id="modal-mat">
+  <div class="modal">
+    <div class="modal-header">
+      <h3 id="modal-mat-title">Novo Material</h3>
+      <button class="modal-close" data-close="modal-mat">✕</button>
+    </div>
+    <div class="modal-body">
+      <form id="form-mat">
+        <input type="hidden" name="id" />
+        <div class="form-grid">
+          <div class="form-group full"><label>Nome *</label><input type="text" name="nome" required /></div>
+          <div class="form-group"><label>Unidade de Medida</label><input type="text" name="unidade_medida" placeholder="kg" /></div>
+          <div class="form-group"><label>Categoria</label>
+            <select name="categoria">
+              <option value="reciclavel">Reciclável</option>
+              <option value="rejeito">Rejeito</option>
             </select>
-          </div>
-          <div class="form-group" id="campo-cap-pct" style="display:none">
-            <label>% de Capacidade com Restrição</label>
-            <input type="number" name="capacidade_pct" min="1" max="99" placeholder="Ex: 60" />
-            <span style="font-size:12px;color:#64748b;margin-top:4px">Quanto % está operando com a restrição?</span>
           </div>
         </div>
       </form>
     </div>
     <div class="modal-footer">
-      <button class="btn btn-outline" data-close="modal-eq">Cancelar</button>
-      <button class="btn btn-primary" id="btn-salvar-eq">Salvar</button>
+      <button class="btn btn-outline" data-close="modal-mat">Cancelar</button>
+      <button class="btn btn-primary" id="btn-salvar-mat">Salvar</button>
     </div>
   </div>
 </div>
 
 <div id="toast-container"></div>
 <script type="module">
-import { initPage, supabase, toast, abrirModal, fecharModal } from './js/config.js';
+import { initPage, supabase, peso, dataBR, toast, abrirModal, fecharModal, mesAtual } from './js/config.js';
 
 await initPage();
 
-let perfil, eqData = [];
+let perfil, equipamentos = [], materiais = [], colaboradores = [], producaoData = [];
+let chartDiario, chartOperador;
 
 async function init() {
   const { data: { user } } = await supabase.auth.getUser();
   const { data: p } = await supabase.from('profiles').select('*').eq('id', user.id).single();
   perfil = p;
-  await carregar();
+
+  const [{ data: eq }, { data: mt }, { data: col }] = await Promise.all([
+    supabase.from('equipamentos').select('*').order('nome'),
+    supabase.from('materiais').select('*').eq('ativo', true).order('nome'),
+    supabase.from('colaboradores').select('*').eq('ativo', true).order('nome'),
+  ]);
+  equipamentos  = eq  || [];
+  materiais     = mt  || [];
+  colaboradores = col || [];
+
+  popularSelects();
+  document.getElementById('f-mes').value = mesAtual();
+
+  const hoje = new Date().toISOString().split('T')[0];
+  document.getElementById('data-hoje').textContent = dataBR(hoje);
+
+  await Promise.all([carregarCapacidades(), carregarProducao(), carregarEquipamentos(), carregarMateriais()]);
 }
 
-async function carregar() {
-  const { data, error } = await supabase.from('equipamentos').select('*').order('nome');
-  if (error) { console.error(error); }
-  eqData = data || [];
-  renderKPIs();
-  renderTabela();
+function popularSelects() {
+  const eqOpts  = equipamentos.map(e=>`<option value="${e.id}">${e.nome}</option>`).join('');
+  const mtOpts  = materiais.map(m=>`<option value="${m.id}">${m.nome}</option>`).join('');
+  const colOpts = '<option value="">— Nenhum —</option>' + colaboradores.map(c=>`<option value="${c.id}">${c.nome}</option>`).join('');
+
+  document.getElementById('f-equip').innerHTML = '<option value="">Todos</option>' + eqOpts;
+  document.getElementById('f-mat').innerHTML   = '<option value="">Todos</option>' + mtOpts;
+  document.querySelector('#form-prod [name="equipamento_id"]').innerHTML = '<option value="">Selecione…</option>' + eqOpts;
+  document.querySelector('#form-prod [name="material_id"]').innerHTML    = '<option value="">Selecione…</option>' + mtOpts;
+  document.querySelector('#form-prod [name="operador_id"]').innerHTML    = colOpts;
 }
 
-function renderKPIs() {
-  const total = eqData.length;
-  const op    = eqData.filter(e => e.status === 'operando').length;
-  const res   = eqData.filter(e => e.status === 'restricao').length;
-  const par   = eqData.filter(e => e.status === 'parado').length;
-  const pct   = v => total ? (v/total*100).toFixed(0)+'%' : '0%';
+async function carregarCapacidades() {
+  const hoje = new Date().toISOString().split('T')[0];
+  const { data: prodHoje } = await supabase.from('producao')
+    .select('equipamento_id, peso_produzido_kg').eq('data', hoje);
 
-  document.getElementById('kpi-total').textContent   = total;
-  document.getElementById('kpi-op').textContent      = op;
-  document.getElementById('kpi-res').textContent     = res;
-  document.getElementById('kpi-par').textContent     = par;
-  document.getElementById('kpi-op-pct').textContent  = pct(op) + ' do equipamento';
-  document.getElementById('kpi-res-pct').textContent = pct(res) + ' do equipamento';
-  document.getElementById('kpi-par-pct').textContent = pct(par) + ' do equipamento';
+  const prodPorEquip = {};
+  (prodHoje||[]).forEach(r => {
+    prodPorEquip[r.equipamento_id] = (prodPorEquip[r.equipamento_id]||0) + r.peso_produzido_kg;
+  });
 
-  // Taxa real: operando=100%, restrição=% definida pelo usuário, parado=0%
-  const somaUtil = eqData.reduce((s, e) => {
-    if (e.status === 'operando')  return s + 100;
-    if (e.status === 'restricao') return s + (parseFloat(e.capacidade_pct) || 50);
-    return s;
-  }, 0);
-  const taxaUtil = total ? (somaUtil / total).toFixed(0) : 0;
-  document.getElementById('taxa-label').textContent  = taxaUtil + '% utilizados';
-  document.getElementById('taxa-label').style.color  = taxaUtil >= 80 ? '#10b981' : taxaUtil >= 50 ? '#f59e0b' : '#ef4444';
-  document.getElementById('util-fill-op').style.width  = pct(op);
-  document.getElementById('util-fill-res').style.width = pct(res);
-}
-
-function renderTabela() {
-  const isAdmin = perfil?.role === 'admin';
-  const tb = document.getElementById('tb-equip');
-
-  if (!eqData.length) {
-    tb.innerHTML = '<tr><td colspan="7" class="table-empty">Nenhum equipamento cadastrado</td></tr>';
+  const grid = document.getElementById('capacity-grid');
+  if (!equipamentos.length) {
+    grid.innerHTML = '<p class="text-muted" style="font-size:13px">Nenhum equipamento cadastrado.</p>';
     return;
   }
-
-  const statusInfo = {
-    operando:  { cls:'status-operando',  icon:'✅', label:'Operando' },
-    restricao: { cls:'status-restricao', icon:'⚠️', label:'Com Restrição' },
-    parado:    { cls:'status-parado',    icon:'❌', label:'Parado' },
-  };
-
-  tb.innerHTML = eqData.map(e => {
-    const st = statusInfo[e.status] || statusInfo.operando;
-    const stLabel = e.status === 'restricao' && e.capacidade_pct
-      ? `⚠️ Com Restrição (${e.capacidade_pct}%)`
-      : `${st.icon} ${st.label}`;
-    return `<tr>
-      <td><strong>${e.nome}</strong></td>
-      <td>${e.frota || '<span style="color:#94a3b8">—</span>'}</td>
-      <td style="max-width:220px;font-size:13px">${e.descricao || '<span style="color:#94a3b8">—</span>'}</td>
-      <td style="font-size:13px">${e.funcao || '—'}</td>
-      <td style="font-size:13px">${e.capacidade || '—'}</td>
-      <td>
-        <span class="status-btn ${st.cls}">${stLabel}</span>
-        ${isAdmin ? `<button class="btn-icon" style="margin-left:4px" onclick="editarEq('${e.id}')">⚙️</button>` : ''}
-      </td>
-      <td>
-        ${isAdmin ? `
-          <button class="btn-icon" onclick="editarEq('${e.id}')">✏️</button>
-          <button class="btn-icon danger" onclick="excluirEq('${e.id}')">🗑️</button>
-        ` : ''}
-      </td>
-    </tr>`;
+  // Mostra apenas equipamentos com produção lançada hoje
+  const comProducao = equipamentos.filter(eq => prodPorEquip[eq.id] > 0);
+  if (!comProducao.length) {
+    grid.innerHTML = '<p class="text-muted" style="font-size:13px;padding:8px 0">Nenhuma produção lançada hoje.</p>';
+    return;
+  }
+  grid.innerHTML = comProducao.map(eq => {
+    const prod = prodPorEquip[eq.id] || 0;
+    const cap  = eq.capacidade_kg_dia || 0;
+    const pct  = cap > 0 ? Math.min((prod/cap)*100, 150) : 0;
+    const cls  = pct >= 100 ? 'over' : pct >= 80 ? 'warn' : '';
+    return `<div class="capacity-card">
+      <h4>${eq.nome}</h4>
+      <div class="progress-bar"><div class="progress-fill ${cls}" style="width:${Math.min(pct,100)}%"></div></div>
+      <div class="capacity-info">
+        <span>${peso(prod)} produzido</span>
+        <span>Cap: ${cap > 0 ? peso(cap) : 'N/D'}</span>
+      </div>
+      ${pct >= 100 ? '<div style="font-size:11px;color:var(--danger);margin-top:6px">⚠ Capacidade excedida!</div>' : ''}
+    </div>`;
   }).join('');
 }
 
-// ── Toggle campo % capacidade ─────────────────────────────────────────────────
-window.toggleCapPct = status => {
-  document.getElementById('campo-cap-pct').style.display = status === 'restricao' ? '' : 'none';
-};
+async function carregarProducao() {
+  let q = supabase.from('producao')
+    .select('*, equipamentos(nome), materiais(nome), colaboradores(nome)')
+    .order('data', { ascending: false });
 
-// ── Status inline ─────────────────────────────────────────────────────────────
-window.alterarStatus = async (id, novoStatus) => {
-  const { error } = await supabase.from('equipamentos').update({ status: novoStatus }).eq('id', id);
-  if (error) { toast('Erro ao atualizar status', 'error'); await carregar(); return; }
-  const e = eqData.find(x => x.id === id);
-  if (e) e.status = novoStatus;
-  renderKPIs();
-  renderTabela();
-  const labels = { operando:'Operando ✅', restricao:'Com Restrição ⚠️', parado:'Parado ❌' };
-  toast(`Status atualizado: ${labels[novoStatus]}`);
-};
+  const mes = document.getElementById('f-mes').value;
+  const eq  = document.getElementById('f-equip').value;
+  const mat = document.getElementById('f-mat').value;
 
-// ── CRUD ──────────────────────────────────────────────────────────────────────
-document.getElementById('btn-novo-eq').addEventListener('click', () => {
-  document.getElementById('modal-eq-title').textContent = 'Novo Equipamento';
-  document.getElementById('form-eq').reset();
-  document.querySelector('#form-eq [name="id"]').value = '';
-  document.querySelector('#form-eq [name="status"]').value = 'operando';
-  abrirModal('modal-eq');
+  if (mes) {
+    const [y,m] = mes.split('-');
+    q = q.gte('data',`${y}-${m}-01`).lte('data', new Date(y,m,0).toISOString().split('T')[0]);
+  }
+  if (eq)  q = q.eq('equipamento_id', eq);
+  if (mat) q = q.eq('material_id', mat);
+
+  const { data } = await q;
+  producaoData = data || [];
+
+  // KPIs
+  const totKg = producaoData.reduce((s,r)=>s+r.peso_produzido_kg, 0);
+  const dias  = new Set(producaoData.map(r=>r.data)).size || 1;
+  const { count: nColabs } = await supabase.from('colaboradores').select('*', { count:'exact', head:true }).eq('ativo',true);
+
+  // Eficiência: produção / entradas no período
+  let efic = '—';
+  if (mes) {
+    const [y,m] = mes.split('-');
+    const { data: ents } = await supabase.from('entradas').select('peso_kg')
+      .gte('data',`${y}-${m}-01`).lte('data', new Date(y,m,0).toISOString().split('T')[0]);
+    const totEnt = (ents||[]).reduce((s,r)=>s+r.peso_kg, 0);
+    efic = totEnt > 0 ? (totKg/totEnt*100).toFixed(1)+'%' : '0%';
+  }
+
+  document.getElementById('kpi-mes').textContent    = peso(totKg);
+  document.getElementById('kpi-regs').textContent   = producaoData.length;
+  document.getElementById('kpi-dia').textContent    = peso(totKg/dias);
+  document.getElementById('kpi-pessoa').textContent = peso(nColabs > 0 ? totKg/nColabs : 0);
+  document.getElementById('kpi-efic').textContent   = efic;
+  document.getElementById('prod-count').textContent = `${producaoData.length} registros`;
+
+  // Gráfico diário
+  const diasMap = {};
+  producaoData.forEach(r => { diasMap[r.data] = (diasMap[r.data]||0) + r.peso_produzido_kg; });
+  const diasSorted = Object.keys(diasMap).sort();
+
+  if (chartDiario) chartDiario.destroy();
+  chartDiario = new Chart(document.getElementById('chart-diario'), {
+    type: 'bar',
+    data: {
+      labels: diasSorted.map(d => { const [,, dd] = d.split('-'); return dd+'/'+d.split('-')[1]; }),
+      datasets: [{ data: diasSorted.map(d=>diasMap[d]), backgroundColor:'#1B7A43', borderRadius:4 }]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend:{display:false} },
+      scales: { x:{grid:{display:false},ticks:{font:{size:10}}}, y:{grid:{color:'#F0F0F0'}} }
+    }
+  });
+
+  // Gráfico e ranking por operador
+  const opMap = {};
+  const opDias = {};
+  producaoData.forEach(r => {
+    const nome = r.colaboradores?.nome || '(Sem operador)';
+    opMap[nome]  = (opMap[nome]||0)  + r.peso_produzido_kg;
+    if (!opDias[nome]) opDias[nome] = new Set();
+    opDias[nome].add(r.data);
+  });
+  const opSorted = Object.entries(opMap).sort((a,b)=>b[1]-a[1]);
+
+  if (chartOperador) chartOperador.destroy();
+  chartOperador = new Chart(document.getElementById('chart-operador'), {
+    type: 'bar',
+    data: {
+      labels: opSorted.map(([n])=>n),
+      datasets: [{ data: opSorted.map(([,v])=>v), backgroundColor:'#2E9E5B', borderRadius:4 }]
+    },
+    options: {
+      indexAxis: 'y',
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend:{display:false} },
+      scales: { x:{grid:{color:'#F0F0F0'}}, y:{grid:{display:false},ticks:{font:{size:11}}} }
+    }
+  });
+
+  const tb = document.getElementById('tb-ranking');
+  tb.innerHTML = opSorted.length ? opSorted.map(([nome, kg], i) => {
+    const d = opDias[nome]?.size || 1;
+    return `<tr>
+      <td><strong>${i+1}</strong></td>
+      <td>${nome}</td>
+      <td class="text-right">${[...opDias[nome]].length}</td>
+      <td class="text-right fw-600">${peso(kg)}</td>
+      <td class="text-right">${peso(kg/d)}</td>
+    </tr>`;
+  }).join('') : '<tr><td colspan="5" class="table-empty">Sem dados</td></tr>';
+
+  // Tabela
+  const isAdmin = perfil?.role === 'admin';
+  const tbProd = document.getElementById('tb-producao');
+  if (!producaoData.length) {
+    tbProd.innerHTML = '<tr><td colspan="6" class="table-empty">Nenhum registro encontrado</td></tr>';
+    return;
+  }
+  tbProd.innerHTML = producaoData.map(r => `
+    <tr>
+      <td>${dataBR(r.data)}</td>
+      <td>${r.equipamentos?.nome||'—'}</td>
+      <td>${r.materiais?.nome||'—'}</td>
+      <td>${r.colaboradores?.nome||'—'}</td>
+      <td class="text-right">${peso(r.peso_produzido_kg)}</td>
+      <td>${isAdmin?`
+        <button class="btn-icon" onclick="editarProd('${r.id}')">✏️</button>
+        <button class="btn-icon danger" onclick="excluirProd('${r.id}')">🗑️</button>
+      `:'—'}</td>
+    </tr>
+  `).join('');
+}
+
+async function carregarEquipamentos() {
+  const { data } = await supabase.from('equipamentos').select('*').order('nome');
+  const stBadge = { operando:'badge-green', restricao:'badge-yellow', parado:'badge-red' };
+  const stLabel = { operando:'Operando', restricao:'Com Restrição', parado:'Parado' };
+  document.getElementById('tb-equipamentos').innerHTML = (data||[]).map(e=>`
+    <tr>
+      <td><strong>${e.nome}</strong></td>
+      <td>${e.frota||'—'}</td>
+      <td style="font-size:13px">${e.funcao||'—'}</td>
+      <td><span class="badge ${stBadge[e.status]||'badge-gray'}">${stLabel[e.status]||e.status}</span></td>
+    </tr>
+  `).join('') || '<tr><td colspan="4" class="table-empty">Nenhum equipamento cadastrado</td></tr>';
+}
+
+async function carregarMateriais() {
+  const { data } = await supabase.from('materiais').select('*').order('nome');
+  const isAdmin = perfil?.role === 'admin';
+  document.getElementById('tb-materiais').innerHTML = (data||[]).map(m=>`
+    <tr>
+      <td>${m.nome}</td>
+      <td>${m.unidade_medida||'kg'}</td>
+      <td><span class="badge ${m.categoria==='rejeito'?'badge-red':'badge-green'}">${m.categoria==='rejeito'?'Rejeito':'Reciclável'}</span></td>
+      <td><span class="badge ${m.ativo?'badge-green':'badge-gray'}">${m.ativo?'Ativo':'Inativo'}</span></td>
+      <td>${isAdmin?`
+        <button class="btn-icon" onclick="editarMat(${JSON.stringify(m).replace(/"/g,'&quot;')})">✏️</button>
+        <button class="btn-icon danger" onclick="toggleMat('${m.id}',${m.ativo})">${m.ativo?'🚫':'✅'}</button>
+      `:'—'}</td>
+    </tr>
+  `).join('') || '<tr><td colspan="5" class="table-empty">Nenhum material</td></tr>';
+}
+
+/* ── Produção CRUD ── */
+document.getElementById('btn-nova').addEventListener('click', () => {
+  document.getElementById('modal-prod-title').textContent = 'Novo Registro de Produção';
+  document.getElementById('form-prod').reset();
+  document.querySelector('#form-prod [name="id"]').value = '';
+  document.getElementById('alerta-capacidade').style.display = 'none';
+  abrirModal('modal-prod');
 });
 
-window.editarEq = id => {
-  const e = eqData.find(x => x.id === id); if (!e) return;
-  document.getElementById('modal-eq-title').textContent = 'Editar Equipamento';
-  const f = document.getElementById('form-eq');
-  const set = (n,v) => { const el = f.querySelector(`[name="${n}"]`); if(el) el.value = v ?? ''; };
-  set('id', e.id); set('nome', e.nome); set('frota', e.frota);
-  set('descricao', e.descricao); set('funcao', e.funcao);
-  set('capacidade', e.capacidade); set('status', e.status);
-  set('capacidade_pct', e.capacidade_pct);
-  toggleCapPct(e.status);
-  abrirModal('modal-eq');
+['peso_produzido_kg','equipamento_id','data'].forEach(nm => {
+  document.querySelector(`#form-prod [name="${nm}"]`)?.addEventListener('change', verificarCapacidade);
+});
+
+async function verificarCapacidade() {
+  const eqId  = document.querySelector('#form-prod [name="equipamento_id"]').value;
+  const data  = document.querySelector('#form-prod [name="data"]').value;
+  const pesoV = parseFloat(document.querySelector('#form-prod [name="peso_produzido_kg"]').value)||0;
+  const alerta = document.getElementById('alerta-capacidade');
+  if (!eqId || !data || !pesoV) { alerta.style.display='none'; return; }
+  const eq = equipamentos.find(e=>e.id===eqId);
+  if (!eq?.capacidade_kg_dia) { alerta.style.display='none'; return; }
+  const { data: prod } = await supabase.from('producao')
+    .select('peso_produzido_kg').eq('equipamento_id', eqId).eq('data', data);
+  const total = (prod||[]).reduce((s,r)=>s+r.peso_produzido_kg,0) + pesoV;
+  alerta.style.display = total > eq.capacidade_kg_dia ? 'block' : 'none';
+}
+
+window.editarProd = id => {
+  const r = producaoData.find(p=>p.id===id);
+  if (!r) return;
+  document.getElementById('modal-prod-title').textContent = 'Editar Produção';
+  const f = document.getElementById('form-prod');
+  f.querySelector('[name="id"]').value               = r.id;
+  f.querySelector('[name="data"]').value             = r.data;
+  f.querySelector('[name="equipamento_id"]').value   = r.equipamento_id;
+  f.querySelector('[name="material_id"]').value      = r.material_id;
+  f.querySelector('[name="operador_id"]').value      = r.operador_id || '';
+  f.querySelector('[name="peso_produzido_kg"]').value = r.peso_produzido_kg;
+  abrirModal('modal-prod');
 };
 
-window.excluirEq = async id => {
-  if (!confirm('Excluir este equipamento?')) return;
-  const { error } = await supabase.from('equipamentos').delete().eq('id', id);
-  if (error) { toast('Erro ao excluir: '+error.message, 'error'); return; }
-  toast('Equipamento excluído!');
-  await carregar();
-};
-
-document.getElementById('btn-salvar-eq').addEventListener('click', async () => {
-  const f = document.getElementById('form-eq');
+document.getElementById('btn-salvar-prod').addEventListener('click', async () => {
+  const f = document.getElementById('form-prod');
   if (!f.checkValidity()) { f.reportValidity(); return; }
   const fd = Object.fromEntries(new FormData(f));
+  const { data: { user } } = await supabase.auth.getUser();
   const payload = {
-    nome:       fd.nome,
-    frota:      fd.frota      || null,
-    descricao:  fd.descricao  || null,
-    funcao:     fd.funcao     || null,
-    capacidade:     fd.capacidade     || null,
-    status:         fd.status,
-    capacidade_pct: fd.status === 'restricao' ? (parseFloat(fd.capacidade_pct) || null) : null,
+    equipamento_id: fd.equipamento_id, material_id: fd.material_id,
+    operador_id: fd.operador_id || null,
+    peso_produzido_kg: parseFloat(fd.peso_produzido_kg),
+    data: fd.data, criado_por: user.id,
   };
   if (fd.id) {
-    const { error } = await supabase.from('equipamentos').update(payload).eq('id', fd.id);
-    if (error) { toast('Erro: '+error.message, 'error'); return; }
-    toast('Equipamento atualizado!');
+    await supabase.from('producao').update(payload).eq('id', fd.id);
+    await supabase.from('estoque_movimentacoes').delete().eq('origem_id', fd.id);
+    await supabase.from('estoque_movimentacoes').insert({
+      material_id: payload.material_id, tipo:'entrada', peso_kg: payload.peso_produzido_kg,
+      origem_tipo:'producao', origem_id: fd.id, data: payload.data
+    });
+    toast('Produção atualizada!');
   } else {
-    const { error } = await supabase.from('equipamentos').insert(payload);
-    if (error) { toast('Erro: '+error.message, 'error'); return; }
-    toast('Equipamento cadastrado!');
+    const { data: nova, error } = await supabase.from('producao').insert(payload).select().single();
+    if (error) { toast('Erro ao salvar','error'); return; }
+    await supabase.from('estoque_movimentacoes').insert({
+      material_id: payload.material_id, tipo:'entrada', peso_kg: payload.peso_produzido_kg,
+      origem_tipo:'producao', origem_id: nova.id, data: payload.data
+    });
+    toast('Produção registrada!');
   }
-  fecharModal('modal-eq');
-  await carregar();
+  fecharModal('modal-prod');
+  carregarProducao();
+  carregarCapacidades();
 });
 
+window.excluirProd = async id => {
+  if (!confirm('Excluir este registro?')) return;
+  await supabase.from('estoque_movimentacoes').delete().eq('origem_id', id);
+  await supabase.from('producao').delete().eq('id', id);
+  toast('Registro excluído!');
+  carregarProducao();
+  carregarCapacidades();
+};
+
+/* ── Equipamento CRUD ── */
+document.getElementById('btn-novo-equip').addEventListener('click', () => {
+  document.getElementById('modal-equip-title').textContent = 'Novo Equipamento';
+  document.getElementById('form-equip').reset();
+  document.querySelector('#form-equip [name="id"]').value = '';
+  abrirModal('modal-equip');
+});
+window.editarEquip = e => {
+  document.getElementById('modal-equip-title').textContent = 'Editar Equipamento';
+  const f = document.getElementById('form-equip');
+  f.querySelector('[name="id"]').value               = e.id;
+  f.querySelector('[name="nome"]').value             = e.nome;
+  f.querySelector('[name="capacidade_kg_dia"]').value = e.capacidade_kg_dia||'';
+  abrirModal('modal-equip');
+};
+window.toggleEquip = async (id, ativo) => {
+  await supabase.from('equipamentos').update({ ativo: !ativo }).eq('id', id);
+  carregarEquipamentos();
+};
+document.getElementById('btn-salvar-equip').addEventListener('click', async () => {
+  const f = document.getElementById('form-equip');
+  if (!f.checkValidity()) { f.reportValidity(); return; }
+  const fd = Object.fromEntries(new FormData(f));
+  const payload = { nome: fd.nome, capacidade_kg_dia: parseFloat(fd.capacidade_kg_dia)||null };
+  if (fd.id) { await supabase.from('equipamentos').update(payload).eq('id', fd.id); toast('Equipamento atualizado!'); }
+  else       { await supabase.from('equipamentos').insert(payload); toast('Equipamento criado!'); }
+  fecharModal('modal-equip');
+  const { data: eq } = await supabase.from('equipamentos').select('*').eq('ativo',true).order('nome');
+  equipamentos = eq||[];
+  popularSelects();
+  carregarEquipamentos();
+  carregarCapacidades();
+});
+
+/* ── Material CRUD ── */
+document.getElementById('btn-novo-mat').addEventListener('click', () => {
+  document.getElementById('modal-mat-title').textContent = 'Novo Material';
+  document.getElementById('form-mat').reset();
+  document.querySelector('#form-mat [name="id"]').value = '';
+  abrirModal('modal-mat');
+});
+window.editarMat = m => {
+  document.getElementById('modal-mat-title').textContent = 'Editar Material';
+  const f = document.getElementById('form-mat');
+  f.querySelector('[name="id"]').value            = m.id;
+  f.querySelector('[name="nome"]').value          = m.nome;
+  f.querySelector('[name="unidade_medida"]').value = m.unidade_medida||'';
+  f.querySelector('[name="categoria"]').value     = m.categoria||'reciclavel';
+  abrirModal('modal-mat');
+};
+window.toggleMat = async (id, ativo) => {
+  await supabase.from('materiais').update({ ativo: !ativo }).eq('id', id);
+  carregarMateriais();
+};
+document.getElementById('btn-salvar-mat').addEventListener('click', async () => {
+  const f = document.getElementById('form-mat');
+  if (!f.checkValidity()) { f.reportValidity(); return; }
+  const fd = Object.fromEntries(new FormData(f));
+  const payload = { nome: fd.nome, unidade_medida: fd.unidade_medida||'kg', categoria: fd.categoria||'reciclavel' };
+  if (fd.id) { await supabase.from('materiais').update(payload).eq('id', fd.id); toast('Material atualizado!'); }
+  else       { await supabase.from('materiais').insert(payload); toast('Material criado!'); }
+  fecharModal('modal-mat');
+  const { data: mt } = await supabase.from('materiais').select('*').eq('ativo',true).order('nome');
+  materiais = mt||[];
+  popularSelects();
+  carregarMateriais();
+});
+
+document.getElementById('btn-filtrar').addEventListener('click', carregarProducao);
 document.querySelectorAll('[data-close]').forEach(btn => btn.addEventListener('click', () => fecharModal(btn.dataset.close)));
 document.querySelectorAll('.modal-backdrop').forEach(m => m.addEventListener('click', e => { if(e.target===m) fecharModal(m.id); }));
 
