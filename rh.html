@@ -6,66 +6,34 @@
   <title>RH — SGR Indaiatuba</title>
   <link rel="stylesheet" href="css/style.css" />
   <style>
-    .perfil-backdrop {
-      display: none; position: fixed; inset: 0;
-      background: rgba(0,0,0,.5); z-index: 300;
-      align-items: flex-start; justify-content: center;
-      padding: 20px; overflow-y: auto;
-    }
-    .perfil-backdrop.open { display: flex; }
-    .perfil-modal {
-      background: #fff; border-radius: 14px; width: 100%; max-width: 720px;
-      box-shadow: 0 8px 40px rgba(0,0,0,.18); margin: auto;
-    }
-    .perfil-header {
-      padding: 20px 24px; border-bottom: 1px solid #E5E7EB;
-      display: flex; align-items: center; justify-content: space-between;
-    }
-    .perfil-tabs {
-      display: flex; gap: 0; border-bottom: 1px solid #E5E7EB;
-    }
-    .perfil-tab {
-      padding: 10px 20px; font-size: 13px; font-weight: 500;
-      cursor: pointer; border-bottom: 2px solid transparent;
-      color: var(--text-muted); background: none; border-top: none;
-      border-left: none; border-right: none;
-      transition: color .15s, border-color .15s;
-    }
-    .perfil-tab.active { color: var(--primary); border-bottom-color: var(--primary); }
-    .perfil-body { padding: 20px 24px; min-height: 300px; }
-    .perfil-tab-content { display: none; }
-    .perfil-tab-content.active { display: block; }
+    .rh-tabs { display:flex; gap:4px; border-bottom:2px solid #e2e8f0; margin-bottom:20px; }
+    .rh-tab  { padding:8px 18px; border:none; background:none; cursor:pointer; font-size:14px; font-weight:500; color:#64748b; border-bottom:2px solid transparent; margin-bottom:-2px; transition:all .15s; }
+    .rh-tab.active { color:var(--primary,#2563eb); border-bottom-color:var(--primary,#2563eb); }
 
-    .info-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
-    .info-item label { font-size: 11px; font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: .04em; display: block; margin-bottom: 2px; }
-    .info-item span { font-size: 14px; font-weight: 500; }
+    .colab-card { background:#fff; border:1px solid #e2e8f0; border-radius:10px; padding:16px; display:flex; flex-direction:column; gap:10px; }
+    .colab-header { display:flex; align-items:center; gap:12px; }
+    .colab-avatar { width:42px; height:42px; border-radius:50%; background:var(--primary,#2563eb); color:#fff; display:flex; align-items:center; justify-content:center; font-weight:700; font-size:16px; flex-shrink:0; }
+    .colab-info h4 { margin:0; font-size:15px; font-weight:600; }
+    .colab-info p  { margin:0; font-size:12px; color:#64748b; }
+    .colab-stats { display:grid; grid-template-columns:repeat(4,1fr); gap:8px; }
+    .colab-stat  { background:#f8fafc; border-radius:6px; padding:8px 10px; text-align:center; }
+    .colab-stat .val { font-size:17px; font-weight:700; }
+    .colab-stat .lbl { font-size:11px; color:#64748b; }
+    .recomendacao { display:flex; align-items:center; gap:8px; padding:8px 12px; border-radius:8px; font-size:13px; font-weight:600; }
+    .rec-ok   { background:#d1fae5; color:#065f46; }
+    .rec-no   { background:#fee2e2; color:#991b1b; }
+    .rec-att  { background:#fef3c7; color:#92400e; }
+    .rec-nd   { background:#f1f5f9; color:#64748b; }
+    .criteria-grid { display:grid; grid-template-columns:repeat(7,1fr); gap:6px; }
+    @media(max-width:900px){ .criteria-grid{ grid-template-columns:repeat(3,1fr); } }
+    .criteria-item { background:#f8fafc; border-radius:6px; padding:8px; text-align:center; }
+    .criteria-item .nota { font-size:20px; font-weight:700; }
+    .criteria-item .crit { font-size:10px; color:#64748b; line-height:1.2; }
+    .nota-input { width:56px; border:1px solid #e2e8f0; border-radius:6px; padding:4px 6px; font-size:14px; text-align:center; }
 
-    .experiencia-card {
-      border: 1px solid var(--primary-border); border-radius: 8px; padding: 14px; margin-bottom: 10px;
-    }
-    .experiencia-card h4 { font-size: 13px; font-weight: 600; margin-bottom: 8px; }
-    .exp-row { display: flex; align-items: center; justify-content: space-between; font-size: 13px; }
-
-    .nota-badge {
-      display: inline-flex; align-items: center; justify-content: center;
-      width: 42px; height: 42px; border-radius: 50%;
-      font-size: 15px; font-weight: 800; color: #fff;
-    }
-    .nota-verde  { background: var(--success); }
-    .nota-amarelo{ background: var(--warning); }
-    .nota-vermelho{ background: var(--danger); }
-
-    .criterio-row {
-      display: flex; align-items: center; justify-content: space-between;
-      padding: 6px 0; border-bottom: 1px solid #F0F0F0; font-size: 13px;
-    }
-    .criterio-row:last-child { border-bottom: none; }
-    .stars { display: flex; gap: 3px; }
-    .star {
-      width: 22px; height: 22px; cursor: pointer; font-size: 16px;
-      color: #D1D5DB; transition: color .1s;
-    }
-    .star.on { color: #F59E0B; }
+    .kpi-turnover { background:linear-gradient(135deg,#ef4444,#dc2626); color:#fff; }
+    .kpi-turnover .kpi-label { color:#fca5a5; }
+    .kpi-turnover .kpi-sub   { color:#fca5a5; }
   </style>
 </head>
 <body>
@@ -73,107 +41,119 @@
   <div id="sidebar-root"></div>
   <div class="main-content">
     <div class="page-header">
-      <div><h2>Recursos Humanos</h2><p>Colaboradores, cargos e ocorrências</p></div>
-      <div style="display:flex;gap:8px">
-        <button class="btn btn-outline" id="btn-novo-cargo">+ Cargo</button>
-        <button class="btn btn-primary" id="btn-novo-colab">+ Colaborador</button>
-      </div>
+      <div><h2>Recursos Humanos</h2><p>Colaboradores, avaliações e ocorrências</p></div>
+      <button class="btn btn-primary" id="btn-novo-colab">+ Novo Colaborador</button>
     </div>
     <div class="page-body">
 
-      <!-- KPIs do mês -->
-      <div class="kpi-grid" style="grid-template-columns:repeat(auto-fill,minmax(150px,1fr))">
-        <div class="kpi-card"><div class="kpi-label">Colaboradores Ativos</div><div class="kpi-value" id="kpi-ativos">—</div></div>
-        <div class="kpi-card"><div class="kpi-label">Faltas</div><div class="kpi-value text-red" id="kpi-faltas">—</div><div class="kpi-sub">no mês</div></div>
-        <div class="kpi-card"><div class="kpi-label">Atrasos</div><div class="kpi-value text-red" id="kpi-atrasos">—</div><div class="kpi-sub">no mês</div></div>
-        <div class="kpi-card"><div class="kpi-label">Advertências</div><div class="kpi-value" id="kpi-adv" style="color:var(--warning)">—</div><div class="kpi-sub">no mês</div></div>
-        <div class="kpi-card"><div class="kpi-label">Atestados</div><div class="kpi-value" id="kpi-atest">—</div><div class="kpi-sub">no mês</div></div>
-      </div>
-
-      <!-- Filtro KPIs -->
-      <div class="card mb-16" style="padding:14px 16px">
-        <div class="filters-row">
-          <div class="form-group"><label>Mês de referência</label><input type="month" id="f-mes-kpi" /></div>
-          <div class="form-group" style="justify-content:flex-end"><label>&nbsp;</label>
-            <button class="btn btn-primary" id="btn-filtrar-kpi">Atualizar</button>
-          </div>
+      <!-- KPIs -->
+      <div class="kpi-grid" style="grid-template-columns:repeat(5,1fr)">
+        <div class="kpi-card">
+          <div class="kpi-label">Colaboradores Ativos</div>
+          <div class="kpi-value" id="kpi-ativos">—</div>
+          <div class="kpi-sub">em operação</div>
+        </div>
+        <div class="kpi-card">
+          <div class="kpi-label">Em Experiência</div>
+          <div class="kpi-value" id="kpi-exp">—</div>
+          <div class="kpi-sub">1º ou 2º período</div>
+        </div>
+        <div class="kpi-card">
+          <div class="kpi-label">Faltas (mês)</div>
+          <div class="kpi-value" id="kpi-faltas">—</div>
+          <div class="kpi-sub">injustificadas</div>
+        </div>
+        <div class="kpi-card">
+          <div class="kpi-label">Atestados (mês)</div>
+          <div class="kpi-value" id="kpi-atestados">—</div>
+          <div class="kpi-sub">justificados</div>
+        </div>
+        <div class="kpi-card kpi-turnover">
+          <div class="kpi-label">Turnover</div>
+          <div class="kpi-value" id="kpi-turnover">—</div>
+          <div class="kpi-sub" id="kpi-turnover-sub">no ano</div>
         </div>
       </div>
 
-      <!-- Alertas de vencimento de experiência -->
-      <div id="alertas-exp" style="margin-bottom:16px"></div>
-
-      <!-- Tabela colaboradores -->
-      <div class="table-card" style="margin-bottom:20px">
-        <div class="table-card-header">
-          <h3>Colaboradores</h3>
-          <input type="text" id="busca-colab" placeholder="Buscar…" style="width:180px;padding:6px 10px;border-radius:6px;border:1px solid #D1D5DB;font-size:13px" />
-        </div>
-        <div class="table-scroll">
-          <table>
-            <thead><tr><th>Chapa</th><th>Nome</th><th>Cargo</th><th>Admissão</th><th>1ª Exp.</th><th>2ª Exp.</th><th>Status</th><th>Ações</th></tr></thead>
-            <tbody id="tb-colaboradores"></tbody>
-          </table>
-        </div>
+      <!-- Tabs -->
+      <div class="rh-tabs">
+        <button class="rh-tab active" data-tab="colaboradores">Colaboradores</button>
+        <button class="rh-tab" data-tab="avaliacoes">Avaliações de Experiência</button>
+        <button class="rh-tab" data-tab="ocorrencias">Ocorrências / Faltas</button>
       </div>
 
-      <!-- Cargos CRUD -->
-      <div class="table-card" style="margin-bottom:20px">
-        <div class="table-card-header">
-          <h3>Cargos</h3>
-        </div>
-        <div class="table-scroll">
-          <table>
-            <thead><tr><th>Nome do Cargo</th><th>Ações</th></tr></thead>
-            <tbody id="tb-cargos"></tbody>
-          </table>
-        </div>
-      </div>
-
-      <!-- Ocorrências -->
-      <div class="card mb-16" style="padding:16px">
-        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
-          <h3 style="font-size:14px;font-weight:600">Registrar Ocorrência</h3>
-          <button class="btn btn-primary" id="btn-nova-oc">+ Nova Ocorrência</button>
-        </div>
-        <div class="filters-row">
-          <div class="form-group"><label>Mês</label><input type="month" id="f-mes-oc" /></div>
-          <div class="form-group"><label>Colaborador</label><select id="f-colab"><option value="">Todos</option></select></div>
-          <div class="form-group"><label>Tipo</label>
-            <select id="f-tipo-oc">
+      <!-- TAB: Colaboradores -->
+      <div id="tab-colaboradores">
+        <div class="filters-row mb-16" style="background:#fff;border:1px solid #e2e8f0;border-radius:8px;padding:12px 16px">
+          <div class="form-group"><label>Buscar</label><input type="text" id="busca-colab" placeholder="Nome ou cargo…" /></div>
+          <div class="form-group"><label>Situação</label>
+            <select id="f-sit">
               <option value="">Todos</option>
-              <option value="falta">Falta</option>
-              <option value="atraso">Atraso</option>
-              <option value="advertencia">Advertência</option>
-              <option value="atestado">Atestado</option>
+              <option value="ativo">Ativos</option>
+              <option value="exp">Em experiência</option>
+              <option value="demitido">Demitidos</option>
             </select>
           </div>
           <div class="form-group" style="justify-content:flex-end"><label>&nbsp;</label>
-            <button class="btn btn-primary" id="btn-filtrar-oc">Filtrar</button>
+            <button class="btn btn-primary" id="btn-filtrar-colab">Filtrar</button>
+          </div>
+        </div>
+        <div id="grid-colaboradores" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(360px,1fr));gap:16px"></div>
+      </div>
+
+      <!-- TAB: Avaliações -->
+      <div id="tab-avaliacoes" style="display:none">
+        <div class="filters-row mb-16" style="background:#fff;border:1px solid #e2e8f0;border-radius:8px;padding:12px 16px">
+          <div class="form-group"><label>Colaborador</label><select id="f-aval-colab"><option value="">Todos</option></select></div>
+          <div class="form-group"><label>Período</label>
+            <select id="f-aval-periodo">
+              <option value="">Todos</option>
+              <option value="45dias">1º período (45 dias)</option>
+              <option value="90dias">2º período (90 dias)</option>
+            </select>
+          </div>
+          <div class="form-group" style="justify-content:flex-end"><label>&nbsp;</label>
+            <button class="btn btn-primary" id="btn-nova-aval">+ Nova Avaliação</button>
+          </div>
+        </div>
+        <div id="lista-avaliacoes"></div>
+      </div>
+
+      <!-- TAB: Ocorrências -->
+      <div id="tab-ocorrencias" style="display:none">
+        <div class="filters-row mb-16" style="background:#fff;border:1px solid #e2e8f0;border-radius:8px;padding:12px 16px">
+          <div class="form-group"><label>Período</label><input type="month" id="f-oc-mes" /></div>
+          <div class="form-group"><label>Colaborador</label><select id="f-oc-colab"><option value="">Todos</option></select></div>
+          <div class="form-group"><label>Tipo</label>
+            <select id="f-oc-tipo">
+              <option value="">Todos</option>
+              <option value="falta">Falta injustificada</option>
+              <option value="atestado">Atestado / Justificada</option>
+              <option value="advertencia">Advertência</option>
+              <option value="elogio">Elogio</option>
+              <option value="outro">Outro</option>
+            </select>
+          </div>
+          <div class="form-group" style="justify-content:flex-end"><label>&nbsp;</label>
+            <button class="btn btn-primary" id="btn-nova-oc">+ Nova Ocorrência</button>
+          </div>
+        </div>
+        <div class="table-card">
+          <div class="table-scroll">
+            <table>
+              <thead><tr><th>Data</th><th>Colaborador</th><th>Tipo</th><th>Descrição</th><th>Ações</th></tr></thead>
+              <tbody id="tb-ocorrencias"></tbody>
+            </table>
           </div>
         </div>
       </div>
-
-      <div class="table-card">
-        <div class="table-card-header">
-          <h3>Ocorrências</h3>
-          <span id="oc-count" class="text-muted" style="font-size:12px"></span>
-        </div>
-        <div class="table-scroll">
-          <table>
-            <thead><tr><th>Data</th><th>Colaborador</th><th>Tipo</th><th>Observação</th><th>Ações</th></tr></thead>
-            <tbody id="tb-ocorrencias"></tbody>
-          </table>
-        </div>
-      </div>
-
     </div>
   </div>
 </div>
 
-<!-- ── MODAL: Colaborador ── -->
+<!-- Modal: Colaborador -->
 <div class="modal-backdrop" id="modal-colab">
-  <div class="modal" style="max-width:600px">
+  <div class="modal" style="max-width:640px">
     <div class="modal-header">
       <h3 id="modal-colab-title">Novo Colaborador</h3>
       <button class="modal-close" data-close="modal-colab">✕</button>
@@ -181,12 +161,16 @@
     <div class="modal-body">
       <form id="form-colab">
         <input type="hidden" name="id" />
-        <div class="form-grid">
+        <div class="form-grid" style="grid-template-columns:repeat(2,1fr)">
+          <div class="form-group full"><label>Nome completo *</label><input type="text" name="nome" required /></div>
+          <div class="form-group"><label>CPF</label><input type="text" name="cpf" /></div>
           <div class="form-group"><label>Chapa</label><input type="text" name="chapa" /></div>
-          <div class="form-group"><label>Nome *</label><input type="text" name="nome" required /></div>
-          <div class="form-group"><label>Cargo</label><select name="cargo"><option value="">— Selecione —</option></select></div>
-          <div class="form-group"><label>Data de Admissão</label><input type="date" name="data_admissao" /></div>
+          <div class="form-group"><label>Cargo *</label><select name="cargo_id"><option value="">Selecione…</option></select></div>
+          <div class="form-group"><label>Data de Admissão *</label><input type="date" name="admissao" required /></div>
+          <div class="form-group"><label>Fim 1ª Experiência (45d)</label><input type="date" name="fim_experiencia_1" /></div>
+          <div class="form-group"><label>Fim 2ª Experiência (90d)</label><input type="date" name="fim_experiencia_2" /></div>
           <div class="form-group"><label>Data de Demissão</label><input type="date" name="demissao" /></div>
+          <div class="form-group full"><label>Telefone</label><input type="text" name="telefone" /></div>
         </div>
       </form>
     </div>
@@ -197,619 +181,534 @@
   </div>
 </div>
 
-<!-- ── MODAL: Cargo ── -->
-<div class="modal-backdrop" id="modal-cargo">
-  <div class="modal" style="max-width:400px">
+<!-- Modal: Avaliação -->
+<div class="modal-backdrop" id="modal-aval">
+  <div class="modal" style="max-width:680px">
     <div class="modal-header">
-      <h3 id="modal-cargo-title">Novo Cargo</h3>
-      <button class="modal-close" data-close="modal-cargo">✕</button>
+      <h3 id="modal-aval-title">Nova Avaliação de Experiência</h3>
+      <button class="modal-close" data-close="modal-aval">✕</button>
     </div>
     <div class="modal-body">
-      <form id="form-cargo">
+      <form id="form-aval">
         <input type="hidden" name="id" />
-        <div class="form-group">
-          <label>Nome do Cargo *</label>
-          <input type="text" name="nome" required />
+        <div class="form-grid" style="grid-template-columns:repeat(2,1fr);margin-bottom:16px">
+          <div class="form-group"><label>Colaborador *</label><select name="colaborador_id" required><option value="">Selecione…</option></select></div>
+          <div class="form-group"><label>Período *</label>
+            <select name="periodo" required>
+              <option value="">Selecione…</option>
+              <option value="45dias">1º Período — 45 dias</option>
+              <option value="90dias">2º Período — 90 dias</option>
+            </select>
+          </div>
+          <div class="form-group"><label>Data da Avaliação *</label><input type="date" name="data_avaliacao" required /></div>
+          <div class="form-group"><label>Avaliador</label><input type="text" name="avaliador" /></div>
         </div>
+        <p style="font-size:13px;color:#64748b;margin-bottom:12px">Notas de 1 a 10 para cada critério:</p>
+        <div class="criteria-grid" style="grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:16px">
+          <div class="form-group"><label style="font-size:12px">Relacionamento</label><input class="nota-input" type="number" name="relacionamento" min="1" max="10" step="0.1" /></div>
+          <div class="form-group"><label style="font-size:12px">Responsabilidade</label><input class="nota-input" type="number" name="responsabilidade" min="1" max="10" step="0.1" /></div>
+          <div class="form-group"><label style="font-size:12px">Cooperação</label><input class="nota-input" type="number" name="cooperacao" min="1" max="10" step="0.1" /></div>
+          <div class="form-group"><label style="font-size:12px">Conhecimento do Trabalho</label><input class="nota-input" type="number" name="conhecimento_trabalho" min="1" max="10" step="0.1" /></div>
+          <div class="form-group"><label style="font-size:12px">Interesse</label><input class="nota-input" type="number" name="interesse" min="1" max="10" step="0.1" /></div>
+          <div class="form-group"><label style="font-size:12px">Atitude Profissional</label><input class="nota-input" type="number" name="atitude_profissional" min="1" max="10" step="0.1" /></div>
+          <div class="form-group"><label style="font-size:12px">Produtividade</label><input class="nota-input" type="number" name="produtividade" min="1" max="10" step="0.1" /></div>
+          <div class="form-group"><label style="font-size:12px;font-weight:700;color:var(--primary)">Média Geral</label><input class="nota-input" type="number" name="nota_media" readonly style="background:#f8fafc;font-weight:700" /></div>
+        </div>
+        <div class="form-group full"><label>Observações</label><textarea name="observacoes" rows="3" style="width:100%;resize:vertical"></textarea></div>
       </form>
     </div>
     <div class="modal-footer">
-      <button class="btn btn-outline" data-close="modal-cargo">Cancelar</button>
-      <button class="btn btn-primary" id="btn-salvar-cargo">Salvar</button>
+      <button class="btn btn-outline" data-close="modal-aval">Cancelar</button>
+      <button class="btn btn-primary" id="btn-salvar-aval">Salvar Avaliação</button>
     </div>
   </div>
 </div>
 
-<!-- ── MODAL: Ocorrência ── -->
-<div class="modal-backdrop" id="modal-ocorrencia">
+<!-- Modal: Ocorrência -->
+<div class="modal-backdrop" id="modal-oc">
   <div class="modal">
     <div class="modal-header">
-      <h3 id="modal-oc-title">Registrar Ocorrência</h3>
-      <button class="modal-close" data-close="modal-ocorrencia">✕</button>
+      <h3 id="modal-oc-title">Nova Ocorrência</h3>
+      <button class="modal-close" data-close="modal-oc">✕</button>
     </div>
     <div class="modal-body">
-      <form id="form-ocorrencia">
+      <form id="form-oc">
         <input type="hidden" name="id" />
         <div class="form-grid">
           <div class="form-group"><label>Data *</label><input type="date" name="data" required /></div>
-          <div class="form-group"><label>Colaborador *</label>
-            <select name="colaborador_id" required><option value="">Selecione…</option></select>
-          </div>
-          <div class="form-group full"><label>Tipo *</label>
+          <div class="form-group"><label>Colaborador *</label><select name="colaborador_id" required><option value="">Selecione…</option></select></div>
+          <div class="form-group"><label>Tipo *</label>
             <select name="tipo" required>
               <option value="">Selecione…</option>
-              <option value="falta">Falta</option>
-              <option value="atraso">Atraso</option>
+              <option value="falta">Falta injustificada</option>
+              <option value="atestado">Atestado / Justificada</option>
               <option value="advertencia">Advertência</option>
-              <option value="atestado">Atestado</option>
+              <option value="elogio">Elogio</option>
+              <option value="outro">Outro</option>
             </select>
           </div>
-          <div class="form-group full">
-            <label>Observação</label>
-            <textarea name="observacao" rows="3"></textarea>
-          </div>
+          <div class="form-group full"><label>Descrição / Observação</label><textarea name="descricao" rows="3" style="width:100%;resize:vertical"></textarea></div>
         </div>
       </form>
     </div>
     <div class="modal-footer">
-      <button class="btn btn-outline" data-close="modal-ocorrencia">Cancelar</button>
+      <button class="btn btn-outline" data-close="modal-oc">Cancelar</button>
       <button class="btn btn-primary" id="btn-salvar-oc">Salvar</button>
-    </div>
-  </div>
-</div>
-
-<!-- ── PERFIL DO COLABORADOR ── -->
-<div class="perfil-backdrop" id="perfil-backdrop">
-  <div class="perfil-modal">
-    <div class="perfil-header">
-      <div>
-        <h3 id="perfil-nome" style="font-size:17px;font-weight:700"></h3>
-        <p id="perfil-cargo" style="font-size:13px;color:var(--text-muted);margin-top:2px"></p>
-      </div>
-      <div style="display:flex;align-items:center;gap:10px">
-        <div id="perfil-nota-badge" class="nota-badge nota-verde" title="Nota média"></div>
-        <button onclick="fecharPerfil()" style="background:none;border:none;font-size:20px;cursor:pointer;color:var(--text-muted)">✕</button>
-      </div>
-    </div>
-    <div class="perfil-tabs">
-      <button class="perfil-tab active" onclick="mudarTab('info')">Informações</button>
-      <button class="perfil-tab" onclick="mudarTab('ocorrencias')">Ocorrências</button>
-      <button class="perfil-tab" onclick="mudarTab('avaliacao')">Avaliação</button>
-    </div>
-    <div class="perfil-body">
-
-      <!-- Tab: Info -->
-      <div class="perfil-tab-content active" id="tab-info">
-        <div class="info-grid" id="perfil-info-grid"></div>
-        <div style="margin-top:16px">
-          <div id="perfil-exp-cards"></div>
-        </div>
-      </div>
-
-      <!-- Tab: Ocorrências -->
-      <div class="perfil-tab-content" id="tab-ocorrencias">
-        <div style="display:flex;justify-content:flex-end;margin-bottom:12px">
-          <button class="btn btn-sm btn-primary" id="btn-oc-perfil">+ Registrar</button>
-        </div>
-        <table style="width:100%;font-size:13px">
-          <thead><tr style="background:#EBF5EE">
-            <th style="padding:8px 12px">Data</th>
-            <th style="padding:8px 12px">Tipo</th>
-            <th style="padding:8px 12px">Observação</th>
-            <th style="padding:8px 12px">Ações</th>
-          </tr></thead>
-          <tbody id="tb-perfil-oc"></tbody>
-        </table>
-      </div>
-
-      <!-- Tab: Avaliação -->
-      <div class="perfil-tab-content" id="tab-avaliacao">
-        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
-          <div>
-            <div style="font-size:13px;font-weight:600">Nota Geral Atual</div>
-            <div id="av-nota-geral" style="font-size:32px;font-weight:800;color:var(--primary)">—</div>
-          </div>
-          <button class="btn btn-primary" id="btn-nova-av">+ Nova Avaliação</button>
-        </div>
-        <div id="av-historico"></div>
-      </div>
-
-    </div>
-
-    <!-- Form avaliação (dentro do perfil) -->
-    <div id="form-av-wrap" style="display:none;border-top:1px solid #E5E7EB;padding:20px 24px">
-      <h4 style="font-size:13px;font-weight:600;margin-bottom:14px">Nova Avaliação</h4>
-      <div style="font-size:12px;color:var(--text-muted);margin-bottom:10px">Nota de 1 a 10 para cada critério:</div>
-      <div id="criterios-form">
-        <div class="criterio-row"><span>Pontualidade</span><input type="number" id="av-pontualidade" min="1" max="10" step="0.5" style="width:70px" /></div>
-        <div class="criterio-row"><span>Produtividade</span><input type="number" id="av-produtividade" min="1" max="10" step="0.5" style="width:70px" /></div>
-        <div class="criterio-row"><span>Qualidade do Trabalho</span><input type="number" id="av-qualidade" min="1" max="10" step="0.5" style="width:70px" /></div>
-        <div class="criterio-row"><span>Trabalho em Equipe</span><input type="number" id="av-trabalho_equipe" min="1" max="10" step="0.5" style="width:70px" /></div>
-        <div class="criterio-row"><span>Comprometimento</span><input type="number" id="av-comprometimento" min="1" max="10" step="0.5" style="width:70px" /></div>
-      </div>
-      <div style="margin-top:12px">
-        <label style="font-size:12px;font-weight:600;color:var(--text-muted)">DATA</label>
-        <input type="date" id="av-data" style="width:160px;margin-top:4px" />
-      </div>
-      <div style="margin-top:10px">
-        <label style="font-size:12px;font-weight:600;color:var(--text-muted)">OBSERVAÇÃO</label>
-        <textarea id="av-obs" rows="2" style="width:100%;margin-top:4px;padding:8px 10px;border:1px solid #D1D5DB;border-radius:6px;font-size:13px;font-family:inherit"></textarea>
-      </div>
-      <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:12px">
-        <button class="btn btn-outline" onclick="document.getElementById('form-av-wrap').style.display='none'">Cancelar</button>
-        <button class="btn btn-primary" id="btn-salvar-av">Salvar Avaliação</button>
-      </div>
     </div>
   </div>
 </div>
 
 <div id="toast-container"></div>
 <script type="module">
-import { initPage, supabase, dataBR, toast, abrirModal, fecharModal, mesAtual } from './js/config.js';
+import { initPage, supabase, dataBR, toast, abrirModal, fecharModal, mesAtual, anoAtual } from './js/config.js';
 
 await initPage();
 
-const tipoLabel = { falta:'Falta', atraso:'Atraso', advertencia:'Advertência', atestado:'Atestado' };
-const tipoBadge = { falta:'badge-red', atraso:'badge-red', advertencia:'badge-yellow', atestado:'badge-gray' };
+let perfil, colabData = [], cargoData = [], avalData = [], ocData = [];
+const CRITERIOS = ['relacionamento','responsabilidade','cooperacao','conhecimento_trabalho','interesse','atitude_profissional','produtividade'];
+const CRITERIOS_LABEL = ['Relacionamento','Responsabilidade','Cooperação','Conhecimento do Trabalho','Interesse','Atitude Profissional','Produtividade'];
 
-let perfil, colaboradores = [], cargos = [], ocorrenciasData = [];
-let perfilColabId = null;
+const ano = anoAtual();
+const mes = mesAtual();
+const mesStr = `${ano}-${String(mes).padStart(2,'0')}`;
+document.getElementById('f-oc-mes').value = mesStr;
 
+// ── auto-calc média ───────────────────────────────────────────────────────────
+CRITERIOS.forEach(c => {
+  document.querySelector(`#form-aval [name="${c}"]`).addEventListener('input', calcMedia);
+});
+function calcMedia() {
+  const f = document.getElementById('form-aval');
+  const notas = CRITERIOS.map(c => parseFloat(f.querySelector(`[name="${c}"]`).value)||0).filter(v=>v>0);
+  const media = notas.length ? notas.reduce((a,b)=>a+b,0)/notas.length : 0;
+  f.querySelector('[name="nota_media"]').value = media ? media.toFixed(1) : '';
+}
+
+// ── Tabs ──────────────────────────────────────────────────────────────────────
+document.querySelectorAll('.rh-tab').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.rh-tab').forEach(b=>b.classList.remove('active'));
+    btn.classList.add('active');
+    ['colaboradores','avaliacoes','ocorrencias'].forEach(t => {
+      document.getElementById(`tab-${t}`).style.display = btn.dataset.tab===t ? '' : 'none';
+    });
+    if (btn.dataset.tab==='avaliacoes') renderAvaliacoes();
+    if (btn.dataset.tab==='ocorrencias') carregarOcorrencias();
+  });
+});
+
+// ── init ─────────────────────────────────────────────────────────────────────
 async function init() {
   const { data: { user } } = await supabase.auth.getUser();
   const { data: p } = await supabase.from('profiles').select('*').eq('id', user.id).single();
   perfil = p;
 
-  await carregarCargos();
-  await carregarColaboradores();
+  const [{ data: cargos }, { data: colabs }, { data: avals }, { data: ocs }] = await Promise.all([
+    supabase.from('cargos').select('*').order('nome'),
+    supabase.from('colaboradores').select('*, cargos(nome)').order('nome'),
+    supabase.from('colaborador_avaliacoes').select('*'),
+    supabase.from('ocorrencias').select('*, colaboradores(nome)').order('data', {ascending:false}),
+  ]);
 
-  document.getElementById('f-mes-kpi').value = mesAtual();
-  document.getElementById('f-mes-oc').value  = mesAtual();
+  cargoData = cargos || [];
+  colabData = colabs || [];
+  avalData  = avals  || [];
+  ocData    = ocs    || [];
 
-  await Promise.all([carregarKPIs(), carregarOcorrencias(), verificarVencimentos()]);
-}
+  const cargoOpts = cargoData.map(c=>`<option value="${c.id}">${c.nome}</option>`).join('');
+  document.querySelector('#form-colab [name="cargo_id"]').innerHTML = '<option value="">Selecione…</option>' + cargoOpts;
 
-/* ── Cargos ── */
-async function carregarCargos() {
-  const { data } = await supabase.from('cargos').select('*').order('nome');
-  cargos = data || [];
-
-  const isAdmin = perfil?.role === 'admin';
-  document.getElementById('tb-cargos').innerHTML = cargos.map(c => `
-    <tr>
-      <td>${c.nome}</td>
-      <td>${isAdmin ? `
-        <button class="btn-icon" onclick="editarCargo(${JSON.stringify(c).replace(/"/g,'&quot;')})">✏️</button>
-        <button class="btn-icon danger" onclick="excluirCargo('${c.id}')">🗑️</button>
-      ` : '—'}</td>
-    </tr>
-  `).join('') || '<tr><td colspan="2" class="table-empty">Nenhum cargo cadastrado</td></tr>';
-
-  // Atualizar select de cargos nos modais
-  const cargoOpts = '<option value="">— Selecione —</option>' + cargos.map(c=>`<option value="${c.nome}">${c.nome}</option>`).join('');
-  document.querySelector('#form-colab [name="cargo"]').innerHTML = cargoOpts;
-}
-
-/* ── Colaboradores ── */
-async function carregarColaboradores() {
-  const { data } = await supabase.from('colaboradores').select('*').order('nome');
-  colaboradores = data || [];
-
-  // Atualizar selects
-  const colOpts = colaboradores.filter(c=>c.ativo).map(c=>`<option value="${c.id}">${c.nome}</option>`).join('');
-  document.getElementById('f-colab').innerHTML = '<option value="">Todos</option>' + colOpts;
-  document.querySelector('#form-ocorrencia [name="colaborador_id"]').innerHTML = '<option value="">Selecione…</option>' + colOpts;
-
-  renderTabelaColaboradores();
-}
-
-function renderTabelaColaboradores(filtro = '') {
-  const isAdmin = perfil?.role === 'admin';
-  const lista = filtro
-    ? colaboradores.filter(c => c.nome.toLowerCase().includes(filtro.toLowerCase()) || (c.chapa||'').includes(filtro))
-    : colaboradores;
-
-  document.getElementById('tb-colaboradores').innerHTML = lista.map(c => {
-    const exp1 = calcExp(c.data_admissao, 45);
-    const exp2 = calcExp(c.data_admissao, 90);
-    return `<tr>
-      <td>${c.chapa || '—'}</td>
-      <td>
-        <button onclick="abrirPerfil('${c.id}')"
-          style="background:none;border:none;cursor:pointer;font-weight:600;color:var(--primary);font-size:13.5px;text-decoration:underline;padding:0">
-          ${c.nome}
-        </button>
-      </td>
-      <td>${c.cargo || '—'}</td>
-      <td>${c.data_admissao ? dataBR(c.data_admissao) : '—'}</td>
-      <td>${exp1.label}</td>
-      <td>${exp2.label}</td>
-      <td>
-        <span class="badge ${c.ativo ? 'badge-green' : 'badge-gray'}">${c.ativo ? 'Ativo' : 'Inativo'}</span>
-        ${c.demissao ? `<span class="badge badge-red" style="margin-left:4px">Demitido ${dataBR(c.demissao)}</span>` : ''}
-      </td>
-      <td>${isAdmin ? `
-        <button class="btn-icon" onclick="editarColab(${JSON.stringify(c).replace(/"/g,'&quot;')})">✏️</button>
-        <button class="btn-icon danger" onclick="toggleColab('${c.id}',${c.ativo})">${c.ativo?'🚫':'✅'}</button>
-      ` : '—'}</td>
-    </tr>`;
-  }).join('') || '<tr><td colspan="8" class="table-empty">Nenhum colaborador</td></tr>';
-}
-
-document.getElementById('busca-colab').addEventListener('input', e => renderTabelaColaboradores(e.target.value));
-
-/* ── Calcular vencimentos de experiência ── */
-function calcExp(admissao, dias) {
-  if (!admissao) return { label: '—', vencido: false, data: null };
-  const base = new Date(admissao + 'T00:00:00');
-  const venc = new Date(base);
-  venc.setDate(venc.getDate() + dias);
-  const hoje = new Date(); hoje.setHours(0,0,0,0);
-  const diff = Math.ceil((venc - hoje) / 86400000);
-  const dataStr = venc.toISOString().split('T')[0];
-
-  if (diff < 0)  return { label: `<span class="badge badge-gray">Vencido ${dataBR(dataStr)}</span>`, vencido: true, diff, data: dataStr, nome: '' };
-  if (diff <= 7) return { label: `<span class="badge badge-red">Vence ${dataBR(dataStr)}</span>`, vencido: false, diff, data: dataStr, nome: '' };
-  if (diff <= 15) return { label: `<span class="badge badge-yellow">Vence ${dataBR(dataStr)}</span>`, vencido: false, diff, data: dataStr, nome: '' };
-  return { label: `<span class="badge badge-green">${dataBR(dataStr)}</span>`, vencido: false, diff, data: dataStr, nome: '' };
-}
-
-/* ── Alertas de vencimento ── */
-async function verificarVencimentos() {
-  const alertas = [];
-  colaboradores.filter(c => c.ativo && c.data_admissao).forEach(c => {
-    [45, 90].forEach((dias, i) => {
-      const exp = calcExp(c.data_admissao, dias);
-      if (exp.data && exp.diff !== undefined && exp.diff >= 0 && exp.diff <= 7) {
-        alertas.push(`<div style="background:var(--warning-light);border:1px solid #FCD34D;border-radius:8px;padding:10px 14px;font-size:13px;margin-bottom:6px">
-          ⚠ <strong>${c.nome}</strong> — ${i+1}ª experiência vence em <strong>${exp.diff === 0 ? 'HOJE' : exp.diff + ' dias'}</strong> (${dataBR(exp.data)})
-        </div>`);
-      }
-    });
+  const colabOpts = colabData.map(c=>`<option value="${c.id}">${c.nome}</option>`).join('');
+  ['f-aval-colab','f-oc-colab'].forEach(id => {
+    document.getElementById(id).innerHTML = '<option value="">Todos</option>' + colabOpts;
   });
-  document.getElementById('alertas-exp').innerHTML = alertas.join('');
+  document.querySelector('#form-aval [name="colaborador_id"]').innerHTML = '<option value="">Selecione…</option>' + colabOpts;
+  document.querySelector('#form-oc [name="colaborador_id"]').innerHTML   = '<option value="">Selecione…</option>' + colabOpts;
+
+  renderKPIs();
+  renderColaboradores();
 }
 
-/* ── KPIs ── */
-async function carregarKPIs() {
-  const mes = document.getElementById('f-mes-kpi').value;
-  if (!mes) return;
-  const [y,m] = mes.split('-');
-  const { data } = await supabase.from('rh_ocorrencias')
-    .select('tipo').gte('data',`${y}-${m}-01`).lte('data', new Date(y,m,0).toISOString().split('T')[0]);
+// ── KPIs ─────────────────────────────────────────────────────────────────────
+function renderKPIs() {
+  const hoje = new Date();
+  const ativosArr = colabData.filter(c=>!c.demissao);
+  const expArr    = ativosArr.filter(c=>c.fim_experiencia_1||c.fim_experiencia_2);
 
-  const cnt = { falta:0, atraso:0, advertencia:0, atestado:0 };
-  (data||[]).forEach(r => { if(cnt[r.tipo]!==undefined) cnt[r.tipo]++; });
+  // Faltas e atestados no mês atual
+  const iniMes = `${ano}-${String(mes).padStart(2,'0')}-01`;
+  const fimMes = new Date(ano,mes,0).toISOString().split('T')[0];
+  const ocMes  = ocData.filter(r=>r.data>=iniMes && r.data<=fimMes);
+  const faltas    = ocMes.filter(r=>r.tipo==='falta').length;
+  const atestados = ocMes.filter(r=>r.tipo==='atestado').length;
 
-  const { count } = await supabase.from('colaboradores').select('*',{count:'exact',head:true}).eq('ativo',true);
-  document.getElementById('kpi-ativos').textContent  = count || 0;
-  document.getElementById('kpi-faltas').textContent  = cnt.falta;
-  document.getElementById('kpi-atrasos').textContent = cnt.atraso;
-  document.getElementById('kpi-adv').textContent     = cnt.advertencia;
-  document.getElementById('kpi-atest').textContent   = cnt.atestado;
+  // Turnover no ano
+  const demAno = colabData.filter(c=>{
+    if (!c.demissao) return false;
+    const y = new Date(c.demissao+'T00:00:00').getFullYear();
+    return y === ano;
+  }).length;
+  const headcount = ativosArr.length + demAno;
+  const turnover  = headcount ? ((demAno / headcount)*100).toFixed(1) : 0;
+
+  document.getElementById('kpi-ativos').textContent     = ativosArr.length;
+  document.getElementById('kpi-exp').textContent        = expArr.length;
+  document.getElementById('kpi-faltas').textContent     = faltas;
+  document.getElementById('kpi-atestados').textContent  = atestados;
+  document.getElementById('kpi-turnover').textContent   = turnover+'%';
+  document.getElementById('kpi-turnover-sub').textContent = `${demAno} demissões em ${ano}`;
 }
 
-/* ── Ocorrências ── */
+// ── Colaboradores ─────────────────────────────────────────────────────────────
+function renderColaboradores() {
+  const busca = (document.getElementById('busca-colab').value||'').toLowerCase();
+  const sit   = document.getElementById('f-sit').value;
+
+  let lista = colabData.filter(c => {
+    if (busca && !c.nome.toLowerCase().includes(busca)) return false;
+    if (sit === 'ativo'   && c.demissao) return false;
+    if (sit === 'demitido'&& !c.demissao) return false;
+    if (sit === 'exp'     && (!c.fim_experiencia_1&&!c.fim_experiencia_2)) return false;
+    return true;
+  });
+
+  const isAdmin = perfil?.role === 'admin';
+  const hoje = new Date().toISOString().split('T')[0];
+  const iniMes = `${ano}-${String(mes).padStart(2,'0')}-01`;
+  const fimMes = new Date(ano,mes,0).toISOString().split('T')[0];
+
+  const grid = document.getElementById('grid-colaboradores');
+  if (!lista.length) { grid.innerHTML='<p class="text-muted">Nenhum colaborador encontrado.</p>'; return; }
+
+  grid.innerHTML = lista.map(c => {
+    const inicial = c.nome.charAt(0).toUpperCase();
+    const avals   = avalData.filter(a=>a.colaborador_id===c.id);
+    const ocColab = ocData.filter(o=>o.colaborador_id===c.id && o.data>=iniMes && o.data<=fimMes);
+    const faltasC = ocColab.filter(o=>o.tipo==='falta').length;
+    const atestC  = ocColab.filter(o=>o.tipo==='atestado').length;
+
+    const ultimaAval = avals.sort((a,b)=>b.data_avaliacao?.localeCompare(a.data_avaliacao))[0];
+    const mediaAval  = ultimaAval ? calcMediaAval(ultimaAval) : null;
+    const rec        = recomendacao(mediaAval, faltasC);
+
+    const expStatus = statusExp(c);
+
+    return `<div class="colab-card">
+      <div class="colab-header">
+        <div class="colab-avatar">${inicial}</div>
+        <div class="colab-info">
+          <h4>${c.nome}</h4>
+          <p>${c.cargos?.nome||'Sem cargo'} ${c.chapa?`· Chapa ${c.chapa}`:''}</p>
+          <p>Admissão: ${dataBR(c.admissao)} ${expStatus}</p>
+        </div>
+        ${isAdmin?`
+          <div style="margin-left:auto;display:flex;gap:6px">
+            <button class="btn-icon" onclick="editarColab('${c.id}')">✏️</button>
+            <button class="btn-icon danger" onclick="excluirColab('${c.id}')">🗑️</button>
+          </div>
+        `:''}
+      </div>
+      <div class="colab-stats">
+        <div class="colab-stat"><div class="val ${faltasC>0?'text-red':''}">${faltasC}</div><div class="lbl">Faltas Injust.</div></div>
+        <div class="colab-stat"><div class="val">${atestC}</div><div class="lbl">Atestados</div></div>
+        <div class="colab-stat"><div class="val">${mediaAval!==null?mediaAval.toFixed(1):'—'}</div><div class="lbl">Nota Avaliação</div></div>
+        <div class="colab-stat"><div class="val">${avals.length}</div><div class="lbl">Avaliações</div></div>
+      </div>
+      <div class="recomendacao ${rec.cls}">${rec.icon} ${rec.texto}</div>
+    </div>`;
+  }).join('');
+}
+
+function calcMediaAval(aval) {
+  const notas = CRITERIOS.map(c=>parseFloat(aval[c])||0).filter(v=>v>0);
+  return notas.length ? notas.reduce((a,b)=>a+b,0)/notas.length : null;
+}
+
+function recomendacao(media, faltas) {
+  if (media === null) return { cls:'rec-nd', icon:'📋', texto:'SEM AVALIAÇÃO — Realize avaliação antes de decidir' };
+  if (media >= 7 && faltas <= 1) return { cls:'rec-ok', icon:'✅', texto:'RECOMENDADO — Prorrogar contrato' };
+  if (media < 5 || faltas >= 3)  return { cls:'rec-no', icon:'❌', texto:'NÃO RECOMENDADO — Encerrar contrato' };
+  return { cls:'rec-att', icon:'⚠️', texto:'AVALIAR — Conversa recomendada antes de decidir' };
+}
+
+function statusExp(c) {
+  const hoje = new Date().toISOString().split('T')[0];
+  if (c.fim_experiencia_2 && hoje <= c.fim_experiencia_2) return `· <span class="badge badge-yellow">2ª Exp. até ${dataBR(c.fim_experiencia_2)}</span>`;
+  if (c.fim_experiencia_1 && hoje <= c.fim_experiencia_1) return `· <span class="badge badge-blue">1ª Exp. até ${dataBR(c.fim_experiencia_1)}</span>`;
+  if (c.demissao) return `· <span class="badge badge-red">Demitido em ${dataBR(c.demissao)}</span>`;
+  return '';
+}
+
+// ── Avaliações ────────────────────────────────────────────────────────────────
+function renderAvaliacoes() {
+  const colabF  = document.getElementById('f-aval-colab').value;
+  const periodoF= document.getElementById('f-aval-periodo').value;
+
+  let lista = avalData;
+  if (colabF)   lista = lista.filter(a=>a.colaborador_id===colabF);
+  if (periodoF) lista = lista.filter(a=>a.periodo===periodoF);
+  lista = lista.sort((a,b)=>(b.data_avaliacao||'').localeCompare(a.data_avaliacao||''));
+
+  const isAdmin = perfil?.role === 'admin';
+  const div = document.getElementById('lista-avaliacoes');
+  if (!lista.length) { div.innerHTML='<p class="text-muted">Nenhuma avaliação encontrada.</p>'; return; }
+
+  div.innerHTML = lista.map(a => {
+    const colab = colabData.find(c=>c.id===a.colaborador_id);
+    const media = calcMediaAval(a);
+    const per   = a.periodo==='45dias'?'1º Período (45 dias)':'2º Período (90 dias)';
+    return `<div class="card mb-16" style="padding:16px">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:12px">
+        <div>
+          <strong>${colab?.nome||'—'}</strong>
+          <span class="badge badge-blue" style="margin-left:8px">${per}</span>
+          <span style="font-size:12px;color:#64748b;margin-left:8px">${dataBR(a.data_avaliacao)} ${a.avaliador?`· por ${a.avaliador}`:''}</span>
+        </div>
+        <div style="display:flex;align-items:center;gap:8px">
+          <span style="font-size:22px;font-weight:700;color:${media>=7?'#16a34a':media>=5?'#d97706':'#dc2626'}">${media!==null?media.toFixed(1):'—'}</span>
+          ${isAdmin?`
+            <button class="btn-icon" onclick="editarAval('${a.id}')">✏️</button>
+            <button class="btn-icon danger" onclick="excluirAval('${a.id}')">🗑️</button>
+          `:''}
+        </div>
+      </div>
+      <div class="criteria-grid">
+        ${CRITERIOS.map((c,i)=>`<div class="criteria-item">
+          <div class="nota" style="color:${(+a[c]||0)>=7?'#16a34a':(+a[c]||0)>=5?'#d97706':'#dc2626'}">${a[c]??'—'}</div>
+          <div class="crit">${CRITERIOS_LABEL[i]}</div>
+        </div>`).join('')}
+      </div>
+      ${a.observacoes?`<p style="margin-top:10px;font-size:13px;color:#475569;background:#f8fafc;padding:8px 12px;border-radius:6px">${a.observacoes}</p>`:''}
+    </div>`;
+  }).join('');
+}
+
+document.getElementById('f-aval-colab').addEventListener('change', renderAvaliacoes);
+document.getElementById('f-aval-periodo').addEventListener('change', renderAvaliacoes);
+
+// ── Ocorrências ───────────────────────────────────────────────────────────────
 async function carregarOcorrencias() {
-  let q = supabase.from('rh_ocorrencias')
-    .select('*, colaboradores(nome)').order('data', { ascending: false });
+  const mes_  = document.getElementById('f-oc-mes').value;
+  const colab = document.getElementById('f-oc-colab').value;
+  const tipo  = document.getElementById('f-oc-tipo').value;
 
-  const mes   = document.getElementById('f-mes-oc').value;
-  const colab = document.getElementById('f-colab').value;
-  const tipo  = document.getElementById('f-tipo-oc').value;
+  let q = supabase.from('ocorrencias')
+    .select('*, colaboradores(nome)')
+    .order('data', { ascending:false });
 
-  if (mes) {
-    const [y,m] = mes.split('-');
-    q = q.gte('data',`${y}-${m}-01`).lte('data', new Date(y,m,0).toISOString().split('T')[0]);
+  if (mes_) {
+    const [y,m] = mes_.split('-');
+    q = q.gte('data',`${y}-${m}-01`).lte('data', new Date(+y,+m,0).toISOString().split('T')[0]);
   }
   if (colab) q = q.eq('colaborador_id', colab);
   if (tipo)  q = q.eq('tipo', tipo);
 
   const { data } = await q;
-  ocorrenciasData = data || [];
-  document.getElementById('oc-count').textContent = `${ocorrenciasData.length} registros`;
+  ocData = data || [];
 
   const isAdmin = perfil?.role === 'admin';
-  document.getElementById('tb-ocorrencias').innerHTML = ocorrenciasData.map(r=>`
+  const tipoLabel = { falta:'Falta injustificada', atestado:'Atestado / Justificada', advertencia:'Advertência', elogio:'Elogio', outro:'Outro' };
+  const tipoBadge = { falta:'badge-red', atestado:'badge-yellow', advertencia:'badge-red', elogio:'badge-green', outro:'badge-gray' };
+  const tb = document.getElementById('tb-ocorrencias');
+
+  if (!ocData.length) {
+    tb.innerHTML='<tr><td colspan="5" class="table-empty">Nenhuma ocorrência encontrada</td></tr>'; return;
+  }
+  tb.innerHTML = ocData.map(r=>`
     <tr>
       <td>${dataBR(r.data)}</td>
       <td>${r.colaboradores?.nome||'—'}</td>
       <td><span class="badge ${tipoBadge[r.tipo]||'badge-gray'}">${tipoLabel[r.tipo]||r.tipo}</span></td>
-      <td>${r.observacao||'—'}</td>
-      <td>${isAdmin?`
-        <button class="btn-icon" onclick="editarOc('${r.id}')">✏️</button>
-        <button class="btn-icon danger" onclick="excluirOc('${r.id}')">🗑️</button>
-      `:'—'}</td>
+      <td>${r.descricao||'—'}</td>
+      <td>
+        ${isAdmin?`
+          <button class="btn-icon" onclick="editarOc('${r.id}')">✏️</button>
+          <button class="btn-icon danger" onclick="excluirOc('${r.id}')">🗑️</button>
+        `:'—'}
+      </td>
     </tr>
-  `).join('') || '<tr><td colspan="5" class="table-empty">Nenhuma ocorrência encontrada</td></tr>';
+  `).join('');
 }
 
-/* ══════════════════════════════════════════
-   PERFIL DO COLABORADOR
-══════════════════════════════════════════ */
-window.abrirPerfil = async id => {
-  perfilColabId = id;
-  const c = colaboradores.find(x=>x.id===id);
-  if (!c) return;
-
-  document.getElementById('perfil-nome').textContent  = c.nome;
-  document.getElementById('perfil-cargo').textContent = (c.chapa ? `Chapa: ${c.chapa} · ` : '') + (c.cargo || 'Sem cargo');
-  mudarTab('info');
-  document.getElementById('perfil-backdrop').classList.add('open');
-
-  // Info
-  const exp1 = calcExp(c.data_admissao, 45);
-  const exp2 = calcExp(c.data_admissao, 90);
-  document.getElementById('perfil-info-grid').innerHTML = `
-    <div class="info-item"><label>Chapa</label><span>${c.chapa||'—'}</span></div>
-    <div class="info-item"><label>Cargo</label><span>${c.cargo||'—'}</span></div>
-    <div class="info-item"><label>Admissão</label><span>${c.data_admissao ? dataBR(c.data_admissao) : '—'}</span></div>
-    <div class="info-item"><label>Demissão</label><span>${c.demissao ? dataBR(c.demissao) : '—'}</span></div>
-    <div class="info-item"><label>Status</label><span>${c.ativo ? '🟢 Ativo' : '🔴 Inativo'}</span></div>
-  `;
-  document.getElementById('perfil-exp-cards').innerHTML = `
-    <div class="experiencia-card">
-      <h4>⏱ Vencimento de Experiência</h4>
-      <div class="exp-row" style="margin-bottom:8px">
-        <span>1ª Experiência (45 dias)</span>
-        <span>${exp1.label}</span>
-      </div>
-      <div class="exp-row">
-        <span>2ª Experiência (90 dias)</span>
-        <span>${exp2.label}</span>
-      </div>
-    </div>
-  `;
-
-  await Promise.all([carregarOcorrenciasPerfil(id), carregarAvaliacoesPerfil(id)]);
-};
-
-window.fecharPerfil = () => {
-  document.getElementById('perfil-backdrop').classList.remove('open');
-  document.getElementById('form-av-wrap').style.display = 'none';
-  perfilColabId = null;
-};
-
-window.mudarTab = tab => {
-  document.querySelectorAll('.perfil-tab').forEach((t,i) => {
-    const tabs = ['info','ocorrencias','avaliacao'];
-    t.classList.toggle('active', tabs[i] === tab);
-  });
-  document.querySelectorAll('.perfil-tab-content').forEach(c => c.classList.remove('active'));
-  document.getElementById('tab-'+tab).classList.add('active');
-};
-
-async function carregarOcorrenciasPerfil(colabId) {
-  const { data } = await supabase.from('rh_ocorrencias')
-    .select('*').eq('colaborador_id', colabId).order('data', { ascending: false });
-
-  const isAdmin = perfil?.role === 'admin';
-  document.getElementById('tb-perfil-oc').innerHTML = (data||[]).map(r=>`
-    <tr style="border-bottom:1px solid #F0F0F0">
-      <td style="padding:8px 12px">${dataBR(r.data)}</td>
-      <td style="padding:8px 12px"><span class="badge ${tipoBadge[r.tipo]||'badge-gray'}">${tipoLabel[r.tipo]||r.tipo}</span></td>
-      <td style="padding:8px 12px">${r.observacao||'—'}</td>
-      <td style="padding:8px 12px">${isAdmin?`<button class="btn-icon danger" onclick="excluirOcPerfil('${r.id}')">🗑️</button>`:'—'}</td>
-    </tr>
-  `).join('') || '<tr><td colspan="4" style="padding:20px;text-align:center;color:var(--text-muted)">Nenhuma ocorrência</td></tr>';
-}
-
-async function carregarAvaliacoesPerfil(colabId) {
-  const { data } = await supabase.from('colaborador_avaliacoes')
-    .select('*').eq('colaborador_id', colabId).order('data', { ascending: false });
-
-  const avs = data || [];
-  let notaGeral = '—';
-  let badgeCls  = 'nota-verde';
-
-  if (avs.length) {
-    const criterios = ['pontualidade','produtividade','qualidade','trabalho_equipe','comprometimento'];
-    const ultima = avs[0];
-    const vals = criterios.map(c => ultima[c]).filter(v => v != null);
-    const media = vals.length ? vals.reduce((a,b)=>a+b,0)/vals.length : 0;
-    notaGeral = media.toFixed(1);
-    badgeCls  = media >= 7 ? 'nota-verde' : media >= 5 ? 'nota-amarelo' : 'nota-vermelho';
-  }
-
-  document.getElementById('av-nota-geral').textContent = notaGeral;
-  document.getElementById('perfil-nota-badge').textContent = notaGeral;
-  document.getElementById('perfil-nota-badge').className  = `nota-badge ${badgeCls}`;
-
-  const isAdmin = perfil?.role === 'admin';
-  document.getElementById('av-historico').innerHTML = avs.map(av => {
-    const criterios = ['pontualidade','produtividade','qualidade','trabalho_equipe','comprometimento'];
-    const labels    = ['Pontualidade','Produtividade','Qualidade','Equipe','Comprometimento'];
-    const vals  = criterios.map(c => av[c]).filter(v=>v!=null);
-    const media = vals.length ? (vals.reduce((a,b)=>a+b,0)/vals.length).toFixed(1) : '—';
-    return `
-      <div style="border:1px solid var(--primary-border);border-radius:8px;padding:14px;margin-bottom:10px">
-        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
-          <span style="font-size:13px;font-weight:600">${dataBR(av.data)}</span>
-          <span style="font-size:20px;font-weight:800;color:var(--primary)">${media}</span>
-        </div>
-        ${criterios.map((c,i) => av[c] != null ? `
-          <div class="criterio-row">
-            <span>${labels[i]}</span>
-            <span style="font-weight:600">${av[c]}/10</span>
-          </div>
-        ` : '').join('')}
-        ${av.observacao ? `<div style="font-size:12px;color:var(--text-muted);margin-top:8px;font-style:italic">${av.observacao}</div>` : ''}
-        ${isAdmin ? `<button class="btn-icon danger" onclick="excluirAv('${av.id}')" style="margin-top:8px">🗑️ Excluir avaliação</button>` : ''}
-      </div>
-    `;
-  }).join('') || '<p style="font-size:13px;color:var(--text-muted);text-align:center;padding:20px 0">Nenhuma avaliação registrada.</p>';
-}
-
-// Botão nova avaliação
-document.getElementById('btn-nova-av').addEventListener('click', () => {
-  document.getElementById('form-av-wrap').style.display = 'block';
-  document.getElementById('av-data').value = new Date().toISOString().split('T')[0];
-  ['pontualidade','produtividade','qualidade','trabalho_equipe','comprometimento'].forEach(c => {
-    document.getElementById('av-'+c).value = '';
-  });
-  document.getElementById('av-obs').value = '';
-});
-
-document.getElementById('btn-salvar-av').addEventListener('click', async () => {
-  if (!perfilColabId) return;
-  const criterios = ['pontualidade','produtividade','qualidade','trabalho_equipe','comprometimento'];
-  const payload = {
-    colaborador_id: perfilColabId,
-    data: document.getElementById('av-data').value,
-    observacao: document.getElementById('av-obs').value || null,
-  };
-  criterios.forEach(c => {
-    const v = parseFloat(document.getElementById('av-'+c).value);
-    if (!isNaN(v)) payload[c] = v;
-  });
-  const { error } = await supabase.from('colaborador_avaliacoes').insert(payload);
-  if (error) { toast('Erro ao salvar avaliação','error'); return; }
-  toast('Avaliação registrada!');
-  document.getElementById('form-av-wrap').style.display = 'none';
-  carregarAvaliacoesPerfil(perfilColabId);
-});
-
-window.excluirAv = async id => {
-  if (!confirm('Excluir esta avaliação?')) return;
-  await supabase.from('colaborador_avaliacoes').delete().eq('id', id);
-  toast('Avaliação excluída!');
-  carregarAvaliacoesPerfil(perfilColabId);
-};
-
-// Botão ocorrência dentro do perfil
-document.getElementById('btn-oc-perfil').addEventListener('click', () => {
-  document.getElementById('form-ocorrencia').reset();
-  document.querySelector('#form-ocorrencia [name="id"]').value = '';
-  if (perfilColabId) {
-    document.querySelector('#form-ocorrencia [name="colaborador_id"]').value = perfilColabId;
-  }
-  document.querySelector('#form-ocorrencia [name="data"]').value = new Date().toISOString().split('T')[0];
-  abrirModal('modal-ocorrencia');
-});
-
-window.excluirOcPerfil = async id => {
-  if (!confirm('Excluir esta ocorrência?')) return;
-  await supabase.from('rh_ocorrencias').delete().eq('id', id);
-  toast('Ocorrência excluída!');
-  carregarOcorrenciasPerfil(perfilColabId);
-  carregarOcorrencias();
-  carregarKPIs();
-};
-
-/* ── Cargo CRUD ── */
-document.getElementById('btn-novo-cargo').addEventListener('click', () => {
-  document.getElementById('modal-cargo-title').textContent = 'Novo Cargo';
-  document.getElementById('form-cargo').reset();
-  document.querySelector('#form-cargo [name="id"]').value = '';
-  abrirModal('modal-cargo');
-});
-window.editarCargo = c => {
-  document.getElementById('modal-cargo-title').textContent = 'Editar Cargo';
-  const f = document.getElementById('form-cargo');
-  f.querySelector('[name="id"]').value   = c.id;
-  f.querySelector('[name="nome"]').value = c.nome;
-  abrirModal('modal-cargo');
-};
-window.excluirCargo = async id => {
-  if (!confirm('Excluir este cargo?')) return;
-  await supabase.from('cargos').delete().eq('id', id);
-  toast('Cargo excluído!');
-  carregarCargos();
-};
-document.getElementById('btn-salvar-cargo').addEventListener('click', async () => {
-  const f = document.getElementById('form-cargo');
-  if (!f.checkValidity()) { f.reportValidity(); return; }
-  const fd = Object.fromEntries(new FormData(f));
-  if (fd.id) { await supabase.from('cargos').update({ nome: fd.nome }).eq('id', fd.id); toast('Cargo atualizado!'); }
-  else       { await supabase.from('cargos').insert({ nome: fd.nome }); toast('Cargo criado!'); }
-  fecharModal('modal-cargo');
-  carregarCargos();
-});
-
-/* ── Colaborador CRUD ── */
+// ── CRUD Colaborador ──────────────────────────────────────────────────────────
 document.getElementById('btn-novo-colab').addEventListener('click', () => {
   document.getElementById('modal-colab-title').textContent = 'Novo Colaborador';
   document.getElementById('form-colab').reset();
   document.querySelector('#form-colab [name="id"]').value = '';
   abrirModal('modal-colab');
 });
-window.editarColab = c => {
+
+window.editarColab = id => {
+  const c = colabData.find(x=>x.id===id); if(!c) return;
   document.getElementById('modal-colab-title').textContent = 'Editar Colaborador';
-  const f = document.getElementById('form-colab');
-  f.querySelector('[name="id"]').value           = c.id;
-  f.querySelector('[name="chapa"]').value        = c.chapa||'';
-  f.querySelector('[name="nome"]').value         = c.nome;
-  f.querySelector('[name="cargo"]').value        = c.cargo||'';
-  f.querySelector('[name="data_admissao"]').value = c.data_admissao||'';
-  f.querySelector('[name="demissao"]').value     = c.demissao||'';
+  const f=document.getElementById('form-colab');
+  const set=(n,v)=>{const el=f.querySelector(`[name="${n}"]`);if(el)el.value=v??'';};
+  set('id',c.id); set('nome',c.nome); set('cpf',c.cpf); set('chapa',c.chapa);
+  set('cargo_id',c.cargo_id); set('admissao',c.admissao);
+  set('fim_experiencia_1',c.fim_experiencia_1); set('fim_experiencia_2',c.fim_experiencia_2);
+  set('demissao',c.demissao); set('telefone',c.telefone);
   abrirModal('modal-colab');
 };
-window.toggleColab = async (id, ativo) => {
-  await supabase.from('colaboradores').update({ ativo: !ativo }).eq('id', id);
-  carregarColaboradores();
-  verificarVencimentos();
+
+window.excluirColab = async id => {
+  if(!confirm('Excluir este colaborador? Todas as avaliações e ocorrências serão mantidas.')) return;
+  const {error}=await supabase.from('colaboradores').delete().eq('id',id);
+  if(error){toast('Erro ao excluir','error');return;}
+  toast('Colaborador excluído!');
+  colabData=colabData.filter(c=>c.id!==id);
+  renderColaboradores(); renderKPIs();
 };
-document.getElementById('btn-salvar-colab').addEventListener('click', async () => {
-  const f = document.getElementById('form-colab');
-  if (!f.checkValidity()) { f.reportValidity(); return; }
-  const fd = Object.fromEntries(new FormData(f));
-  const payload = {
-    chapa:         fd.chapa || null,
-    nome:          fd.nome,
-    cargo:         fd.cargo || null,
-    data_admissao: fd.data_admissao || null,
-    demissao:      fd.demissao || null,
+
+document.getElementById('btn-salvar-colab').addEventListener('click', async ()=>{
+  const f=document.getElementById('form-colab');
+  if(!f.checkValidity()){f.reportValidity();return;}
+  const fd=Object.fromEntries(new FormData(f));
+  const payload={
+    nome:fd.nome, cpf:fd.cpf||null, chapa:fd.chapa||null,
+    cargo_id:fd.cargo_id||null, admissao:fd.admissao,
+    fim_experiencia_1:fd.fim_experiencia_1||null,
+    fim_experiencia_2:fd.fim_experiencia_2||null,
+    demissao:fd.demissao||null, telefone:fd.telefone||null,
   };
-  if (fd.id) { await supabase.from('colaboradores').update(payload).eq('id', fd.id); toast('Colaborador atualizado!'); }
-  else       { await supabase.from('colaboradores').insert(payload); toast('Colaborador criado!'); }
+  if(fd.id){
+    const{error}=await supabase.from('colaboradores').update(payload).eq('id',fd.id);
+    if(error){toast('Erro ao atualizar','error');return;}
+    Object.assign(colabData.find(c=>c.id===fd.id)||{},payload);
+    toast('Colaborador atualizado!');
+  } else {
+    const{data:novo,error}=await supabase.from('colaboradores').insert(payload).select('*, cargos(nome)').single();
+    if(error){toast('Erro ao salvar','error');return;}
+    colabData.push(novo);
+    toast('Colaborador cadastrado!');
+  }
   fecharModal('modal-colab');
-  carregarColaboradores();
-  verificarVencimentos();
+  renderColaboradores(); renderKPIs();
 });
 
-/* ── Ocorrência CRUD ── */
-document.getElementById('btn-nova-oc').addEventListener('click', () => {
-  document.getElementById('form-ocorrencia').reset();
-  document.querySelector('#form-ocorrencia [name="id"]').value = '';
-  document.querySelector('#form-ocorrencia [name="data"]').value = new Date().toISOString().split('T')[0];
-  abrirModal('modal-ocorrencia');
+// ── CRUD Avaliação ────────────────────────────────────────────────────────────
+document.getElementById('btn-nova-aval').addEventListener('click', ()=>{
+  document.getElementById('modal-aval-title').textContent='Nova Avaliação de Experiência';
+  document.getElementById('form-aval').reset();
+  document.querySelector('#form-aval [name="id"]').value='';
+  document.querySelector('#form-aval [name="data_avaliacao"]').value=new Date().toISOString().split('T')[0];
+  abrirModal('modal-aval');
 });
+
+window.editarAval = id => {
+  const a=avalData.find(x=>x.id===id); if(!a) return;
+  document.getElementById('modal-aval-title').textContent='Editar Avaliação';
+  const f=document.getElementById('form-aval');
+  const set=(n,v)=>{const el=f.querySelector(`[name="${n}"]`);if(el)el.value=v??'';};
+  set('id',a.id); set('colaborador_id',a.colaborador_id); set('periodo',a.periodo);
+  set('data_avaliacao',a.data_avaliacao); set('avaliador',a.avaliador);
+  CRITERIOS.forEach(c=>set(c,a[c]));
+  const media=calcMediaAval(a);
+  set('nota_media',media!==null?media.toFixed(1):'');
+  set('observacoes',a.observacoes);
+  abrirModal('modal-aval');
+};
+
+window.excluirAval = async id => {
+  if(!confirm('Excluir esta avaliação?')) return;
+  const{error}=await supabase.from('colaborador_avaliacoes').delete().eq('id',id);
+  if(error){toast('Erro ao excluir','error');return;}
+  avalData=avalData.filter(a=>a.id!==id);
+  toast('Avaliação excluída!'); renderAvaliacoes();
+};
+
+document.getElementById('btn-salvar-aval').addEventListener('click', async ()=>{
+  const f=document.getElementById('form-aval');
+  if(!f.checkValidity()){f.reportValidity();return;}
+  const fd=Object.fromEntries(new FormData(f));
+  const notas={};
+  CRITERIOS.forEach(c=>{ notas[c]=parseFloat(fd[c])||null; });
+  const notasValidas=Object.values(notas).filter(v=>v!==null);
+  const media=notasValidas.length?notasValidas.reduce((a,b)=>a+b,0)/notasValidas.length:null;
+  const payload={
+    colaborador_id:fd.colaborador_id, periodo:fd.periodo,
+    data_avaliacao:fd.data_avaliacao, avaliador:fd.avaliador||null,
+    ...notas, nota_media:media, observacoes:fd.observacoes||null,
+  };
+  if(fd.id){
+    const{error}=await supabase.from('colaborador_avaliacoes').update(payload).eq('id',fd.id);
+    if(error){toast('Erro ao atualizar','error');return;}
+    const i=avalData.findIndex(a=>a.id===fd.id);
+    if(i>=0) avalData[i]={...avalData[i],...payload,id:fd.id};
+    toast('Avaliação atualizada!');
+  } else {
+    const{data:nova,error}=await supabase.from('colaborador_avaliacoes').insert(payload).select().single();
+    if(error){toast('Erro ao salvar','error');return;}
+    avalData.push(nova); toast('Avaliação registrada!');
+  }
+  fecharModal('modal-aval');
+  renderAvaliacoes(); renderColaboradores();
+});
+
+// ── CRUD Ocorrência ───────────────────────────────────────────────────────────
+document.getElementById('btn-nova-oc').addEventListener('click', ()=>{
+  document.getElementById('modal-oc-title').textContent='Nova Ocorrência';
+  document.getElementById('form-oc').reset();
+  document.querySelector('#form-oc [name="id"]').value='';
+  document.querySelector('#form-oc [name="data"]').value=new Date().toISOString().split('T')[0];
+  abrirModal('modal-oc');
+});
+
 window.editarOc = id => {
-  const r = ocorrenciasData.find(o=>o.id===id);
-  if (!r) return;
-  const f = document.getElementById('form-ocorrencia');
-  f.querySelector('[name="id"]').value             = r.id;
-  f.querySelector('[name="data"]').value           = r.data;
-  f.querySelector('[name="colaborador_id"]').value = r.colaborador_id;
-  f.querySelector('[name="tipo"]').value           = r.tipo;
-  f.querySelector('[name="observacao"]').value     = r.observacao||'';
-  abrirModal('modal-ocorrencia');
+  const r=ocData.find(x=>x.id===id); if(!r) return;
+  document.getElementById('modal-oc-title').textContent='Editar Ocorrência';
+  const f=document.getElementById('form-oc');
+  const set=(n,v)=>{const el=f.querySelector(`[name="${n}"]`);if(el)el.value=v??'';};
+  set('id',r.id); set('data',r.data); set('colaborador_id',r.colaborador_id);
+  set('tipo',r.tipo); set('descricao',r.descricao);
+  abrirModal('modal-oc');
 };
-document.getElementById('btn-salvar-oc').addEventListener('click', async () => {
-  const f = document.getElementById('form-ocorrencia');
-  if (!f.checkValidity()) { f.reportValidity(); return; }
-  const fd = Object.fromEntries(new FormData(f));
-  const payload = { colaborador_id: fd.colaborador_id, tipo: fd.tipo, data: fd.data, observacao: fd.observacao||null };
-  if (fd.id) { await supabase.from('rh_ocorrencias').update(payload).eq('id', fd.id); toast('Ocorrência atualizada!'); }
-  else       { await supabase.from('rh_ocorrencias').insert(payload); toast('Ocorrência registrada!'); }
-  fecharModal('modal-ocorrencia');
-  carregarOcorrencias();
-  carregarKPIs();
-  if (perfilColabId === (fd.colaborador_id)) carregarOcorrenciasPerfil(perfilColabId);
-});
+
 window.excluirOc = async id => {
-  if (!confirm('Excluir esta ocorrência?')) return;
-  await supabase.from('rh_ocorrencias').delete().eq('id', id);
-  toast('Ocorrência excluída!');
-  carregarOcorrencias();
-  carregarKPIs();
+  if(!confirm('Excluir esta ocorrência?')) return;
+  const{error}=await supabase.from('ocorrencias').delete().eq('id',id);
+  if(error){toast('Erro ao excluir','error');return;}
+  toast('Ocorrência excluída!'); carregarOcorrencias();
 };
 
-document.getElementById('btn-filtrar-kpi').addEventListener('click', carregarKPIs);
-document.getElementById('btn-filtrar-oc').addEventListener('click', carregarOcorrencias);
+document.getElementById('btn-salvar-oc').addEventListener('click', async ()=>{
+  const f=document.getElementById('form-oc');
+  if(!f.checkValidity()){f.reportValidity();return;}
+  const fd=Object.fromEntries(new FormData(f));
+  const payload={
+    colaborador_id:fd.colaborador_id, tipo:fd.tipo,
+    data:fd.data, descricao:fd.descricao||null,
+  };
 
-document.querySelectorAll('[data-close]').forEach(btn => btn.addEventListener('click', () => fecharModal(btn.dataset.close)));
-document.querySelectorAll('.modal-backdrop').forEach(m => m.addEventListener('click', e => { if(e.target===m) fecharModal(m.id); }));
+  if(fd.id){
+    const{error}=await supabase.from('ocorrencias').update(payload).eq('id',fd.id);
+    if(error){toast('Erro ao atualizar','error');return;}
+    toast('Ocorrência atualizada!');
+  } else {
+    const{error}=await supabase.from('ocorrencias').insert(payload);
+    if(error){toast('Erro ao salvar','error');return;}
+    toast('Ocorrência registrada!');
+
+    // Se for falta para hoje → remove da equipe diária no dashboard
+    if((fd.tipo==='falta'||fd.tipo==='atestado') && fd.data===new Date().toISOString().split('T')[0]) {
+      await supabase.from('equipe_diaria')
+        .delete()
+        .eq('colaborador_id', fd.colaborador_id)
+        .eq('data', fd.data);
+    }
+  }
+  fecharModal('modal-oc');
+  carregarOcorrencias(); renderKPIs();
+});
+
+// Filtros
+document.getElementById('btn-filtrar-colab').addEventListener('click', renderColaboradores);
+document.getElementById('busca-colab').addEventListener('input', renderColaboradores);
+['f-oc-mes','f-oc-colab','f-oc-tipo'].forEach(id => {
+  document.getElementById(id)?.addEventListener('change', carregarOcorrencias);
+});
+
+document.querySelectorAll('[data-close]').forEach(btn=>btn.addEventListener('click',()=>fecharModal(btn.dataset.close)));
+document.querySelectorAll('.modal-backdrop').forEach(m=>m.addEventListener('click',e=>{if(e.target===m)fecharModal(m.id);}));
 
 await init();
 </script>
