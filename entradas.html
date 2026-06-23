@@ -108,7 +108,6 @@
                 <th>Transportadora</th>
                 <th>Entrada/Saída</th>
                 <th>Destino</th>
-                <th>Ações</th>
               </tr>
             </thead>
             <tbody id="tb-entradas"></tbody>
@@ -302,12 +301,6 @@ function renderTabela() {
       <td ${dblEdit} data-field="transportadora" data-id="${r.id}">${r.transportadora||'—'}</td>
       <td><span class="badge ${r.tipo_movimentacao==='saida'?'badge-red':'badge-green'}">${r.tipo_movimentacao==='saida'?'Saída':'Entrada'}</span></td>
       <td ${dblEdit} data-field="destino"        data-id="${r.id}">${r.destino||'—'}</td>
-      <td>
-        ${isAdmin ? `
-          <button class="btn-icon" onclick="editarEntrada('${r.id}')">✏️</button>
-          <button class="btn-icon danger" onclick="excluirEntrada('${r.id}')">🗑️</button>
-        ` : '—'}
-      </td>
     </tr>`;
   }).join('');
 
