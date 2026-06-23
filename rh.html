@@ -399,7 +399,7 @@ function renderColaboradores() {
         <div class="colab-info">
           <h4>${c.nome}</h4>
           <p>${c.cargos?.nome||'Sem cargo'} ${c.chapa?`· Chapa ${c.chapa}`:''}</p>
-          <p>Admissão: ${dataBR(c.admissao)} ${expStatus}</p>
+          <p>Admissão: ${dataBR(c.data_admissao)} ${expStatus}</p>
         </div>
         ${isAdmin?`
           <div style="margin-left:auto;display:flex;gap:6px">
@@ -544,7 +544,7 @@ window.editarColab = id => {
   const f=document.getElementById('form-colab');
   const set=(n,v)=>{const el=f.querySelector(`[name="${n}"]`);if(el)el.value=v??'';};
   set('id',c.id); set('nome',c.nome); set('cpf',c.cpf); set('chapa',c.chapa);
-  set('cargo_id',c.cargo_id); set('admissao',c.admissao);
+  set('cargo_id',c.cargo_id); set('admissao',c.data_admissao);
   set('fim_experiencia_1',c.fim_experiencia_1); set('fim_experiencia_2',c.fim_experiencia_2);
   set('demissao',c.demissao); set('telefone',c.telefone);
   abrirModal('modal-colab');
@@ -565,7 +565,7 @@ document.getElementById('btn-salvar-colab').addEventListener('click', async ()=>
   const fd=Object.fromEntries(new FormData(f));
   const payload={
     nome:fd.nome, cpf:fd.cpf||null, chapa:fd.chapa||null,
-    cargo_id:fd.cargo_id||null, admissao:fd.admissao,
+    cargo_id:fd.cargo_id||null, data_admissao:fd.admissao,
     fim_experiencia_1:fd.fim_experiencia_1||null,
     fim_experiencia_2:fd.fim_experiencia_2||null,
     demissao:fd.demissao||null, telefone:fd.telefone||null,
