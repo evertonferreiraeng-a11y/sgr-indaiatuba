@@ -573,12 +573,12 @@ document.getElementById('btn-salvar-colab').addEventListener('click', async ()=>
   };
   if(fd.id){
     const{error}=await supabase.from('colaboradores').update(payload).eq('id',fd.id);
-    if(error){toast('Erro ao atualizar','error');return;}
+    if(error){toast('Erro: '+error.message,'error');console.error(error);return;}
     Object.assign(colabData.find(c=>c.id===fd.id)||{},payload);
     toast('Colaborador atualizado!');
   } else {
     const{data:novo,error}=await supabase.from('colaboradores').insert(payload).select('*, cargos(nome)').single();
-    if(error){toast('Erro ao salvar','error');return;}
+    if(error){toast('Erro: '+error.message,'error');console.error(error);return;}
     colabData.push(novo);
     toast('Colaborador cadastrado!');
   }
@@ -627,18 +627,20 @@ document.getElementById('btn-salvar-aval').addEventListener('click', async ()=>{
   const media=notasValidas.length?notasValidas.reduce((a,b)=>a+b,0)/notasValidas.length:null;
   const payload={
     colaborador_id:fd.colaborador_id, periodo:fd.periodo,
-    data_avaliacao:fd.data_avaliacao, avaliador:fd.avaliador||null,
+    data_avaliacao:fd.data_avaliacao,
+    data:fd.data_avaliacao, // campo obrigatório na tabela original
+    avaliador:fd.avaliador||null,
     ...notas, nota_media:media, observacoes:fd.observacoes||null,
   };
   if(fd.id){
     const{error}=await supabase.from('colaborador_avaliacoes').update(payload).eq('id',fd.id);
-    if(error){toast('Erro ao atualizar','error');return;}
+    if(error){toast('Erro: '+error.message,'error');console.error(error);return;}
     const i=avalData.findIndex(a=>a.id===fd.id);
     if(i>=0) avalData[i]={...avalData[i],...payload,id:fd.id};
     toast('Avaliação atualizada!');
   } else {
     const{data:nova,error}=await supabase.from('colaborador_avaliacoes').insert(payload).select().single();
-    if(error){toast('Erro ao salvar','error');return;}
+    if(error){toast('Erro: '+error.message,'error');console.error(error);return;}
     avalData.push(nova); toast('Avaliação registrada!');
   }
   fecharModal('modal-aval');
