@@ -1,0 +1,300 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Equipamentos — SGR Indaiatuba</title>
+  <link rel="stylesheet" href="css/style.css" />
+  <style>
+    .status-btn {
+      display:inline-flex; align-items:center; gap:6px;
+      padding:5px 12px; border-radius:20px; font-size:12px; font-weight:700;
+      border:2px solid transparent; cursor:pointer; transition:all .15s;
+    }
+    .status-operando  { background:#d1fae5; color:#065f46; border-color:#6ee7b7; }
+    .status-restricao { background:#fef3c7; color:#92400e; border-color:#fcd34d; }
+    .status-parado    { background:#fee2e2; color:#991b1b; border-color:#fca5a5; }
+    .status-btn:hover { filter:brightness(0.95); }
+
+    .util-bar { height:10px; border-radius:5px; background:#e2e8f0; overflow:hidden; margin-top:6px; }
+    .util-fill { height:100%; border-radius:5px; transition:width .4s; }
+
+    .kpi-eq { border-left:4px solid; }
+    .kpi-eq-op  { border-color:#10b981; }
+    .kpi-eq-res { border-color:#f59e0b; }
+    .kpi-eq-par { border-color:#ef4444; }
+
+    .dot { width:10px; height:10px; border-radius:50%; display:inline-block; flex-shrink:0; }
+    .dot-op  { background:#10b981; }
+    .dot-res { background:#f59e0b; }
+    .dot-par { background:#ef4444; }
+  </style>
+</head>
+<body>
+<div class="app-layout">
+  <div id="sidebar-root"></div>
+  <div class="main-content">
+    <div class="page-header">
+      <div><h2>Equipamentos</h2><p>Gestão e status dos equipamentos da unidade</p></div>
+      <button class="btn btn-primary" id="btn-novo-eq">+ Novo Equipamento</button>
+    </div>
+    <div class="page-body">
+
+      <!-- KPIs -->
+      <div class="kpi-grid" style="grid-template-columns:repeat(4,1fr)">
+        <div class="kpi-card">
+          <div class="kpi-label">Total de Equipamentos</div>
+          <div class="kpi-value" id="kpi-total">—</div>
+          <div class="kpi-sub">cadastrados</div>
+        </div>
+        <div class="kpi-card kpi-eq kpi-eq-op">
+          <div class="kpi-label">✅ Operando</div>
+          <div class="kpi-value" id="kpi-op">—</div>
+          <div class="kpi-sub" id="kpi-op-pct">—</div>
+        </div>
+        <div class="kpi-card kpi-eq kpi-eq-res">
+          <div class="kpi-label">⚠️ Com Restrição</div>
+          <div class="kpi-value" id="kpi-res">—</div>
+          <div class="kpi-sub" id="kpi-res-pct">—</div>
+        </div>
+        <div class="kpi-card kpi-eq kpi-eq-par">
+          <div class="kpi-label">❌ Parado</div>
+          <div class="kpi-value" id="kpi-par">—</div>
+          <div class="kpi-sub" id="kpi-par-pct">—</div>
+        </div>
+      </div>
+
+      <!-- Barra de utilização -->
+      <div class="card mb-16" style="padding:16px">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
+          <span style="font-size:13px;font-weight:600;color:#374151">Taxa de Utilização da Frota</span>
+          <span id="taxa-label" style="font-size:14px;font-weight:700;color:#10b981">—</span>
+        </div>
+        <div class="util-bar">
+          <div class="util-fill" id="util-fill-op"  style="background:#10b981;float:left;width:0%"></div>
+          <div class="util-fill" id="util-fill-res" style="background:#f59e0b;float:left;width:0%"></div>
+        </div>
+        <div style="display:flex;gap:16px;margin-top:8px;font-size:12px;color:#64748b">
+          <span><span class="dot dot-op"></span> Operando</span>
+          <span><span class="dot dot-res"></span> Com restrição</span>
+          <span><span class="dot dot-par"></span> Parado</span>
+        </div>
+      </div>
+
+      <!-- Tabela -->
+      <div class="table-card">
+        <div class="table-scroll">
+          <table>
+            <thead>
+              <tr>
+                <th>Equipamento</th>
+                <th>Frota</th>
+                <th>Descrição</th>
+                <th>Função</th>
+                <th>Capacidade</th>
+                <th>Status</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody id="tb-equip"></tbody>
+          </table>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<!-- Modal: Equipamento -->
+<div class="modal-backdrop" id="modal-eq">
+  <div class="modal" style="max-width:600px">
+    <div class="modal-header">
+      <h3 id="modal-eq-title">Novo Equipamento</h3>
+      <button class="modal-close" data-close="modal-eq">✕</button>
+    </div>
+    <div class="modal-body">
+      <form id="form-eq">
+        <input type="hidden" name="id" />
+        <div class="form-grid" style="grid-template-columns:repeat(2,1fr)">
+          <div class="form-group"><label>Equipamento *</label><input type="text" name="nome" required /></div>
+          <div class="form-group"><label>Frota / Patrimônio</label><input type="text" name="frota" /></div>
+          <div class="form-group full"><label>Descrição</label><input type="text" name="descricao" placeholder="Marca, modelo, nº série…" /></div>
+          <div class="form-group"><label>Função</label><input type="text" name="funcao" /></div>
+          <div class="form-group"><label>Capacidade</label><input type="text" name="capacidade" /></div>
+          <div class="form-group full"><label>Status *</label>
+            <select name="status" required>
+              <option value="operando">✅ Operando</option>
+              <option value="restricao">⚠️ Operando com Restrição</option>
+              <option value="parado">❌ Parado / Manutenção</option>
+            </select>
+          </div>
+        </div>
+      </form>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-outline" data-close="modal-eq">Cancelar</button>
+      <button class="btn btn-primary" id="btn-salvar-eq">Salvar</button>
+    </div>
+  </div>
+</div>
+
+<div id="toast-container"></div>
+<script type="module">
+import { initPage, supabase, toast, abrirModal, fecharModal } from './js/config.js';
+
+await initPage();
+
+let perfil, eqData = [];
+
+async function init() {
+  const { data: { user } } = await supabase.auth.getUser();
+  const { data: p } = await supabase.from('profiles').select('*').eq('id', user.id).single();
+  perfil = p;
+  await carregar();
+}
+
+async function carregar() {
+  const { data, error } = await supabase.from('equipamentos').select('*').order('nome');
+  if (error) { console.error(error); }
+  eqData = data || [];
+  renderKPIs();
+  renderTabela();
+}
+
+function renderKPIs() {
+  const total = eqData.length;
+  const op    = eqData.filter(e => e.status === 'operando').length;
+  const res   = eqData.filter(e => e.status === 'restricao').length;
+  const par   = eqData.filter(e => e.status === 'parado').length;
+  const pct   = v => total ? (v/total*100).toFixed(0)+'%' : '0%';
+
+  document.getElementById('kpi-total').textContent   = total;
+  document.getElementById('kpi-op').textContent      = op;
+  document.getElementById('kpi-res').textContent     = res;
+  document.getElementById('kpi-par').textContent     = par;
+  document.getElementById('kpi-op-pct').textContent  = pct(op) + ' da frota';
+  document.getElementById('kpi-res-pct').textContent = pct(res) + ' da frota';
+  document.getElementById('kpi-par-pct').textContent = pct(par) + ' da frota';
+
+  const taxaUtil = total ? ((op + res * 0.5) / total * 100).toFixed(0) : 0;
+  document.getElementById('taxa-label').textContent  = taxaUtil + '% utilizados';
+  document.getElementById('taxa-label').style.color  = taxaUtil >= 80 ? '#10b981' : taxaUtil >= 50 ? '#f59e0b' : '#ef4444';
+  document.getElementById('util-fill-op').style.width  = pct(op);
+  document.getElementById('util-fill-res').style.width = pct(res);
+}
+
+function renderTabela() {
+  const isAdmin = perfil?.role === 'admin';
+  const tb = document.getElementById('tb-equip');
+
+  if (!eqData.length) {
+    tb.innerHTML = '<tr><td colspan="7" class="table-empty">Nenhum equipamento cadastrado</td></tr>';
+    return;
+  }
+
+  const statusInfo = {
+    operando:  { cls:'status-operando',  icon:'✅', label:'Operando' },
+    restricao: { cls:'status-restricao', icon:'⚠️', label:'Com Restrição' },
+    parado:    { cls:'status-parado',    icon:'❌', label:'Parado' },
+  };
+
+  tb.innerHTML = eqData.map(e => {
+    const st = statusInfo[e.status] || statusInfo.operando;
+    return `<tr>
+      <td><strong>${e.nome}</strong></td>
+      <td>${e.frota || '<span style="color:#94a3b8">—</span>'}</td>
+      <td style="max-width:220px;font-size:13px">${e.descricao || '<span style="color:#94a3b8">—</span>'}</td>
+      <td style="font-size:13px">${e.funcao || '—'}</td>
+      <td style="font-size:13px">${e.capacidade || '—'}</td>
+      <td>
+        ${isAdmin
+          ? `<select class="status-btn ${st.cls}" onchange="alterarStatus('${e.id}', this.value)" style="border:none;font-weight:700;font-size:12px;cursor:pointer">
+               <option value="operando"  ${e.status==='operando'  ? 'selected':''}>✅ Operando</option>
+               <option value="restricao" ${e.status==='restricao' ? 'selected':''}>⚠️ Com Restrição</option>
+               <option value="parado"    ${e.status==='parado'    ? 'selected':''}>❌ Parado</option>
+             </select>`
+          : `<span class="status-btn ${st.cls}">${st.icon} ${st.label}</span>`
+        }
+      </td>
+      <td>
+        ${isAdmin ? `
+          <button class="btn-icon" onclick="editarEq('${e.id}')">✏️</button>
+          <button class="btn-icon danger" onclick="excluirEq('${e.id}')">🗑️</button>
+        ` : ''}
+      </td>
+    </tr>`;
+  }).join('');
+}
+
+// ── Status inline ─────────────────────────────────────────────────────────────
+window.alterarStatus = async (id, novoStatus) => {
+  const { error } = await supabase.from('equipamentos').update({ status: novoStatus }).eq('id', id);
+  if (error) { toast('Erro ao atualizar status', 'error'); await carregar(); return; }
+  const e = eqData.find(x => x.id === id);
+  if (e) e.status = novoStatus;
+  renderKPIs();
+  renderTabela();
+  const labels = { operando:'Operando ✅', restricao:'Com Restrição ⚠️', parado:'Parado ❌' };
+  toast(`Status atualizado: ${labels[novoStatus]}`);
+};
+
+// ── CRUD ──────────────────────────────────────────────────────────────────────
+document.getElementById('btn-novo-eq').addEventListener('click', () => {
+  document.getElementById('modal-eq-title').textContent = 'Novo Equipamento';
+  document.getElementById('form-eq').reset();
+  document.querySelector('#form-eq [name="id"]').value = '';
+  document.querySelector('#form-eq [name="status"]').value = 'operando';
+  abrirModal('modal-eq');
+});
+
+window.editarEq = id => {
+  const e = eqData.find(x => x.id === id); if (!e) return;
+  document.getElementById('modal-eq-title').textContent = 'Editar Equipamento';
+  const f = document.getElementById('form-eq');
+  const set = (n,v) => { const el = f.querySelector(`[name="${n}"]`); if(el) el.value = v ?? ''; };
+  set('id', e.id); set('nome', e.nome); set('frota', e.frota);
+  set('descricao', e.descricao); set('funcao', e.funcao);
+  set('capacidade', e.capacidade); set('status', e.status);
+  abrirModal('modal-eq');
+};
+
+window.excluirEq = async id => {
+  if (!confirm('Excluir este equipamento?')) return;
+  const { error } = await supabase.from('equipamentos').delete().eq('id', id);
+  if (error) { toast('Erro ao excluir: '+error.message, 'error'); return; }
+  toast('Equipamento excluído!');
+  await carregar();
+};
+
+document.getElementById('btn-salvar-eq').addEventListener('click', async () => {
+  const f = document.getElementById('form-eq');
+  if (!f.checkValidity()) { f.reportValidity(); return; }
+  const fd = Object.fromEntries(new FormData(f));
+  const payload = {
+    nome:       fd.nome,
+    frota:      fd.frota      || null,
+    descricao:  fd.descricao  || null,
+    funcao:     fd.funcao     || null,
+    capacidade: fd.capacidade || null,
+    status:     fd.status,
+  };
+  if (fd.id) {
+    const { error } = await supabase.from('equipamentos').update(payload).eq('id', fd.id);
+    if (error) { toast('Erro: '+error.message, 'error'); return; }
+    toast('Equipamento atualizado!');
+  } else {
+    const { error } = await supabase.from('equipamentos').insert(payload);
+    if (error) { toast('Erro: '+error.message, 'error'); return; }
+    toast('Equipamento cadastrado!');
+  }
+  fecharModal('modal-eq');
+  await carregar();
+});
+
+document.querySelectorAll('[data-close]').forEach(btn => btn.addEventListener('click', () => fecharModal(btn.dataset.close)));
+document.querySelectorAll('.modal-backdrop').forEach(m => m.addEventListener('click', e => { if(e.target===m) fecharModal(m.id); }));
+
+await init();
+</script>
+</body>
+</html>
