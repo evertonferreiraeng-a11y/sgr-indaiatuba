@@ -12,8 +12,10 @@
   <div class="main-content">
     <div class="page-header">
       <div><h2>Estoque</h2><p>Saldo e movimentações de materiais</p></div>
+      <button class="btn btn-primary" id="btn-novo-ajuste">+ Novo Ajuste</button>
     </div>
     <div class="page-body">
+
       <!-- Saldo por material -->
       <div class="table-card mb-16">
         <div class="table-card-header">
@@ -23,13 +25,7 @@
         <div class="table-scroll">
           <table>
             <thead>
-              <tr>
-                <th>Material</th>
-                <th class="text-right">Entradas (kg)</th>
-                <th class="text-right">Saídas (kg)</th>
-                <th class="text-right">Saldo (kg)</th>
-                <th>Situação</th>
-              </tr>
+              <tr><th>Material</th><th class="text-right">Entradas (kg)</th><th class="text-right">Saídas (kg)</th><th class="text-right">Saldo (kg)</th><th>Situação</th></tr>
             </thead>
             <tbody id="tb-saldo"></tbody>
           </table>
@@ -78,10 +74,7 @@
         <div class="table-scroll">
           <table>
             <thead>
-              <tr>
-                <th>Data</th><th>Material</th><th>Tipo</th><th>Origem</th>
-                <th class="text-right">Peso (kg)</th>
-              </tr>
+              <tr><th>Data</th><th>Material</th><th>Tipo</th><th>Origem</th><th class="text-right">Peso (kg)</th><th>Ações</th></tr>
             </thead>
             <tbody id="tb-movimentacoes"></tbody>
           </table>
@@ -90,17 +83,56 @@
     </div>
   </div>
 </div>
-<div id="toast-container"></div>
 
+<!-- Modal: Novo Ajuste Manual -->
+<div class="modal-backdrop" id="modal-ajuste">
+  <div class="modal">
+    <div class="modal-header">
+      <h3 id="modal-ajuste-title">Novo Ajuste de Estoque</h3>
+      <button class="modal-close" data-close="modal-ajuste">✕</button>
+    </div>
+    <div class="modal-body">
+      <form id="form-ajuste">
+        <input type="hidden" name="id" />
+        <div class="form-grid">
+          <div class="form-group"><label>Data *</label><input type="date" name="data" required /></div>
+          <div class="form-group"><label>Tipo *</label>
+            <select name="tipo" required>
+              <option value="">Selecione…</option>
+              <option value="entrada">Entrada (adicionar)</option>
+              <option value="saida">Saída (remover)</option>
+            </select>
+          </div>
+          <div class="form-group full"><label>Material *</label><select name="material_id" required><option value="">Selecione…</option></select></div>
+          <div class="form-group full"><label>Peso (kg) *</label><input type="number" name="peso_kg" min="0.01" step="0.01" required /></div>
+          <div class="form-group full"><label>Observação</label><input type="text" name="observacao" placeholder="Motivo do ajuste…" /></div>
+        </div>
+      </form>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-outline" data-close="modal-ajuste">Cancelar</button>
+      <button class="btn btn-primary" id="btn-salvar-ajuste">Salvar</button>
+    </div>
+  </div>
+</div>
+
+<div id="toast-container"></div>
 <script type="module">
-import { initPage, supabase, peso, dataBR } from './js/config.js';
+import { initPage, supabase, peso, dataBR, toast, abrirModal, fecharModal } from './js/config.js';
 
 await initPage();
 
+let perfil, movData = [];
+
 async function init() {
+  const { data: { user } } = await supabase.auth.getUser();
+  const { data: p } = await supabase.from('profiles').select('*').eq('id', user.id).single();
+  perfil = p;
+
   const { data: mats } = await supabase.from('materiais').select('*').order('nome');
-  const matSel = document.getElementById('f-mat');
-  matSel.innerHTML = '<option value="">Todos</option>' + (mats||[]).map(m=>`<option value="${m.id}">${m.nome}</option>`).join('');
+  const matOpts = (mats||[]).map(m=>`<option value="${m.id}">${m.nome}</option>`).join('');
+  document.getElementById('f-mat').innerHTML = '<option value="">Todos</option>' + matOpts;
+  document.querySelector('#form-ajuste [name="material_id"]').innerHTML = '<option value="">Selecione…</option>' + matOpts;
 
   await Promise.all([carregarSaldo(), carregarMovimentacoes()]);
 }
@@ -166,27 +198,97 @@ async function carregarMovimentacoes() {
   if (origem) q = q.eq('origem_tipo', origem);
 
   const { data } = await q;
-  const movs = data || [];
-  document.getElementById('mov-count').textContent = `${movs.length} registros`;
+  movData = data || [];
+  document.getElementById('mov-count').textContent = `${movData.length} registros`;
 
-  const origemLabel = { entrada:'Recebimento', producao:'Produção', venda:'Venda', ajuste:'Ajuste' };
+  const origemLabel = { entrada:'Recebimento', producao:'Produção', venda:'Venda', ajuste:'Ajuste Manual' };
+  const isAdmin = perfil?.role === 'admin';
   const tb = document.getElementById('tb-movimentacoes');
-  if (!movs.length) {
-    tb.innerHTML = '<tr><td colspan="5" class="table-empty">Nenhuma movimentação encontrada</td></tr>';
+  if (!movData.length) {
+    tb.innerHTML = '<tr><td colspan="6" class="table-empty">Nenhuma movimentação encontrada</td></tr>';
     return;
   }
-  tb.innerHTML = movs.map(r => `
+  tb.innerHTML = movData.map(r => `
     <tr>
       <td>${dataBR(r.data)}</td>
       <td>${r.materiais?.nome||'—'}</td>
       <td><span class="badge ${r.tipo==='entrada'?'badge-green':'badge-red'}">${r.tipo==='entrada'?'Entrada':'Saída'}</span></td>
       <td>${origemLabel[r.origem_tipo]||r.origem_tipo}</td>
-      <td class="text-right ${r.tipo==='entrada'?'text-green':'text-red'}">${r.tipo==='saida'?'-':''}${peso(r.peso_kg)}</td>
+      <td class="text-right ${r.tipo==='entrada'?'text-green':'text-red'} fw-600">${r.tipo==='saida'?'-':''}${peso(r.peso_kg)}</td>
+      <td>
+        ${isAdmin ? `
+          ${r.origem_tipo === 'ajuste' ? `<button class="btn-icon" onclick="editarMov('${r.id}')">✏️</button>` : ''}
+          <button class="btn-icon danger" onclick="excluirMov('${r.id}','${r.origem_tipo}')">🗑️</button>
+        ` : '—'}
+      </td>
     </tr>
   `).join('');
 }
 
+/* ── Ajuste manual ── */
+document.getElementById('btn-novo-ajuste').addEventListener('click', () => {
+  document.getElementById('modal-ajuste-title').textContent = 'Novo Ajuste de Estoque';
+  document.getElementById('form-ajuste').reset();
+  document.querySelector('#form-ajuste [name="id"]').value = '';
+  const hoje = new Date().toISOString().split('T')[0];
+  document.querySelector('#form-ajuste [name="data"]').value = hoje;
+  abrirModal('modal-ajuste');
+});
+
+window.editarMov = id => {
+  const r = movData.find(m=>m.id===id);
+  if (!r) return;
+  document.getElementById('modal-ajuste-title').textContent = 'Editar Ajuste';
+  const f = document.getElementById('form-ajuste');
+  f.querySelector('[name="id"]').value          = r.id;
+  f.querySelector('[name="data"]').value        = r.data;
+  f.querySelector('[name="tipo"]').value        = r.tipo;
+  f.querySelector('[name="material_id"]').value = r.material_id;
+  f.querySelector('[name="peso_kg"]').value     = r.peso_kg;
+  abrirModal('modal-ajuste');
+};
+
+document.getElementById('btn-salvar-ajuste').addEventListener('click', async () => {
+  const f = document.getElementById('form-ajuste');
+  if (!f.checkValidity()) { f.reportValidity(); return; }
+  const fd = Object.fromEntries(new FormData(f));
+  const payload = {
+    material_id: fd.material_id,
+    tipo:        fd.tipo,
+    peso_kg:     parseFloat(fd.peso_kg),
+    origem_tipo: 'ajuste',
+    data:        fd.data,
+  };
+  if (fd.id) {
+    const { error } = await supabase.from('estoque_movimentacoes').update(payload).eq('id', fd.id);
+    if (error) { toast('Erro ao atualizar','error'); return; }
+    toast('Ajuste atualizado!');
+  } else {
+    const { error } = await supabase.from('estoque_movimentacoes').insert(payload);
+    if (error) { toast('Erro ao salvar','error'); return; }
+    toast('Ajuste registrado!');
+  }
+  fecharModal('modal-ajuste');
+  carregarSaldo();
+  carregarMovimentacoes();
+});
+
+window.excluirMov = async (id, origem) => {
+  const aviso = origem !== 'ajuste'
+    ? `Esta movimentação foi gerada automaticamente (${origem}). Excluir mesmo assim?`
+    : 'Excluir este ajuste?';
+  if (!confirm(aviso)) return;
+  const { error } = await supabase.from('estoque_movimentacoes').delete().eq('id', id);
+  if (error) { toast('Erro ao excluir','error'); return; }
+  toast('Movimentação excluída!');
+  carregarSaldo();
+  carregarMovimentacoes();
+};
+
 document.getElementById('btn-filtrar').addEventListener('click', carregarMovimentacoes);
+document.querySelectorAll('[data-close]').forEach(btn => btn.addEventListener('click', () => fecharModal(btn.dataset.close)));
+document.querySelectorAll('.modal-backdrop').forEach(m => m.addEventListener('click', e => { if(e.target===m) fecharModal(m.id); }));
+
 await init();
 </script>
 </body>
