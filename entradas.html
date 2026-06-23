@@ -40,7 +40,7 @@
         <div class="kpi-card">
           <div class="kpi-label">Recicláveis (período)</div>
           <div class="kpi-value" id="kpi-rec">—</div>
-          <div class="kpi-sub">kg líquidos c/ descontos</div>
+          <div class="kpi-sub">kg líquidos (peso líquido)</div>
         </div>
         <div class="kpi-card">
           <div class="kpi-label">Rejeito UVR (período)</div>
@@ -254,7 +254,7 @@ function renderKPIs() {
   let rec = 0, rej = 0;
   const fornSet = new Set();
   entData.forEach(r => {
-    rec += parseFloat(r.peso_liquido_descontos ?? r.peso_kg ?? 0);
+    rec += parseFloat(r.peso_liquido ?? r.peso_liquido_descontos ?? r.peso_kg ?? 0);
     rej += parseFloat(r.rejeito_uvr ?? 0);
     if (r.fornecedor_id) fornSet.add(r.fornecedor_id);
   });
