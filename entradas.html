@@ -259,8 +259,9 @@ async function carregar() {
 function renderKPIs() {
   let rec = 0, rej = 0;
   entData.forEach(r => {
-    rec += parseFloat(r.peso_liquido ?? r.peso_liquido_descontos ?? r.peso_kg ?? 0);
-    rej += parseFloat(r.rejeito_uvr ?? 0);
+    const pl = parseFloat(r.peso_liquido ?? r.peso_liquido_descontos ?? r.peso_kg ?? 0);
+    if (r.tipo_movimentacao === 'saida') rej += pl;
+    else rec += pl;
   });
   document.getElementById('kpi-rec').textContent  = peso(rec);
   document.getElementById('kpi-rej').textContent  = peso(rej);
@@ -627,7 +628,7 @@ document.getElementById('csv-import').addEventListener('change', async function(
       peso_kg:           pld,
       rejeito_uvr:       num(col(row,'rejeito')),
       transportadora:    col(row,'transportadora') || null,
-      tipo_movimentacao: 'entrada',
+      tipo_movimentacao: col(row,'entrada').toLowerCase().includes('sa') ? 'saida' : 'entrada',
       destino:           col(row,'destino') || null,
       valor:             0,
     };
