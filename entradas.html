@@ -533,45 +533,87 @@ document.getElementById('btn-del-sel').addEventListener('click', async () => {
 // ── Importar CSV ─────────────────────────────────────────────────────────────
 document.getElementById('csv-import').addEventListener('change', async function() {
   const file=this.files[0]; if(!file) return;
-  const text=await file.text();
-  const linhas=text.split('\n').map(l=>l.split(/[;,]/).map(c=>c.trim().replace(/^"|"$/g,'')));
-  const header=linhas[0].map(h=>h.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'').replace(/[\s/]+/g,'_'));
-  const idx=k=>header.findIndex(h=>h.includes(k));
-  const col=(row,k)=>{ const i=idx(k); return i>=0?row[i]:''; };
 
-  let ok=0,err=0;
-  for(let i=1;i<linhas.length;i++){
-    const row=linhas[i];
-    if(row.every(c=>!c)) continue;
-    const fornNome=col(row,'cliente')||col(row,'fornecedor');
-    const matNome=col(row,'produto')||col(row,'material');
-    const forn=fornData.find(f=>f.nome.toLowerCase()===fornNome.toLowerCase());
-    const mat=matData.find(m=>m.nome.toLowerCase()===matNome.toLowerCase());
-    const p1=parseFloat((col(row,'pesagem_1')||'0').replace(',','.'))||0;
-    const p2=parseFloat((col(row,'pesagem_2')||'0').replace(',','.'))||0;
-    const imp=parseFloat((col(row,'impureza')||'0').replace(',','.'))||0;
-    const umi=parseFloat((col(row,'umidade')||'0').replace(',','.'))||0;
-    const pl=Math.max(0,p1-p2), td=pl*(imp+umi)/100, pld=Math.max(0,pl-td);
-    const rej=parseFloat((col(row,'rejeito')||'0').replace(',','.'))||0;
-    let rawData=col(row,'data');
-    if(rawData.includes('/')) { const [d,m2,a]=rawData.split('/'); rawData=`${a}-${m2.padStart(2,'0')}-${d.padStart(2,'0')}`; }
-    const payload={
-      data:rawData||new Date().toISOString().split('T')[0],
-      fornecedor_id:forn?.id||null, material_id:mat?.id||null,
-      nota_fiscal:col(row,'nota')||null, motorista:col(row,'motorista')||null,
-      placa_veiculo:col(row,'placa')||null, pesagem_1:p1, pesagem_2:p2||null,
-      impureza:imp, umidade:umi, peso_liquido:pl, total_descontos:td,
-      peso_liquido_descontos:pld, peso_kg:pld, rejeito_uvr:rej,
-      transportadora:col(row,'transportadora')||null,
-      tipo_movimentacao:(col(row,'entrada_saida')||col(row,'entrada')||'entrada').toLowerCase(),
-      destino:col(row,'destino')||null,
+  // Detecta encoding e lê o texto
+  const buffer = await file.arrayBuffer();
+  const text = new TextDecoder('windows-1252').decode(buffer);
+
+  // Divide em linhas e colunas (separador ;)
+  const linhas = text.split(/\r?\n/).map(l => l.split(';').map(c => c.trim().replace(/^"|"$/g,'')));
+  if (linhas.length < 2) { toast('Arquivo vazio ou inválido','error'); return; }
+
+  // Normaliza cabeçalho: minúsculas, sem acento, espaços→_
+  const norm = s => s.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'').replace(/[\s/]+/g,'_');
+  const header = linhas[0].map(norm);
+  const idx = k => header.findIndex(h => h.includes(k));
+  const col = (row, k) => { const i=idx(k); return i>=0 ? (row[i]||'') : ''; };
+  const num = v => parseFloat((v||'0').replace(',','.')) || 0;
+
+  // Função para converter data "DD/MM/YYYY HH:MM" → "YYYY-MM-DD"
+  const parseData = raw => {
+    if (!raw) return new Date().toISOString().split('T')[0];
+    const partes = raw.trim().split(' ')[0]; // remove hora
+    if (partes.includes('/')) {
+      const [d,m,a] = partes.split('/');
+      return `${a}-${m.padStart(2,'0')}-${d.padStart(2,'0')}`;
+    }
+    return partes;
+  };
+
+  let ok=0, erros=[];
+  for (let i=1; i<linhas.length; i++) {
+    const row = linhas[i];
+    if (row.every(c=>!c) || row.length < 3) continue;
+
+    const fornNome = col(row,'cliente') || col(row,'fornecedor');
+    const matNome  = col(row,'produto') || col(row,'material');
+
+    // Busca correspondência ignorando acentos e maiúsculas
+    const forn = fornData.find(f => norm(f.nome) === norm(fornNome));
+    const mat  = matData.find(m  => norm(m.nome)  === norm(matNome));
+
+    const p1  = num(col(row,'pesagem_1'));
+    const p2  = num(col(row,'pesagem_2'));
+    const imp = num(col(row,'impureza'));
+    const umi = num(col(row,'umidade'));
+
+    // Usa Peso Líquido da planilha se disponível, senão calcula
+    const plCSV = num(col(row,'peso_liquido')) || num(col(row,'peso_l'));
+    const pl  = plCSV > 0 ? plCSV : Math.max(0, p1-p2);
+    const td  = pl*(imp+umi)/100;
+    const pldCSV = num(col(row,'peso_liquido_com')) || num(col(row,'peso_liq'));
+    const pld = pldCSV > 0 ? pldCSV : Math.max(0, pl-td);
+
+    const payload = {
+      data:              parseData(col(row,'data')),
+      fornecedor_id:     forn?.id || null,
+      material_id:       mat?.id  || null,
+      nota_fiscal:       col(row,'nota') || null,
+      motorista:         col(row,'motorista') || null,
+      placa_veiculo:     col(row,'placa') || null,
+      pesagem_1:         p1 || null,
+      pesagem_2:         p2 || null,
+      impureza:          imp,
+      umidade:           umi,
+      peso_liquido:      pl,
+      total_descontos:   td,
+      peso_liquido_descontos: pld,
+      peso_kg:           pld,
+      rejeito_uvr:       num(col(row,'rejeito')),
+      transportadora:    col(row,'transportadora') || null,
+      tipo_movimentacao: 'entrada',
+      destino:           col(row,'destino') || null,
     };
-    const {error}=await supabase.from('entradas').insert(payload);
-    if(error) err++; else ok++;
+
+    const { error } = await supabase.from('entradas').insert(payload);
+    if (error) { console.error(`Linha ${i+1}:`, error.message, payload); erros.push(i+1); }
+    else ok++;
   }
-  toast(`Importação: ${ok} importados${err?`, ${err} erros`:''}.`);
+
+  if (erros.length) toast(`${ok} importados, ${erros.length} erros (linhas: ${erros.slice(0,5).join(', ')})`, 'error');
+  else toast(`✓ ${ok} registros importados com sucesso!`);
   this.value='';
-  carregar();
+  await carregar();
 });
 
 document.getElementById('btn-filtrar').addEventListener('click', carregar);
