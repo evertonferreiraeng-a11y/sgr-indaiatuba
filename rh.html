@@ -163,14 +163,12 @@
         <input type="hidden" name="id" />
         <div class="form-grid" style="grid-template-columns:repeat(2,1fr)">
           <div class="form-group full"><label>Nome completo *</label><input type="text" name="nome" required /></div>
-          <div class="form-group"><label>CPF</label><input type="text" name="cpf" /></div>
-          <div class="form-group"><label>Chapa</label><input type="text" name="chapa" /></div>
+          <div class="form-group full"><label>Chapa</label><input type="text" name="chapa" /></div>
           <div class="form-group"><label>Cargo *</label><select name="cargo_id"><option value="">Selecione…</option></select></div>
           <div class="form-group"><label>Data de Admissão *</label><input type="date" name="admissao" required /></div>
           <div class="form-group"><label>Fim 1ª Experiência (45d)</label><input type="date" name="fim_experiencia_1" /></div>
           <div class="form-group"><label>Fim 2ª Experiência (90d)</label><input type="date" name="fim_experiencia_2" /></div>
           <div class="form-group"><label>Data de Demissão</label><input type="date" name="demissao" /></div>
-          <div class="form-group full"><label>Telefone</label><input type="text" name="telefone" /></div>
         </div>
       </form>
     </div>
@@ -564,11 +562,11 @@ document.getElementById('btn-salvar-colab').addEventListener('click', async ()=>
   if(!f.checkValidity()){f.reportValidity();return;}
   const fd=Object.fromEntries(new FormData(f));
   const payload={
-    nome:fd.nome, cpf:fd.cpf||null, chapa:fd.chapa||null,
+    nome:fd.nome, chapa:fd.chapa||null,
     cargo_id:fd.cargo_id||null, data_admissao:fd.admissao,
     fim_experiencia_1:fd.fim_experiencia_1||null,
     fim_experiencia_2:fd.fim_experiencia_2||null,
-    demissao:fd.demissao||null, telefone:fd.telefone||null,
+    demissao:fd.demissao||null,
     ativo: !fd.demissao,
   };
   if(fd.id){
