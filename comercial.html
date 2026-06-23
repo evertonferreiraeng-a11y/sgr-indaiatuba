@@ -5,60 +5,97 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Comercial — SGR Indaiatuba</title>
   <link rel="stylesheet" href="css/style.css" />
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4/dist/chart.umd.min.js"></script>
 </head>
 <body>
 <div class="app-layout">
   <div id="sidebar-root"></div>
   <div class="main-content">
     <div class="page-header">
-      <div><h2>Comercial</h2><p>Vendas de materiais recicláveis</p></div>
+      <div><h2>Comercial</h2><p>Vendas e faturamento</p></div>
       <button class="btn btn-primary" id="btn-nova-venda">+ Nova Venda</button>
     </div>
     <div class="page-body">
-      <!-- KPIs -->
-      <div class="kpi-grid" style="grid-template-columns:repeat(4,1fr)">
-        <div class="kpi-card"><div class="kpi-label">Faturamento do Mês</div><div class="kpi-value" id="kpi-fat">—</div><div class="kpi-sub">em vendas</div></div>
-        <div class="kpi-card"><div class="kpi-label">Peso Vendido</div><div class="kpi-value" id="kpi-peso">—</div><div class="kpi-sub">kg no período</div></div>
-        <div class="kpi-card"><div class="kpi-label">Número de Vendas</div><div class="kpi-value" id="kpi-qtd">—</div><div class="kpi-sub">transações</div></div>
-        <div class="kpi-card"><div class="kpi-label">Ticket Médio</div><div class="kpi-value" id="kpi-ticket">—</div><div class="kpi-sub">por venda</div></div>
-      </div>
 
-      <!-- Filtros -->
-      <div class="card mb-16" style="padding:16px">
-        <div class="filters-row">
-          <div class="form-group"><label>Mês</label><input type="month" id="f-mes" /></div>
-          <div class="form-group"><label>Cliente</label><select id="f-cliente"><option value="">Todos</option></select></div>
-          <div class="form-group"><label>Material</label><select id="f-mat"><option value="">Todos</option></select></div>
-          <div class="form-group" style="justify-content:flex-end"><label>&nbsp;</label><button class="btn btn-primary" id="btn-filtrar">Filtrar</button></div>
+      <!-- KPIs -->
+      <div class="kpi-grid" style="grid-template-columns:repeat(3,1fr)">
+        <div class="kpi-card">
+          <div class="kpi-label">Faturamento</div>
+          <div class="kpi-value" id="kpi-fat">—</div>
+          <div class="kpi-sub" id="kpi-fat-sub">no período</div>
+        </div>
+        <div class="kpi-card">
+          <div class="kpi-label">Volume Vendido</div>
+          <div class="kpi-value" id="kpi-vol">—</div>
+          <div class="kpi-sub">kg no período</div>
+        </div>
+        <div class="kpi-card">
+          <div class="kpi-label">Ticket Médio</div>
+          <div class="kpi-value" id="kpi-ticket">—</div>
+          <div class="kpi-sub">R$/venda</div>
         </div>
       </div>
 
-      <!-- Tabela vendas -->
+      <!-- Gráfico: Vendas por Cliente -->
+      <div class="card mb-16" style="padding:16px">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;flex-wrap:wrap;gap:8px">
+          <h4>Acompanhamento de Vendas por Cliente</h4>
+          <div style="display:flex;gap:8px;align-items:center">
+            <label style="font-size:13px">Período:</label>
+            <select id="chart-tipo" style="font-size:13px;padding:4px 8px;border:1px solid #e2e8f0;border-radius:6px">
+              <option value="mes">Mês atual</option>
+              <option value="3m">Últimos 3 meses</option>
+              <option value="6m">Últimos 6 meses</option>
+              <option value="ano">Ano atual</option>
+            </select>
+          </div>
+        </div>
+        <canvas id="chart-clientes" height="120"></canvas>
+      </div>
+
+      <!-- Gráfico: Faturamento mensal por cliente -->
+      <div class="card mb-16" style="padding:16px">
+        <h4 style="margin-bottom:12px">Evolução Mensal por Cliente</h4>
+        <div style="margin-bottom:8px">
+          <select id="sel-cliente-chart" style="font-size:13px;padding:4px 8px;border:1px solid #e2e8f0;border-radius:6px">
+            <option value="">Todos os clientes</option>
+          </select>
+        </div>
+        <canvas id="chart-evolucao" height="120"></canvas>
+      </div>
+
+      <!-- Filtros tabela -->
+      <div class="card mb-16" style="padding:16px">
+        <div class="filters-row">
+          <div class="form-group"><label>Período</label><input type="month" id="f-mes" /></div>
+          <div class="form-group"><label>Cliente</label><select id="f-cliente"><option value="">Todos</option></select></div>
+          <div class="form-group"><label>Material</label><select id="f-mat"><option value="">Todos</option></select></div>
+          <div class="form-group" style="justify-content:flex-end"><label>&nbsp;</label>
+            <button class="btn btn-primary" id="btn-filtrar">Filtrar</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Tabela -->
       <div class="table-card">
         <div class="table-card-header">
           <h3>Registro de Vendas</h3>
-          <span id="venda-count" class="text-muted" style="font-size:12px"></span>
+          <span id="vnd-count" class="text-muted" style="font-size:12px"></span>
         </div>
         <div class="table-scroll">
           <table>
             <thead>
-              <tr><th>Data</th><th>Cliente</th><th>Material</th><th class="text-right">Peso (kg)</th><th class="text-right">Valor Total</th><th class="text-right">R$/kg</th><th>Ações</th></tr>
+              <tr>
+                <th>Data</th>
+                <th>Cliente</th>
+                <th>Material</th>
+                <th class="text-right">Peso (kg)</th>
+                <th class="text-right">Preço/kg</th>
+                <th class="text-right">Total (R$)</th>
+                <th>Ações</th>
+              </tr>
             </thead>
             <tbody id="tb-vendas"></tbody>
-          </table>
-        </div>
-      </div>
-
-      <!-- Clientes CRUD -->
-      <div class="table-card">
-        <div class="table-card-header">
-          <h3>Clientes</h3>
-          <button class="btn btn-sm btn-primary" id="btn-novo-cliente">+ Adicionar</button>
-        </div>
-        <div class="table-scroll">
-          <table>
-            <thead><tr><th>Nome</th><th>Documento</th><th>Contato</th><th>Status</th><th>Ações</th></tr></thead>
-            <tbody id="tb-clientes"></tbody>
           </table>
         </div>
       </div>
@@ -66,7 +103,7 @@
   </div>
 </div>
 
-<!-- Modal: Nova/Editar Venda -->
+<!-- Modal: Nova / Editar Venda -->
 <div class="modal-backdrop" id="modal-venda">
   <div class="modal">
     <div class="modal-header">
@@ -81,9 +118,10 @@
           <div class="form-group"><label>Cliente *</label><select name="cliente_id" required><option value="">Selecione…</option></select></div>
           <div class="form-group"><label>Material *</label><select name="material_id" required><option value="">Selecione…</option></select></div>
           <div class="form-group"><label>Peso (kg) *</label><input type="number" name="peso_kg" min="0.01" step="0.01" required /></div>
-          <div class="form-group full"><label>Valor Total (R$) *</label><input type="number" name="valor_total" min="0.01" step="0.01" required /></div>
+          <div class="form-group"><label>Preço por kg (R$) *</label><input type="number" name="preco_kg" min="0" step="0.01" required /></div>
+          <div class="form-group"><label>Valor Total (R$)</label><input type="number" name="valor_total" min="0" step="0.01" readonly style="background:#f8fafc" /></div>
+          <div class="form-group full"><label>Observação</label><input type="text" name="observacao" /></div>
         </div>
-        <div id="saldo-aviso" style="margin-top:10px;font-size:12px;color:var(--text-muted)"></div>
       </form>
     </div>
     <div class="modal-footer">
@@ -93,261 +131,273 @@
   </div>
 </div>
 
-<!-- Modal: Cliente -->
-<div class="modal-backdrop" id="modal-cliente">
-  <div class="modal">
-    <div class="modal-header">
-      <h3 id="modal-cli-title">Novo Cliente</h3>
-      <button class="modal-close" data-close="modal-cliente">✕</button>
-    </div>
-    <div class="modal-body">
-      <form id="form-cliente">
-        <input type="hidden" name="id" />
-        <div class="form-grid">
-          <div class="form-group full"><label>Nome *</label><input type="text" name="nome" required /></div>
-          <div class="form-group"><label>Documento (CPF/CNPJ)</label><input type="text" name="documento" /></div>
-          <div class="form-group"><label>Contato</label><input type="text" name="contato" /></div>
-        </div>
-      </form>
-    </div>
-    <div class="modal-footer">
-      <button class="btn btn-outline" data-close="modal-cliente">Cancelar</button>
-      <button class="btn btn-primary" id="btn-salvar-cliente">Salvar</button>
-    </div>
-  </div>
-</div>
-
 <div id="toast-container"></div>
 <script type="module">
-import { initPage, supabase, moeda, peso, dataBR, toast, abrirModal, fecharModal, mesAtual } from './js/config.js';
+import { initPage, supabase, moeda, peso, dataBR, toast, abrirModal, fecharModal, mesAtual, anoAtual } from './js/config.js';
 
 await initPage();
 
-let perfil, clientes = [], materiais = [], vendasData = [];
+let perfil, vendaData = [], clienteData = [], matData = [];
+let chartClientes = null, chartEvolucao = null;
 
+const mesDefault = `${anoAtual()}-${String(mesAtual()).padStart(2,'0')}`;
+document.getElementById('f-mes').value = mesDefault;
+
+// ── auto-calc total ───────────────────────────────────────────────────────────
+['peso_kg','preco_kg'].forEach(n => {
+  document.querySelector(`#form-venda [name="${n}"]`).addEventListener('input', () => {
+    const pk = parseFloat(document.querySelector('#form-venda [name="peso_kg"]').value)||0;
+    const pr = parseFloat(document.querySelector('#form-venda [name="preco_kg"]').value)||0;
+    document.querySelector('#form-venda [name="valor_total"]').value = (pk*pr).toFixed(2);
+  });
+});
+
+// ── init ─────────────────────────────────────────────────────────────────────
 async function init() {
   const { data: { user } } = await supabase.auth.getUser();
   const { data: p } = await supabase.from('profiles').select('*').eq('id', user.id).single();
   perfil = p;
 
-  const [{ data: cl }, { data: mt }] = await Promise.all([
-    supabase.from('clientes').select('*').eq('ativo', true).order('nome'),
-    supabase.from('materiais').select('*').eq('ativo', true).order('nome'),
+  const [{ data: clientes }, { data: mats }] = await Promise.all([
+    supabase.from('clientes').select('*').order('nome'),
+    supabase.from('materiais').select('*').order('nome'),
   ]);
-  clientes  = cl || [];
-  materiais = mt || [];
+  clienteData = clientes || [];
+  matData     = mats     || [];
 
-  popularSelects();
-  document.getElementById('f-mes').value = mesAtual();
-  await Promise.all([carregarVendas(), carregarClientes()]);
+  const cliOpts = clienteData.map(c=>`<option value="${c.id}">${c.nome}</option>`).join('');
+  const matOpts = matData.map(m=>`<option value="${m.id}">${m.nome}</option>`).join('');
+
+  document.getElementById('f-cliente').innerHTML    = '<option value="">Todos</option>' + cliOpts;
+  document.getElementById('sel-cliente-chart').innerHTML = '<option value="">Todos os clientes</option>' + cliOpts;
+  document.querySelector('#form-venda [name="cliente_id"]').innerHTML = '<option value="">Selecione…</option>' + cliOpts;
+  document.querySelector('#form-venda [name="material_id"]').innerHTML = '<option value="">Selecione…</option>' + matOpts;
+  document.getElementById('f-mat').innerHTML = '<option value="">Todos</option>' + matOpts;
+
+  await Promise.all([carregar(), carregarGraficos()]);
 }
 
-function popularSelects() {
-  const clOpts = clientes.map(c=>`<option value="${c.id}">${c.nome}</option>`).join('');
-  const mtOpts = materiais.map(m=>`<option value="${m.id}">${m.nome}</option>`).join('');
-
-  document.getElementById('f-cliente').innerHTML = '<option value="">Todos</option>' + clOpts;
-  document.getElementById('f-mat').innerHTML     = '<option value="">Todos</option>' + mtOpts;
-  document.querySelector('#form-venda [name="cliente_id"]').innerHTML  = '<option value="">Selecione…</option>' + clOpts;
-  document.querySelector('#form-venda [name="material_id"]').innerHTML = '<option value="">Selecione…</option>' + mtOpts;
+function periodoRange(mes) {
+  const [y,m] = mes.split('-');
+  return { ini:`${y}-${m}-01`, fim:new Date(+y,+m,0).toISOString().split('T')[0] };
 }
 
-async function carregarVendas() {
+async function carregar() {
+  const mes  = document.getElementById('f-mes').value;
+  const cli  = document.getElementById('f-cliente').value;
+  const mat  = document.getElementById('f-mat').value;
+  const { ini, fim } = periodoRange(mes);
+
   let q = supabase.from('vendas')
     .select('*, clientes(nome), materiais(nome)')
+    .gte('data', ini).lte('data', fim)
     .order('data', { ascending: false });
 
-  const mes = document.getElementById('f-mes').value;
-  const cli = document.getElementById('f-cliente').value;
-  const mat = document.getElementById('f-mat').value;
-
-  if (mes) {
-    const [y,m] = mes.split('-');
-    q = q.gte('data',`${y}-${m}-01`).lte('data', new Date(y,m,0).toISOString().split('T')[0]);
-  }
   if (cli) q = q.eq('cliente_id', cli);
   if (mat) q = q.eq('material_id', mat);
 
   const { data } = await q;
-  vendasData = data || [];
+  vendaData = data || [];
+  renderKPIs();
+  renderTabela();
+}
 
-  const totFat    = vendasData.reduce((s,r)=>s+r.valor_total,0);
-  const totPeso   = vendasData.reduce((s,r)=>s+r.peso_kg,0);
-  const ticket    = vendasData.length ? totFat/vendasData.length : 0;
+function renderKPIs() {
+  let fat = 0, vol = 0;
+  vendaData.forEach(r => { fat += r.valor||0; vol += r.peso_kg||0; });
+  document.getElementById('kpi-fat').textContent    = moeda(fat);
+  document.getElementById('kpi-vol').textContent    = peso(vol);
+  document.getElementById('kpi-ticket').textContent = vendaData.length ? moeda(fat/vendaData.length) : '—';
+}
 
-  document.getElementById('kpi-fat').textContent    = moeda(totFat);
-  document.getElementById('kpi-peso').textContent   = peso(totPeso);
-  document.getElementById('kpi-qtd').textContent    = vendasData.length;
-  document.getElementById('kpi-ticket').textContent = moeda(ticket);
-  document.getElementById('venda-count').textContent = `${vendasData.length} registros`;
-
+function renderTabela() {
   const isAdmin = perfil?.role === 'admin';
+  document.getElementById('vnd-count').textContent = `${vendaData.length} vendas`;
   const tb = document.getElementById('tb-vendas');
-  if (!vendasData.length) {
+  if (!vendaData.length) {
     tb.innerHTML = '<tr><td colspan="7" class="table-empty">Nenhuma venda encontrada</td></tr>';
     return;
   }
-  tb.innerHTML = vendasData.map(r => `
+  tb.innerHTML = vendaData.map(r => `
     <tr>
       <td>${dataBR(r.data)}</td>
       <td>${r.clientes?.nome||'—'}</td>
       <td>${r.materiais?.nome||'—'}</td>
       <td class="text-right">${peso(r.peso_kg)}</td>
-      <td class="text-right fw-600">${moeda(r.valor_total)}</td>
-      <td class="text-right">${moeda(r.peso_kg>0?r.valor_total/r.peso_kg:0)}</td>
-      <td>${isAdmin?`
-        <button class="btn-icon" onclick="editarVenda('${r.id}')">✏️</button>
-        <button class="btn-icon danger" onclick="excluirVenda('${r.id}')">🗑️</button>
-      `:'—'}</td>
+      <td class="text-right">${r.preco_kg ? moeda(r.preco_kg) : '—'}</td>
+      <td class="text-right fw-600">${moeda(r.valor||0)}</td>
+      <td>
+        ${isAdmin ? `
+          <button class="btn-icon" onclick="editarVenda('${r.id}')">✏️</button>
+          <button class="btn-icon danger" onclick="excluirVenda('${r.id}')">🗑️</button>
+        ` : '—'}
+      </td>
     </tr>
   `).join('');
 }
 
-async function carregarClientes() {
-  const { data } = await supabase.from('clientes').select('*').order('nome');
-  const isAdmin = perfil?.role === 'admin';
-  document.getElementById('tb-clientes').innerHTML = (data||[]).map(c=>`
-    <tr>
-      <td>${c.nome}</td>
-      <td>${c.documento||'—'}</td>
-      <td>${c.contato||'—'}</td>
-      <td><span class="badge ${c.ativo?'badge-green':'badge-gray'}">${c.ativo?'Ativo':'Inativo'}</span></td>
-      <td>${isAdmin?`
-        <button class="btn-icon" onclick="editarCliente(${JSON.stringify(c).replace(/"/g,'&quot;')})">✏️</button>
-        <button class="btn-icon danger" onclick="toggleCliente('${c.id}',${c.ativo})">${c.ativo?'🚫':'✅'}</button>
-      `:'—'}</td>
-    </tr>
-  `).join('') || '<tr><td colspan="5" class="table-empty">Nenhum cliente</td></tr>';
+// ── Gráficos ──────────────────────────────────────────────────────────────────
+async function carregarGraficos() {
+  const tipo = document.getElementById('chart-tipo').value;
+  const ano  = anoAtual();
+  const mesA = mesAtual();
+
+  let dataInicio;
+  if (tipo === 'mes') {
+    dataInicio = `${ano}-${String(mesA).padStart(2,'0')}-01`;
+  } else if (tipo === '3m') {
+    const d = new Date(ano, mesA-3, 1);
+    dataInicio = d.toISOString().split('T')[0];
+  } else if (tipo === '6m') {
+    const d = new Date(ano, mesA-6, 1);
+    dataInicio = d.toISOString().split('T')[0];
+  } else {
+    dataInicio = `${ano}-01-01`;
+  }
+
+  const { data } = await supabase.from('vendas')
+    .select('*, clientes(nome), materiais(nome)')
+    .gte('data', dataInicio)
+    .order('data');
+
+  const rows = data || [];
+
+  // Vendas por cliente (barras)
+  const cliMap = {};
+  rows.forEach(r => {
+    const nome = r.clientes?.nome || 'Desconhecido';
+    if (!cliMap[nome]) cliMap[nome] = { vol:0, fat:0 };
+    cliMap[nome].vol += r.peso_kg||0;
+    cliMap[nome].fat += r.valor||0;
+  });
+  const labCli = Object.keys(cliMap).sort((a,b)=>cliMap[b].fat-cliMap[a].fat);
+
+  if (chartClientes) chartClientes.destroy();
+  chartClientes = new Chart(document.getElementById('chart-clientes').getContext('2d'), {
+    type: 'bar',
+    data: {
+      labels: labCli,
+      datasets: [
+        { label:'Faturamento (R$)', data: labCli.map(l=>cliMap[l].fat), backgroundColor:'#3b82f6', yAxisID:'y' },
+        { label:'Volume (kg)',      data: labCli.map(l=>cliMap[l].vol), backgroundColor:'#10b981', yAxisID:'y2', type:'line', tension:0.3 },
+      ]
+    },
+    options: {
+      responsive:true,
+      plugins:{ legend:{ position:'bottom' } },
+      scales: {
+        y:  { beginAtZero:true, ticks:{ callback:v=>'R$'+v.toLocaleString('pt-BR') }, position:'left' },
+        y2: { beginAtZero:true, ticks:{ callback:v=>v.toLocaleString('pt-BR')+'kg' }, position:'right', grid:{drawOnChartArea:false} },
+      }
+    }
+  });
+
+  // Evolução mensal
+  await carregarEvolucao(rows);
 }
 
-/* ── Mostrar saldo disponível ao selecionar material ── */
-async function atualizarSaldoInfo() {
-  const matId = document.querySelector('#form-venda [name="material_id"]').value;
-  const aviso = document.getElementById('saldo-aviso');
-  if (!matId) { aviso.textContent = ''; return; }
-  const { data: movs } = await supabase.from('estoque_movimentacoes')
-    .select('tipo, peso_kg').eq('material_id', matId);
-  let saldo = 0;
-  (movs||[]).forEach(r => { saldo += r.tipo==='entrada' ? r.peso_kg : -r.peso_kg; });
-  aviso.innerHTML = `Saldo disponível em estoque: <strong>${peso(saldo)}</strong>`;
-  aviso.style.color = saldo <= 0 ? 'var(--danger)' : 'var(--text-muted)';
-}
-document.querySelector('#form-venda [name="material_id"]').addEventListener('change', atualizarSaldoInfo);
+async function carregarEvolucao(rows) {
+  const cliSel = document.getElementById('sel-cliente-chart').value;
+  const filtrado = cliSel ? rows.filter(r=>r.cliente_id===cliSel) : rows;
 
-/* ── Venda CRUD ── */
+  const meses = {};
+  filtrado.forEach(r => {
+    const key = r.data.substring(0,7);
+    if (!meses[key]) meses[key] = 0;
+    meses[key] += r.valor||0;
+  });
+  const labMes = Object.keys(meses).sort();
+
+  if (chartEvolucao) chartEvolucao.destroy();
+  chartEvolucao = new Chart(document.getElementById('chart-evolucao').getContext('2d'), {
+    type: 'line',
+    data: {
+      labels: labMes.map(l => {
+        const [y,m] = l.split('-');
+        return new Date(+y,+m-1,1).toLocaleDateString('pt-BR',{month:'short',year:'2-digit'});
+      }),
+      datasets: [{
+        label: cliSel ? (clienteData.find(c=>c.id===cliSel)?.nome||'Cliente') : 'Total',
+        data: labMes.map(l=>meses[l]),
+        borderColor:'#3b82f6', backgroundColor:'#dbeafe', fill:true, tension:0.3,
+      }]
+    },
+    options: {
+      responsive:true,
+      plugins:{ legend:{ display:false } },
+      scales:{ y:{ beginAtZero:true, ticks:{ callback:v=>'R$'+v.toLocaleString('pt-BR') } } }
+    }
+  });
+}
+
+document.getElementById('chart-tipo').addEventListener('change', carregarGraficos);
+document.getElementById('sel-cliente-chart').addEventListener('change', carregarGraficos);
+
+// ── CRUD ──────────────────────────────────────────────────────────────────────
 document.getElementById('btn-nova-venda').addEventListener('click', () => {
   document.getElementById('modal-venda-title').textContent = 'Nova Venda';
   document.getElementById('form-venda').reset();
   document.querySelector('#form-venda [name="id"]').value = '';
-  document.getElementById('saldo-aviso').textContent = '';
+  document.querySelector('#form-venda [name="data"]').value = new Date().toISOString().split('T')[0];
   abrirModal('modal-venda');
 });
 
 window.editarVenda = id => {
-  const r = vendasData.find(v=>v.id===id);
+  const r = vendaData.find(v=>v.id===id);
   if (!r) return;
   document.getElementById('modal-venda-title').textContent = 'Editar Venda';
   const f = document.getElementById('form-venda');
-  f.querySelector('[name="id"]').value         = r.id;
-  f.querySelector('[name="data"]').value       = r.data;
-  f.querySelector('[name="cliente_id"]').value = r.cliente_id;
-  f.querySelector('[name="material_id"]').value = r.material_id;
-  f.querySelector('[name="peso_kg"]').value    = r.peso_kg;
-  f.querySelector('[name="valor_total"]').value = r.valor_total;
-  atualizarSaldoInfo();
+  const set = (n,v) => { const el=f.querySelector(`[name="${n}"]`); if(el) el.value=v??''; };
+  set('id',r.id); set('data',r.data); set('cliente_id',r.cliente_id);
+  set('material_id',r.material_id); set('peso_kg',r.peso_kg);
+  set('preco_kg',r.preco_kg); set('valor_total',r.valor);
+  set('observacao',r.observacao);
   abrirModal('modal-venda');
+};
+
+window.excluirVenda = async id => {
+  if (!confirm('Excluir esta venda?')) return;
+  const { error } = await supabase.from('vendas').delete().eq('id', id);
+  if (error) { toast('Erro ao excluir','error'); return; }
+  await supabase.from('estoque_movimentacoes').delete().eq('origem_id',id).eq('origem_tipo','venda');
+  toast('Venda excluída!');
+  carregar(); carregarGraficos();
 };
 
 document.getElementById('btn-salvar-venda').addEventListener('click', async () => {
   const f = document.getElementById('form-venda');
   if (!f.checkValidity()) { f.reportValidity(); return; }
   const fd = Object.fromEntries(new FormData(f));
-  const { data: { user } } = await supabase.auth.getUser();
+  const pk = parseFloat(fd.peso_kg)||0;
+  const pr = parseFloat(fd.preco_kg)||0;
   const payload = {
-    cliente_id:  fd.cliente_id,
-    material_id: fd.material_id,
-    peso_kg:     parseFloat(fd.peso_kg),
-    valor_total: parseFloat(fd.valor_total),
-    data:        fd.data,
-    criado_por:  user.id,
+    data:fd.data, cliente_id:fd.cliente_id, material_id:fd.material_id,
+    peso_kg:pk, preco_kg:pr, valor:pk*pr, observacao:fd.observacao||null,
   };
-
   if (fd.id) {
-    /* Edição: reverter movs antigos */
-    await supabase.from('estoque_movimentacoes').delete().eq('origem_id', fd.id);
-    await supabase.from('financeiro_lancamentos').delete().eq('descricao', `Venda #${fd.id}`);
-    await supabase.from('vendas').update(payload).eq('id', fd.id);
-    await criarMovsVenda(payload, fd.id);
+    const { error } = await supabase.from('vendas').update(payload).eq('id',fd.id);
+    if (error) { toast('Erro ao atualizar','error'); return; }
     toast('Venda atualizada!');
   } else {
-    const { data: nova, error } = await supabase.from('vendas').insert(payload).select().single();
-    if (error) { toast('Erro ao salvar venda','error'); return; }
-    await criarMovsVenda(payload, nova.id);
+    const { data:nova, error } = await supabase.from('vendas').insert(payload).select().single();
+    if (error) { toast('Erro ao salvar','error'); return; }
+    await supabase.from('estoque_movimentacoes').insert({
+      material_id:payload.material_id, tipo:'saida', peso_kg:pk,
+      origem_tipo:'venda', origem_id:nova.id, data:payload.data,
+    });
+    await supabase.from('financeiro').insert({
+      tipo:'receita', descricao:`Venda — ${nova.id}`,
+      valor:payload.valor, data:payload.data, referencia_tipo:'venda', referencia_id:nova.id,
+    });
     toast('Venda registrada!');
   }
   fecharModal('modal-venda');
-  carregarVendas();
+  carregar(); carregarGraficos();
 });
 
-async function criarMovsVenda(payload, id) {
-  await supabase.from('estoque_movimentacoes').insert({
-    material_id: payload.material_id, tipo: 'saida', peso_kg: payload.peso_kg,
-    origem_tipo: 'venda', origem_id: id, data: payload.data
-  });
-  await supabase.from('financeiro_lancamentos').insert({
-    tipo: 'receita', categoria: 'Venda de Material',
-    descricao: `Venda #${id}`,
-    valor: payload.valor_total, data: payload.data,
-    criado_por: payload.criado_por
-  });
-}
-
-window.excluirVenda = async id => {
-  if (!confirm('Excluir esta venda? O estoque e financeiro serão revertidos.')) return;
-  await supabase.from('estoque_movimentacoes').delete().eq('origem_id', id);
-  await supabase.from('financeiro_lancamentos').delete().eq('descricao', `Venda #${id}`);
-  await supabase.from('vendas').delete().eq('id', id);
-  toast('Venda excluída e estoque revertido!');
-  carregarVendas();
-};
-
-/* ── Cliente CRUD ── */
-document.getElementById('btn-novo-cliente').addEventListener('click', () => {
-  document.getElementById('modal-cli-title').textContent = 'Novo Cliente';
-  document.getElementById('form-cliente').reset();
-  document.querySelector('#form-cliente [name="id"]').value = '';
-  abrirModal('modal-cliente');
-});
-window.editarCliente = c => {
-  document.getElementById('modal-cli-title').textContent = 'Editar Cliente';
-  const f = document.getElementById('form-cliente');
-  f.querySelector('[name="id"]').value        = c.id;
-  f.querySelector('[name="nome"]').value      = c.nome;
-  f.querySelector('[name="documento"]').value = c.documento||'';
-  f.querySelector('[name="contato"]').value   = c.contato||'';
-  abrirModal('modal-cliente');
-};
-window.toggleCliente = async (id, ativo) => {
-  await supabase.from('clientes').update({ ativo: !ativo }).eq('id', id);
-  carregarClientes();
-};
-document.getElementById('btn-salvar-cliente').addEventListener('click', async () => {
-  const f = document.getElementById('form-cliente');
-  if (!f.checkValidity()) { f.reportValidity(); return; }
-  const fd = Object.fromEntries(new FormData(f));
-  const payload = { nome: fd.nome, documento: fd.documento, contato: fd.contato };
-  if (fd.id) { await supabase.from('clientes').update(payload).eq('id', fd.id); toast('Cliente atualizado!'); }
-  else       { await supabase.from('clientes').insert(payload); toast('Cliente criado!'); }
-  fecharModal('modal-cliente');
-  const { data: cl } = await supabase.from('clientes').select('*').eq('ativo',true).order('nome');
-  clientes = cl||[];
-  popularSelects();
-  carregarClientes();
-});
-
-document.getElementById('btn-filtrar').addEventListener('click', carregarVendas);
-document.querySelectorAll('[data-close]').forEach(btn => btn.addEventListener('click', () => fecharModal(btn.dataset.close)));
-document.querySelectorAll('.modal-backdrop').forEach(m => m.addEventListener('click', e => { if(e.target===m) fecharModal(m.id); }));
+document.getElementById('btn-filtrar').addEventListener('click', carregar);
+document.querySelectorAll('[data-close]').forEach(btn=>btn.addEventListener('click',()=>fecharModal(btn.dataset.close)));
+document.querySelectorAll('.modal-backdrop').forEach(m=>m.addEventListener('click',e=>{if(e.target===m)fecharModal(m.id);}));
 
 await init();
 </script>
