@@ -196,7 +196,7 @@ async function init() {
   perfil = p;
 
   const [{ data: eq }, { data: mt }, { data: col }] = await Promise.all([
-    supabase.from('equipamentos').select('*').order('nome'),
+    supabase.from('equipamentos').select('*').neq('status','parado').order('nome'),
     supabase.from('materiais').select('*').eq('ativo', true).order('nome'),
     supabase.from('colaboradores').select('*').eq('ativo', true).order('nome'),
   ]);
