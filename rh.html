@@ -569,6 +569,7 @@ document.getElementById('btn-salvar-colab').addEventListener('click', async ()=>
     fim_experiencia_1:fd.fim_experiencia_1||null,
     fim_experiencia_2:fd.fim_experiencia_2||null,
     demissao:fd.demissao||null, telefone:fd.telefone||null,
+    ativo: !fd.demissao,
   };
   if(fd.id){
     const{error}=await supabase.from('colaboradores').update(payload).eq('id',fd.id);
