@@ -36,7 +36,7 @@
     <div class="page-body">
 
       <!-- KPIs -->
-      <div class="kpi-grid" style="grid-template-columns:repeat(3,1fr)">
+      <div class="kpi-grid" style="grid-template-columns:repeat(2,1fr);max-width:480px">
         <div class="kpi-card">
           <div class="kpi-label">Recicláveis (período)</div>
           <div class="kpi-value" id="kpi-rec">—</div>
@@ -46,11 +46,6 @@
           <div class="kpi-label">Rejeito UVR (período)</div>
           <div class="kpi-value" id="kpi-rej">—</div>
           <div class="kpi-sub">kg de rejeito</div>
-        </div>
-        <div class="kpi-card">
-          <div class="kpi-label">Fornecedores Ativos</div>
-          <div class="kpi-value" id="kpi-forn">—</div>
-          <div class="kpi-sub">no período</div>
         </div>
       </div>
 
@@ -204,18 +199,30 @@ async function init() {
   const { data: p } = await supabase.from('profiles').select('*').eq('id', user.id).single();
   perfil = p;
 
-  const [{ data: forns }, { data: mats }] = await Promise.all([
+  const [{ data: forns }, { data: mats }, { data: matsEntradas }] = await Promise.all([
     supabase.from('fornecedores').select('*').order('nome'),
     supabase.from('materiais').select('*').order('nome'),
+    supabase.from('entradas').select('material_id, materiais(id, nome)'),
   ]);
   fornData = forns || [];
   matData  = mats  || [];
 
-  const fornOpts = fornData.map(f=>`<option value="${f.id}">${f.nome}</option>`).join('');
+  // Materiais distintos que já aparecem em entradas (para o filtro)
+  const matsUsados = new Map();
+  (matsEntradas||[]).forEach(e => {
+    if (e.material_id && e.materiais?.nome)
+      matsUsados.set(e.material_id, e.materiais.nome);
+  });
+  const matFiltroOpts = [...matsUsados.entries()]
+    .sort((a,b)=>a[1].localeCompare(b[1]))
+    .map(([id,nome])=>`<option value="${id}">${nome}</option>`).join('');
+
+  // Todos os materiais (para o formulário de novo registro)
   const matOpts  = matData.map(m=>`<option value="${m.id}">${m.nome}</option>`).join('');
+  const fornOpts = fornData.map(f=>`<option value="${f.id}">${f.nome}</option>`).join('');
 
   document.getElementById('f-forn').innerHTML = '<option value="">Todos</option>' + fornOpts;
-  document.getElementById('f-mat').innerHTML  = '<option value="">Todos</option>' + matOpts;
+  document.getElementById('f-mat').innerHTML  = '<option value="">Todos</option>' + matFiltroOpts;
   document.querySelector('#form-entrada [name="fornecedor_id"]').innerHTML = '<option value="">Selecione…</option>' + fornOpts;
   document.querySelector('#form-entrada [name="material_id"]').innerHTML   = '<option value="">Selecione…</option>' + matOpts;
 
