@@ -67,7 +67,7 @@
       <!-- Barra de utilização -->
       <div class="card mb-16" style="padding:16px">
         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
-          <span style="font-size:13px;font-weight:600;color:#374151">Taxa de Utilização da Frota</span>
+          <span style="font-size:13px;font-weight:600;color:#374151">Taxa de Utilização do Equipamento</span>
           <span id="taxa-label" style="font-size:14px;font-weight:700;color:#10b981">—</span>
         </div>
         <div class="util-bar">
@@ -88,7 +88,7 @@
             <thead>
               <tr>
                 <th>Equipamento</th>
-                <th>Frota</th>
+                <th>Nº Equipamento</th>
                 <th>Descrição</th>
                 <th>Função</th>
                 <th>Capacidade</th>
@@ -117,16 +117,21 @@
         <input type="hidden" name="id" />
         <div class="form-grid" style="grid-template-columns:repeat(2,1fr)">
           <div class="form-group"><label>Equipamento *</label><input type="text" name="nome" required /></div>
-          <div class="form-group"><label>Frota / Patrimônio</label><input type="text" name="frota" /></div>
+          <div class="form-group"><label>Nº Equipamento</label><input type="text" name="frota" /></div>
           <div class="form-group full"><label>Descrição</label><input type="text" name="descricao" placeholder="Marca, modelo, nº série…" /></div>
           <div class="form-group"><label>Função</label><input type="text" name="funcao" /></div>
           <div class="form-group"><label>Capacidade</label><input type="text" name="capacidade" /></div>
-          <div class="form-group full"><label>Status *</label>
-            <select name="status" required>
+          <div class="form-group"><label>Status *</label>
+            <select name="status" required id="sel-status-eq" onchange="toggleCapPct(this.value)">
               <option value="operando">✅ Operando</option>
               <option value="restricao">⚠️ Operando com Restrição</option>
               <option value="parado">❌ Parado / Manutenção</option>
             </select>
+          </div>
+          <div class="form-group" id="campo-cap-pct" style="display:none">
+            <label>% de Capacidade com Restrição</label>
+            <input type="number" name="capacidade_pct" min="1" max="99" placeholder="Ex: 60" />
+            <span style="font-size:12px;color:#64748b;margin-top:4px">Quanto % está operando com a restrição?</span>
           </div>
         </div>
       </form>
@@ -172,11 +177,17 @@ function renderKPIs() {
   document.getElementById('kpi-op').textContent      = op;
   document.getElementById('kpi-res').textContent     = res;
   document.getElementById('kpi-par').textContent     = par;
-  document.getElementById('kpi-op-pct').textContent  = pct(op) + ' da frota';
-  document.getElementById('kpi-res-pct').textContent = pct(res) + ' da frota';
-  document.getElementById('kpi-par-pct').textContent = pct(par) + ' da frota';
+  document.getElementById('kpi-op-pct').textContent  = pct(op) + ' do equipamento';
+  document.getElementById('kpi-res-pct').textContent = pct(res) + ' do equipamento';
+  document.getElementById('kpi-par-pct').textContent = pct(par) + ' do equipamento';
 
-  const taxaUtil = total ? ((op + res * 0.5) / total * 100).toFixed(0) : 0;
+  // Taxa real: operando=100%, restrição=% definida pelo usuário, parado=0%
+  const somaUtil = eqData.reduce((s, e) => {
+    if (e.status === 'operando')  return s + 100;
+    if (e.status === 'restricao') return s + (parseFloat(e.capacidade_pct) || 50);
+    return s;
+  }, 0);
+  const taxaUtil = total ? (somaUtil / total).toFixed(0) : 0;
   document.getElementById('taxa-label').textContent  = taxaUtil + '% utilizados';
   document.getElementById('taxa-label').style.color  = taxaUtil >= 80 ? '#10b981' : taxaUtil >= 50 ? '#f59e0b' : '#ef4444';
   document.getElementById('util-fill-op').style.width  = pct(op);
@@ -200,6 +211,9 @@ function renderTabela() {
 
   tb.innerHTML = eqData.map(e => {
     const st = statusInfo[e.status] || statusInfo.operando;
+    const stLabel = e.status === 'restricao' && e.capacidade_pct
+      ? `⚠️ Com Restrição (${e.capacidade_pct}%)`
+      : `${st.icon} ${st.label}`;
     return `<tr>
       <td><strong>${e.nome}</strong></td>
       <td>${e.frota || '<span style="color:#94a3b8">—</span>'}</td>
@@ -207,14 +221,8 @@ function renderTabela() {
       <td style="font-size:13px">${e.funcao || '—'}</td>
       <td style="font-size:13px">${e.capacidade || '—'}</td>
       <td>
-        ${isAdmin
-          ? `<select class="status-btn ${st.cls}" onchange="alterarStatus('${e.id}', this.value)" style="border:none;font-weight:700;font-size:12px;cursor:pointer">
-               <option value="operando"  ${e.status==='operando'  ? 'selected':''}>✅ Operando</option>
-               <option value="restricao" ${e.status==='restricao' ? 'selected':''}>⚠️ Com Restrição</option>
-               <option value="parado"    ${e.status==='parado'    ? 'selected':''}>❌ Parado</option>
-             </select>`
-          : `<span class="status-btn ${st.cls}">${st.icon} ${st.label}</span>`
-        }
+        <span class="status-btn ${st.cls}">${stLabel}</span>
+        ${isAdmin ? `<button class="btn-icon" style="margin-left:4px" onclick="editarEq('${e.id}')">⚙️</button>` : ''}
       </td>
       <td>
         ${isAdmin ? `
@@ -225,6 +233,11 @@ function renderTabela() {
     </tr>`;
   }).join('');
 }
+
+// ── Toggle campo % capacidade ─────────────────────────────────────────────────
+window.toggleCapPct = status => {
+  document.getElementById('campo-cap-pct').style.display = status === 'restricao' ? '' : 'none';
+};
 
 // ── Status inline ─────────────────────────────────────────────────────────────
 window.alterarStatus = async (id, novoStatus) => {
@@ -255,6 +268,8 @@ window.editarEq = id => {
   set('id', e.id); set('nome', e.nome); set('frota', e.frota);
   set('descricao', e.descricao); set('funcao', e.funcao);
   set('capacidade', e.capacidade); set('status', e.status);
+  set('capacidade_pct', e.capacidade_pct);
+  toggleCapPct(e.status);
   abrirModal('modal-eq');
 };
 
@@ -275,8 +290,9 @@ document.getElementById('btn-salvar-eq').addEventListener('click', async () => {
     frota:      fd.frota      || null,
     descricao:  fd.descricao  || null,
     funcao:     fd.funcao     || null,
-    capacidade: fd.capacidade || null,
-    status:     fd.status,
+    capacidade:     fd.capacidade     || null,
+    status:         fd.status,
+    capacidade_pct: fd.status === 'restricao' ? (parseFloat(fd.capacidade_pct) || null) : null,
   };
   if (fd.id) {
     const { error } = await supabase.from('equipamentos').update(payload).eq('id', fd.id);
