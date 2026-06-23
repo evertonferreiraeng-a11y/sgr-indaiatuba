@@ -495,7 +495,14 @@ window.editarColab = id => {
 };
 
 window.excluirColab = async id => {
-  if (!confirm('Excluir este colaborador?')) return;
+  if (!confirm('Excluir este colaborador? Todos os registros relacionados (avaliações, ocorrências) também serão excluídos.')) return;
+
+  // Remove registros dependentes primeiro
+  await supabase.from('rh_ocorrencias').delete().eq('colaborador_id', id);
+  await supabase.from('ocorrencias').delete().eq('colaborador_id', id);
+  await supabase.from('colaborador_avaliacoes').delete().eq('colaborador_id', id);
+  await supabase.from('equipe_diaria').delete().eq('colaborador_id', id);
+
   const { error } = await supabase.from('colaboradores').delete().eq('id', id);
   if (error) { toast('Erro ao excluir: ' + error.message, 'error'); return; }
   toast('Colaborador excluído!');
