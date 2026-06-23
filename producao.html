@@ -129,28 +129,6 @@
   </div>
 </div>
 
-<!-- Modal: Equipamento -->
-<div class="modal-backdrop" id="modal-equip">
-  <div class="modal">
-    <div class="modal-header">
-      <h3 id="modal-equip-title">Novo Equipamento</h3>
-      <button class="modal-close" data-close="modal-equip">✕</button>
-    </div>
-    <div class="modal-body">
-      <form id="form-equip">
-        <input type="hidden" name="id" />
-        <div class="form-grid">
-          <div class="form-group full"><label>Nome *</label><input type="text" name="nome" required /></div>
-          <div class="form-group full"><label>Capacidade (kg/dia)</label><input type="number" name="capacidade_kg_dia" min="0" step="0.01" /></div>
-        </div>
-      </form>
-    </div>
-    <div class="modal-footer">
-      <button class="btn btn-outline" data-close="modal-equip">Cancelar</button>
-      <button class="btn btn-primary" id="btn-salvar-equip">Salvar</button>
-    </div>
-  </div>
-</div>
 
 <!-- Modal: Material -->
 <div class="modal-backdrop" id="modal-mat">
@@ -210,7 +188,7 @@ async function init() {
   const hoje = new Date().toISOString().split('T')[0];
   document.getElementById('data-hoje').textContent = dataBR(hoje);
 
-  await Promise.all([carregarCapacidades(), carregarProducao(), carregarEquipamentos(), carregarMateriais()]);
+  await Promise.all([carregarCapacidades(), carregarProducao(), carregarMateriais()]);
 }
 
 function popularSelects() {
@@ -383,19 +361,6 @@ async function carregarProducao() {
   `).join('');
 }
 
-async function carregarEquipamentos() {
-  const { data } = await supabase.from('equipamentos').select('*').order('nome');
-  const stBadge = { operando:'badge-green', restricao:'badge-yellow', parado:'badge-red' };
-  const stLabel = { operando:'Operando', restricao:'Com Restrição', parado:'Parado' };
-  document.getElementById('tb-equipamentos').innerHTML = (data||[]).map(e=>`
-    <tr>
-      <td><strong>${e.nome}</strong></td>
-      <td>${e.frota||'—'}</td>
-      <td style="font-size:13px">${e.funcao||'—'}</td>
-      <td><span class="badge ${stBadge[e.status]||'badge-gray'}">${stLabel[e.status]||e.status}</span></td>
-    </tr>
-  `).join('') || '<tr><td colspan="4" class="table-empty">Nenhum equipamento cadastrado</td></tr>';
-}
 
 async function carregarMateriais() {
   const { data } = await supabase.from('materiais').select('*').order('nome');
@@ -497,39 +462,6 @@ window.excluirProd = async id => {
   carregarCapacidades();
 };
 
-/* ── Equipamento CRUD ── */
-document.getElementById('btn-novo-equip').addEventListener('click', () => {
-  document.getElementById('modal-equip-title').textContent = 'Novo Equipamento';
-  document.getElementById('form-equip').reset();
-  document.querySelector('#form-equip [name="id"]').value = '';
-  abrirModal('modal-equip');
-});
-window.editarEquip = e => {
-  document.getElementById('modal-equip-title').textContent = 'Editar Equipamento';
-  const f = document.getElementById('form-equip');
-  f.querySelector('[name="id"]').value               = e.id;
-  f.querySelector('[name="nome"]').value             = e.nome;
-  f.querySelector('[name="capacidade_kg_dia"]').value = e.capacidade_kg_dia||'';
-  abrirModal('modal-equip');
-};
-window.toggleEquip = async (id, ativo) => {
-  await supabase.from('equipamentos').update({ ativo: !ativo }).eq('id', id);
-  carregarEquipamentos();
-};
-document.getElementById('btn-salvar-equip').addEventListener('click', async () => {
-  const f = document.getElementById('form-equip');
-  if (!f.checkValidity()) { f.reportValidity(); return; }
-  const fd = Object.fromEntries(new FormData(f));
-  const payload = { nome: fd.nome, capacidade_kg_dia: parseFloat(fd.capacidade_kg_dia)||null };
-  if (fd.id) { await supabase.from('equipamentos').update(payload).eq('id', fd.id); toast('Equipamento atualizado!'); }
-  else       { await supabase.from('equipamentos').insert(payload); toast('Equipamento criado!'); }
-  fecharModal('modal-equip');
-  const { data: eq } = await supabase.from('equipamentos').select('*').eq('ativo',true).order('nome');
-  equipamentos = eq||[];
-  popularSelects();
-  carregarEquipamentos();
-  carregarCapacidades();
-});
 
 /* ── Material CRUD ── */
 document.getElementById('btn-novo-mat').addEventListener('click', () => {
