@@ -358,20 +358,16 @@ function cardHTML(c, isAdm, hoje, iniMes, fimMes) {
     statusExp = '1exp';
   }
 
-  // Recomendação
+  // Recomendação baseada sempre na Nota Atual (média de todas as avaliações)
   let rec;
-  if (statusExp === 'aprovado')
-    rec = { cls:'rec-ok', icon:'✅', texto:'APROVADO — Contratação efetivada' };
-  else if (statusExp === 'entre')
-    rec = { cls:'rec-att', icon:'⏳', texto:'PASSOU 1ª EXPERIÊNCIA — Em andamento com a 2ª' };
-  else if (mediaUltima === null)
-    rec = { cls:'rec-nd', icon:'📋', texto:'SEM AVALIAÇÃO — Realize a avaliação antes de decidir' };
-  else if (mediaUltima >= 7 && faltasC <= 1)
-    rec = { cls:'rec-ok', icon:'✅', texto:'RECOMENDADO — Prorrogar contrato' };
-  else if (mediaUltima < 5 || faltasC >= 3)
-    rec = { cls:'rec-no', icon:'❌', texto:'NÃO RECOMENDADO — Encerrar contrato' };
+  if (notaAtual === null || isNaN(notaAtual))
+    rec = { cls:'rec-nd', icon:'📋', texto:'SEM AVALIAÇÃO — Registre avaliações para acompanhar o desempenho' };
+  else if (notaAtual >= 7)
+    rec = { cls:'rec-ok', icon:'✅', texto:`DESEMPENHO ALTO (${notaAtual.toFixed(1)}) — Colaborador recomendado para manutenção` };
+  else if (notaAtual >= 5)
+    rec = { cls:'rec-att', icon:'⚠️', texto:`DESEMPENHO MÉDIO (${notaAtual.toFixed(1)}) — Acompanhar de perto, conversa recomendada` };
   else
-    rec = { cls:'rec-att', icon:'⚠️', texto:'AVALIAR — Conversa recomendada' };
+    rec = { cls:'rec-no', icon:'❌', texto:`DESEMPENHO BAIXO (${notaAtual.toFixed(1)}) — Avaliar desligamento imediato` };
 
   // Avaliações HTML inline
   const avalsHTML = avals.length ? avals.map(a => {
@@ -425,10 +421,9 @@ function cardHTML(c, isAdm, hoje, iniMes, fimMes) {
           <button class="btn-icon danger" onclick="excluirColab('${c.id}')">🗑️</button>
         </div>` : ''}
       </div>
-      <div class="colab-stats">
+      <div class="colab-stats" style="grid-template-columns:repeat(3,1fr)">
         <div class="colab-stat"><div class="val${faltasC>0?' text-red':''}">${faltasC}</div><div class="lbl">Faltas Injust.</div></div>
         <div class="colab-stat"><div class="val">${atestC}</div><div class="lbl">Atestados</div></div>
-        <div class="colab-stat"><div class="val">${mediaUltima!==null?mediaUltima.toFixed(1):'—'}</div><div class="lbl">Nota Avaliação</div></div>
         <div class="colab-stat" style="background:#eff6ff"><div class="val" style="color:#2563eb">${notaAtual!==null&&!isNaN(notaAtual)?notaAtual.toFixed(1):'—'}</div><div class="lbl" style="color:#2563eb">Nota Atual</div></div>
       </div>
       <div class="recomendacao ${rec.cls}">${rec.icon} ${rec.texto}</div>
