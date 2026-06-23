@@ -261,7 +261,7 @@
 
 <div id="toast-container"></div>
 <script type="module">
-import { initPage, supabase, dataBR, toast, abrirModal, fecharModal, mesAtual, anoAtual } from './js/config.js';
+import { initPage, supabase, dataBR, toast, abrirModal, fecharModal } from './js/config.js';
 
 await initPage();
 
@@ -270,9 +270,10 @@ let perfil, colabData = [], cargoData = [], avalData = [], ocData = [];
 const CRITERIOS       = ['relacionamento','responsabilidade','cooperacao','conhecimento_trabalho','interesse','atitude_profissional','produtividade'];
 const CRITERIOS_LABEL = ['Relacionamento','Responsabilidade','Cooperação','Conhecimento do Trabalho','Interesse','Atitude Profissional','Produtividade'];
 
-const anoAtualVal = anoAtual();
-const mesAtualVal = mesAtual();
-const mesStr = `${anoAtualVal}-${String(mesAtualVal).padStart(2,'0')}`;
+const _hoje       = new Date();
+const anoAtualVal = _hoje.getFullYear();
+const mesAtualVal = _hoje.getMonth() + 1;
+const mesStr      = `${anoAtualVal}-${String(mesAtualVal).padStart(2,'0')}`;
 document.getElementById('f-oc-mes').value = mesStr;
 
 // ── auto-calc média ───────────────────────────────────────────────────────────
