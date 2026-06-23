@@ -421,24 +421,58 @@ function renderColaboradores() {
     const ocColab = ocData.filter(o => o.colaborador_id === c.id && o.data >= iniMes && o.data <= fimMes);
     const faltasC = ocColab.filter(o => o.tipo === 'falta').length;
     const atestC  = ocColab.filter(o => o.tipo === 'atestado').length;
-    const ultimaAval = avals[0] || null;
-    const mediaAval  = ultimaAval ? calcMediaAval(ultimaAval) : null;
-    const rec        = recomendacao(mediaAval, faltasC);
 
+    // Nota da última avaliação formal
+    const ultimaAval = avals[0] || null;
+    const mediaUltima = ultimaAval ? calcMediaAval(ultimaAval) : null;
+
+    // Nota atual = média de TODAS as avaliações (desempenho geral acumulado)
+    const notaAtual = avals.length
+      ? avals.reduce((sum, a) => sum + (calcMediaAval(a) || 0), 0) / avals.filter(a => calcMediaAval(a) !== null).length
+      : null;
+
+    // Cargo: usa campo texto legado OU lookup na tabela cargos
+    const cargoNome = c.cargo || cargoData.find(x => x.id === c.cargo_id)?.nome || 'Sem cargo';
+
+    // Status de experiência baseado nas datas
     let expTag = '';
-    if (c.fim_experiencia_2 && hoje <= c.fim_experiencia_2)
-      expTag = `<span style="background:#fef3c7;color:#92400e;padding:1px 7px;border-radius:10px;font-size:11px;font-weight:600">2ª Exp. até ${dataBR(c.fim_experiencia_2)}</span>`;
-    else if (c.fim_experiencia_1 && hoje <= c.fim_experiencia_1)
-      expTag = `<span style="background:#dbeafe;color:#1e40af;padding:1px 7px;border-radius:10px;font-size:11px;font-weight:600">1ª Exp. até ${dataBR(c.fim_experiencia_1)}</span>`;
-    else if (c.demissao)
+    let statusExp = null;
+    if (c.demissao) {
       expTag = `<span style="background:#fee2e2;color:#991b1b;padding:1px 7px;border-radius:10px;font-size:11px;font-weight:600">Demitido ${dataBR(c.demissao)}</span>`;
+    } else if (c.fim_experiencia_2) {
+      if (hoje > c.fim_experiencia_2) {
+        expTag = `<span style="background:#d1fae5;color:#065f46;padding:1px 7px;border-radius:10px;font-size:11px;font-weight:600">✓ Aprovado (experiência concluída)</span>`;
+        statusExp = 'aprovado';
+      } else {
+        expTag = `<span style="background:#fef3c7;color:#92400e;padding:1px 7px;border-radius:10px;font-size:11px;font-weight:600">2ª Exp. até ${dataBR(c.fim_experiencia_2)}</span>`;
+        statusExp = '2exp';
+      }
+    } else if (c.fim_experiencia_1) {
+      if (hoje > c.fim_experiencia_1) {
+        expTag = `<span style="background:#fef3c7;color:#92400e;padding:1px 7px;border-radius:10px;font-size:11px;font-weight:600">⏳ Passou 1ª exp. — aguardando 2ª</span>`;
+        statusExp = 'entre';
+      } else {
+        expTag = `<span style="background:#dbeafe;color:#1e40af;padding:1px 7px;border-radius:10px;font-size:11px;font-weight:600">1ª Exp. até ${dataBR(c.fim_experiencia_1)}</span>`;
+        statusExp = '1exp';
+      }
+    }
+
+    // Recomendação automática baseada no status
+    let rec;
+    if (statusExp === 'aprovado') {
+      rec = { cls:'rec-ok', icon:'✅', texto:'APROVADO — Contratação efetivada' };
+    } else if (statusExp === 'entre') {
+      rec = { cls:'rec-att', icon:'⏳', texto:'PASSOU 1ª EXPERIÊNCIA — Em andamento com a 2ª' };
+    } else {
+      rec = recomendacao(mediaUltima, faltasC);
+    }
 
     return `<div class="colab-card">
       <div class="colab-header">
         <div class="colab-avatar">${c.nome.charAt(0).toUpperCase()}</div>
         <div class="colab-info">
           <h4>${c.nome}</h4>
-          <p>${c.cargos?.nome || 'Sem cargo'}${c.chapa ? ` · Chapa ${c.chapa}` : ''}</p>
+          <p>${cargoNome}${c.chapa ? ` · Chapa ${c.chapa}` : ''}</p>
           <p>Admissão: ${dataBR(c.data_admissao) || '—'} ${expTag}</p>
         </div>
         ${isAdmin ? `<div class="colab-actions">
@@ -446,10 +480,11 @@ function renderColaboradores() {
           <button class="btn-icon danger" onclick="excluirColab('${c.id}')">🗑️</button>
         </div>` : ''}
       </div>
-      <div class="colab-stats">
+      <div class="colab-stats" style="grid-template-columns:repeat(5,1fr)">
         <div class="colab-stat"><div class="val${faltasC > 0 ? ' text-red' : ''}">${faltasC}</div><div class="lbl">Faltas Injust.</div></div>
         <div class="colab-stat"><div class="val">${atestC}</div><div class="lbl">Atestados</div></div>
-        <div class="colab-stat"><div class="val">${mediaAval !== null ? mediaAval.toFixed(1) : '—'}</div><div class="lbl">Nota Avaliação</div></div>
+        <div class="colab-stat"><div class="val">${mediaUltima !== null ? mediaUltima.toFixed(1) : '—'}</div><div class="lbl">Nota Avaliação</div></div>
+        <div class="colab-stat" style="background:#eff6ff"><div class="val" style="color:#2563eb">${notaAtual !== null && !isNaN(notaAtual) ? notaAtual.toFixed(1) : '—'}</div><div class="lbl" style="color:#2563eb">Nota Atual</div></div>
         <div class="colab-stat"><div class="val">${avals.length}</div><div class="lbl">Avaliações</div></div>
       </div>
       <div class="recomendacao ${rec.cls}">${rec.icon} ${rec.texto}</div>
