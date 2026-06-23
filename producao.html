@@ -81,19 +81,6 @@
         </div>
       </div>
 
-      <!-- Equipamentos CRUD -->
-      <div class="table-card">
-        <div class="table-card-header">
-          <h3>Equipamentos</h3>
-          <button class="btn btn-sm btn-primary" id="btn-novo-equip">+ Adicionar</button>
-        </div>
-        <div class="table-scroll">
-          <table>
-            <thead><tr><th>Nome</th><th class="text-right">Capacidade kg/dia</th><th>Status</th><th>Ações</th></tr></thead>
-            <tbody id="tb-equipamentos"></tbody>
-          </table>
-        </div>
-      </div>
 
       <!-- Materiais CRUD -->
       <div class="table-card">
@@ -209,7 +196,7 @@ async function init() {
   perfil = p;
 
   const [{ data: eq }, { data: mt }, { data: col }] = await Promise.all([
-    supabase.from('equipamentos').select('*').eq('ativo', true).order('nome'),
+    supabase.from('equipamentos').select('*').order('nome'),
     supabase.from('materiais').select('*').eq('ativo', true).order('nome'),
     supabase.from('colaboradores').select('*').eq('ativo', true).order('nome'),
   ]);
@@ -253,7 +240,13 @@ async function carregarCapacidades() {
     grid.innerHTML = '<p class="text-muted" style="font-size:13px">Nenhum equipamento cadastrado.</p>';
     return;
   }
-  grid.innerHTML = equipamentos.map(eq => {
+  // Mostra apenas equipamentos com produção lançada hoje
+  const comProducao = equipamentos.filter(eq => prodPorEquip[eq.id] > 0);
+  if (!comProducao.length) {
+    grid.innerHTML = '<p class="text-muted" style="font-size:13px;padding:8px 0">Nenhuma produção lançada hoje.</p>';
+    return;
+  }
+  grid.innerHTML = comProducao.map(eq => {
     const prod = prodPorEquip[eq.id] || 0;
     const cap  = eq.capacidade_kg_dia || 0;
     const pct  = cap > 0 ? Math.min((prod/cap)*100, 150) : 0;
@@ -392,18 +385,16 @@ async function carregarProducao() {
 
 async function carregarEquipamentos() {
   const { data } = await supabase.from('equipamentos').select('*').order('nome');
-  const isAdmin = perfil?.role === 'admin';
+  const stBadge = { operando:'badge-green', restricao:'badge-yellow', parado:'badge-red' };
+  const stLabel = { operando:'Operando', restricao:'Com Restrição', parado:'Parado' };
   document.getElementById('tb-equipamentos').innerHTML = (data||[]).map(e=>`
     <tr>
-      <td>${e.nome}</td>
-      <td class="text-right">${e.capacidade_kg_dia ? peso(e.capacidade_kg_dia) : '—'}</td>
-      <td><span class="badge ${e.ativo?'badge-green':'badge-gray'}">${e.ativo?'Ativo':'Inativo'}</span></td>
-      <td>${isAdmin?`
-        <button class="btn-icon" onclick="editarEquip(${JSON.stringify(e).replace(/"/g,'&quot;')})">✏️</button>
-        <button class="btn-icon danger" onclick="toggleEquip('${e.id}',${e.ativo})">${e.ativo?'🚫':'✅'}</button>
-      `:'—'}</td>
+      <td><strong>${e.nome}</strong></td>
+      <td>${e.frota||'—'}</td>
+      <td style="font-size:13px">${e.funcao||'—'}</td>
+      <td><span class="badge ${stBadge[e.status]||'badge-gray'}">${stLabel[e.status]||e.status}</span></td>
     </tr>
-  `).join('') || '<tr><td colspan="4" class="table-empty">Nenhum equipamento</td></tr>';
+  `).join('') || '<tr><td colspan="4" class="table-empty">Nenhum equipamento cadastrado</td></tr>';
 }
 
 async function carregarMateriais() {
