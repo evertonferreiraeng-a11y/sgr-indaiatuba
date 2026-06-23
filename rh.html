@@ -310,7 +310,7 @@ async function init() {
 async function recarregarTudo() {
   const [{ data: cargos }, { data: colabs }, { data: avals }, { data: ocs }] = await Promise.all([
     supabase.from('cargos').select('*').order('nome'),
-    supabase.from('colaboradores').select('id, nome, chapa, cargo_id, data_admissao, fim_experiencia_1, fim_experiencia_2, demissao, cargos(nome)').order('nome'),
+    supabase.from('colaboradores').select('*').order('nome'),
     supabase.from('colaborador_avaliacoes').select('*').order('data_avaliacao', { ascending: false }),
     supabase.from('ocorrencias').select('*, colaboradores(nome)').order('data', { ascending: false }),
   ]);
