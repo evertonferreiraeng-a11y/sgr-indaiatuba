@@ -174,7 +174,7 @@ async function init() {
   perfil = p;
 
   const [{ data: eq }, { data: mt }, { data: col }] = await Promise.all([
-    supabase.from('equipamentos').select('*').neq('status','parado').order('nome'),
+    supabase.from('equipamentos').select('*').order('nome'),
     supabase.from('materiais').select('*').eq('ativo', true).order('nome'),
     supabase.from('colaboradores').select('*').eq('ativo', true).order('nome'),
   ]);
@@ -192,7 +192,7 @@ async function init() {
 }
 
 function popularSelects() {
-  const eqOpts  = equipamentos.map(e=>`<option value="${e.id}">${e.nome}</option>`).join('');
+  const eqOpts  = equipamentos.map(e=>`<option value="${e.id}">${e.nome}${e.frota ? ' — ' + e.frota : ''}</option>`).join('');
   const mtOpts  = materiais.map(m=>`<option value="${m.id}">${m.nome}</option>`).join('');
   const colOpts = '<option value="">— Nenhum —</option>' + colaboradores.map(c=>`<option value="${c.id}">${c.nome}</option>`).join('');
 
