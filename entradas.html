@@ -560,6 +560,36 @@ document.getElementById('csv-import').addEventListener('change', async function(
     return partes;
   };
 
+  // Cache de fornecedores/materiais criados durante o import
+  const fornCache = {};
+  const matCache  = {};
+
+  const getOuCriarForn = async nome => {
+    if (!nome) return null;
+    const nomeNorm = norm(nome);
+    if (fornCache[nomeNorm]) return fornCache[nomeNorm];
+    const existente = fornData.find(f => norm(f.nome) === nomeNorm);
+    if (existente) { fornCache[nomeNorm] = existente.id; return existente.id; }
+    const { data, error } = await supabase.from('fornecedores').insert({ nome: nome.trim() }).select('id').single();
+    if (error) { console.error('Erro ao criar fornecedor:', nome, error.message); return null; }
+    fornData.push({ id: data.id, nome: nome.trim() });
+    fornCache[nomeNorm] = data.id;
+    return data.id;
+  };
+
+  const getOuCriarMat = async nome => {
+    if (!nome) return null;
+    const nomeNorm = norm(nome);
+    if (matCache[nomeNorm]) return matCache[nomeNorm];
+    const existente = matData.find(m => norm(m.nome) === nomeNorm);
+    if (existente) { matCache[nomeNorm] = existente.id; return existente.id; }
+    const { data, error } = await supabase.from('materiais').insert({ nome: nome.trim(), categoria: 'reciclavel' }).select('id').single();
+    if (error) { console.error('Erro ao criar material:', nome, error.message); return null; }
+    matData.push({ id: data.id, nome: nome.trim() });
+    matCache[nomeNorm] = data.id;
+    return data.id;
+  };
+
   let ok=0, erros=[];
   for (let i=1; i<linhas.length; i++) {
     const row = linhas[i];
@@ -568,9 +598,8 @@ document.getElementById('csv-import').addEventListener('change', async function(
     const fornNome = col(row,'cliente') || col(row,'fornecedor');
     const matNome  = col(row,'produto') || col(row,'material');
 
-    // Busca correspondência ignorando acentos e maiúsculas
-    const forn = fornData.find(f => norm(f.nome) === norm(fornNome));
-    const mat  = matData.find(m  => norm(m.nome)  === norm(matNome));
+    const fornId = await getOuCriarForn(fornNome);
+    const matId  = await getOuCriarMat(matNome);
 
     const p1  = num(col(row,'pesagem_1'));
     const p2  = num(col(row,'pesagem_2'));
@@ -586,8 +615,8 @@ document.getElementById('csv-import').addEventListener('change', async function(
 
     const payload = {
       data:              parseData(col(row,'data')),
-      fornecedor_id:     forn?.id || null,
-      material_id:       mat?.id  || null,
+      fornecedor_id:     fornId,
+      material_id:       matId,
       nota_fiscal:       col(row,'nota') || null,
       motorista:         col(row,'motorista') || null,
       placa_veiculo:     col(row,'placa') || null,
