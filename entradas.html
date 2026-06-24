@@ -247,18 +247,25 @@ async function carregar() {
     ini = i; fim = f;
   }
 
-  let q = supabase.from('entradas')
-    .select('*, fornecedores(nome), materiais(nome)')
-    .order('data', { ascending: false })
-    .limit(10000);
+  // Busca paginada para superar limite de 1000 linhas do Supabase
+  const PAGE = 1000;
+  let page = 0, todos = [], done = false;
+  while (!done) {
+    let q = supabase.from('entradas')
+      .select('*, fornecedores(nome), materiais(nome)')
+      .order('data', { ascending: false })
+      .range(page * PAGE, (page + 1) * PAGE - 1);
 
-  if (ini) q = q.gte('data', ini);
-  if (fim) q = q.lte('data', fim);
-  if (forn) q = q.eq('fornecedor_id', forn);
-  if (mat)  q = q.eq('material_id', mat);
+    if (ini)  q = q.gte('data', ini);
+    if (fim)  q = q.lte('data', fim);
+    if (forn) q = q.eq('fornecedor_id', forn);
+    if (mat)  q = q.eq('material_id', mat);
 
-  const { data } = await q;
-  entData = data || [];
+    const { data } = await q;
+    if (!data || data.length === 0) { done = true; }
+    else { todos = todos.concat(data); page++; if (data.length < PAGE) done = true; }
+  }
+  entData = todos;
   renderKPIs();
   renderTabela();
   await renderGraficos(mes);
