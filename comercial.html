@@ -6,6 +6,7 @@
   <title>Comercial — SGR Indaiatuba</title>
   <link rel="stylesheet" href="css/style.css" />
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4/dist/chart.umd.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 </head>
 <body>
 <div class="app-layout">
@@ -13,7 +14,11 @@
   <div class="main-content">
     <div class="page-header">
       <div><h2>Comercial</h2><p>Vendas e faturamento</p></div>
-      <button class="btn btn-primary" id="btn-nova-venda">+ Nova Venda</button>
+      <div style="display:flex;gap:8px">
+        <input type="file" id="input-excel" accept=".xlsx,.xls,.csv" style="display:none" />
+        <button class="btn btn-outline" id="btn-importar-excel">⬆ Importar Excel</button>
+        <button class="btn btn-primary" id="btn-nova-venda">+ Nova Venda</button>
+      </div>
     </div>
     <div class="page-body">
 
@@ -86,12 +91,19 @@
           <table>
             <thead>
               <tr>
-                <th>Data</th>
                 <th>Cliente</th>
-                <th>Material</th>
-                <th class="text-right">Peso (kg)</th>
-                <th class="text-right">Preço/kg</th>
-                <th class="text-right">Total (R$)</th>
+                <th>Data</th>
+                <th>Cód. Material</th>
+                <th>Tipo de Material</th>
+                <th class="text-right">KG</th>
+                <th>Unidade</th>
+                <th class="text-right">Preço Material</th>
+                <th class="text-right">Desconto</th>
+                <th class="text-right">Valor Total NF</th>
+                <th class="text-right">Ticket Médio</th>
+                <th>Ordem de Venda</th>
+                <th>NF</th>
+                <th>Observação</th>
                 <th>Ações</th>
               </tr>
             </thead>
@@ -114,12 +126,18 @@
       <form id="form-venda">
         <input type="hidden" name="id" />
         <div class="form-grid">
-          <div class="form-group"><label>Data *</label><input type="date" name="data" required /></div>
           <div class="form-group"><label>Cliente *</label><select name="cliente_id" required><option value="">Selecione…</option></select></div>
-          <div class="form-group"><label>Material *</label><select name="material_id" required><option value="">Selecione…</option></select></div>
-          <div class="form-group"><label>Peso (kg) *</label><input type="number" name="peso_kg" min="0.01" step="0.01" required /></div>
-          <div class="form-group"><label>Preço por kg (R$) *</label><input type="number" name="preco_kg" min="0" step="0.01" required /></div>
-          <div class="form-group"><label>Valor Total (R$)</label><input type="number" name="valor_total" min="0" step="0.01" readonly style="background:#f8fafc" /></div>
+          <div class="form-group"><label>Data *</label><input type="date" name="data" required /></div>
+          <div class="form-group"><label>Cód. Material</label><input type="text" name="codigo_material" /></div>
+          <div class="form-group"><label>Tipo de Material *</label><select name="material_id" required><option value="">Selecione…</option></select></div>
+          <div class="form-group"><label>KG *</label><input type="number" name="peso_kg" min="0.01" step="0.01" required /></div>
+          <div class="form-group"><label>Unidade</label><input type="text" name="unidade" placeholder="ex: TON, KG" /></div>
+          <div class="form-group"><label>Preço Material (R$)</label><input type="number" name="preco_kg" min="0" step="0.01" /></div>
+          <div class="form-group"><label>Desconto (R$)</label><input type="number" name="desconto" min="0" step="0.01" value="0" /></div>
+          <div class="form-group"><label>Valor Total NF (R$)</label><input type="number" name="valor_total" min="0" step="0.01" /></div>
+          <div class="form-group"><label>Ticket Médio</label><input type="number" name="ticket_medio" min="0" step="0.01" readonly style="background:#f8fafc" /></div>
+          <div class="form-group"><label>Ordem de Venda</label><input type="text" name="ordem_venda" /></div>
+          <div class="form-group"><label>NF</label><input type="text" name="nf" /></div>
           <div class="form-group full"><label>Observação</label><input type="text" name="observacao" /></div>
         </div>
       </form>
@@ -143,14 +161,19 @@ let chartClientes = null, chartEvolucao = null;
 const mesDefault = `${anoAtual()}-${String(mesAtual()).padStart(2,'0')}`;
 document.getElementById('f-mes').value = mesDefault;
 
-// ── auto-calc total ───────────────────────────────────────────────────────────
-['peso_kg','preco_kg'].forEach(n => {
-  document.querySelector(`#form-venda [name="${n}"]`).addEventListener('input', () => {
-    const pk = parseFloat(document.querySelector('#form-venda [name="peso_kg"]').value)||0;
-    const pr = parseFloat(document.querySelector('#form-venda [name="preco_kg"]').value)||0;
-    document.querySelector('#form-venda [name="valor_total"]').value = (pk*pr).toFixed(2);
-  });
-});
+// ── auto-calc ─────────────────────────────────────────────────────────────────
+function recalcVenda() {
+  const f = document.getElementById('form-venda');
+  const pk  = parseFloat(f.querySelector('[name="peso_kg"]').value)||0;
+  const pr  = parseFloat(f.querySelector('[name="preco_kg"]').value)||0;
+  const desc= parseFloat(f.querySelector('[name="desconto"]').value)||0;
+  const total = Math.max(0, pk*pr - desc);
+  f.querySelector('[name="valor_total"]').value = total.toFixed(2);
+  f.querySelector('[name="ticket_medio"]').value = pk ? (total/pk).toFixed(4) : '';
+}
+['peso_kg','preco_kg','desconto'].forEach(n =>
+  document.querySelector(`#form-venda [name="${n}"]`).addEventListener('input', recalcVenda)
+);
 
 // ── init ─────────────────────────────────────────────────────────────────────
 async function init() {
@@ -189,7 +212,7 @@ async function carregar() {
   const { ini, fim } = periodoRange(mes);
 
   let q = supabase.from('vendas')
-    .select('*, clientes(nome), materiais(nome)')
+    .select('*, clientes(nome), materiais(nome), codigo_material, unidade, desconto, ordem_venda, nf')
     .gte('data', ini).lte('data', fim)
     .order('data', { ascending: false });
 
@@ -215,25 +238,34 @@ function renderTabela() {
   document.getElementById('vnd-count').textContent = `${vendaData.length} vendas`;
   const tb = document.getElementById('tb-vendas');
   if (!vendaData.length) {
-    tb.innerHTML = '<tr><td colspan="7" class="table-empty">Nenhuma venda encontrada</td></tr>';
+    tb.innerHTML = '<tr><td colspan="14" class="table-empty">Nenhuma venda encontrada</td></tr>';
     return;
   }
-  tb.innerHTML = vendaData.map(r => `
+  tb.innerHTML = vendaData.map(r => {
+    const ticket = r.peso_kg ? (r.valor||0)/r.peso_kg : null;
+    return `
     <tr>
-      <td>${dataBR(r.data)}</td>
       <td>${r.clientes?.nome||'—'}</td>
+      <td>${dataBR(r.data)}</td>
+      <td>${r.codigo_material||'—'}</td>
       <td>${r.materiais?.nome||'—'}</td>
       <td class="text-right">${peso(r.peso_kg)}</td>
+      <td>${r.unidade||'—'}</td>
       <td class="text-right">${r.preco_kg ? moeda(r.preco_kg) : '—'}</td>
+      <td class="text-right">${r.desconto ? moeda(r.desconto) : '—'}</td>
       <td class="text-right fw-600">${moeda(r.valor||0)}</td>
+      <td class="text-right">${ticket ? moeda(ticket) : '—'}</td>
+      <td>${r.ordem_venda||'—'}</td>
+      <td>${r.nf||'—'}</td>
+      <td>${r.observacao||'—'}</td>
       <td>
         ${isAdmin ? `
           <button class="btn-icon" onclick="editarVenda('${r.id}')">✏️</button>
           <button class="btn-icon danger" onclick="excluirVenda('${r.id}')">🗑️</button>
         ` : '—'}
       </td>
-    </tr>
-  `).join('');
+    </tr>`;
+  }).join('');
 }
 
 // ── Gráficos ──────────────────────────────────────────────────────────────────
@@ -351,7 +383,11 @@ window.editarVenda = id => {
   set('id',r.id); set('data',r.data); set('cliente_id',r.cliente_id);
   set('material_id',r.material_id); set('peso_kg',r.peso_kg);
   set('preco_kg',r.preco_kg); set('valor_total',r.valor);
-  set('observacao',r.observacao);
+  set('codigo_material',r.codigo_material); set('unidade',r.unidade);
+  set('desconto',r.desconto||0); set('ordem_venda',r.ordem_venda);
+  set('nf',r.nf); set('observacao',r.observacao);
+  const ticket = r.peso_kg ? (r.valor||0)/r.peso_kg : '';
+  set('ticket_medio', ticket ? ticket.toFixed(4) : '');
   abrirModal('modal-venda');
 };
 
@@ -368,11 +404,19 @@ document.getElementById('btn-salvar-venda').addEventListener('click', async () =
   const f = document.getElementById('form-venda');
   if (!f.checkValidity()) { f.reportValidity(); return; }
   const fd = Object.fromEntries(new FormData(f));
-  const pk = parseFloat(fd.peso_kg)||0;
-  const pr = parseFloat(fd.preco_kg)||0;
+  const pk   = parseFloat(fd.peso_kg)||0;
+  const pr   = parseFloat(fd.preco_kg)||0;
+  const desc = parseFloat(fd.desconto)||0;
+  const total= parseFloat(fd.valor_total)||(pk*pr - desc);
   const payload = {
     data:fd.data, cliente_id:fd.cliente_id, material_id:fd.material_id,
-    peso_kg:pk, preco_kg:pr, valor:pk*pr, observacao:fd.observacao||null,
+    peso_kg:pk, preco_kg:pr||null, valor:total,
+    codigo_material:fd.codigo_material||null,
+    unidade:fd.unidade||null,
+    desconto:desc||null,
+    ordem_venda:fd.ordem_venda||null,
+    nf:fd.nf||null,
+    observacao:fd.observacao||null,
   };
   if (fd.id) {
     const { error } = await supabase.from('vendas').update(payload).eq('id',fd.id);
@@ -398,6 +442,153 @@ document.getElementById('btn-salvar-venda').addEventListener('click', async () =
 document.getElementById('btn-filtrar').addEventListener('click', carregar);
 document.querySelectorAll('[data-close]').forEach(btn=>btn.addEventListener('click',()=>fecharModal(btn.dataset.close)));
 document.querySelectorAll('.modal-backdrop').forEach(m=>m.addEventListener('click',e=>{if(e.target===m)fecharModal(m.id);}));
+
+// ── Importar Excel ────────────────────────────────────────────────────────────
+document.getElementById('btn-importar-excel').addEventListener('click', () =>
+  document.getElementById('input-excel').click()
+);
+
+document.getElementById('input-excel').addEventListener('change', async e => {
+  const file = e.target.files[0];
+  if (!file) return;
+  e.target.value = '';
+
+  const buf  = await file.arrayBuffer();
+  const wb   = XLSX.read(buf, { type:'array', cellDates:true });
+  const ws   = wb.Sheets[wb.SheetNames[0]];
+  const rows = XLSX.utils.sheet_to_json(ws, { defval:'' });
+
+  if (!rows.length) { toast('Planilha vazia','error'); return; }
+
+  // normaliza cabeçalho: remove espaços extras, uppercase
+  const norm = s => String(s).trim().toUpperCase().replace(/\s+/g,' ');
+
+  // mapa de col header → campo
+  const colMap = {
+    'CLIENTE':            'cliente_nome',
+    'DATA':               'data',
+    'CÓDIGO MATERIAL':    'codigo_material',
+    'COD. MATERIAL':      'codigo_material',
+    'CÓDIGO':             'codigo_material',
+    'TIPO DE MATERIAL':   'material_nome',
+    'MATERIAL':           'material_nome',
+    'KG':                 'peso_kg',
+    'UNIDADE':            'unidade',
+    'PREÇO MATERIAL':     'preco_kg',
+    'PRECO MATERIAL':     'preco_kg',
+    'PREÇO/KG':           'preco_kg',
+    'DESCONTO':           'desconto',
+    'VALOR TOTAL DA NF':  'valor_total',
+    'VALOR TOTAL NF':     'valor_total',
+    'VALOR TOTAL':        'valor_total',
+    'TICKET MÉDIO':       'ticket_medio',
+    'TICKET MEDIO':       'ticket_medio',
+    'ORDEM DE VENDA':     'ordem_venda',
+    'NF':                 'nf',
+    'OBSERVAÇÃO':         'observacao',
+    'OBSERVACAO':         'observacao',
+  };
+
+  // cache de clientes/materiais para evitar lookups repetidos
+  const cliCache = {}, matCache = {};
+  clienteData.forEach(c => { cliCache[c.nome.trim().toUpperCase()] = c.id; });
+  matData.forEach(m => { matCache[m.nome.trim().toUpperCase()] = m.id; });
+
+  async function getOrCreateCliente(nome) {
+    const key = nome.trim().toUpperCase();
+    if (cliCache[key]) return cliCache[key];
+    const { data, error } = await supabase.from('clientes').insert({ nome: nome.trim() }).select('id').single();
+    if (error) return null;
+    cliCache[key] = data.id;
+    clienteData.push({ id: data.id, nome: nome.trim() });
+    return data.id;
+  }
+
+  async function getOrCreateMaterial(nome) {
+    const key = nome.trim().toUpperCase();
+    if (matCache[key]) return matCache[key];
+    const { data, error } = await supabase.from('materiais').insert({ nome: nome.trim() }).select('id').single();
+    if (error) return null;
+    matCache[key] = data.id;
+    matData.push({ id: data.id, nome: nome.trim() });
+    return data.id;
+  }
+
+  function parseData(val) {
+    if (!val) return null;
+    if (val instanceof Date) return val.toISOString().split('T')[0];
+    const s = String(val).trim();
+    // DD/MM/YYYY
+    const m = s.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})/);
+    if (m) return `${m[3]}-${m[2].padStart(2,'0')}-${m[1].padStart(2,'0')}`;
+    // YYYY-MM-DD
+    if (/^\d{4}-\d{2}-\d{2}/.test(s)) return s.substring(0,10);
+    return null;
+  }
+
+  function parseNum(val) {
+    if (val === '' || val == null) return null;
+    return parseFloat(String(val).replace(',','.')) || null;
+  }
+
+  let ok = 0, erros = 0;
+  toast(`Importando ${rows.length} linhas…`);
+
+  const BATCH = 50;
+  const payloads = [];
+
+  for (const row of rows) {
+    const mapped = {};
+    for (const [rawKey, rawVal] of Object.entries(row)) {
+      const field = colMap[norm(rawKey)];
+      if (field) mapped[field] = rawVal;
+    }
+
+    const cliNome = String(mapped.cliente_nome||'').trim();
+    const matNome = String(mapped.material_nome||'').trim();
+    if (!cliNome && !matNome) continue;
+
+    const cliente_id  = cliNome ? await getOrCreateCliente(cliNome) : null;
+    const material_id = matNome ? await getOrCreateMaterial(matNome) : null;
+
+    const pk    = parseNum(mapped.peso_kg);
+    const pr    = parseNum(mapped.preco_kg);
+    const desc  = parseNum(mapped.desconto)||0;
+    const total = parseNum(mapped.valor_total) ?? (pk&&pr ? pk*pr - desc : null);
+
+    payloads.push({
+      data:           parseData(mapped.data) || new Date().toISOString().split('T')[0],
+      cliente_id,
+      material_id,
+      codigo_material: String(mapped.codigo_material||'').trim()||null,
+      peso_kg:         pk,
+      unidade:         String(mapped.unidade||'').trim()||null,
+      preco_kg:        pr,
+      desconto:        desc||null,
+      valor:           total,
+      ordem_venda:     String(mapped.ordem_venda||'').trim()||null,
+      nf:              String(mapped.nf||'').trim()||null,
+      observacao:      String(mapped.observacao||'').trim()||null,
+    });
+  }
+
+  for (let i = 0; i < payloads.length; i += BATCH) {
+    const batch = payloads.slice(i, i+BATCH);
+    const { error } = await supabase.from('vendas').insert(batch);
+    if (error) {
+      // fallback linha a linha
+      for (const p of batch) {
+        const { error: e2 } = await supabase.from('vendas').insert(p);
+        if (e2) erros++; else ok++;
+      }
+    } else {
+      ok += batch.length;
+    }
+  }
+
+  toast(`Importação concluída: ${ok} registros salvos${erros ? `, ${erros} erros` : ''}.`);
+  await carregar();
+});
 
 await init();
 </script>
