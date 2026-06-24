@@ -467,7 +467,7 @@ async function calcularMediaHistorica() {
   let page2 = 0, atualRows = [], done2 = false;
   while (!done2) {
     let q2 = supabase.from('entradas')
-      .select('peso_liquido, fornecedores(nome)')
+      .select('data, peso_liquido, fornecedores(nome)')
       .eq('tipo_movimentacao', 'entrada')
       .gte('data', atualDe).lte('data', atualAte)
       .range(page2 * PAGE, (page2+1)*PAGE - 1);
