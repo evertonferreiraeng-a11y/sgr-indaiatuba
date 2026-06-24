@@ -58,9 +58,21 @@
         <div class="card" style="padding:16px">
           <h4 style="margin-bottom:8px">Volume Atual vs Média Histórica por Fornecedor</h4>
           <div style="display:flex;gap:10px;align-items:flex-end;flex-wrap:wrap;margin-bottom:12px">
-            <div class="form-group" style="margin:0"><label style="font-size:11px;color:#64748b">Período histórico — De</label><input type="date" id="hist-de" style="font-size:12px;padding:4px 8px" /></div>
-            <div class="form-group" style="margin:0"><label style="font-size:11px;color:#64748b">Até</label><input type="date" id="hist-ate" style="font-size:12px;padding:4px 8px" /></div>
-            <button class="btn btn-sm btn-outline" id="btn-calc-media" style="height:32px;font-size:12px">Calcular Média</button>
+            <div>
+              <div style="font-size:11px;font-weight:600;color:#1e40af;margin-bottom:4px">📅 Período atual</div>
+              <div style="display:flex;gap:6px;align-items:flex-end">
+                <div class="form-group" style="margin:0"><label style="font-size:11px;color:#64748b">De</label><input type="date" id="atual-de" style="font-size:12px;padding:4px 8px" /></div>
+                <div class="form-group" style="margin:0"><label style="font-size:11px;color:#64748b">Até</label><input type="date" id="atual-ate" style="font-size:12px;padding:4px 8px" /></div>
+              </div>
+            </div>
+            <div>
+              <div style="font-size:11px;font-weight:600;color:#92400e;margin-bottom:4px">📊 Período histórico (base da média)</div>
+              <div style="display:flex;gap:6px;align-items:flex-end">
+                <div class="form-group" style="margin:0"><label style="font-size:11px;color:#64748b">De</label><input type="date" id="hist-de" style="font-size:12px;padding:4px 8px" /></div>
+                <div class="form-group" style="margin:0"><label style="font-size:11px;color:#64748b">Até</label><input type="date" id="hist-ate" style="font-size:12px;padding:4px 8px" /></div>
+              </div>
+            </div>
+            <button class="btn btn-sm btn-primary" id="btn-calc-media" style="height:32px;font-size:12px">Comparar</button>
           </div>
           <canvas id="chart-media" height="220"></canvas>
           <div id="media-legenda" style="margin-top:10px;font-size:12px;color:#64748b;display:none">
@@ -435,9 +447,25 @@ async function calcularMediaHistorica() {
     mediaHist[nome] = vals.reduce((a,b)=>a+b,0) / vals.length;
   });
 
-  // Volume atual por fornecedor (entData já carregado com filtro principal)
+  // Busca dados do período atual selecionado no gráfico
+  const atualDe  = document.getElementById('atual-de').value;
+  const atualAte = document.getElementById('atual-ate').value;
+  if (!atualDe || !atualAte) { alert('Selecione o período atual (De e Até).'); return; }
+
+  let page2 = 0, atualRows = [], done2 = false;
+  while (!done2) {
+    let q2 = supabase.from('entradas')
+      .select('peso_liquido, fornecedores(nome)')
+      .eq('tipo_movimentacao', 'entrada')
+      .gte('data', atualDe).lte('data', atualAte)
+      .range(page2 * PAGE, (page2+1)*PAGE - 1);
+    const { data: d2 } = await q2;
+    if (!d2 || d2.length === 0) { done2 = true; }
+    else { atualRows = atualRows.concat(d2); page2++; if (d2.length < PAGE) done2 = true; }
+  }
+
   const atualMap = {};
-  entData.filter(r => r.tipo_movimentacao === 'entrada').forEach(r => {
+  atualRows.forEach(r => {
     const nome = r.fornecedores?.nome || 'Desconhecido';
     atualMap[nome] = (atualMap[nome] || 0) + parseFloat(r.peso_liquido || 0);
   });
