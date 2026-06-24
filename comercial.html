@@ -227,7 +227,7 @@ async function carregar() {
 
 function renderKPIs() {
   let fat = 0, vol = 0;
-  vendaData.forEach(r => { fat += r.valor||0; vol += r.peso_kg||0; });
+  vendaData.forEach(r => { fat += r.valor_total||0; vol += r.peso_kg||0; });
   document.getElementById('kpi-fat').textContent    = moeda(fat);
   document.getElementById('kpi-vol').textContent    = peso(vol);
   document.getElementById('kpi-ticket').textContent = vendaData.length ? moeda(fat/vendaData.length) : '—';
@@ -242,7 +242,7 @@ function renderTabela() {
     return;
   }
   tb.innerHTML = vendaData.map(r => {
-    const ticket = r.peso_kg ? (r.valor||0)/r.peso_kg : null;
+    const ticket = r.peso_kg ? (r.valor_total||0)/r.peso_kg : null;
     return `
     <tr>
       <td>${r.clientes?.nome||'—'}</td>
@@ -253,7 +253,7 @@ function renderTabela() {
       <td>${r.unidade||'—'}</td>
       <td class="text-right">${r.preco_kg ? moeda(r.preco_kg) : '—'}</td>
       <td class="text-right">${r.desconto ? moeda(r.desconto) : '—'}</td>
-      <td class="text-right fw-600">${moeda(r.valor||0)}</td>
+      <td class="text-right fw-600">${moeda(r.valor_total||0)}</td>
       <td class="text-right">${ticket ? moeda(ticket) : '—'}</td>
       <td>${r.ordem_venda||'—'}</td>
       <td>${r.nf||'—'}</td>
@@ -300,7 +300,7 @@ async function carregarGraficos() {
     const nome = r.clientes?.nome || 'Desconhecido';
     if (!cliMap[nome]) cliMap[nome] = { vol:0, fat:0 };
     cliMap[nome].vol += r.peso_kg||0;
-    cliMap[nome].fat += r.valor||0;
+    cliMap[nome].fat += r.valor_total||0;
   });
   const labCli = Object.keys(cliMap).sort((a,b)=>cliMap[b].fat-cliMap[a].fat);
 
@@ -336,7 +336,7 @@ async function carregarEvolucao(rows) {
   filtrado.forEach(r => {
     const key = r.data.substring(0,7);
     if (!meses[key]) meses[key] = 0;
-    meses[key] += r.valor||0;
+    meses[key] += r.valor_total||0;
   });
   const labMes = Object.keys(meses).sort();
 
@@ -382,11 +382,11 @@ window.editarVenda = id => {
   const set = (n,v) => { const el=f.querySelector(`[name="${n}"]`); if(el) el.value=v??''; };
   set('id',r.id); set('data',r.data); set('cliente_id',r.cliente_id);
   set('material_id',r.material_id); set('peso_kg',r.peso_kg);
-  set('preco_kg',r.preco_kg); set('valor_total',r.valor);
+  set('preco_kg',r.preco_kg); set('valor_total',r.valor_total);
   set('codigo_material',r.codigo_material); set('unidade',r.unidade);
   set('desconto',r.desconto||0); set('ordem_venda',r.ordem_venda);
   set('nf',r.nf); set('observacao',r.observacao);
-  const ticket = r.peso_kg ? (r.valor||0)/r.peso_kg : '';
+  const ticket = r.peso_kg ? (r.valor_total||0)/r.peso_kg : 0;
   set('ticket_medio', ticket ? ticket.toFixed(4) : '');
   abrirModal('modal-venda');
 };
@@ -410,7 +410,7 @@ document.getElementById('btn-salvar-venda').addEventListener('click', async () =
   const total= parseFloat(fd.valor_total)||(pk*pr - desc);
   const payload = {
     data:fd.data, cliente_id:fd.cliente_id, material_id:fd.material_id,
-    peso_kg:pk, preco_kg:pr||null, valor:total,
+    peso_kg:pk, preco_kg:pr||null, valor_total:total,
     codigo_material:fd.codigo_material||null,
     unidade:fd.unidade||null,
     desconto:desc||null,
@@ -431,7 +431,7 @@ document.getElementById('btn-salvar-venda').addEventListener('click', async () =
     });
     await supabase.from('financeiro').insert({
       tipo:'receita', descricao:`Venda — ${nova.id}`,
-      valor:payload.valor, data:payload.data, referencia_tipo:'venda', referencia_id:nova.id,
+      valor:payload.valor_total, data:payload.data, referencia_tipo:'venda', referencia_id:nova.id,
     });
     toast('Venda registrada!');
   }
@@ -570,7 +570,7 @@ document.getElementById('input-excel').addEventListener('change', async e => {
       unidade:         String(mapped.unidade||'').trim()||null,
       preco_kg:        pr,
       desconto:        desc||null,
-      valor:           total,
+      valor_total:     total,
       ordem_venda:     String(mapped.ordem_venda||'').trim()||null,
       nf:              String(mapped.nf||'').trim()||null,
       observacao:      String(mapped.observacao||'').trim()||null,
@@ -579,7 +579,7 @@ document.getElementById('input-excel').addEventListener('change', async e => {
 
   // apenas colunas confirmadas na tabela vendas
   const COLS_OK = new Set([
-    'data','cliente_id','material_id','peso_kg','valor',
+    'data','cliente_id','material_id','peso_kg','valor_total',
     'preco_kg','observacao','codigo_material','unidade',
     'desconto','ordem_venda','nf'
   ]);
