@@ -456,7 +456,7 @@ document.getElementById('input-excel').addEventListener('change', async e => {
   const buf  = await file.arrayBuffer();
   const wb   = XLSX.read(buf, { type:'array', cellDates:true });
   const ws   = wb.Sheets[wb.SheetNames[0]];
-  const rows = XLSX.utils.sheet_to_json(ws, { defval:'', raw:false });
+  const rows = XLSX.utils.sheet_to_json(ws, { defval:'', raw:true });
 
   if (!rows.length) { toast('Planilha vazia','error'); return; }
 
@@ -469,28 +469,29 @@ document.getElementById('input-excel').addEventListener('change', async e => {
 
   // mapa de col header → campo
   const colMap = {
-    'CLIENTE':            'cliente_nome',
-    'DATA':               'data',
-    'CÓDIGO MATERIAL':    'codigo_material',
-    'COD. MATERIAL':      'codigo_material',
-    'CÓDIGO':             'codigo_material',
-    'TIPO DE MATERIAL':   'material_nome',
-    'MATERIAL':           'material_nome',
-    'KG':                 'peso_kg',
-    'UNIDADE':            'unidade',
-    'PREÇO MATERIAL':     'preco_kg',
-    'PRECO MATERIAL':     'preco_kg',
-    'PREÇO/KG':           'preco_kg',
-    'DESCONTO':           'desconto',
-    'VALOR TOTAL DA NF':  '_valor_nf',
-    'VALOR TOTAL NF':     '_valor_nf',
-    'VALOR TOTAL':        '_valor_nf',
-    'TICKET MÉDIO':       '_ticket',
-    'TICKET MEDIO':       '_ticket',
-    'ORDEM DE VENDA':     'ordem_venda',
-    'NF':                 'nf',
-    'OBSERVAÇÃO':         'observacao',
-    'OBSERVACAO':         'observacao',
+    'CLIENTE':             'cliente_nome',
+    'DATA':                'data',
+    'CODIGO MATERIAL':     'codigo_material',
+    'CÓDIGO MATERIAL':     'codigo_material',
+    'COD. MATERIAL':       'codigo_material',
+    'CÓDIGO':              'codigo_material',
+    'TIPO DE MATERIAL':    'material_nome',
+    'MATERIAL':            'material_nome',
+    'KG':                  'peso_kg',
+    'UNIDADE':             'unidade',
+    'PRECO MATERIAL':      'preco_kg',
+    'PREÇO MATERIAL':      'preco_kg',
+    'PREÇO/KG':            'preco_kg',
+    'DESCONTO':            'desconto',
+    'VALOR TOTAL NF':      '_valor_nf',
+    'VALOR TOTAL DA NF':   '_valor_nf',
+    'VALOR TOTAL':         '_valor_nf',
+    'TICKET MEDIO':        '_ticket',
+    'TICKET MÉDIO':        '_ticket',
+    'ORDEM DE VENDA':      'ordem_venda',
+    'NF':                  'nf',
+    'OBSERVACAO':          'observacao',
+    'OBSERVAÇÃO':          'observacao',
   };
 
   // cache de clientes/materiais para evitar lookups repetidos
@@ -532,15 +533,15 @@ document.getElementById('input-excel').addEventListener('change', async e => {
 
   function parseNum(val) {
     if (val === '' || val == null) return null;
+    // já é número (raw:true retorna números JS diretamente)
+    if (typeof val === 'number') return isNaN(val) ? null : val;
     let s = String(val).replace(/R\$\s*/g,'').replace(/\s/g,'').trim();
     if (!s) return null;
     const lastDot   = s.lastIndexOf('.');
     const lastComma = s.lastIndexOf(',');
     if (lastComma > lastDot) {
-      // formato BR: 2.284,00 → remove pontos, troca vírgula por ponto
       s = s.replace(/\./g,'').replace(',','.');
     } else if (lastDot > lastComma) {
-      // formato EN: 2,284.00 → remove vírgulas
       s = s.replace(/,/g,'');
     }
     const n = parseFloat(s);
