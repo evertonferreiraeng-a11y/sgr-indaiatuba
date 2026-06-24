@@ -577,44 +577,21 @@ document.getElementById('input-excel').addEventListener('change', async e => {
     });
   }
 
-  // mostra chaves do primeiro payload para diagnóstico
-  console.log('[IMPORT] Chaves do payload:', Object.keys(payloads[0]));
+  // apenas colunas confirmadas na tabela vendas
+  const COLS_OK = new Set([
+    'data','cliente_id','material_id','peso_kg','valor',
+    'preco_kg','observacao','codigo_material','unidade',
+    'desconto','ordem_venda','nf'
+  ]);
+  const limpar = p => Object.fromEntries(Object.entries(p).filter(([k]) => COLS_OK.has(k)));
 
-  // descobre colunas válidas tentando inserir e removendo as que derem erro
-  const colsRemover = new Set();
-  function filtrarPayload(p) {
-    const out = {};
-    for (const [k, v] of Object.entries(p)) {
-      if (!colsRemover.has(k)) out[k] = v;
-    }
-    return out;
-  }
-
-  // teste com a primeira linha para descobrir colunas inválidas
-  if (payloads.length > 0) {
-    let testPayload = filtrarPayload(payloads[0]);
-    for (let tentativa = 0; tentativa < 15; tentativa++) {
-      const { error: te } = await supabase.from('vendas').insert(testPayload);
-      if (!te) { ok++; break; }
-      const match = te.message.match(/find the ['"]([\w]+)['"]\s+column/) || te.message.match(/column ['"]([\w]+)['"]/);
-      if (match) {
-        colsRemover.add(match[1]);
-        delete testPayload[match[1]];
-      } else {
-        toast(`Erro inesperado: ${te.message}`, 'error');
-        return;
-      }
-    }
-  }
-
-  // insere o restante já com colunas válidas conhecidas
   let primeiroErro = null;
-  for (let i = (ok > 0 ? 1 : 0); i < payloads.length; i += BATCH) {
-    const batch = payloads.slice(i, Math.min(i+BATCH, payloads.length)).map(filtrarPayload);
+  for (let i = 0; i < payloads.length; i += BATCH) {
+    const batch = payloads.slice(i, Math.min(i + BATCH, payloads.length)).map(limpar);
     const { error } = await supabase.from('vendas').insert(batch);
     if (error) {
       for (const p of batch) {
-        const { error: e2 } = await supabase.from('vendas').insert(filtrarPayload(p));
+        const { error: e2 } = await supabase.from('vendas').insert(limpar(p));
         if (e2) { erros++; if (!primeiroErro) primeiroErro = e2.message; }
         else ok++;
       }
@@ -623,10 +600,6 @@ document.getElementById('input-excel').addEventListener('change', async e => {
     }
   }
 
-  if (colsRemover.size) {
-    toast(`Atenção: colunas ignoradas (não existem na tabela): ${[...colsRemover].join(', ')}`, 'error');
-    await new Promise(r => setTimeout(r, 3000));
-  }
   if (primeiroErro) {
     toast(`${ok} salvos, ${erros} erros. Erro: ${primeiroErro}`, 'error');
   } else {
