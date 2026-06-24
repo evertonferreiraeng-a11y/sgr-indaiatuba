@@ -460,8 +460,7 @@ document.getElementById('input-excel').addEventListener('change', async e => {
 
   if (!rows.length) { toast('Planilha vazia','error'); return; }
 
-  const cabecalhos = Object.keys(rows[0]);
-  alert(`Planilha lida com sucesso!\n\nLinhas: ${rows.length}\n\nCabeçalhos detectados:\n${cabecalhos.join('\n')}`);
+  toast(`Lendo ${rows.length} linhas…`);
 
   // normaliza cabeçalho: remove espaços extras, uppercase
   const norm = s => String(s).trim().toUpperCase().replace(/\s+/g,' ');
@@ -481,11 +480,11 @@ document.getElementById('input-excel').addEventListener('change', async e => {
     'PRECO MATERIAL':     'preco_kg',
     'PREÇO/KG':           'preco_kg',
     'DESCONTO':           'desconto',
-    'VALOR TOTAL DA NF':  'valor_total',
-    'VALOR TOTAL NF':     'valor_total',
-    'VALOR TOTAL':        'valor_total',
-    'TICKET MÉDIO':       'ticket_medio',
-    'TICKET MEDIO':       'ticket_medio',
+    'VALOR TOTAL DA NF':  '_valor_nf',
+    'VALOR TOTAL NF':     '_valor_nf',
+    'VALOR TOTAL':        '_valor_nf',
+    'TICKET MÉDIO':       '_ticket',
+    'TICKET MEDIO':       '_ticket',
     'ORDEM DE VENDA':     'ordem_venda',
     'NF':                 'nf',
     'OBSERVAÇÃO':         'observacao',
@@ -560,7 +559,7 @@ document.getElementById('input-excel').addEventListener('change', async e => {
     const pk    = parseNum(mapped.peso_kg);
     const pr    = parseNum(mapped.preco_kg);
     const desc  = parseNum(mapped.desconto)||0;
-    const total = parseNum(mapped.valor_total) ?? (pk&&pr ? pk*pr - desc : null);
+    const total = parseNum(mapped._valor_nf) ?? (pk&&pr ? pk*pr - desc : null);
 
     payloads.push({
       data:           parseData(mapped.data) || new Date().toISOString().split('T')[0],
