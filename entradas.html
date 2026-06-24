@@ -610,7 +610,7 @@ document.getElementById('csv-import').addEventListener('change', async function(
       peso_kg:           pld,
       rejeito_uvr:       num(col(row,'rejeito')),
       transportadora:    col(row,'transportadora') || null,
-      tipo_movimentacao: col(row,'entrada').toLowerCase().includes('sa') ? 'saida' : 'entrada',
+      tipo_movimentacao: col(row,'entrada').trim().toUpperCase() === 'REJEITO UVR' ? 'saida' : 'entrada',
       destino:           col(row,'destino') || null,
       valor:             0,
     };
