@@ -32,7 +32,7 @@
         <div class="kpi-card">
           <div class="kpi-label">Volume Vendido</div>
           <div class="kpi-value" id="kpi-vol">—</div>
-          <div class="kpi-sub">kg no período</div>
+          <div class="kpi-sub">ton no período</div>
         </div>
         <div class="kpi-card">
           <div class="kpi-label">Ticket Médio</div>
@@ -98,7 +98,7 @@
                 <th>Data</th>
                 <th>Cód. Material</th>
                 <th>Tipo de Material</th>
-                <th class="text-right">KG</th>
+                <th class="text-right">Toneladas</th>
                 <th>Unidade</th>
                 <th class="text-right">Preço Material</th>
                 <th class="text-right">Desconto</th>
@@ -155,6 +155,7 @@
 <div id="toast-container"></div>
 <script type="module">
 import { initPage, supabase, moeda, peso, dataBR, toast, abrirModal, fecharModal, mesAtual, anoAtual } from './js/config.js';
+const ton = kg => (kg/1000).toLocaleString('pt-BR', { minimumFractionDigits:3, maximumFractionDigits:3 }) + ' ton';
 
 await initPage();
 
@@ -232,7 +233,7 @@ function renderKPIs() {
   let fat = 0, vol = 0;
   vendaData.forEach(r => { fat += r.valor_total||0; vol += r.peso_kg||0; });
   document.getElementById('kpi-fat').textContent    = moeda(fat);
-  document.getElementById('kpi-vol').textContent    = peso(vol);
+  document.getElementById('kpi-vol').textContent    = ton(vol);
   document.getElementById('kpi-ticket-kg').textContent  = vol > 0 ? moeda(fat/vol) : '—';
   document.getElementById('kpi-ticket-ton').textContent = vol > 0 ? moeda(fat/(vol/1000)) : '—';
 }
@@ -253,7 +254,7 @@ function renderTabela() {
       <td>${dataBR(r.data)}</td>
       <td>${r.codigo_material||'—'}</td>
       <td>${r.materiais?.nome||'—'}</td>
-      <td class="text-right">${peso(r.peso_kg)}</td>
+      <td class="text-right">${r.peso_kg ? ton(r.peso_kg) : '—'}</td>
       <td>${r.unidade||'—'}</td>
       <td class="text-right">${r.preco_kg ? moeda(r.preco_kg) : '—'}</td>
       <td class="text-right">${r.desconto ? moeda(r.desconto) : '—'}</td>
@@ -315,7 +316,7 @@ async function carregarGraficos() {
       labels: labCli,
       datasets: [
         { label:'Faturamento (R$)', data: labCli.map(l=>cliMap[l].fat), backgroundColor:'#3b82f6', yAxisID:'y' },
-        { label:'Volume (kg)',      data: labCli.map(l=>cliMap[l].vol), backgroundColor:'#10b981', yAxisID:'y2', type:'line', tension:0.3 },
+        { label:'Volume (ton)',      data: labCli.map(l=>cliMap[l].vol/1000), backgroundColor:'#10b981', yAxisID:'y2', type:'line', tension:0.3 },
       ]
     },
     options: {
@@ -323,7 +324,7 @@ async function carregarGraficos() {
       plugins:{ legend:{ position:'bottom' } },
       scales: {
         y:  { beginAtZero:true, ticks:{ callback:v=>'R$'+v.toLocaleString('pt-BR') }, position:'left' },
-        y2: { beginAtZero:true, ticks:{ callback:v=>v.toLocaleString('pt-BR')+'kg' }, position:'right', grid:{drawOnChartArea:false} },
+        y2: { beginAtZero:true, ticks:{ callback:v=>v.toLocaleString('pt-BR',{maximumFractionDigits:3})+'t' }, position:'right', grid:{drawOnChartArea:false} },
       }
     }
   });
