@@ -90,23 +90,20 @@
           <table class="wide-table">
             <thead>
               <tr>
-                <th class="cb-col"><input type="checkbox" id="cb-all" /></th>
                 <th>Data</th>
-                <th>Fornecedor</th>
-                <th>Nota Fiscal</th>
+                <th>Cliente / Fornecedor</th>
                 <th>Motorista</th>
-                <th>Placa</th>
-                <th>Material</th>
-                <th>Pesagem 1 (kg)</th>
-                <th>Pesagem 2 (kg)</th>
-                <th>Impureza %</th>
-                <th>Umidade %</th>
-                <th>Peso Líq. (kg)</th>
-                <th>Peso Líq. c/ Desc.</th>
-                <th>Total Desc. (kg)</th>
-                <th>Rejeito UVR (kg)</th>
+                <th>Placa do Veículo</th>
+                <th>Produto</th>
+                <th class="text-right">Pesagem 1</th>
+                <th class="text-right">Pesagem 2</th>
+                <th class="text-right">Impureza</th>
+                <th class="text-right">Umidade</th>
+                <th class="text-right">Peso Líquido</th>
+                <th class="text-right">Peso Líq. c/ Descontos</th>
+                <th class="text-right">Total de Descontos</th>
                 <th>Transportadora</th>
-                <th>Entrada/Saída</th>
+                <th>Entrada</th>
                 <th>Destino</th>
               </tr>
             </thead>
@@ -272,47 +269,32 @@ function renderTabela() {
   document.getElementById('ent-count').textContent = `${entData.length} registros`;
   const tb = document.getElementById('tb-entradas');
   if (!entData.length) {
-    tb.innerHTML = `<tr><td colspan="19" class="table-empty">Nenhuma entrada encontrada</td></tr>`;
+    tb.innerHTML = `<tr><td colspan="15" class="table-empty">Nenhuma entrada encontrada</td></tr>`;
     return;
   }
 
   tb.innerHTML = entData.map(r => {
-    const pld = parseFloat(r.peso_liquido_descontos ?? r.peso_kg ?? 0);
-    const rej = parseFloat(r.rejeito_uvr ?? 0);
-    const dblEdit = isAdmin ? 'class="cell-edit"' : '';
+    const pld  = parseFloat(r.peso_liquido_descontos ?? r.peso_kg ?? 0);
+    const isSaida = r.tipo_movimentacao === 'saida';
     return `<tr data-id="${r.id}">
-      <td class="cb-col"><input type="checkbox" class="row-cb" data-id="${r.id}" /></td>
-      <td ${dblEdit} data-field="data"           data-id="${r.id}">${dataBR(r.data)}</td>
-      <td ${dblEdit} data-field="fornecedor"     data-id="${r.id}">${r.fornecedores?.nome||'—'}</td>
-      <td ${dblEdit} data-field="nota_fiscal"    data-id="${r.id}">${r.nota_fiscal||'—'}</td>
-      <td ${dblEdit} data-field="motorista"      data-id="${r.id}">${r.motorista||'—'}</td>
-      <td ${dblEdit} data-field="placa_veiculo"  data-id="${r.id}">${r.placa_veiculo||'—'}</td>
+      <td>${dataBR(r.data)}</td>
+      <td>${r.fornecedores?.nome||'—'}</td>
+      <td>${r.motorista||'—'}</td>
+      <td>${r.placa_veiculo||'—'}</td>
       <td>${r.materiais?.nome||'—'}</td>
-      <td ${dblEdit} data-field="pesagem_1"      data-id="${r.id}">${peso(r.pesagem_1||0)}</td>
-      <td ${dblEdit} data-field="pesagem_2"      data-id="${r.id}">${peso(r.pesagem_2||0)}</td>
-      <td ${dblEdit} data-field="impureza"       data-id="${r.id}">${(+(r.impureza||0)).toFixed(1)}%</td>
-      <td ${dblEdit} data-field="umidade"        data-id="${r.id}">${(+(r.umidade||0)).toFixed(1)}%</td>
-      <td>${peso(r.peso_liquido||0)}</td>
-      <td class="fw-600">${peso(pld)}</td>
-      <td>${peso(r.total_descontos||0)}</td>
-      <td class="fw-600" style="color:#dc2626">${peso(rej)}</td>
-      <td ${dblEdit} data-field="transportadora" data-id="${r.id}">${r.transportadora||'—'}</td>
-      <td><span class="badge ${r.tipo_movimentacao==='saida'?'badge-red':'badge-green'}">${r.tipo_movimentacao==='saida'?'Saída':'Entrada'}</span></td>
-      <td ${dblEdit} data-field="destino"        data-id="${r.id}">${r.destino||'—'}</td>
+      <td class="text-right">${peso(r.pesagem_1||0)}</td>
+      <td class="text-right">${peso(r.pesagem_2||0)}</td>
+      <td class="text-right">${(+(r.impureza||0)).toFixed(1)}%</td>
+      <td class="text-right">${(+(r.umidade||0)).toFixed(1)}%</td>
+      <td class="text-right">${peso(r.peso_liquido||0)}</td>
+      <td class="text-right fw-600">${peso(pld)}</td>
+      <td class="text-right">${peso(r.total_descontos||0)}</td>
+      <td>${r.transportadora||'—'}</td>
+      <td><span class="badge ${isSaida?'badge-red':'badge-green'}">${isSaida?'Saída de produtos':'Entrada de produtos'}</span></td>
+      <td>${r.destino||'—'}</td>
     </tr>`;
   }).join('');
 
-  document.querySelectorAll('.row-cb').forEach(cb => cb.addEventListener('change', atualizarBulk));
-  document.getElementById('cb-all').addEventListener('change', function() {
-    document.querySelectorAll('.row-cb').forEach(cb => cb.checked = this.checked);
-    atualizarBulk();
-  });
-
-  if (isAdmin) {
-    document.querySelectorAll('.cell-edit').forEach(cell => {
-      cell.addEventListener('dblclick', () => iniciarEdicaoInline(cell));
-    });
-  }
 }
 
 function atualizarBulk() {
