@@ -63,12 +63,15 @@
 
       <!-- Filtros -->
       <div class="card mb-16" style="padding:16px">
-        <div class="filters-row">
-          <div class="form-group"><label>Período</label><input type="month" id="f-mes" /></div>
+        <div class="filters-row" style="flex-wrap:wrap;gap:12px">
+          <div class="form-group"><label>De</label><input type="date" id="f-de" /></div>
+          <div class="form-group"><label>Até</label><input type="date" id="f-ate" /></div>
+          <div class="form-group"><label>Mês rápido</label><input type="month" id="f-mes" /></div>
           <div class="form-group"><label>Fornecedor</label><select id="f-forn"><option value="">Todos</option></select></div>
           <div class="form-group"><label>Material</label><select id="f-mat"><option value="">Todos</option></select></div>
           <div class="form-group" style="justify-content:flex-end"><label>&nbsp;</label>
             <button class="btn btn-primary" id="btn-filtrar">Filtrar</button>
+            <button class="btn btn-outline" id="btn-limpar" style="margin-left:6px">Limpar</button>
           </div>
         </div>
       </div>
@@ -235,14 +238,22 @@ async function carregar() {
   const mes  = document.getElementById('f-mes').value;
   const forn = document.getElementById('f-forn').value;
   const mat  = document.getElementById('f-mat').value;
-  const { ini, fim } = periodoRange(mes);
+  let ini = document.getElementById('f-de').value;
+  let fim = document.getElementById('f-ate').value;
+
+  // Mês rápido sobrescreve intervalo
+  if (mes) {
+    const { ini: i, fim: f } = periodoRange(mes);
+    ini = i; fim = f;
+  }
 
   let q = supabase.from('entradas')
     .select('*, fornecedores(nome), materiais(nome)')
     .order('data', { ascending: false })
-    .limit(5000);
+    .limit(10000);
 
-  if (ini) q = q.gte('data', ini).lte('data', fim);
+  if (ini) q = q.gte('data', ini);
+  if (fim) q = q.lte('data', fim);
   if (forn) q = q.eq('fornecedor_id', forn);
   if (mat)  q = q.eq('material_id', mat);
 
@@ -570,34 +581,29 @@ document.getElementById('csv-import').addEventListener('change', async function(
     return data.id;
   };
 
-  let ok=0, erros=[];
+  // Monta todos os payloads primeiro
+  const payloads = [];
   for (let i=1; i<linhas.length; i++) {
     const row = linhas[i];
     if (row.every(c=>!c) || row.length < 3) continue;
 
     const fornNome = col(row,'cliente') || col(row,'fornecedor');
     const matNome  = col(row,'produto') || col(row,'material');
-
-    const fornId = await getOuCriarForn(fornNome);
-    const matId  = await getOuCriarMat(matNome);
+    const fornId   = await getOuCriarForn(fornNome);
+    const matId    = await getOuCriarMat(matNome);
 
     const p1  = num(col(row,'pesagem_1'));
     const p2  = num(col(row,'pesagem_2'));
     const imp = num(col(row,'impureza'));
     const umi = num(col(row,'umidade'));
-
-    // Usa Peso Líquido da planilha se disponível, senão calcula
-    const plCSV = num(col(row,'peso_liquido')) || num(col(row,'peso_l'));
-    const pl  = plCSV > 0 ? plCSV : Math.max(0, p1-p2);
+    const pl  = num(col(row,'peso_liquido')) || Math.max(0, p1-p2);
     const td  = pl*(imp+umi)/100;
-    const pldCSV = num(col(row,'peso_liquido_com')) || num(col(row,'peso_liq'));
-    const pld = pldCSV > 0 ? pldCSV : Math.max(0, pl-td);
+    const pld = num(col(row,'peso_liquido_com')) || Math.max(0, pl-td);
 
-    const payload = {
+    payloads.push({
       data:              parseData(col(row,'data')),
       fornecedor_id:     fornId,
       material_id:       matId,
-      nota_fiscal:       col(row,'nota') || null,
       motorista:         col(row,'motorista') || null,
       placa_veiculo:     col(row,'placa') || null,
       pesagem_1:         p1 || null,
@@ -608,25 +614,49 @@ document.getElementById('csv-import').addEventListener('change', async function(
       total_descontos:   td,
       peso_liquido_descontos: pld,
       peso_kg:           pld,
-      rejeito_uvr:       num(col(row,'rejeito')),
       transportadora:    col(row,'transportadora') || null,
       tipo_movimentacao: col(row,'entrada').trim().toUpperCase() === 'REJEITO UVR' ? 'saida' : 'entrada',
       destino:           col(row,'destino') || null,
       valor:             0,
-    };
-
-    const { error } = await supabase.from('entradas').insert(payload);
-    if (error) { console.error(`Linha ${i+1}:`, error.message, payload); erros.push(i+1); }
-    else ok++;
+    });
   }
 
-  if (erros.length) toast(`${ok} importados, ${erros.length} erros (linhas: ${erros.slice(0,5).join(', ')})`, 'error');
+  // Insere em lotes de 100
+  const LOTE = 100;
+  let ok = 0, erros = [];
+  for (let i=0; i<payloads.length; i+=LOTE) {
+    const lote = payloads.slice(i, i+LOTE);
+    const { error, data } = await supabase.from('entradas').insert(lote).select('id');
+    if (error) {
+      console.error(`Lote ${i/LOTE+1}:`, error.message);
+      erros.push(`lote ${i/LOTE+1}`);
+    } else {
+      ok += data.length;
+    }
+  }
+
+  if (erros.length) toast(`${ok} importados, erros nos ${erros.join(', ')}`, 'error');
   else toast(`✓ ${ok} registros importados com sucesso!`);
   this.value='';
   await carregar();
 });
 
 document.getElementById('btn-filtrar').addEventListener('click', carregar);
+document.getElementById('btn-limpar').addEventListener('click', () => {
+  document.getElementById('f-de').value  = '';
+  document.getElementById('f-ate').value = '';
+  document.getElementById('f-mes').value = '';
+  document.getElementById('f-forn').value = '';
+  document.getElementById('f-mat').value  = '';
+  carregar();
+});
+// Mês rápido sincroniza com De/Até
+document.getElementById('f-mes').addEventListener('change', function() {
+  if (!this.value) return;
+  const { ini, fim } = periodoRange(this.value);
+  document.getElementById('f-de').value  = ini;
+  document.getElementById('f-ate').value = fim;
+});
 document.querySelectorAll('[data-close]').forEach(btn=>btn.addEventListener('click',()=>fecharModal(btn.dataset.close)));
 document.querySelectorAll('.modal-backdrop').forEach(m=>m.addEventListener('click',e=>{if(e.target===m)fecharModal(m.id);}));
 
