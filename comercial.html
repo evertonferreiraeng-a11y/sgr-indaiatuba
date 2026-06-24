@@ -532,8 +532,17 @@ document.getElementById('input-excel').addEventListener('change', async e => {
 
   function parseNum(val) {
     if (val === '' || val == null) return null;
-    // remove R$, espaços, pontos de milhar; troca vírgula por ponto
-    const s = String(val).replace(/R\$\s*/g,'').replace(/\./g,'').replace(',','.').trim();
+    let s = String(val).replace(/R\$\s*/g,'').replace(/\s/g,'').trim();
+    if (!s) return null;
+    const lastDot   = s.lastIndexOf('.');
+    const lastComma = s.lastIndexOf(',');
+    if (lastComma > lastDot) {
+      // formato BR: 2.284,00 → remove pontos, troca vírgula por ponto
+      s = s.replace(/\./g,'').replace(',','.');
+    } else if (lastDot > lastComma) {
+      // formato EN: 2,284.00 → remove vírgulas
+      s = s.replace(/,/g,'');
+    }
     const n = parseFloat(s);
     return isNaN(n) ? null : n;
   }
