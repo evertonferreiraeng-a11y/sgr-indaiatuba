@@ -256,7 +256,7 @@ function renderTabela() {
       <td>${r.materiais?.nome||'—'}</td>
       <td class="text-right">${r.peso_kg ? ton(r.peso_kg) : '—'}</td>
       <td>${r.unidade||'—'}</td>
-      <td class="text-right">${r.preco_kg ? moeda(r.preco_kg) : '—'}</td>
+      <td class="text-right">${r.preco_kg ? moeda(r.preco_kg * 1000) : '—'}</td>
       <td class="text-right">${r.desconto ? moeda(r.desconto) : '—'}</td>
       <td class="text-right fw-600">${moeda(r.valor_total||0)}</td>
       <td class="text-right">${ticket ? moeda(ticket) : '—'}</td>
