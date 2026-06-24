@@ -577,6 +577,9 @@ document.getElementById('input-excel').addEventListener('change', async e => {
     });
   }
 
+  // mostra chaves do primeiro payload para diagnóstico
+  console.log('[IMPORT] Chaves do payload:', Object.keys(payloads[0]));
+
   // descobre colunas válidas tentando inserir e removendo as que derem erro
   const colsRemover = new Set();
   function filtrarPayload(p) {
