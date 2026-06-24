@@ -155,7 +155,7 @@ import { initPage, supabase, moeda, peso, dataBR, toast, abrirModal, fecharModal
 
 await initPage();
 
-let perfil, vendaData = [], clienteData = [], matData = [];
+let perfil, vendaData = [], clienteData = [], matData = [], colunasVendas = new Set();
 let chartClientes = null, chartEvolucao = null;
 
 document.getElementById('f-mes').value = mesAtual();
@@ -179,6 +179,14 @@ async function init() {
   const { data: { user } } = await supabase.auth.getUser();
   const { data: p } = await supabase.from('profiles').select('*').eq('id', user.id).single();
   perfil = p;
+
+  // descobre quais colunas existem na tabela vendas
+  const { data: colunasBD } = await supabase
+    .from('information_schema.columns')
+    .select('column_name')
+    .eq('table_name', 'vendas')
+    .eq('table_schema', 'public');
+  if (colunasBD) colunasBD.forEach(c => colunasVendas.add(c.column_name));
 
   const [{ data: clientes }, { data: mats }] = await Promise.all([
     supabase.from('clientes').select('*').order('nome'),
@@ -577,9 +585,19 @@ document.getElementById('input-excel').addEventListener('change', async e => {
     });
   }
 
+  // filtra payload para só incluir colunas que existem na tabela
+  function filtrarPayload(p) {
+    if (!colunasVendas.size) return p; // se não conseguiu buscar colunas, envia tudo
+    const out = {};
+    for (const [k, v] of Object.entries(p)) {
+      if (colunasVendas.has(k)) out[k] = v;
+    }
+    return out;
+  }
+
   let primeiroErro = null;
   for (let i = 0; i < payloads.length; i += BATCH) {
-    const batch = payloads.slice(i, i+BATCH);
+    const batch = payloads.slice(i, i+BATCH).map(filtrarPayload);
     const { error } = await supabase.from('vendas').insert(batch);
     if (error) {
       for (const p of batch) {
