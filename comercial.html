@@ -568,7 +568,11 @@ document.getElementById('input-excel').addEventListener('change', async e => {
     const cliente_id  = cliNome ? await getOrCreateCliente(cliNome) : null;
     const material_id = matNome ? await getOrCreateMaterial(matNome) : null;
 
-    const pk    = parseNum(mapped.peso_kg);
+    const unidadeRaw = String(mapped.unidade||'').trim();
+    const unidadeNum = parseNum(unidadeRaw); // número caso seja quantidade por unidade
+    // se KG estiver vazio mas UNIDADE tiver número, usa como quantidade
+    const pk    = parseNum(mapped.peso_kg) || (unidadeNum && unidadeNum > 1 ? unidadeNum : null);
+    const unidade = (unidadeNum && !parseNum(mapped.peso_kg)) ? 'UN' : (unidadeRaw||null);
     const pr    = parseNum(mapped.preco_kg);
     const desc  = parseNum(mapped.desconto)||0;
     const total = parseNum(mapped._valor_nf) ?? (pk&&pr ? pk*pr - desc : null);
@@ -579,7 +583,7 @@ document.getElementById('input-excel').addEventListener('change', async e => {
       material_id,
       codigo_material: String(mapped.codigo_material||'').trim()||null,
       peso_kg:         pk,
-      unidade:         String(mapped.unidade||'').trim()||null,
+      unidade:         unidade,
       preco_kg:        pr,
       desconto:        desc||null,
       valor_total:     total,
