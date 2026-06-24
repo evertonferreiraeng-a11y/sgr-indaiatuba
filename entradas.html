@@ -56,8 +56,16 @@
           <canvas id="chart-fornecedor" height="220"></canvas>
         </div>
         <div class="card" style="padding:16px">
-          <h4 style="margin-bottom:12px">Volume Atual vs Média Histórica por Fornecedor</h4>
+          <h4 style="margin-bottom:8px">Volume Atual vs Média Histórica por Fornecedor</h4>
+          <div style="display:flex;gap:10px;align-items:flex-end;flex-wrap:wrap;margin-bottom:12px">
+            <div class="form-group" style="margin:0"><label style="font-size:11px;color:#64748b">Período histórico — De</label><input type="date" id="hist-de" style="font-size:12px;padding:4px 8px" /></div>
+            <div class="form-group" style="margin:0"><label style="font-size:11px;color:#64748b">Até</label><input type="date" id="hist-ate" style="font-size:12px;padding:4px 8px" /></div>
+            <button class="btn btn-sm btn-outline" id="btn-calc-media" style="height:32px;font-size:12px">Calcular Média</button>
+          </div>
           <canvas id="chart-media" height="220"></canvas>
+          <div id="media-legenda" style="margin-top:10px;font-size:12px;color:#64748b;display:none">
+            🟦 Acima da média &nbsp;|&nbsp; 🟧 Abaixo da média
+          </div>
         </div>
       </div>
 
@@ -391,48 +399,107 @@ async function renderGraficos(mes) {
     }
   });
 
-  // Média histórica vs atual
-  if (!mes) return;
-  const { y, m, ini } = periodoRange(mes);
-  const diaAtual = (hoje.getFullYear()===y && hoje.getMonth()+1===m) ? hoje.getDate()
-    : new Date(y, m, 0).getDate();
+}
 
-  const { data: historico } = await supabase.from('entradas')
-    .select('data, peso_liquido_descontos, peso_kg, fornecedores(nome)')
-    .lt('data', ini);
+async function calcularMediaHistorica() {
+  const histDe  = document.getElementById('hist-de').value;
+  const histAte = document.getElementById('hist-ate').value;
+  if (!histDe || !histAte) { alert('Selecione o período histórico (De e Até).'); return; }
 
-  const hist = {};
-  (historico||[]).forEach(r => {
+  // Busca dados históricos paginados
+  const PAGE = 1000;
+  let page = 0, histRows = [], done = false;
+  while (!done) {
+    let q = supabase.from('entradas')
+      .select('data, peso_liquido, fornecedores(nome)')
+      .eq('tipo_movimentacao', 'entrada')
+      .gte('data', histDe).lte('data', histAte)
+      .range(page * PAGE, (page+1)*PAGE - 1);
+    const { data } = await q;
+    if (!data || data.length === 0) { done = true; }
+    else { histRows = histRows.concat(data); page++; if (data.length < PAGE) done = true; }
+  }
+
+  // Calcula média mensal por fornecedor no período histórico
+  const porFornMes = {};
+  histRows.forEach(r => {
     const nome = r.fornecedores?.nome || 'Desconhecido';
-    const d = new Date(r.data+'T00:00:00');
-    if (d.getDate() > diaAtual) return;
-    const key = `${d.getFullYear()}-${d.getMonth()}`;
-    if (!hist[nome]) hist[nome] = {};
-    if (!hist[nome][key]) hist[nome][key] = 0;
-    hist[nome][key] += parseFloat(r.peso_liquido_descontos ?? r.peso_kg ?? 0);
+    const mes  = r.data.slice(0, 7); // YYYY-MM
+    if (!porFornMes[nome]) porFornMes[nome] = {};
+    porFornMes[nome][mes] = (porFornMes[nome][mes] || 0) + parseFloat(r.peso_liquido || 0);
   });
 
   const mediaHist = {};
-  Object.entries(hist).forEach(([nome, meses]) => {
-    const vs = Object.values(meses);
-    mediaHist[nome] = vs.reduce((a,b)=>a+b,0) / vs.length;
+  Object.entries(porFornMes).forEach(([nome, meses]) => {
+    const vals = Object.values(meses);
+    mediaHist[nome] = vals.reduce((a,b)=>a+b,0) / vals.length;
   });
+
+  // Volume atual por fornecedor (entData já carregado com filtro principal)
+  const atualMap = {};
+  entData.filter(r => r.tipo_movimentacao === 'entrada').forEach(r => {
+    const nome = r.fornecedores?.nome || 'Desconhecido';
+    atualMap[nome] = (atualMap[nome] || 0) + parseFloat(r.peso_liquido || 0);
+  });
+
+  // Ordena por volume atual decrescente, top 15
+  const labels = Object.keys(atualMap)
+    .sort((a,b) => atualMap[b] - atualMap[a])
+    .slice(0, 15);
+
+  const vAtual = labels.map(l => atualMap[l] || 0);
+  const vMedia = labels.map(l => mediaHist[l] || 0);
+
+  // Cor: azul se acima da média, laranja se abaixo
+  const cores = labels.map((l, i) => vAtual[i] >= (vMedia[i] || 0) ? '#3b82f6' : '#f59e0b');
 
   if (chartMedia) chartMedia.destroy();
   chartMedia = new Chart(document.getElementById('chart-media').getContext('2d'), {
     type: 'bar',
     data: {
-      labels: labels1,
+      labels,
       datasets: [
-        { label:`Volume atual (até dia ${diaAtual})`, data: vals1, backgroundColor:'#3b82f6' },
-        { label:`Média histórica (até dia ${diaAtual})`, data: labels1.map(l=>mediaHist[l]??null), backgroundColor:'#f59e0b' },
+        {
+          label: 'Volume atual (kg)',
+          data: vAtual,
+          backgroundColor: cores,
+          borderRadius: 4,
+        },
+        {
+          label: 'Média histórica mensal (kg)',
+          data: vMedia,
+          type: 'line',
+          borderColor: '#ef4444',
+          backgroundColor: 'transparent',
+          borderWidth: 2,
+          pointRadius: 4,
+          pointBackgroundColor: '#ef4444',
+          tension: 0.1,
+        }
       ]
     },
     options: {
-      responsive: true, plugins: { legend: { position:'bottom' } },
-      scales: { y: { beginAtZero:true, ticks: { callback: v=>v.toLocaleString('pt-BR')+'kg' } } }
+      responsive: true,
+      plugins: {
+        legend: { position:'bottom' },
+        tooltip: {
+          callbacks: {
+            label: ctx => `${ctx.dataset.label}: ${ctx.raw.toLocaleString('pt-BR')} kg`,
+            afterBody: (items) => {
+              const idx = items[0].dataIndex;
+              const atual = vAtual[idx], media = vMedia[idx];
+              if (!media) return '';
+              const diff = ((atual - media) / media * 100).toFixed(1);
+              return diff >= 0 ? `▲ ${diff}% acima da média` : `▼ ${Math.abs(diff)}% abaixo da média`;
+            }
+          }
+        }
+      },
+      scales: { y: { beginAtZero:true, ticks: { callback: v => v.toLocaleString('pt-BR')+' kg' } } }
     }
   });
+
+  document.getElementById('media-legenda').style.display = 'block';
 }
 
 // ── CRUD ──────────────────────────────────────────────────────────────────────
@@ -653,6 +720,7 @@ document.getElementById('csv-import').addEventListener('change', async function(
 });
 
 document.getElementById('btn-filtrar').addEventListener('click', carregar);
+document.getElementById('btn-calc-media').addEventListener('click', calcularMediaHistorica);
 document.getElementById('btn-limpar').addEventListener('click', () => {
   document.getElementById('f-de').value  = '';
   document.getElementById('f-ate').value = '';
