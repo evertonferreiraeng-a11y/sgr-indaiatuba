@@ -230,7 +230,7 @@ function renderKPIs() {
   vendaData.forEach(r => { fat += r.valor_total||0; vol += r.peso_kg||0; });
   document.getElementById('kpi-fat').textContent    = moeda(fat);
   document.getElementById('kpi-vol').textContent    = peso(vol);
-  document.getElementById('kpi-ticket').textContent = vendaData.length ? moeda(fat/vendaData.length) : '—';
+  document.getElementById('kpi-ticket').textContent = vol > 0 ? moeda(fat/vol) : '—';
 }
 
 function renderTabela() {
