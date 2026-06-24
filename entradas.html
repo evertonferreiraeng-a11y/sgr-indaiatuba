@@ -168,8 +168,7 @@ let perfil, entData = [], fornData = [], matData = [];
 let chartForn = null, chartMedia = null;
 const hoje = new Date();
 
-const mesDefault = `${anoAtual()}-${String(mesAtual()).padStart(2,'0')}`;
-document.getElementById('f-mes').value = mesDefault;
+// Sem filtro de período por padrão — mostra todos os dados
 
 // ── auto-calc pesos ──────────────────────────────────────────────────────────
 function calcPesos(f) {
@@ -240,7 +239,8 @@ async function carregar() {
 
   let q = supabase.from('entradas')
     .select('*, fornecedores(nome), materiais(nome)')
-    .order('data', { ascending: false });
+    .order('data', { ascending: false })
+    .limit(5000);
 
   if (ini) q = q.gte('data', ini).lte('data', fim);
   if (forn) q = q.eq('fornecedor_id', forn);
