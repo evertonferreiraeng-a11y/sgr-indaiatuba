@@ -530,7 +530,10 @@ document.getElementById('input-excel').addEventListener('change', async e => {
 
   function parseNum(val) {
     if (val === '' || val == null) return null;
-    return parseFloat(String(val).replace(',','.')) || null;
+    // remove R$, espaços, pontos de milhar; troca vírgula por ponto
+    const s = String(val).replace(/R\$\s*/g,'').replace(/\./g,'').replace(',','.').trim();
+    const n = parseFloat(s);
+    return isNaN(n) ? null : n;
   }
 
   let ok = 0, erros = 0;
@@ -574,21 +577,26 @@ document.getElementById('input-excel').addEventListener('change', async e => {
     });
   }
 
+  let primeiroErro = null;
   for (let i = 0; i < payloads.length; i += BATCH) {
     const batch = payloads.slice(i, i+BATCH);
     const { error } = await supabase.from('vendas').insert(batch);
     if (error) {
-      // fallback linha a linha
       for (const p of batch) {
         const { error: e2 } = await supabase.from('vendas').insert(p);
-        if (e2) erros++; else ok++;
+        if (e2) { erros++; if (!primeiroErro) primeiroErro = e2.message; }
+        else ok++;
       }
     } else {
       ok += batch.length;
     }
   }
 
-  toast(`Importação concluída: ${ok} registros salvos${erros ? `, ${erros} erros` : ''}.`);
+  if (primeiroErro) {
+    toast(`${ok} salvos, ${erros} erros. Erro: ${primeiroErro}`, 'error');
+  } else {
+    toast(`Importação concluída: ${ok} registros salvos.`);
+  }
   await carregar();
 });
 
