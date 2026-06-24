@@ -72,7 +72,16 @@
                 <div class="form-group" style="margin:0"><label style="font-size:11px;color:#64748b">Até</label><input type="date" id="hist-ate" style="font-size:12px;padding:4px 8px" /></div>
               </div>
             </div>
-            <button class="btn btn-sm btn-primary" id="btn-calc-media" style="height:32px;font-size:12px">Comparar</button>
+            <div>
+              <div style="font-size:11px;font-weight:600;color:#065f46;margin-bottom:4px">📆 Comparar até o dia</div>
+              <div style="display:flex;gap:6px;align-items:flex-end">
+                <div class="form-group" style="margin:0">
+                  <label style="font-size:11px;color:#64748b">Dia do mês</label>
+                  <input type="number" id="ate-dia" min="1" max="31" value="${new Date().getDate()}" style="font-size:12px;padding:4px 8px;width:70px" />
+                </div>
+              </div>
+            </div>
+            <button class="btn btn-sm btn-primary" id="btn-calc-media" style="height:32px;font-size:12px;align-self:flex-end">Comparar</button>
           </div>
           <canvas id="chart-media" height="220"></canvas>
           <div id="media-legenda" style="margin-top:10px;font-size:12px;color:#64748b;display:none">
@@ -416,6 +425,7 @@ async function renderGraficos(mes) {
 async function calcularMediaHistorica() {
   const histDe  = document.getElementById('hist-de').value;
   const histAte = document.getElementById('hist-ate').value;
+  const ateDia  = parseInt(document.getElementById('ate-dia').value) || 31;
   if (!histDe || !histAte) { alert('Selecione o período histórico (De e Até).'); return; }
 
   // Busca dados históricos paginados
@@ -432,11 +442,13 @@ async function calcularMediaHistorica() {
     else { histRows = histRows.concat(data); page++; if (data.length < PAGE) done = true; }
   }
 
-  // Calcula média mensal por fornecedor no período histórico
+  // Calcula média mensal por fornecedor no período histórico — filtra pelo dia limite
   const porFornMes = {};
   histRows.forEach(r => {
+    const dia = parseInt(r.data.slice(8, 10));
+    if (dia > ateDia) return; // ignora dias após o limite
     const nome = r.fornecedores?.nome || 'Desconhecido';
-    const mes  = r.data.slice(0, 7); // YYYY-MM
+    const mes  = r.data.slice(0, 7);
     if (!porFornMes[nome]) porFornMes[nome] = {};
     porFornMes[nome][mes] = (porFornMes[nome][mes] || 0) + parseFloat(r.peso_liquido || 0);
   });
@@ -466,6 +478,8 @@ async function calcularMediaHistorica() {
 
   const atualMap = {};
   atualRows.forEach(r => {
+    const dia = parseInt(r.data.slice(8, 10));
+    if (dia > ateDia) return;
     const nome = r.fornecedores?.nome || 'Desconhecido';
     atualMap[nome] = (atualMap[nome] || 0) + parseFloat(r.peso_liquido || 0);
   });
@@ -488,7 +502,7 @@ async function calcularMediaHistorica() {
       labels,
       datasets: [
         {
-          label: 'Volume atual (kg)',
+          label: `Volume atual até dia ${ateDia} (kg)`,
           data: vAtual,
           backgroundColor: cores,
           borderRadius: 4,
