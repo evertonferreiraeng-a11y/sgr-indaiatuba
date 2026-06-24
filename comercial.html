@@ -247,7 +247,7 @@ function renderTabela() {
     return;
   }
   tb.innerHTML = vendaData.map(r => {
-    const ticket = r.peso_kg ? (r.valor_total||0)/r.peso_kg : null;
+    const ticket = r.peso_kg ? (r.valor_total||0)/(r.peso_kg/1000) : null;
     return `
     <tr>
       <td>${r.clientes?.nome||'—'}</td>
