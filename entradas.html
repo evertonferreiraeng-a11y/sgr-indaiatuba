@@ -101,7 +101,7 @@
           <div class="form-group"><label>De</label><input type="date" id="f-de" /></div>
           <div class="form-group"><label>Até</label><input type="date" id="f-ate" /></div>
           <div class="form-group"><label>Mês rápido</label><input type="month" id="f-mes" /></div>
-          <div class="form-group"><label>Fornecedor</label><select id="f-forn"><option value="">Todos</option></select></div>
+          <div class="form-group"><label>Fornecedor</label><select id="f-forn" multiple style="height:72px"><option value="">Todos</option></select><div style="font-size:10px;color:#94a3b8;margin-top:2px">Ctrl+clique para vários</div></div>
           <div class="form-group"><label>Material</label><select id="f-mat"><option value="">Todos</option></select></div>
           <div class="form-group" style="justify-content:flex-end"><label>&nbsp;</label>
             <button class="btn btn-primary" id="btn-filtrar">Filtrar</button>
@@ -270,7 +270,7 @@ function periodoRange(mes) {
 
 async function carregar() {
   const mes  = document.getElementById('f-mes').value;
-  const forn = document.getElementById('f-forn').value;
+  const fornSel = [...document.getElementById('f-forn').selectedOptions].map(o=>o.value).filter(v=>v!=='');
   const mat  = document.getElementById('f-mat').value;
   let ini = document.getElementById('f-de').value;
   let fim = document.getElementById('f-ate').value;
@@ -292,7 +292,8 @@ async function carregar() {
 
     if (ini)  q = q.gte('data', ini);
     if (fim)  q = q.lte('data', fim);
-    if (forn) q = q.eq('fornecedor_id', forn);
+    if (fornSel.length === 1) q = q.eq('fornecedor_id', fornSel[0]);
+    else if (fornSel.length > 1) q = q.in('fornecedor_id', fornSel);
     if (mat)  q = q.eq('material_id', mat);
 
     const { data } = await q;
@@ -797,7 +798,7 @@ document.getElementById('btn-limpar').addEventListener('click', () => {
   document.getElementById('f-de').value  = '';
   document.getElementById('f-ate').value = '';
   document.getElementById('f-mes').value = '';
-  document.getElementById('f-forn').value = '';
+  [...document.getElementById('f-forn').options].forEach(o => o.selected = false);
   document.getElementById('f-mat').value  = '';
   carregar();
 });
