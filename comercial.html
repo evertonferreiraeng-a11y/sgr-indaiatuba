@@ -461,6 +461,8 @@ document.getElementById('input-excel').addEventListener('change', async e => {
   if (!rows.length) { toast('Planilha vazia','error'); return; }
 
   toast(`Lendo ${rows.length} linhas…`);
+  const primeiraLinha = rows[0];
+  alert('PRIMEIRA LINHA:\n' + Object.entries(primeiraLinha).map(([k,v]) => `[${k}] = ${v}`).join('\n'));
 
   // normaliza cabeçalho: remove espaços extras, uppercase
   const norm = s => String(s).trim().toUpperCase().replace(/\s+/g,' ');
