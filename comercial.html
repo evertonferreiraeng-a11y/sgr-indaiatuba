@@ -36,8 +36,11 @@
         </div>
         <div class="kpi-card">
           <div class="kpi-label">Ticket Médio</div>
-          <div class="kpi-value" id="kpi-ticket">—</div>
-          <div class="kpi-sub">R$/venda</div>
+          <div class="kpi-value" id="kpi-ticket-kg">—</div>
+          <div class="kpi-sub">R$ por kg</div>
+          <div style="border-top:1px solid #e2e8f0;margin:8px 0"></div>
+          <div class="kpi-value" id="kpi-ticket-ton" style="font-size:1.4rem">—</div>
+          <div class="kpi-sub">R$ por tonelada</div>
         </div>
       </div>
 
@@ -230,7 +233,8 @@ function renderKPIs() {
   vendaData.forEach(r => { fat += r.valor_total||0; vol += r.peso_kg||0; });
   document.getElementById('kpi-fat').textContent    = moeda(fat);
   document.getElementById('kpi-vol').textContent    = peso(vol);
-  document.getElementById('kpi-ticket').textContent = vol > 0 ? moeda(fat/vol) : '—';
+  document.getElementById('kpi-ticket-kg').textContent  = vol > 0 ? moeda(fat/vol) : '—';
+  document.getElementById('kpi-ticket-ton').textContent = vol > 0 ? moeda(fat/(vol/1000)) : '—';
 }
 
 function renderTabela() {
