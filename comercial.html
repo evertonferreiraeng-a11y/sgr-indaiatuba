@@ -594,7 +594,7 @@ document.getElementById('input-excel').addEventListener('change', async e => {
     for (let tentativa = 0; tentativa < 15; tentativa++) {
       const { error: te } = await supabase.from('vendas').insert(testPayload);
       if (!te) { ok++; break; }
-      const match = te.message.match(/column ['"]([\w]+)['"]/);
+      const match = te.message.match(/find the ['"]([\w]+)['"]\s+column/) || te.message.match(/column ['"]([\w]+)['"]/);
       if (match) {
         colsRemover.add(match[1]);
         delete testPayload[match[1]];
