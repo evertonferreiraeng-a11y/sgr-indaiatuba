@@ -459,9 +459,8 @@ document.getElementById('input-excel').addEventListener('change', async e => {
 
   if (!rows.length) { toast('Planilha vazia','error'); return; }
 
-  console.log('[IMPORT] Total de linhas:', rows.length);
-  console.log('[IMPORT] Cabeçalhos detectados:', Object.keys(rows[0]));
-  console.log('[IMPORT] Primeira linha:', rows[0]);
+  const cabecalhos = Object.keys(rows[0]);
+  alert(`Planilha lida com sucesso!\n\nLinhas: ${rows.length}\n\nCabeçalhos detectados:\n${cabecalhos.join('\n')}`);
 
   // normaliza cabeçalho: remove espaços extras, uppercase
   const norm = s => String(s).trim().toUpperCase().replace(/\s+/g,' ');
