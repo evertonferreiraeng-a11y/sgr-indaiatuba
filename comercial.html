@@ -158,8 +158,7 @@ await initPage();
 let perfil, vendaData = [], clienteData = [], matData = [];
 let chartClientes = null, chartEvolucao = null;
 
-const mesDefault = `${anoAtual()}-${String(mesAtual()).padStart(2,'0')}`;
-document.getElementById('f-mes').value = mesDefault;
+document.getElementById('f-mes').value = mesAtual();
 
 // ── auto-calc ─────────────────────────────────────────────────────────────────
 function recalcVenda() {
@@ -459,6 +458,10 @@ document.getElementById('input-excel').addEventListener('change', async e => {
   const rows = XLSX.utils.sheet_to_json(ws, { defval:'' });
 
   if (!rows.length) { toast('Planilha vazia','error'); return; }
+
+  console.log('[IMPORT] Total de linhas:', rows.length);
+  console.log('[IMPORT] Cabeçalhos detectados:', Object.keys(rows[0]));
+  console.log('[IMPORT] Primeira linha:', rows[0]);
 
   // normaliza cabeçalho: remove espaços extras, uppercase
   const norm = s => String(s).trim().toUpperCase().replace(/\s+/g,' ');
