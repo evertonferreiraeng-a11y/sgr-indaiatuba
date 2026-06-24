@@ -525,14 +525,26 @@ async function calcularMediaHistorica() {
       plugins: {
         legend: { position:'bottom' },
         tooltip: {
+          mode: 'index',
+          intersect: false,
           callbacks: {
-            label: ctx => `${ctx.dataset.label}: ${ctx.raw.toLocaleString('pt-BR')} kg`,
-            afterBody: (items) => {
+            title: items => items[0]?.label || '',
+            label: () => null,
+            afterTitle: () => '',
+            beforeBody: (items) => {
               const idx = items[0].dataIndex;
-              const atual = vAtual[idx], media = vMedia[idx];
-              if (!media) return '';
-              const diff = ((atual - media) / media * 100).toFixed(1);
-              return diff >= 0 ? `▲ ${diff}% acima da média` : `▼ ${Math.abs(diff)}% abaixo da média`;
+              const atual = vAtual[idx] || 0;
+              const media = vMedia[idx] || 0;
+              const diffKg  = atual - media;
+              const diffPct = media > 0 ? ((diffKg / media) * 100).toFixed(1) : null;
+              const fmt = v => v.toLocaleString('pt-BR', {minimumFractionDigits:0, maximumFractionDigits:0}) + ' kg';
+              const sinal = diffKg >= 0 ? '▲' : '▼';
+              const cor   = diffKg >= 0 ? 'acima' : 'abaixo';
+              return [
+                `📦 Volume atual (até dia ${ateDia}): ${fmt(atual)}`,
+                `📊 Média histórica mensal: ${fmt(media)}`,
+                `${sinal} Diferença: ${fmt(Math.abs(diffKg))} ${diffPct ? `(${Math.abs(diffPct)}% ${cor} da média)` : ''}`,
+              ];
             }
           }
         }
