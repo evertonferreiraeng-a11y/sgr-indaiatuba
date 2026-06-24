@@ -621,15 +621,19 @@ document.getElementById('csv-import').addEventListener('change', async function(
     });
   }
 
-  // Insere em lotes de 100
+  // Insere em lotes de 100; se falhar, tenta linha a linha
   const LOTE = 100;
   let ok = 0, erros = [];
   for (let i=0; i<payloads.length; i+=LOTE) {
     const lote = payloads.slice(i, i+LOTE);
     const { error, data } = await supabase.from('entradas').insert(lote).select('id');
     if (error) {
-      console.error(`Lote ${i/LOTE+1}:`, error.message);
-      erros.push(`lote ${i/LOTE+1}`);
+      // Fallback: linha a linha para salvar o que for possível
+      for (let j=0; j<lote.length; j++) {
+        const { error: e2 } = await supabase.from('entradas').insert(lote[j]);
+        if (e2) { console.error(`Linha ${i+j+2}:`, e2.message); erros.push(i+j+2); }
+        else ok++;
+      }
     } else {
       ok += data.length;
     }
