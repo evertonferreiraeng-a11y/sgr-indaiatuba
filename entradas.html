@@ -81,6 +81,11 @@
                 </div>
               </div>
             </div>
+            <div style="flex:1;min-width:200px">
+              <div style="font-size:11px;font-weight:600;color:#4b5563;margin-bottom:4px">👤 Clientes (opcional)</div>
+              <select id="sel-clientes-media" multiple style="width:100%;height:80px;font-size:12px;border:1px solid #d1d5db;border-radius:6px;padding:4px"></select>
+              <div style="font-size:10px;color:#94a3b8;margin-top:2px">Segure Ctrl para selecionar vários. Vazio = todos.</div>
+            </div>
             <button class="btn btn-sm btn-primary" id="btn-calc-media" style="height:32px;font-size:12px;align-self:flex-end">Comparar</button>
           </div>
           <canvas id="chart-media" height="220"></canvas>
@@ -484,10 +489,14 @@ async function calcularMediaHistorica() {
     atualMap[nome] = (atualMap[nome] || 0) + parseFloat(r.peso_liquido || 0);
   });
 
-  // Ordena por volume atual decrescente, top 15
-  const labels = Object.keys(atualMap)
-    .sort((a,b) => atualMap[b] - atualMap[a])
-    .slice(0, 15);
+  // Clientes selecionados no filtro (vazio = todos)
+  const selEl = document.getElementById('sel-clientes-media');
+  const clientesSel = [...selEl.selectedOptions].map(o => o.value);
+
+  // Ordena por volume atual decrescente; aplica filtro de clientes se houver seleção
+  let labels = Object.keys(atualMap).sort((a,b) => atualMap[b] - atualMap[a]);
+  if (clientesSel.length > 0) labels = labels.filter(l => clientesSel.includes(l));
+  else labels = labels.slice(0, 15);
 
   const vAtual = labels.map(l => atualMap[l] || 0);
   const vMedia = labels.map(l => mediaHist[l] || 0);
@@ -776,6 +785,14 @@ document.getElementById('csv-import').addEventListener('change', async function(
 document.getElementById('btn-filtrar').addEventListener('click', carregar);
 document.getElementById('btn-calc-media').addEventListener('click', calcularMediaHistorica);
 document.getElementById('ate-dia').value = new Date().getDate();
+
+// Popula select de clientes do gráfico com fornecedores disponíveis
+async function popularClientesMedia() {
+  const { data } = await supabase.from('fornecedores').select('id, nome').order('nome');
+  const sel = document.getElementById('sel-clientes-media');
+  sel.innerHTML = (data||[]).map(f => `<option value="${f.nome}">${f.nome}</option>`).join('');
+}
+popularClientesMedia();
 document.getElementById('btn-limpar').addEventListener('click', () => {
   document.getElementById('f-de').value  = '';
   document.getElementById('f-ate').value = '';
