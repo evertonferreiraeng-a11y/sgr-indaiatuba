@@ -44,6 +44,32 @@
       display: flex; align-items: center; gap: 8px;
     }
     .alerta-exp.critico { background: var(--danger-light); border-color: #FECACA; }
+
+    /* Balanço de Massa */
+    .balanco-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+      gap: 12px;
+      margin-bottom: 16px;
+    }
+    .balanco-card {
+      background: #fff;
+      border-radius: 10px;
+      border: 1px solid #E5E7EB;
+      padding: 14px 16px;
+    }
+    .balanco-card .bc-label { font-size: 11px; font-weight: 600; text-transform: uppercase; color: var(--text-muted); margin-bottom: 4px; }
+    .balanco-card .bc-val  { font-size: 20px; font-weight: 800; margin-bottom: 2px; }
+    .balanco-card .bc-pct  { font-size: 12px; font-weight: 600; }
+    .balanco-bar-wrap { background:#F3F4F6; border-radius:8px; height:22px; display:flex; overflow:hidden; margin-bottom:8px; }
+    .balanco-bar-seg  { height:100%; transition: width .4s; display:flex; align-items:center; justify-content:center; font-size:10px; font-weight:700; color:#fff; overflow:hidden; white-space:nowrap; }
+    .balanco-legenda  { display:flex; flex-wrap:wrap; gap:10px; font-size:11px; }
+    .balanco-legenda span { display:flex; align-items:center; gap:4px; }
+    .balanco-legenda i { width:10px; height:10px; border-radius:2px; display:inline-block; }
+    .balanco-fechamento {
+      border-radius:8px; padding:10px 16px; font-size:13px; font-weight:600;
+      display:flex; align-items:center; gap:8px; margin-top:10px;
+    }
   </style>
 </head>
 <body>
@@ -86,6 +112,15 @@
           <div class="kpi-kg" id="kpi-est-kg">—</div>
           <div class="kpi-pct" id="kpi-est-val" style="font-size:13px;font-weight:600;color:var(--primary)">—</div>
         </div>
+      </div>
+
+      <!-- ── BALANÇO DE MASSA ── -->
+      <div class="dash-section-title">Balanço de Massa</div>
+      <div class="card" style="margin-bottom:20px" id="balanco-section">
+        <div class="balanco-grid" id="balanco-cards"></div>
+        <div class="balanco-bar-wrap" id="balanco-bar"></div>
+        <div class="balanco-legenda" id="balanco-legenda"></div>
+        <div id="balanco-fechamento"></div>
       </div>
 
       <!-- ── GAUGE + EQUIPAMENTOS + EQUIPE ── -->
@@ -224,6 +259,7 @@ async function carregarDados() {
   const fim    = new Date(y, m, 0).toISOString().split('T')[0];
   await Promise.all([
     carregarKPIs(inicio, fim),
+    carregarBalanco(inicio, fim),
     carregarEquipamentos(),
     carregarEquipeHoje(),
     carregarGraficoProducao(ano),
@@ -261,6 +297,62 @@ async function carregarKPIs(inicio, fim) {
 
   const taxa = totalEnt > 0 ? Math.min((expKg/totalEnt)*100, 100) : 0;
   atualizarGauge(taxa);
+}
+
+/* ── Balanço de Massa ── */
+async function carregarBalanco(inicio, fim) {
+  const [{ data: ents }, { data: vends }, { data: mats }] = await Promise.all([
+    supabase.from('entradas').select('peso_liquido_descontos, rejeito_uvr, tipo_movimentacao').gte('data', inicio).lte('data', fim),
+    supabase.from('vendas').select('peso_kg').gte('data', inicio).lte('data', fim),
+    supabase.from('materiais').select('estoque_kg').eq('no_estoque', true),
+  ]);
+
+  const recebido  = (ents||[]).filter(r=>r.tipo_movimentacao!=='saida').reduce((s,r)=>s+parseFloat(r.peso_liquido_descontos||0),0);
+  const rejeito   = (ents||[]).reduce((s,r)=>s+parseFloat(r.rejeito_uvr||0),0);
+  const expedido  = (vends||[]).reduce((s,r)=>s+(r.peso_kg||0),0);
+  const estoque   = (mats||[]).reduce((s,r)=>s+parseFloat(r.estoque_kg||0),0);
+  const passivo   = Math.max(0, recebido - expedido - rejeito - estoque);
+
+  const segmentos = [
+    { label:'Expedido',  val:expedido, cor:'#1B7A43' },
+    { label:'Rejeito',   val:rejeito,  cor:'#EF4444' },
+    { label:'Estoque',   val:estoque,  cor:'#3B82F6' },
+    { label:'Passivo',   val:passivo,  cor:'#F59E0B' },
+  ];
+
+  const pct = v => recebido > 0 ? (v/recebido*100).toFixed(1) : '0.0';
+
+  document.getElementById('balanco-cards').innerHTML = `
+    <div class="balanco-card">
+      <div class="bc-label">⬇ Recebido</div>
+      <div class="bc-val" style="color:var(--primary)">${ton(recebido)}</div>
+      <div class="bc-pct" style="color:var(--text-muted)">100% — base do balanço</div>
+    </div>
+    ${segmentos.map(s=>`
+    <div class="balanco-card">
+      <div class="bc-label" style="color:${s.cor}">${s.label}</div>
+      <div class="bc-val" style="color:${s.cor}">${ton(s.val)}</div>
+      <div class="bc-pct" style="color:${s.cor}">${pct(s.val)}% do recebido</div>
+    </div>`).join('')}
+  `;
+
+  document.getElementById('balanco-bar').innerHTML = recebido > 0
+    ? segmentos.map(s=>`<div class="balanco-bar-seg" style="width:${pct(s.val)}%;background:${s.cor}" title="${s.label}: ${pct(s.val)}%">${parseFloat(pct(s.val))>5?pct(s.val)+'%':''}</div>`).join('')
+    : '<div style="width:100%;background:#E5E7EB;border-radius:8px"></div>';
+
+  document.getElementById('balanco-legenda').innerHTML = segmentos.map(s=>
+    `<span><i style="background:${s.cor}"></i>${s.label} ${pct(s.val)}%</span>`
+  ).join('');
+
+  const diff     = recebido - expedido - rejeito - estoque;
+  const diffTon  = ton(Math.abs(diff));
+  const fechou   = Math.abs(diff) < 1;
+  document.getElementById('balanco-fechamento').innerHTML = `
+    <div class="balanco-fechamento" style="background:${fechou?'#D1FAE5':'#FEF3C7'};border:1px solid ${fechou?'#6EE7B7':'#FCD34D'}">
+      ${fechou
+        ? '✅ Balanço fechado — todos os volumes estão contabilizados.'
+        : `⚠️ Diferença de <strong>${diffTon}</strong> não contabilizada — verifique lançamentos de estoque ou passivo.`}
+    </div>`;
 }
 
 /* ── Gauge ── */
