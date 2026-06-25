@@ -416,7 +416,7 @@ async function renderGraficos(mes) {
     const nome = r.fornecedores?.nome || 'Desconhecido';
     fornMap[nome] = (fornMap[nome]||0) + parseFloat(r.peso_liquido_descontos ?? r.peso_kg ?? 0);
   });
-  const labels1 = Object.keys(fornMap).sort((a,b)=>fornMap[b]-fornMap[a]);
+  const labels1 = Object.keys(fornMap).sort((a,b)=>fornMap[b]-fornMap[a]).slice(0,15);
   const vals1   = labels1.map(l=>fornMap[l]);
 
   if (chartForn) chartForn.destroy();
