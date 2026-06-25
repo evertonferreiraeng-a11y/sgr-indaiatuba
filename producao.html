@@ -161,7 +161,7 @@
 
 <div id="toast-container"></div>
 <script type="module">
-import { initPage, supabase, peso, dataBR, toast, abrirModal, fecharModal, mesAtual } from './js/config.js';
+import { initPage, supabase, peso, ton, dataBR, toast, abrirModal, fecharModal, mesAtual } from './js/config.js';
 
 await initPage();
 
@@ -233,8 +233,8 @@ async function carregarCapacidades() {
       <h4>${eq.nome}</h4>
       <div class="progress-bar"><div class="progress-fill ${cls}" style="width:${Math.min(pct,100)}%"></div></div>
       <div class="capacity-info">
-        <span>${peso(prod)} produzido</span>
-        <span>Cap: ${cap > 0 ? peso(cap) : 'N/D'}</span>
+        <span>${ton(prod)} produzido</span>
+        <span>Cap: ${cap > 0 ? ton(cap) : 'N/D'}</span>
       </div>
       ${pct >= 100 ? '<div style="font-size:11px;color:var(--danger);margin-top:6px">⚠ Capacidade excedida!</div>' : ''}
     </div>`;
@@ -275,10 +275,10 @@ async function carregarProducao() {
     efic = totEnt > 0 ? (totKg/totEnt*100).toFixed(1)+'%' : '0%';
   }
 
-  document.getElementById('kpi-mes').textContent    = peso(totKg);
+  document.getElementById('kpi-mes').textContent    = ton(totKg);
   document.getElementById('kpi-regs').textContent   = producaoData.length;
-  document.getElementById('kpi-dia').textContent    = peso(totKg/dias);
-  document.getElementById('kpi-pessoa').textContent = peso(nColabs > 0 ? totKg/nColabs : 0);
+  document.getElementById('kpi-dia').textContent    = ton(totKg/dias);
+  document.getElementById('kpi-pessoa').textContent = ton(nColabs > 0 ? totKg/nColabs : 0);
   document.getElementById('kpi-efic').textContent   = efic;
   document.getElementById('prod-count').textContent = `${producaoData.length} registros`;
 
@@ -334,8 +334,8 @@ async function carregarProducao() {
       <td><strong>${i+1}</strong></td>
       <td>${nome}</td>
       <td class="text-right">${[...opDias[nome]].length}</td>
-      <td class="text-right fw-600">${peso(kg)}</td>
-      <td class="text-right">${peso(kg/d)}</td>
+      <td class="text-right fw-600">${ton(kg)}</td>
+      <td class="text-right">${ton(kg/d)}</td>
     </tr>`;
   }).join('') : '<tr><td colspan="5" class="table-empty">Sem dados</td></tr>';
 
@@ -352,7 +352,7 @@ async function carregarProducao() {
       <td>${r.equipamentos?.nome||'—'}</td>
       <td>${r.materiais?.nome||'—'}</td>
       <td>${r.colaboradores?.nome||'—'}</td>
-      <td class="text-right">${peso(r.peso_produzido_kg)}</td>
+      <td class="text-right">${ton(r.peso_produzido_kg)}</td>
       <td>${isAdmin?`
         <button class="btn-icon" onclick="editarProd('${r.id}')">✏️</button>
         <button class="btn-icon danger" onclick="excluirProd('${r.id}')">🗑️</button>
