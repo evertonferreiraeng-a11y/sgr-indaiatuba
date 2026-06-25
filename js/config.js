@@ -12,6 +12,9 @@ export const moeda = v =>
 export const peso = v =>
   new Intl.NumberFormat('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(v ?? 0) + ' kg';
 
+export const ton = v =>
+  new Intl.NumberFormat('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format((v ?? 0) / 1000) + ' ton';
+
 export const dataBR = s => {
   if (!s) return '—';
   const [y, m, d] = s.split('-');
