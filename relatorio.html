@@ -212,12 +212,13 @@ async function carregar() {
 
   const ano = inicio.slice(0, 4);
 
-  const [ents, vends, mats, equipamentos, colaboradores, avaliacoes, ocorrencias, producoes, metas, vendsAno] = await Promise.all([
+  const [ents, vends, mats, equipamentos, colaboradores, avaliacoes, ocorrencias, producoes, metas, vendsAno, cargosAll] = await Promise.all([
     fetchAll('entradas', 'peso_liquido, peso_liquido_descontos, tipo_movimentacao, data', [['gte','data',inicio],['lte','data',fim]]),
     fetchAll('vendas', 'peso_kg, valor_total, data, clientes(nome)', [['gte','data',inicio],['lte','data',fim]]),
     fetchAll('materiais', 'nome, estoque_kg, valor_unitario, no_estoque', [['eq','no_estoque',true]]),
     fetchAll('equipamentos', 'nome, frota, status, capacidade_pct, descricao, funcao', []),
     fetchAll('colaboradores', '*, cargos(nome, vagas)', []),
+    fetchAll('cargos', 'nome, vagas', []),
     fetchAll('colaborador_avaliacoes', '*', []),
     fetchAll('ocorrencias', 'tipo, data, colaborador_id', [['gte','data',inicio],['lte','data',fim]]),
     fetchAll('producao', 'peso_kg, data', [['gte','data',inicio],['lte','data',fim]]),
@@ -531,12 +532,14 @@ async function carregar() {
         </div>
       </div>
       ${(() => {
-        // Balanço de vagas por cargo
+        // Balanço de vagas por cargo — parte de todos os cargos cadastrados
         const vagasMap = {};
+        (cargosAll||[]).forEach(c => {
+          vagasMap[c.nome] = { preenchido: 0, total: c.vagas ?? null };
+        });
         ativos.forEach(c => {
-          const nome  = c.cargos?.nome || 'Sem cargo';
-          const total = c.cargos?.vagas ?? null;
-          if (!vagasMap[nome]) vagasMap[nome] = { preenchido: 0, total };
+          const nome = c.cargos?.nome || 'Sem cargo';
+          if (!vagasMap[nome]) vagasMap[nome] = { preenchido: 0, total: c.cargos?.vagas ?? null };
           vagasMap[nome].preenchido++;
         });
         const linhas = Object.entries(vagasMap).sort((a,b)=>a[0].localeCompare(b[0]));
