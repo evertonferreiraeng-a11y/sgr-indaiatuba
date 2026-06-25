@@ -65,9 +65,10 @@
     <div class="page-body">
 
       <!-- KPIs -->
-      <div class="kpi-grid" style="grid-template-columns:repeat(5,1fr)">
+      <div class="kpi-grid" style="grid-template-columns:repeat(6,1fr)">
         <div class="kpi-card"><div class="kpi-label">Colaboradores Ativos</div><div class="kpi-value" id="kpi-ativos">—</div><div class="kpi-sub">sem demissão</div></div>
         <div class="kpi-card"><div class="kpi-label">Em Experiência</div><div class="kpi-value" id="kpi-exp">—</div><div class="kpi-sub">1º ou 2º período</div></div>
+        <div class="kpi-card"><div class="kpi-label">Nota Média Geral</div><div class="kpi-value" id="kpi-nota-media">—</div><div class="kpi-sub">ativos + experiência</div></div>
         <div class="kpi-card"><div class="kpi-label">Faltas (mês)</div><div class="kpi-value" id="kpi-faltas">—</div><div class="kpi-sub">injustificadas</div></div>
         <div class="kpi-card"><div class="kpi-label">Atestados (mês)</div><div class="kpi-value" id="kpi-atestados">—</div><div class="kpi-sub">justificados</div></div>
         <div class="kpi-card kpi-turnover"><div class="kpi-label">Turnover</div><div class="kpi-value" id="kpi-turnover">—</div><div class="kpi-sub" id="kpi-turnover-sub">no ano</div></div>
@@ -287,6 +288,23 @@ function renderKPIs() {
   document.getElementById('kpi-atestados').textContent = ocMes.filter(r => r.tipo === 'atestado').length;
   document.getElementById('kpi-turnover').textContent  = tv + '%';
   document.getElementById('kpi-turnover-sub').textContent = `${demAno} demissão(ões) em ${anoAtualVal}`;
+
+  // Nota média geral: ativos + em experiência com pelo menos uma avaliação
+  const idsAtivos = new Set(ativos.map(c => c.id));
+  const notasAtivos = colabData
+    .filter(c => idsAtivos.has(c.id))
+    .map(c => {
+      const avals = avalData.filter(a => a.colaborador_id === c.id);
+      const medias = avals.map(calcMediaAval).filter(v => v !== null);
+      return medias.length ? medias.reduce((a,b)=>a+b,0)/medias.length : null;
+    })
+    .filter(v => v !== null);
+  const notaMedia = notasAtivos.length
+    ? (notasAtivos.reduce((a,b)=>a+b,0) / notasAtivos.length).toFixed(1)
+    : '—';
+  const elNota = document.getElementById('kpi-nota-media');
+  elNota.textContent = notaMedia !== '—' ? notaMedia : '—';
+  elNota.style.color = notaMedia === '—' ? '' : parseFloat(notaMedia) >= 7 ? 'var(--success)' : parseFloat(notaMedia) >= 5 ? '#D97706' : '#DC2626';
 }
 
 // ── Grid de Cards ─────────────────────────────────────────────────────────────
@@ -316,7 +334,11 @@ function renderColaboradores() {
     return;
   }
 
-  grid.innerHTML = lista.map(c => cardHTML(c, isAdm, hoje, iniMes, fimMes)).join('');
+  const listaOrdenada = [...lista].sort((a, b) => {
+    if (!!a.demissao === !!b.demissao) return a.nome.localeCompare(b.nome);
+    return a.demissao ? 1 : -1;
+  });
+  grid.innerHTML = listaOrdenada.map(c => cardHTML(c, isAdm, hoje, iniMes, fimMes)).join('');
 }
 
 function cardHTML(c, isAdm, hoje, iniMes, fimMes) {
