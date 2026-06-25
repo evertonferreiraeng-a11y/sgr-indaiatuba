@@ -344,7 +344,7 @@ async function carregarBalanco(inicio, fim) {
   ]);
 
   const recebido = (ents||[]).filter(r=>r.tipo_movimentacao!=='saida').reduce((s,r)=>s+parseFloat(r.peso_liquido_descontos||0),0);
-  const rejeito  = (ents||[]).reduce((s,r)=>s+parseFloat(r.rejeito_uvr||0),0);
+  const rejeito  = (ents||[]).filter(r=>r.tipo_movimentacao==='saida').reduce((s,r)=>s+parseFloat(r.peso_liquido_descontos||0),0);
   const expedido = (vends||[]).reduce((s,r)=>s+(r.peso_kg||0),0);
   const estoque  = (mats||[]).reduce((s,r)=>s+parseFloat(r.estoque_kg||0),0);
   const passivo  = parseFloat(localStorage.getItem('balanco-passivo-' + periodo) || 0);
