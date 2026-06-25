@@ -424,8 +424,12 @@ async function renderGraficos(mes) {
     type: 'bar',
     data: { labels: labels1, datasets: [{ label:'Volume (ton)', data: vals1.map(v=>v/1000), backgroundColor:'#3b82f6' }] },
     options: {
-      responsive: true, plugins: { legend: { display:false } },
-      scales: { y: { beginAtZero:true, ticks: { callback: v=>v.toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2})+' ton' } } }
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { display:false } },
+      scales: {
+        x: { ticks: { maxRotation: 45, minRotation: 45, font:{ size:11 } } },
+        y: { beginAtZero:true, ticks: { callback: v=>v.toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2})+' ton' } }
+      }
     }
   });
 
