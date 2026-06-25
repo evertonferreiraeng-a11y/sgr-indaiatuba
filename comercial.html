@@ -152,7 +152,7 @@
 <div id="toast-container"></div>
 <script type="module">
 import { initPage, supabase, moeda, peso, dataBR, toast, abrirModal, fecharModal, mesAtual, anoAtual } from './js/config.js';
-const ton = kg => (kg/1000).toLocaleString('pt-BR', { minimumFractionDigits:3, maximumFractionDigits:3 }) + ' ton';
+const ton = kg => (kg/1000).toLocaleString('pt-BR', { minimumFractionDigits:2, maximumFractionDigits:2 }) + ' ton';
 
 await initPage();
 
@@ -320,7 +320,7 @@ async function carregarGraficos() {
       plugins:{ legend:{ position:'bottom' } },
       scales: {
         y:  { beginAtZero:true, ticks:{ callback:v=>'R$'+v.toLocaleString('pt-BR') }, position:'left' },
-        y2: { beginAtZero:true, ticks:{ callback:v=>v.toLocaleString('pt-BR',{maximumFractionDigits:3})+'t' }, position:'right', grid:{drawOnChartArea:false} },
+        y2: { beginAtZero:true, ticks:{ callback:v=>v.toLocaleString('pt-BR',{maximumFractionDigits:2})+'t' }, position:'right', grid:{drawOnChartArea:false} },
       }
     }
   });
