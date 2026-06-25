@@ -107,7 +107,7 @@
             <canvas id="gauge-canvas" style="max-height:160px"></canvas>
             <div class="gauge-center">
               <div class="gauge-val" id="gauge-val" style="color:var(--primary)">—</div>
-              <div class="gauge-lbl">Expedido / Recebido</div>
+              <div class="gauge-lbl">(Expedido + Estoque) / Recebido</div>
             </div>
           </div>
         </div>
@@ -270,7 +270,7 @@ async function carregarKPIs(inicio, fim) {
   document.getElementById('kpi-est-kg').textContent  = ton(saldoKg);
   document.getElementById('kpi-est-val').textContent = moeda(saldoVal);
 
-  const taxa = totalEnt > 0 ? Math.min((expKg/totalEnt)*100, 100) : 0;
+  const taxa = recicKg > 0 ? Math.min(((expKg + saldoKg) / recicKg) * 100, 100) : 0;
   atualizarGauge(taxa);
 }
 
