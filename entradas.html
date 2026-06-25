@@ -738,6 +738,7 @@ document.getElementById('btn-salvar-entrada').addEventListener('click', async ()
     placa_veiculo:fd.placa_veiculo||null, pesagem_1:p1, pesagem_2:p2||null,
     impureza:imp, umidade:umi, peso_liquido:pl, total_descontos:td,
     peso_liquido_descontos:pld, peso_kg:pld,
+    valor:parseFloat(fd.valor)||0,
     rejeito_uvr:parseFloat(fd.rejeito_uvr)||0,
     transportadora:fd.transportadora||null,
     tipo_movimentacao:fd.tipo_movimentacao||'entrada',
