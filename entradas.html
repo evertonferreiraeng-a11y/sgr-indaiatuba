@@ -40,12 +40,12 @@
         <div class="kpi-card">
           <div class="kpi-label">Recicláveis (período)</div>
           <div class="kpi-value" id="kpi-rec">—</div>
-          <div class="kpi-sub">kg líquidos (peso líquido)</div>
+          <div class="kpi-sub">ton líquidas (peso líquido)</div>
         </div>
         <div class="kpi-card">
           <div class="kpi-label">Rejeito UVR (período)</div>
           <div class="kpi-value" id="kpi-rej">—</div>
-          <div class="kpi-sub">kg de rejeito</div>
+          <div class="kpi-sub">ton de rejeito</div>
         </div>
       </div>
 
@@ -200,7 +200,7 @@
 
 <div id="toast-container"></div>
 <script type="module">
-import { initPage, supabase, peso, dataBR, toast, abrirModal, fecharModal, mesAtual, anoAtual } from './js/config.js';
+import { initPage, supabase, peso, ton, dataBR, toast, abrirModal, fecharModal, mesAtual, anoAtual } from './js/config.js';
 
 await initPage();
 
@@ -316,8 +316,8 @@ function renderKPIs() {
     if (r.tipo_movimentacao === 'saida') rej += pl;
     else rec += pl;
   });
-  document.getElementById('kpi-rec').textContent  = peso(rec);
-  document.getElementById('kpi-rej').textContent  = peso(rej);
+  document.getElementById('kpi-rec').textContent  = ton(rec);
+  document.getElementById('kpi-rej').textContent  = ton(rej);
 }
 
 function renderTabela() {
@@ -338,13 +338,13 @@ function renderTabela() {
       <td>${r.motorista||'—'}</td>
       <td>${r.placa_veiculo||'—'}</td>
       <td>${r.materiais?.nome||'—'}</td>
-      <td class="text-right">${peso(r.pesagem_1||0)}</td>
-      <td class="text-right">${peso(r.pesagem_2||0)}</td>
+      <td class="text-right">${ton(r.pesagem_1||0)}</td>
+      <td class="text-right">${ton(r.pesagem_2||0)}</td>
       <td class="text-right">${(+(r.impureza||0)).toFixed(1)}%</td>
       <td class="text-right">${(+(r.umidade||0)).toFixed(1)}%</td>
-      <td class="text-right">${peso(r.peso_liquido||0)}</td>
-      <td class="text-right fw-600">${peso(pld)}</td>
-      <td class="text-right">${peso(r.total_descontos||0)}</td>
+      <td class="text-right">${ton(r.peso_liquido||0)}</td>
+      <td class="text-right fw-600">${ton(pld)}</td>
+      <td class="text-right">${ton(r.total_descontos||0)}</td>
       <td>${r.transportadora||'—'}</td>
       <td><span class="badge ${isSaida?'badge-red':'badge-green'}">${isSaida?'Saída de produtos':'Entrada de produtos'}</span></td>
       <td>${r.destino||'—'}</td>
@@ -422,7 +422,7 @@ async function renderGraficos(mes) {
   if (chartForn) chartForn.destroy();
   chartForn = new Chart(document.getElementById('chart-fornecedor').getContext('2d'), {
     type: 'bar',
-    data: { labels: labels1, datasets: [{ label:'Volume (kg)', data: vals1, backgroundColor:'#3b82f6' }] },
+    data: { labels: labels1, datasets: [{ label:'Volume (ton)', data: vals1, backgroundColor:'#3b82f6' }] },
     options: {
       responsive: true, plugins: { legend: { display:false } },
       scales: { y: { beginAtZero:true, ticks: { callback: v=>v.toLocaleString('pt-BR')+'kg' } } }
@@ -550,7 +550,7 @@ async function calcularMediaHistorica() {
               const media = vMedia[idx] || 0;
               const diffKg  = atual - media;
               const diffPct = media > 0 ? ((diffKg / media) * 100).toFixed(1) : null;
-              const fmt = v => v.toLocaleString('pt-BR', {minimumFractionDigits:0, maximumFractionDigits:0}) + ' kg';
+              const fmt = v => v.toLocaleString('pt-BR', {minimumFractionDigits:0, maximumFractionDigits:0}) + ' ton';
               const sinal = diffKg >= 0 ? '▲' : '▼';
               const cor   = diffKg >= 0 ? 'acima' : 'abaixo';
               return [
@@ -562,7 +562,7 @@ async function calcularMediaHistorica() {
           }
         }
       },
-      scales: { y: { beginAtZero:true, ticks: { callback: v => v.toLocaleString('pt-BR')+' kg' } } }
+      scales: { y: { beginAtZero:true, ticks: { callback: v => v.toLocaleString('pt-BR')+' ton' } } }
     }
   });
 
