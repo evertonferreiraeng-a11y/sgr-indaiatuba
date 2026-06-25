@@ -78,8 +78,12 @@
               </select>
             </div>
           </div>
-          <div id="forn-detalhe" style="display:none;background:#EBF5EE;border-radius:8px;padding:10px 14px;margin-bottom:10px;font-size:13px"></div>
-          <div style="height:260px;position:relative"><canvas id="chart-fornecedor"></canvas></div>
+          <div style="display:flex;gap:12px;align-items:flex-start">
+            <div style="flex:1;min-width:0">
+              <div style="height:260px;position:relative"><canvas id="chart-fornecedor"></canvas></div>
+            </div>
+            <div id="forn-resumo" style="display:none;min-width:160px;max-width:180px;display:flex;flex-direction:column;gap:8px"></div>
+          </div>
         </div>
         <div class="card" style="padding:16px;max-width:1000px">
           <h4 style="margin-bottom:8px">Volume Atual vs Média Histórica por Fornecedor</h4>
@@ -471,15 +475,32 @@ async function renderChartForn() {
     fornMap[nome] = (fornMap[nome]||0) + parseFloat(r.peso_liquido_descontos ?? r.peso_kg ?? 0);
   });
 
-  // Detalhe do fornecedor selecionado
-  const detalheEl = document.getElementById('forn-detalhe');
-  if (sel && fornMap[sel] !== undefined) {
-    const volTon = (fornMap[sel]/1000).toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2});
-    detalheEl.style.display = 'block';
-    detalheEl.innerHTML = `<strong>${sel}</strong> — Volume total: <strong>${volTon} ton</strong>${de||ate?' no período selecionado':''}`;
-  } else {
-    detalheEl.style.display = 'none';
-  }
+  // Card lateral com resumo
+  const resumoEl = document.getElementById('forn-resumo');
+  const totalVol = Object.values(fornMap).reduce((s,v)=>s+v,0);
+  const totalTon = (totalVol/1000).toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2});
+  const fornOrdenados = Object.entries(fornMap).sort((a,b)=>b[1]-a[1]);
+  const periodo = (de||ate) ? `${de||'início'} → ${ate||'hoje'}` : 'Período do filtro';
+
+  resumoEl.style.display = 'flex';
+  resumoEl.innerHTML = `
+    <div style="background:#EBF5EE;border-radius:8px;padding:12px;border:1px solid #A7F3D0">
+      <div style="font-size:10px;font-weight:700;color:#065f46;text-transform:uppercase;margin-bottom:4px">Volume Total</div>
+      <div style="font-size:20px;font-weight:800;color:#1B7A43">${totalTon}</div>
+      <div style="font-size:10px;color:#6B7280;margin-bottom:10px">ton recebidas</div>
+      <div style="font-size:10px;font-weight:600;color:#374151;margin-bottom:6px">Top fornecedores:</div>
+      ${fornOrdenados.slice(0,5).map(([nome,vol])=>{
+        const pct = totalVol>0?(vol/totalVol*100).toFixed(1):0;
+        const t = (vol/1000).toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2});
+        return `<div style="margin-bottom:6px">
+          <div style="font-size:11px;font-weight:600;color:#111827;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:150px" title="${nome}">${nome}</div>
+          <div style="font-size:10px;color:#6B7280">${t} ton (${pct}%)</div>
+          <div style="background:#E5E7EB;border-radius:4px;height:4px;margin-top:2px"><div style="background:#1B7A43;height:4px;border-radius:4px;width:${pct}%"></div></div>
+        </div>`;
+      }).join('')}
+      ${sel ? `<div style="margin-top:8px;padding-top:8px;border-top:1px solid #D1FAE5;font-size:11px;color:#065f46"><strong>${sel}</strong><br>${((fornMap[sel]||0)/1000).toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2})} ton selecionado</div>` : ''}
+    </div>
+  `;
 
   const labels1 = Object.keys(fornMap).sort((a,b)=>fornMap[b]-fornMap[a]).slice(0,15);
   const vals1   = labels1.map(l=>fornMap[l]);
