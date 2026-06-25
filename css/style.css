@@ -127,6 +127,7 @@ body {
 }
 body.sidebar-collapsed .main-content {
   margin-left: 0;
+  padding-left: 52px;
 }
 
 /* Botão toggle */
