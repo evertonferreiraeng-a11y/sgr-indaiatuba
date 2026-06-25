@@ -198,18 +198,17 @@ function initSidebarToggle() {
   btn.innerHTML = '☰';
   document.body.appendChild(btn);
 
-  const collapsed = localStorage.getItem('sidebar-collapsed') === '1';
-  if (collapsed) {
-    sidebar.classList.add('collapsed');
-    btn.classList.remove('open');
-  } else {
-    btn.classList.add('open');
+  function setCollapsed(val) {
+    sidebar.classList.toggle('collapsed', val);
+    document.body.classList.toggle('sidebar-collapsed', val);
+    btn.classList.toggle('open', !val);
+    localStorage.setItem('sidebar-collapsed', val ? '1' : '0');
   }
 
+  setCollapsed(localStorage.getItem('sidebar-collapsed') === '1');
+
   btn.addEventListener('click', () => {
-    const isCollapsed = sidebar.classList.toggle('collapsed');
-    btn.classList.toggle('open', !isCollapsed);
-    localStorage.setItem('sidebar-collapsed', isCollapsed ? '1' : '0');
+    setCollapsed(!sidebar.classList.contains('collapsed'));
   });
 }
 
