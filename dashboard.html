@@ -90,17 +90,29 @@
       <div id="alertas-exp-dash"></div>
 
       <!-- ── BALANÇO DE MASSA ── -->
-      <div class="dash-section-title">Balanço de Massa</div>
-      <div class="card" style="margin-bottom:20px" id="balanco-section">
-        <div class="balanco-grid" id="balanco-cards"></div>
-        <div class="balanco-bar-wrap" id="balanco-bar"></div>
-        <div class="balanco-legenda" id="balanco-legenda"></div>
-        <div id="balanco-fechamento"></div>
+      <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;margin-bottom:8px">
+        <div class="dash-section-title" style="margin-bottom:0">Balanço de Massa / Taxa de Reciclagem</div>
+        <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap">
+          <span style="font-size:12px;color:var(--text-muted)">Período:</span>
+          <button class="btn btn-sm" id="bal-btn-mes" style="font-size:12px;background:var(--primary);color:#fff;border:none;border-radius:6px;padding:4px 10px;cursor:pointer">Mês atual</button>
+          <button class="btn btn-sm" id="bal-btn-3m"  style="font-size:12px;background:#fff;color:#374151;border:1px solid #D1D5DB;border-radius:6px;padding:4px 10px;cursor:pointer">3 meses</button>
+          <button class="btn btn-sm" id="bal-btn-ano" style="font-size:12px;background:#fff;color:#374151;border:1px solid #D1D5DB;border-radius:6px;padding:4px 10px;cursor:pointer">Ano</button>
+          <button class="btn btn-sm" id="bal-btn-custom" style="font-size:12px;background:#fff;color:#374151;border:1px solid #D1D5DB;border-radius:6px;padding:4px 10px;cursor:pointer">Personalizado</button>
+          <div id="bal-custom-inputs" style="display:none;gap:6px;align-items:center">
+            <input type="date" id="bal-de"  style="font-size:12px;padding:3px 7px;border:1px solid #e2e8f0;border-radius:6px" />
+            <span style="font-size:12px">–</span>
+            <input type="date" id="bal-ate" style="font-size:12px;padding:3px 7px;border:1px solid #e2e8f0;border-radius:6px" />
+            <button class="btn btn-sm btn-primary" id="bal-btn-aplicar" style="font-size:12px">Filtrar</button>
+          </div>
+        </div>
       </div>
-
-      <!-- ── GAUGE + EQUIPAMENTOS + EQUIPE ── -->
-      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px;margin-bottom:20px">
-
+      <div style="display:grid;grid-template-columns:2fr 1fr;gap:16px;margin-bottom:20px">
+        <div class="card" id="balanco-section">
+          <div class="balanco-grid" id="balanco-cards"></div>
+          <div class="balanco-bar-wrap" id="balanco-bar"></div>
+          <div class="balanco-legenda" id="balanco-legenda"></div>
+          <div id="balanco-fechamento"></div>
+        </div>
         <div class="card" style="text-align:center">
           <div style="font-size:13px;font-weight:600;margin-bottom:4px">Taxa de Reciclagem</div>
           <div class="gauge-wrap">
@@ -111,7 +123,10 @@
             </div>
           </div>
         </div>
+      </div>
 
+      <!-- ── EQUIPAMENTOS + EQUIPE ── -->
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:20px">
         <div class="card">
           <div style="font-size:13px;font-weight:600;margin-bottom:12px">⚙ Equipamentos</div>
           <div style="display:flex;gap:16px;margin-bottom:12px">
@@ -235,6 +250,50 @@ document.getElementById('filtro-ano').addEventListener('change', () => {
   carregarDados();
 });
 document.getElementById('fat-ano').addEventListener('change', carregarFatPrevisto);
+
+// ── Filtro Balanço de Massa ──────────────────────────────────────────────────
+const balBtns = {
+  mes:    document.getElementById('bal-btn-mes'),
+  '3m':   document.getElementById('bal-btn-3m'),
+  ano:    document.getElementById('bal-btn-ano'),
+  custom: document.getElementById('bal-btn-custom'),
+};
+function setBalBtn(ativo) {
+  Object.entries(balBtns).forEach(([k, el]) => {
+    const isAtivo = k === ativo;
+    el.style.background = isAtivo ? 'var(--primary)' : '#fff';
+    el.style.color       = isAtivo ? '#fff' : '#374151';
+    el.style.border      = isAtivo ? 'none' : '1px solid #D1D5DB';
+  });
+  document.getElementById('bal-custom-inputs').style.display = ativo === 'custom' ? 'flex' : 'none';
+}
+function recarregarBalanco(inicio, fim) {
+  Promise.all([carregarKPIs(inicio, fim), carregarBalanco(inicio, fim)]);
+}
+balBtns.mes.addEventListener('click', () => {
+  setBalBtn('mes');
+  const mes = document.getElementById('filtro-mes').value;
+  const [y, m] = mes.split('-');
+  recarregarBalanco(`${y}-${m}-01`, new Date(y, m, 0).toISOString().split('T')[0]);
+});
+balBtns['3m'].addEventListener('click', () => {
+  setBalBtn('3m');
+  const ate = new Date(); ate.setDate(1); ate.setMonth(ate.getMonth()+1); ate.setDate(0);
+  const de  = new Date(ate); de.setMonth(de.getMonth()-2); de.setDate(1);
+  recarregarBalanco(de.toISOString().split('T')[0], ate.toISOString().split('T')[0]);
+});
+balBtns.ano.addEventListener('click', () => {
+  setBalBtn('ano');
+  const ano = document.getElementById('filtro-ano').value;
+  recarregarBalanco(`${ano}-01-01`, `${ano}-12-31`);
+});
+balBtns.custom.addEventListener('click', () => setBalBtn('custom'));
+document.getElementById('bal-btn-aplicar').addEventListener('click', () => {
+  const de  = document.getElementById('bal-de').value;
+  const ate = document.getElementById('bal-ate').value;
+  if (!de || !ate) { alert('Selecione De e Até.'); return; }
+  recarregarBalanco(de, ate);
+});
 
 async function carregarDados() {
   const mes = document.getElementById('filtro-mes').value;
