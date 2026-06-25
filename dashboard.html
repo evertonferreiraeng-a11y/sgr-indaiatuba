@@ -338,15 +338,21 @@ async function carregarKPIs(inicio, fim) {
 let _balancoBase = {}; // cache para reedição de passivo
 
 function renderBalanco({ recebido, expedido, rejeito, estoque, passivo, periodo }) {
-  const outros = Math.max(0, recebido - expedido - rejeito - estoque - passivo);
+  // Outros = o que entrou mas ainda não saiu nem foi classificado
+  const outros = Math.max(0, recebido - expedido - rejeito);
   const pct    = v => recebido > 0 ? (v / recebido * 100).toFixed(1) : '0.0';
 
+  // Barra: apenas o que saiu + o que ainda está no sistema
   const segmentos = [
     { label:'Expedido', val:expedido, cor:'#1B7A43' },
     { label:'Rejeito',  val:rejeito,  cor:'#EF4444' },
+    { label:'Outros',   val:outros,   cor:'#8B5CF6' },
+  ];
+
+  // Cards informativos (percentual do recebido, não afetam balanço)
+  const cardsInfo = [
     { label:'Estoque',  val:estoque,  cor:'#3B82F6' },
     { label:'Passivo',  val:passivo,  cor:'#F59E0B', editavel:true },
-    { label:'Outros',   val:outros,   cor:'#8B5CF6' },
   ];
 
   document.getElementById('balanco-cards').innerHTML = `
@@ -356,8 +362,14 @@ function renderBalanco({ recebido, expedido, rejeito, estoque, passivo, periodo 
       <div class="bc-pct" style="color:var(--text-muted)">100% — base do balanço</div>
     </div>
     ${segmentos.map(s=>`
+    <div class="balanco-card">
+      <div class="bc-label" style="color:${s.cor}">${s.label}</div>
+      <div class="bc-val" style="color:${s.cor}">${ton(s.val)}</div>
+      <div class="bc-pct" style="color:${s.cor}">${pct(s.val)}% do recebido</div>
+    </div>`).join('')}
+    ${cardsInfo.map(s=>`
     <div class="balanco-card" ${s.editavel?'style="border:1px dashed #F59E0B;cursor:pointer" title="Clique para editar o passivo" id="balanco-passivo-card"':''}>
-      <div class="bc-label" style="color:${s.cor}">${s.label}${s.editavel?' ✏️':''}</div>
+      <div class="bc-label" style="color:${s.cor}">${s.label}${s.editavel?' ✏️':''} <span style="font-size:10px;color:#94a3b8;font-weight:400">(informativo)</span></div>
       <div class="bc-val" style="color:${s.cor}" id="${s.editavel?'balanco-passivo-val':''}">${ton(s.val)}</div>
       <div class="bc-pct" style="color:${s.cor}">${pct(s.val)}% do recebido</div>
     </div>`).join('')}
@@ -375,13 +387,13 @@ function renderBalanco({ recebido, expedido, rejeito, estoque, passivo, periodo 
   document.getElementById('balanco-fechamento').innerHTML = `
     <div class="balanco-fechamento" style="background:${fechou?'#D1FAE5':'#FEF9C3'};border:1px solid ${fechou?'#6EE7B7':'#FDE047'}">
       ${fechou
-        ? '✅ Balanço fechado — todos os volumes estão contabilizados.'
-        : `⚠️ <strong>Atenção:</strong> ${ton(outros)} ainda não foram contabilizados. Verifique os lançamentos de estoque ou passivo para fechar o balanço.`}
+        ? '✅ Balanço fechado — todo o material recebido está contabilizado (Expedido + Rejeito).'
+        : `⚠️ <strong>Atenção:</strong> ${ton(outros)} ainda não saíram como Expedido ou Rejeito. Verifique os lançamentos.`}
     </div>`;
 
   // Edição do passivo ao clicar no card
   document.getElementById('balanco-passivo-card')?.addEventListener('click', () => {
-    const maxKg  = Math.max(0, recebido - expedido - rejeito - estoque);
+    const maxKg  = Math.max(0, recebido - expedido - rejeito);
     const maxTon = (maxKg / 1000).toFixed(3);
     const atual  = passivo / 1000;
     const novo   = prompt(`Passivo (em toneladas) — máximo ${maxTon} ton:`, atual.toFixed(3));
