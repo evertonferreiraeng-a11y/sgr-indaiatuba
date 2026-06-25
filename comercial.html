@@ -46,14 +46,21 @@
 
         <!-- Gráfico: Vendas por Cliente -->
         <div class="card" style="padding:16px">
-          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;flex-wrap:wrap;gap:8px">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;flex-wrap:wrap;gap:8px">
             <h4>Acompanhamento de Vendas por Cliente</h4>
             <select id="chart-tipo" style="font-size:13px;padding:4px 8px;border:1px solid #e2e8f0;border-radius:6px">
               <option value="mes">Mês atual</option>
               <option value="3m">Últimos 3 meses</option>
               <option value="6m">Últimos 6 meses</option>
               <option value="ano">Ano atual</option>
+              <option value="custom">Personalizado…</option>
             </select>
+          </div>
+          <div id="chart-custom-range" style="display:none;gap:6px;align-items:center;margin-bottom:8px;flex-wrap:wrap">
+            <input type="date" id="chart-de" style="font-size:12px;padding:3px 6px;border:1px solid #e2e8f0;border-radius:6px" />
+            <span style="font-size:12px;color:#64748b">até</span>
+            <input type="date" id="chart-ate" style="font-size:12px;padding:3px 6px;border:1px solid #e2e8f0;border-radius:6px" />
+            <button id="btn-chart-filtrar" class="btn btn-sm btn-primary" style="padding:3px 10px;font-size:12px">Filtrar</button>
           </div>
           <div style="height:220px;position:relative"><canvas id="chart-clientes"></canvas></div>
         </div>
@@ -278,21 +285,28 @@ async function carregarGraficos() {
   const ano  = now.getFullYear();
   const mesN = now.getMonth(); // 0-based
 
-  let dataInicio;
+  let dataInicio, dataFim;
   if (tipo === 'mes') {
     dataInicio = new Date(ano, mesN, 1).toISOString().split('T')[0];
+    dataFim    = new Date(ano, mesN + 1, 0).toISOString().split('T')[0];
   } else if (tipo === '3m') {
     dataInicio = new Date(ano, mesN - 2, 1).toISOString().split('T')[0];
+    dataFim    = new Date(ano, mesN + 1, 0).toISOString().split('T')[0];
   } else if (tipo === '6m') {
     dataInicio = new Date(ano, mesN - 5, 1).toISOString().split('T')[0];
+    dataFim    = new Date(ano, mesN + 1, 0).toISOString().split('T')[0];
+  } else if (tipo === 'custom') {
+    dataInicio = document.getElementById('chart-de').value;
+    dataFim    = document.getElementById('chart-ate').value;
+    if (!dataInicio || !dataFim) return;
   } else {
     dataInicio = `${ano}-01-01`;
+    dataFim    = `${ano}-12-31`;
   }
 
-  const { data } = await supabase.from('vendas')
-    .select('*, clientes(nome), materiais(nome)')
-    .gte('data', dataInicio)
-    .order('data');
+  let q = supabase.from('vendas').select('*, clientes(nome), materiais(nome)').gte('data', dataInicio);
+  if (dataFim) q = q.lte('data', dataFim);
+  const { data } = await q.order('data');
 
   const rows = data || [];
 
@@ -410,7 +424,12 @@ async function carregarEvolucao(rows) {
   });
 }
 
-document.getElementById('chart-tipo').addEventListener('change', carregarGraficos);
+document.getElementById('chart-tipo').addEventListener('change', () => {
+  const custom = document.getElementById('chart-tipo').value === 'custom';
+  document.getElementById('chart-custom-range').style.display = custom ? 'flex' : 'none';
+  if (!custom) carregarGraficos();
+});
+document.getElementById('btn-chart-filtrar').addEventListener('click', carregarGraficos);
 document.getElementById('sel-cliente-chart').addEventListener('change', carregarGraficos);
 
 // ── CRUD ──────────────────────────────────────────────────────────────────────
