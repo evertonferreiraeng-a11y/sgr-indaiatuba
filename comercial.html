@@ -27,17 +27,44 @@
         <div class="kpi-card">
           <div class="kpi-label">Faturamento</div>
           <div class="kpi-value" id="kpi-fat">—</div>
-          <div class="kpi-sub" id="kpi-fat-sub">no período</div>
+          <div style="display:flex;gap:16px;margin-top:4px;flex-wrap:wrap">
+            <div>
+              <div style="font-size:11px;color:var(--text-muted)">Volume</div>
+              <div style="font-size:13px;font-weight:600" id="kpi-fat-vol">—</div>
+            </div>
+            <div>
+              <div style="font-size:11px;color:var(--text-muted)">Ticket Médio</div>
+              <div style="font-size:13px;font-weight:600" id="kpi-fat-ticket">—</div>
+            </div>
+          </div>
         </div>
         <div class="kpi-card">
-          <div class="kpi-label">Volume Vendido</div>
-          <div class="kpi-value" id="kpi-vol">—</div>
-          <div class="kpi-sub">ton no período</div>
+          <div class="kpi-label">Estoque</div>
+          <div class="kpi-value" id="kpi-est-val">—</div>
+          <div style="display:flex;gap:16px;margin-top:4px;flex-wrap:wrap">
+            <div>
+              <div style="font-size:11px;color:var(--text-muted)">Volume</div>
+              <div style="font-size:13px;font-weight:600" id="kpi-est-vol">—</div>
+            </div>
+            <div>
+              <div style="font-size:11px;color:var(--text-muted)">Ticket Médio</div>
+              <div style="font-size:13px;font-weight:600" id="kpi-est-ticket">—</div>
+            </div>
+          </div>
         </div>
         <div class="kpi-card">
-          <div class="kpi-label">Ticket Médio</div>
-          <div class="kpi-value" id="kpi-ticket-ton">—</div>
-          <div class="kpi-sub">R$ por tonelada</div>
+          <div class="kpi-label">Valor Acumulado</div>
+          <div class="kpi-value" id="kpi-acum-val">—</div>
+          <div style="display:flex;gap:16px;margin-top:4px;flex-wrap:wrap">
+            <div>
+              <div style="font-size:11px;color:var(--text-muted)">Volume Total</div>
+              <div style="font-size:13px;font-weight:600" id="kpi-acum-vol">—</div>
+            </div>
+            <div>
+              <div style="font-size:11px;color:var(--text-muted)">Ticket Médio</div>
+              <div style="font-size:13px;font-weight:600" id="kpi-acum-ticket">—</div>
+            </div>
+          </div>
         </div>
       </div>
 
@@ -235,12 +262,30 @@ async function carregar() {
   renderTabela();
 }
 
-function renderKPIs() {
+async function renderKPIs() {
   let fat = 0, vol = 0;
   vendaData.forEach(r => { fat += r.valor_total||0; vol += r.peso_kg||0; });
-  document.getElementById('kpi-fat').textContent    = moeda(fat);
-  document.getElementById('kpi-vol').textContent    = ton(vol);
-  document.getElementById('kpi-ticket-ton').textContent = vol > 0 ? moeda(fat/(vol/1000)) : '—';
+
+  // Faturamento
+  document.getElementById('kpi-fat').textContent       = moeda(fat);
+  document.getElementById('kpi-fat-vol').textContent   = ton(vol);
+  document.getElementById('kpi-fat-ticket').textContent = vol > 0 ? moeda(fat/(vol/1000)) : '—';
+
+  // Estoque — busca materiais em estoque
+  const { data: mats } = await supabase.from('materiais')
+    .select('estoque_kg, valor_unitario').eq('no_estoque', true);
+  const estVol = (mats||[]).reduce((s,m)=>s+parseFloat(m.estoque_kg||0),0);
+  const estVal = (mats||[]).reduce((s,m)=>s+(parseFloat(m.estoque_kg||0)*parseFloat(m.valor_unitario||0)),0);
+  document.getElementById('kpi-est-val').textContent    = moeda(estVal);
+  document.getElementById('kpi-est-vol').textContent    = ton(estVol);
+  document.getElementById('kpi-est-ticket').textContent = estVol > 0 ? moeda(estVal/(estVol/1000)) : '—';
+
+  // Acumulado = Faturamento + Estoque
+  const acumVal = fat + estVal;
+  const acumVol = vol + estVol;
+  document.getElementById('kpi-acum-val').textContent    = moeda(acumVal);
+  document.getElementById('kpi-acum-vol').textContent    = ton(acumVol);
+  document.getElementById('kpi-acum-ticket').textContent = acumVol > 0 ? moeda(acumVal/(acumVol/1000)) : '—';
 }
 
 function renderTabela() {
