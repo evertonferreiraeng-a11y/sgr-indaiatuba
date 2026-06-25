@@ -311,11 +311,12 @@ function renderBalanco({ recebido, expedido, rejeito, estoque, passivo, periodo 
     `<span><i style="background:${s.cor}"></i>${s.label} ${pct(s.val)}%</span>`
   ).join('');
 
-  const soma   = expedido + rejeito + estoque + passivo + outros;
-  const fechou = Math.abs(recebido - soma) < 1;
+  const fechou = outros < 1;
   document.getElementById('balanco-fechamento').innerHTML = `
-    <div class="balanco-fechamento" style="background:${fechou?'#D1FAE5':'#FEF3C7'};border:1px solid ${fechou?'#6EE7B7':'#FCD34D'}">
-      ${fechou ? '✅ Balanço fechado — todos os volumes contabilizados.' : `⚠️ Verifique os lançamentos — o balanço ainda não fecha.`}
+    <div class="balanco-fechamento" style="background:${fechou?'#D1FAE5':'#FEF9C3'};border:1px solid ${fechou?'#6EE7B7':'#FDE047'}">
+      ${fechou
+        ? '✅ Balanço fechado — todos os volumes estão contabilizados.'
+        : `⚠️ <strong>Atenção:</strong> ${ton(outros)} ainda não foram contabilizados. Verifique os lançamentos de estoque ou passivo para fechar o balanço.`}
     </div>`;
 
   // Edição do passivo ao clicar no card
