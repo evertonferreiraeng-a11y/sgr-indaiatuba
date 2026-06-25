@@ -275,27 +275,19 @@ async function carregarKPIs(inicio, fim) {
 }
 
 /* ── Balanço de Massa ── */
-async function carregarBalanco(inicio, fim) {
-  const [{ data: ents }, { data: vends }, { data: mats }] = await Promise.all([
-    supabase.from('entradas').select('peso_liquido_descontos, rejeito_uvr, tipo_movimentacao').gte('data', inicio).lte('data', fim),
-    supabase.from('vendas').select('peso_kg').gte('data', inicio).lte('data', fim),
-    supabase.from('materiais').select('estoque_kg').eq('no_estoque', true),
-  ]);
+let _balancoBase = {}; // cache para reedição de passivo
 
-  const recebido  = (ents||[]).filter(r=>r.tipo_movimentacao!=='saida').reduce((s,r)=>s+parseFloat(r.peso_liquido_descontos||0),0);
-  const rejeito   = (ents||[]).reduce((s,r)=>s+parseFloat(r.rejeito_uvr||0),0);
-  const expedido  = (vends||[]).reduce((s,r)=>s+(r.peso_kg||0),0);
-  const estoque   = (mats||[]).reduce((s,r)=>s+parseFloat(r.estoque_kg||0),0);
-  const passivo   = Math.max(0, recebido - expedido - rejeito - estoque);
+function renderBalanco({ recebido, expedido, rejeito, estoque, passivo, periodo }) {
+  const outros = Math.max(0, recebido - expedido - rejeito - estoque - passivo);
+  const pct    = v => recebido > 0 ? (v / recebido * 100).toFixed(1) : '0.0';
 
   const segmentos = [
-    { label:'Expedido',  val:expedido, cor:'#1B7A43' },
-    { label:'Rejeito',   val:rejeito,  cor:'#EF4444' },
-    { label:'Estoque',   val:estoque,  cor:'#3B82F6' },
-    { label:'Passivo',   val:passivo,  cor:'#F59E0B' },
+    { label:'Expedido', val:expedido, cor:'#1B7A43' },
+    { label:'Rejeito',  val:rejeito,  cor:'#EF4444' },
+    { label:'Estoque',  val:estoque,  cor:'#3B82F6' },
+    { label:'Passivo',  val:passivo,  cor:'#F59E0B', editavel:true },
+    { label:'Outros',   val:outros,   cor:'#8B5CF6' },
   ];
-
-  const pct = v => recebido > 0 ? (v/recebido*100).toFixed(1) : '0.0';
 
   document.getElementById('balanco-cards').innerHTML = `
     <div class="balanco-card">
@@ -304,30 +296,56 @@ async function carregarBalanco(inicio, fim) {
       <div class="bc-pct" style="color:var(--text-muted)">100% — base do balanço</div>
     </div>
     ${segmentos.map(s=>`
-    <div class="balanco-card">
-      <div class="bc-label" style="color:${s.cor}">${s.label}</div>
-      <div class="bc-val" style="color:${s.cor}">${ton(s.val)}</div>
+    <div class="balanco-card" ${s.editavel?'style="border:1px dashed #F59E0B;cursor:pointer" title="Clique para editar o passivo" id="balanco-passivo-card"':''}>
+      <div class="bc-label" style="color:${s.cor}">${s.label}${s.editavel?' ✏️':''}</div>
+      <div class="bc-val" style="color:${s.cor}" id="${s.editavel?'balanco-passivo-val':''}">${ton(s.val)}</div>
       <div class="bc-pct" style="color:${s.cor}">${pct(s.val)}% do recebido</div>
     </div>`).join('')}
   `;
 
   document.getElementById('balanco-bar').innerHTML = recebido > 0
     ? segmentos.map(s=>`<div class="balanco-bar-seg" style="width:${pct(s.val)}%;background:${s.cor}" title="${s.label}: ${pct(s.val)}%">${parseFloat(pct(s.val))>5?pct(s.val)+'%':''}</div>`).join('')
-    : '<div style="width:100%;background:#E5E7EB;border-radius:8px"></div>';
+    : '<div style="width:100%;background:#E5E7EB;border-radius:8px;height:22px"></div>';
 
   document.getElementById('balanco-legenda').innerHTML = segmentos.map(s=>
     `<span><i style="background:${s.cor}"></i>${s.label} ${pct(s.val)}%</span>`
   ).join('');
 
-  const diff     = recebido - expedido - rejeito - estoque;
-  const diffTon  = ton(Math.abs(diff));
-  const fechou   = Math.abs(diff) < 1;
+  const soma   = expedido + rejeito + estoque + passivo + outros;
+  const fechou = Math.abs(recebido - soma) < 1;
   document.getElementById('balanco-fechamento').innerHTML = `
     <div class="balanco-fechamento" style="background:${fechou?'#D1FAE5':'#FEF3C7'};border:1px solid ${fechou?'#6EE7B7':'#FCD34D'}">
-      ${fechou
-        ? '✅ Balanço fechado — todos os volumes estão contabilizados.'
-        : `⚠️ Diferença de <strong>${diffTon}</strong> não contabilizada — verifique lançamentos de estoque ou passivo.`}
+      ${fechou ? '✅ Balanço fechado — todos os volumes contabilizados.' : `⚠️ Verifique os lançamentos — o balanço ainda não fecha.`}
     </div>`;
+
+  // Edição do passivo ao clicar no card
+  document.getElementById('balanco-passivo-card')?.addEventListener('click', () => {
+    const atual = passivo / 1000; // em ton para exibição
+    const novo  = prompt('Passivo (em toneladas):', atual.toFixed(3));
+    if (novo === null) return;
+    const novoKg = parseFloat(novo.replace(',', '.')) * 1000;
+    if (isNaN(novoKg) || novoKg < 0) return alert('Valor inválido.');
+    localStorage.setItem('balanco-passivo-' + periodo, novoKg);
+    renderBalanco({ ..._balancoBase, passivo: novoKg, periodo });
+  });
+}
+
+async function carregarBalanco(inicio, fim) {
+  const periodo = inicio.slice(0, 7); // YYYY-MM
+  const [{ data: ents }, { data: vends }, { data: mats }] = await Promise.all([
+    supabase.from('entradas').select('peso_liquido_descontos, rejeito_uvr, tipo_movimentacao').gte('data', inicio).lte('data', fim),
+    supabase.from('vendas').select('peso_kg').gte('data', inicio).lte('data', fim),
+    supabase.from('materiais').select('estoque_kg').eq('no_estoque', true),
+  ]);
+
+  const recebido = (ents||[]).filter(r=>r.tipo_movimentacao!=='saida').reduce((s,r)=>s+parseFloat(r.peso_liquido_descontos||0),0);
+  const rejeito  = (ents||[]).reduce((s,r)=>s+parseFloat(r.rejeito_uvr||0),0);
+  const expedido = (vends||[]).reduce((s,r)=>s+(r.peso_kg||0),0);
+  const estoque  = (mats||[]).reduce((s,r)=>s+parseFloat(r.estoque_kg||0),0);
+  const passivo  = parseFloat(localStorage.getItem('balanco-passivo-' + periodo) || 0);
+
+  _balancoBase = { recebido, expedido, rejeito, estoque };
+  renderBalanco({ recebido, expedido, rejeito, estoque, passivo, periodo });
 }
 
 /* ── Gauge ── */
