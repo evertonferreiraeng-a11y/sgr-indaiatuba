@@ -161,7 +161,7 @@ async function carregar() {
   const [ents, vends, mats, equipamentos, colaboradores, avaliacoes, ocorrencias, producoes] = await Promise.all([
     fetchAll('entradas', 'peso_liquido, peso_liquido_descontos, tipo_movimentacao, data', [['gte','data',inicio],['lte','data',fim]]),
     fetchAll('vendas', 'peso_kg, valor_total, data, clientes(nome)', [['gte','data',inicio],['lte','data',fim]]),
-    fetchAll('materiais', 'nome, estoque_kg, no_estoque', [['eq','no_estoque',true]]),
+    fetchAll('materiais', 'nome, estoque_kg, valor_unitario, no_estoque', [['eq','no_estoque',true]]),
     fetchAll('equipamentos', 'nome, status, capacidade_pct', []),
     fetchAll('colaboradores', '*', []),
     fetchAll('colaborador_avaliacoes', '*', []),
@@ -188,6 +188,8 @@ async function carregar() {
   // ── Faturamento ──────────────────────────────────────────────────────────
   const faturamento   = vends.reduce((s,r)=>s+(r.valor_total||0),0);
   const ticketMedio   = expedido > 0 ? faturamento / (expedido / 1000) : 0;
+  const valorEstoque  = mats.reduce((s,r)=>s+(parseFloat(r.estoque_kg||0)*parseFloat(r.valor_unitario||0)),0);
+  const totalPotencial = faturamento + valorEstoque;
 
   // ── Clientes top ────────────────────────────────────────────────────────
   const cliMap = {};
@@ -318,6 +320,11 @@ async function carregar() {
         <div class="rel-kpi">
           <div class="rel-kpi-label">Ticket Médio</div>
           <div class="rel-kpi-val" style="font-size:18px">${moeda(ticketMedio)}<span style="font-size:11px">/ton</span></div>
+        </div>
+        <div class="rel-kpi" style="border:2px solid #1B7A43;background:#f0fdf4">
+          <div class="rel-kpi-label" style="color:#1B7A43">Faturamento + Estoque</div>
+          <div class="rel-kpi-val" style="font-size:18px;color:#1B7A43">${moeda(totalPotencial)}</div>
+          <div class="rel-kpi-sub" style="color:#4ade80">Realizado + valor em estoque</div>
         </div>
       </div>
       ${topCli.length ? `
