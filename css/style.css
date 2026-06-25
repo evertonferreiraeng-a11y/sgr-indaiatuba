@@ -125,7 +125,6 @@ body {
 .sidebar.collapsed {
   transform: translateX(-100%);
 }
-.sidebar.collapsed + .main-content,
 body.sidebar-collapsed .main-content {
   margin-left: 0;
 }
