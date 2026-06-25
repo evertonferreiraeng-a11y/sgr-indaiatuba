@@ -537,9 +537,11 @@ async function carregarFatPrevisto() {
       plugins:{
         legend:{position:'top'},
         datalabels:{
-          display: ctx => ctx.dataset.type !== 'line' && ctx.parsed.y > 0,
-          anchor:'end', align:'end',
-          color:'#1B7A43', font:{size:10, weight:'600'},
+          display: ctx => ctx.parsed.y > 0,
+          anchor: ctx => ctx.dataset.type === 'line' ? 'end' : 'end',
+          align:  ctx => ctx.dataset.type === 'line' ? 'top' : 'end',
+          color:  ctx => ctx.dataset.type === 'line' ? '#D64545' : '#1B7A43',
+          font:   ctx => ({ size: ctx.dataset.type === 'line' ? 9 : 10, weight:'600' }),
           formatter: v => v > 0 ? 'R$'+v.toLocaleString('pt-BR',{minimumFractionDigits:0,maximumFractionDigits:0}) : ''
         }
       },
