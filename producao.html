@@ -373,7 +373,8 @@ async function carregarMateriais() {
       <td><span class="badge ${m.ativo?'badge-green':'badge-gray'}">${m.ativo?'Ativo':'Inativo'}</span></td>
       <td>${isAdmin?`
         <button class="btn-icon" onclick="editarMat(${JSON.stringify(m).replace(/"/g,'&quot;')})">✏️</button>
-        <button class="btn-icon danger" onclick="toggleMat('${m.id}',${m.ativo})">${m.ativo?'🚫':'✅'}</button>
+        <button class="btn-icon danger" onclick="toggleMat('${m.id}',${m.ativo})" title="${m.ativo?'Desativar':'Ativar'}">${m.ativo?'🚫':'✅'}</button>
+        <button class="btn-icon danger" onclick="excluirMat('${m.id}','${m.nome.replace(/'/g,"\\'")}')\" title="Excluir">🗑️</button>
       `:'—'}</td>
     </tr>
   `).join('') || '<tr><td colspan="5" class="table-empty">Nenhum material</td></tr>';
@@ -481,6 +482,34 @@ window.editarMat = m => {
 };
 window.toggleMat = async (id, ativo) => {
   await supabase.from('materiais').update({ ativo: !ativo }).eq('id', id);
+  carregarMateriais();
+};
+
+window.excluirMat = async (id, nome) => {
+  if (!confirm(`Deseja excluir o material "${nome}"? Esta ação não pode ser desfeita.`)) return;
+
+  // Verificar uso em todas as tabelas relacionadas
+  const [{ count: cVendas }, { count: cEntradas }, { count: cProd }, { count: cEstoque }] = await Promise.all([
+    supabase.from('vendas').select('*', { count:'exact', head:true }).eq('material_id', id),
+    supabase.from('entradas').select('*', { count:'exact', head:true }).eq('material_id', id),
+    supabase.from('producao').select('*', { count:'exact', head:true }).eq('material_id', id),
+    supabase.from('estoque_movimentacoes').select('*', { count:'exact', head:true }).eq('material_id', id),
+  ]);
+
+  const usos = [];
+  if (cVendas  > 0) usos.push(`• Vendas: ${cVendas} registro(s)`);
+  if (cEntradas> 0) usos.push(`• Entradas: ${cEntradas} registro(s)`);
+  if (cProd    > 0) usos.push(`• Produção: ${cProd} registro(s)`);
+  if (cEstoque > 0) usos.push(`• Estoque: ${cEstoque} movimentação(ões)`);
+
+  if (usos.length > 0) {
+    alert(`Não é possível excluir "${nome}" pois está vinculado a:\n\n${usos.join('\n')}\n\nRemova os vínculos antes de excluir.`);
+    return;
+  }
+
+  const { error } = await supabase.from('materiais').delete().eq('id', id);
+  if (error) { toast('Erro ao excluir: ' + error.message, 'error'); return; }
+  toast('Material excluído!');
   carregarMateriais();
 };
 document.getElementById('btn-salvar-mat').addEventListener('click', async () => {
