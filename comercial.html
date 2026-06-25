@@ -41,12 +41,13 @@
         </div>
       </div>
 
-      <!-- Gráfico: Vendas por Cliente -->
-      <div class="card mb-16" style="padding:16px">
-        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;flex-wrap:wrap;gap:8px">
-          <h4>Acompanhamento de Vendas por Cliente</h4>
-          <div style="display:flex;gap:8px;align-items:center">
-            <label style="font-size:13px">Período:</label>
+      <!-- Gráficos lado a lado -->
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px">
+
+        <!-- Gráfico: Vendas por Cliente -->
+        <div class="card" style="padding:16px">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;flex-wrap:wrap;gap:8px">
+            <h4>Acompanhamento de Vendas por Cliente</h4>
             <select id="chart-tipo" style="font-size:13px;padding:4px 8px;border:1px solid #e2e8f0;border-radius:6px">
               <option value="mes">Mês atual</option>
               <option value="3m">Últimos 3 meses</option>
@@ -54,19 +55,20 @@
               <option value="ano">Ano atual</option>
             </select>
           </div>
+          <div style="height:220px;position:relative"><canvas id="chart-clientes"></canvas></div>
         </div>
-        <div style="height:220px;position:relative"><canvas id="chart-clientes"></canvas></div>
-      </div>
 
-      <!-- Gráfico: Faturamento mensal por cliente -->
-      <div class="card mb-16" style="padding:16px">
-        <h4 style="margin-bottom:12px">Evolução Mensal por Cliente</h4>
-        <div style="margin-bottom:8px">
-          <select id="sel-cliente-chart" style="font-size:13px;padding:4px 8px;border:1px solid #e2e8f0;border-radius:6px">
-            <option value="">Todos os clientes</option>
-          </select>
+        <!-- Gráfico: Evolução Mensal por Cliente -->
+        <div class="card" style="padding:16px">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;flex-wrap:wrap;gap:8px">
+            <h4>Evolução Mensal por Cliente</h4>
+            <select id="sel-cliente-chart" style="font-size:13px;padding:4px 8px;border:1px solid #e2e8f0;border-radius:6px">
+              <option value="">Todos os clientes</option>
+            </select>
+          </div>
+          <div style="height:220px;position:relative"><canvas id="chart-evolucao"></canvas></div>
         </div>
-        <div style="height:200px;position:relative"><canvas id="chart-evolucao"></canvas></div>
+
       </div>
 
       <!-- Filtros tabela -->
