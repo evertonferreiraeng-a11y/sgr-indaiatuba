@@ -394,18 +394,33 @@ function renderBalanco({ recebido, expedido, rejeito, estoque, passivo, periodo 
   });
 }
 
+async function fetchAllPaginated(table, selectFields, filters) {
+  const PAGE = 1000;
+  let all = [], from = 0;
+  while (true) {
+    let q = supabase.from(table).select(selectFields).range(from, from + PAGE - 1);
+    filters.forEach(([method, ...args]) => { q = q[method](...args); });
+    const { data, error } = await q;
+    if (error || !data || data.length === 0) break;
+    all = all.concat(data);
+    if (data.length < PAGE) break;
+    from += PAGE;
+  }
+  return all;
+}
+
 async function carregarBalanco(inicio, fim) {
-  const periodo = inicio.slice(0, 7); // YYYY-MM
-  const [{ data: ents }, { data: vends }, { data: mats }] = await Promise.all([
-    supabase.from('entradas').select('peso_liquido, peso_liquido_descontos, tipo_movimentacao').gte('data', inicio).lte('data', fim),
-    supabase.from('vendas').select('peso_kg').gte('data', inicio).lte('data', fim),
-    supabase.from('materiais').select('estoque_kg').eq('no_estoque', true),
+  const periodo = inicio.slice(0, 7);
+  const [ents, vends, mats] = await Promise.all([
+    fetchAllPaginated('entradas', 'peso_liquido, peso_liquido_descontos, tipo_movimentacao', [['gte','data',inicio],['lte','data',fim]]),
+    fetchAllPaginated('vendas', 'peso_kg', [['gte','data',inicio],['lte','data',fim]]),
+    fetchAllPaginated('materiais', 'estoque_kg', [['eq','no_estoque',true]]),
   ]);
 
-  const recebido = (ents||[]).filter(r=>r.tipo_movimentacao!=='saida').reduce((s,r)=>s+parseFloat(r.peso_liquido_descontos||r.peso_liquido||0),0);
-  const rejeito  = (ents||[]).filter(r=>r.tipo_movimentacao==='saida').reduce((s,r)=>s+parseFloat(r.peso_liquido||r.peso_liquido_descontos||0),0);
-  const expedido = (vends||[]).reduce((s,r)=>s+(r.peso_kg||0),0);
-  const estoque  = (mats||[]).reduce((s,r)=>s+parseFloat(r.estoque_kg||0),0);
+  const recebido = ents.filter(r=>r.tipo_movimentacao!=='saida').reduce((s,r)=>s+parseFloat(r.peso_liquido_descontos||r.peso_liquido||0),0);
+  const rejeito  = ents.filter(r=>r.tipo_movimentacao==='saida').reduce((s,r)=>s+parseFloat(r.peso_liquido||r.peso_liquido_descontos||0),0);
+  const expedido = vends.reduce((s,r)=>s+(r.peso_kg||0),0);
+  const estoque  = mats.reduce((s,r)=>s+parseFloat(r.estoque_kg||0),0);
   const passivo  = parseFloat(localStorage.getItem('balanco-passivo-' + periodo) || 0);
 
   _balancoBase = { recebido, expedido, rejeito, estoque };
