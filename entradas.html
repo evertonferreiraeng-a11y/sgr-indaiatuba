@@ -422,10 +422,10 @@ async function renderGraficos(mes) {
   if (chartForn) chartForn.destroy();
   chartForn = new Chart(document.getElementById('chart-fornecedor').getContext('2d'), {
     type: 'bar',
-    data: { labels: labels1, datasets: [{ label:'Volume (ton)', data: vals1, backgroundColor:'#3b82f6' }] },
+    data: { labels: labels1, datasets: [{ label:'Volume (ton)', data: vals1.map(v=>v/1000), backgroundColor:'#3b82f6' }] },
     options: {
       responsive: true, plugins: { legend: { display:false } },
-      scales: { y: { beginAtZero:true, ticks: { callback: v=>v.toLocaleString('pt-BR')+'kg' } } }
+      scales: { y: { beginAtZero:true, ticks: { callback: v=>v.toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2})+' ton' } } }
     }
   });
 
@@ -515,7 +515,7 @@ async function calcularMediaHistorica() {
       labels,
       datasets: [
         {
-          label: `Volume atual até dia ${ateDia} (kg)`,
+          label: `Volume atual até dia ${ateDia} (ton)`,
           data: vAtual,
           backgroundColor: cores,
           borderRadius: 4,
@@ -550,7 +550,7 @@ async function calcularMediaHistorica() {
               const media = vMedia[idx] || 0;
               const diffKg  = atual - media;
               const diffPct = media > 0 ? ((diffKg / media) * 100).toFixed(1) : null;
-              const fmt = v => v.toLocaleString('pt-BR', {minimumFractionDigits:0, maximumFractionDigits:0}) + ' ton';
+              const fmt = v => (v/1000).toLocaleString('pt-BR', {minimumFractionDigits:2, maximumFractionDigits:2}) + ' ton';
               const sinal = diffKg >= 0 ? '▲' : '▼';
               const cor   = diffKg >= 0 ? 'acima' : 'abaixo';
               return [
@@ -562,7 +562,7 @@ async function calcularMediaHistorica() {
           }
         }
       },
-      scales: { y: { beginAtZero:true, ticks: { callback: v => v.toLocaleString('pt-BR')+' ton' } } }
+      scales: { y: { beginAtZero:true, ticks: { callback: v=>(v/1000).toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2})+' ton' } } }
     }
   });
 
