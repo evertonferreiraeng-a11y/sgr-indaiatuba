@@ -235,7 +235,7 @@ async function carregarDados() {
 async function carregarKPIs(inicio, fim) {
   const [{ data: ents }, { data: vends }, { data: mats }] = await Promise.all([
     supabase.from('entradas').select('peso_liquido, tipo_movimentacao').gte('data', inicio).lte('data', fim),
-    supabase.from('vendas').select('peso_kg, valor').gte('data', inicio).lte('data', fim),
+    supabase.from('vendas').select('peso_kg, valor_total').gte('data', inicio).lte('data', fim),
     supabase.from('materiais').select('estoque_kg, valor_unitario, no_estoque').eq('no_estoque', true),
   ]);
 
@@ -243,7 +243,7 @@ async function carregarKPIs(inicio, fim) {
   const rejKg    = (ents||[]).filter(r=>r.tipo_movimentacao==='saida').reduce((s,r)=>s+parseFloat(r.peso_liquido||0), 0);
   const totalEnt = recicKg + rejKg;
   const expKg    = (vends||[]).reduce((s,r)=>s+(r.peso_kg||0), 0);
-  const expVal   = (vends||[]).reduce((s,r)=>s+(r.valor||0), 0);
+  const expVal   = (vends||[]).reduce((s,r)=>s+(r.valor_total||0), 0);
 
   const saldoKg  = (mats||[]).reduce((s,r)=>s+parseFloat(r.estoque_kg||0), 0);
   const saldoVal = (mats||[]).reduce((s,r)=>s+(parseFloat(r.estoque_kg||0)*parseFloat(r.valor_unitario||0)), 0);
@@ -323,7 +323,7 @@ window.removerEquipe = async id => {
 document.getElementById('btn-registrar-equipe').addEventListener('click', async () => {
   const hoje = new Date().toISOString().split('T')[0];
   const [{ data: todos }, { data: presentes }] = await Promise.all([
-    supabase.from('colaboradores').select('id, nome').eq('ativo', true).order('nome'),
+    supabase.from('colaboradores').select('id, nome').eq('ativo', true).is('demissao', null).order('nome'),
     supabase.from('equipe_diaria').select('colaborador_id').eq('data', hoje),
   ]);
   const presenteIds = new Set((presentes||[]).map(r=>r.colaborador_id));
@@ -404,7 +404,7 @@ async function carregarGraficoProducao(ano) {
 async function carregarFatPrevisto() {
   const ano = document.getElementById('fat-ano').value;
   const [{ data: vends }, { data: metas }] = await Promise.all([
-    supabase.from('vendas').select('data, valor, peso_kg').gte('data',`${ano}-01-01`).lte('data',`${ano}-12-31`),
+    supabase.from('vendas').select('data, valor_total, peso_kg').gte('data',`${ano}-01-01`).lte('data',`${ano}-12-31`),
     supabase.from('metas').select('*').eq('indicador','faturamento').like('periodo',`${ano}-%`),
   ]);
 
@@ -415,7 +415,7 @@ async function carregarFatPrevisto() {
   const metaId = {};
   (vends||[]).forEach(r => {
     const i = new Date(r.data+'T00:00:00').getMonth();
-    real[i]  += r.valor||0;
+    real[i]  += r.valor_total||0;
     qtd[i]++;
     kgVnd[i] += r.peso_kg||0;
   });
