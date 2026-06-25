@@ -185,6 +185,32 @@ export async function initPage() {
   renderUserInfo();
   initMobileMenu();
   document.getElementById('btn-logout')?.addEventListener('click', logout);
+  initSidebarToggle();
+}
+
+function initSidebarToggle() {
+  const sidebar = document.querySelector('.sidebar');
+  if (!sidebar) return;
+
+  const btn = document.createElement('button');
+  btn.className = 'sidebar-toggle';
+  btn.title = 'Recolher/expandir menu';
+  btn.innerHTML = '☰';
+  document.body.appendChild(btn);
+
+  const collapsed = localStorage.getItem('sidebar-collapsed') === '1';
+  if (collapsed) {
+    sidebar.classList.add('collapsed');
+    btn.classList.remove('open');
+  } else {
+    btn.classList.add('open');
+  }
+
+  btn.addEventListener('click', () => {
+    const isCollapsed = sidebar.classList.toggle('collapsed');
+    btn.classList.toggle('open', !isCollapsed);
+    localStorage.setItem('sidebar-collapsed', isCollapsed ? '1' : '0');
+  });
 }
 
 /* ── Period helpers ── */
