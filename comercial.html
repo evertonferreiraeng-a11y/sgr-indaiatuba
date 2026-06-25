@@ -272,18 +272,17 @@ function renderTabela() {
 // ── Gráficos ──────────────────────────────────────────────────────────────────
 async function carregarGraficos() {
   const tipo = document.getElementById('chart-tipo').value;
-  const ano  = anoAtual();
-  const mesA = mesAtual();
+  const now  = new Date();
+  const ano  = now.getFullYear();
+  const mesN = now.getMonth(); // 0-based
 
   let dataInicio;
   if (tipo === 'mes') {
-    dataInicio = `${ano}-${String(mesA).padStart(2,'0')}-01`;
+    dataInicio = new Date(ano, mesN, 1).toISOString().split('T')[0];
   } else if (tipo === '3m') {
-    const d = new Date(ano, mesA-3, 1);
-    dataInicio = d.toISOString().split('T')[0];
+    dataInicio = new Date(ano, mesN - 2, 1).toISOString().split('T')[0];
   } else if (tipo === '6m') {
-    const d = new Date(ano, mesA-6, 1);
-    dataInicio = d.toISOString().split('T')[0];
+    dataInicio = new Date(ano, mesN - 5, 1).toISOString().split('T')[0];
   } else {
     dataInicio = `${ano}-01-01`;
   }
