@@ -52,7 +52,33 @@
       <!-- Gráficos -->
       <div style="margin-bottom:16px">
         <div class="card" style="padding:16px;margin-bottom:16px;max-width:700px">
-          <h4 style="margin-bottom:12px">Volume por Fornecedor (período selecionado)</h4>
+          <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;margin-bottom:12px">
+            <h4>Volume por Fornecedor</h4>
+            <button class="btn btn-sm btn-outline" id="btn-filt-forn" style="font-size:12px">⚙ Filtros</button>
+          </div>
+          <div id="forn-filtros" style="display:none;background:#f8fafc;border-radius:8px;padding:12px;margin-bottom:12px;gap:12px;flex-wrap:wrap">
+            <div style="display:flex;gap:12px;flex-wrap:wrap;margin-bottom:8px">
+              <div>
+                <label style="font-size:11px;color:#64748b;display:block;margin-bottom:2px">De</label>
+                <input type="date" id="forn-de" style="font-size:12px;padding:4px 8px;border:1px solid #e2e8f0;border-radius:6px" />
+              </div>
+              <div>
+                <label style="font-size:11px;color:#64748b;display:block;margin-bottom:2px">Até</label>
+                <input type="date" id="forn-ate" style="font-size:12px;padding:4px 8px;border:1px solid #e2e8f0;border-radius:6px" />
+              </div>
+              <div style="align-self:flex-end">
+                <button class="btn btn-sm btn-primary" id="btn-aplicar-forn" style="font-size:12px">Filtrar</button>
+                <button class="btn btn-sm btn-outline" id="btn-limpar-forn" style="font-size:12px;margin-left:4px">Limpar</button>
+              </div>
+            </div>
+            <div>
+              <label style="font-size:11px;color:#64748b;display:block;margin-bottom:2px">Fornecedor</label>
+              <select id="forn-sel" style="font-size:12px;padding:4px 8px;border:1px solid #e2e8f0;border-radius:6px;min-width:220px">
+                <option value="">Todos os fornecedores</option>
+              </select>
+            </div>
+          </div>
+          <div id="forn-detalhe" style="display:none;background:#EBF5EE;border-radius:8px;padding:10px 14px;margin-bottom:10px;font-size:13px"></div>
           <div style="height:260px;position:relative"><canvas id="chart-fornecedor"></canvas></div>
         </div>
         <div class="card" style="padding:16px;max-width:1000px">
@@ -411,28 +437,75 @@ function iniciarEdicaoInline(cell) {
 
 // ── Gráficos ──────────────────────────────────────────────────────────────────
 async function renderGraficos(mes) {
+  await renderChartForn();
+}
+
+async function renderChartForn() {
+  const de   = document.getElementById('forn-de').value;
+  const ate  = document.getElementById('forn-ate').value;
+  const sel  = document.getElementById('forn-sel').value;
+
+  // Buscar dados com filtro de período se informado
+  let rows = entData;
+  if (de || ate) {
+    let q = supabase.from('entradas').select('*, fornecedores(nome)');
+    if (de)  q = q.gte('data', de);
+    if (ate) q = q.lte('data', ate);
+    const { data } = await q;
+    rows = data || [];
+  }
+
+  // Popular select de fornecedores
+  const todosForns = [...new Set(entData.map(r => r.fornecedores?.nome || 'Desconhecido'))].sort();
+  const selEl = document.getElementById('forn-sel');
+  const selAtual = selEl.value;
+  selEl.innerHTML = '<option value="">Todos os fornecedores</option>' +
+    todosForns.map(n=>`<option value="${n}" ${n===selAtual?'selected':''}>${n}</option>`).join('');
+
+  // Filtrar por fornecedor selecionado
+  if (sel) rows = rows.filter(r => (r.fornecedores?.nome || 'Desconhecido') === sel);
+
   const fornMap = {};
-  entData.forEach(r => {
+  rows.forEach(r => {
     const nome = r.fornecedores?.nome || 'Desconhecido';
     fornMap[nome] = (fornMap[nome]||0) + parseFloat(r.peso_liquido_descontos ?? r.peso_kg ?? 0);
   });
+
+  // Detalhe do fornecedor selecionado
+  const detalheEl = document.getElementById('forn-detalhe');
+  if (sel && fornMap[sel] !== undefined) {
+    const volTon = (fornMap[sel]/1000).toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2});
+    detalheEl.style.display = 'block';
+    detalheEl.innerHTML = `<strong>${sel}</strong> — Volume total: <strong>${volTon} ton</strong>${de||ate?' no período selecionado':''}`;
+  } else {
+    detalheEl.style.display = 'none';
+  }
+
   const labels1 = Object.keys(fornMap).sort((a,b)=>fornMap[b]-fornMap[a]).slice(0,15);
   const vals1   = labels1.map(l=>fornMap[l]);
 
   if (chartForn) chartForn.destroy();
   chartForn = new Chart(document.getElementById('chart-fornecedor').getContext('2d'), {
     type: 'bar',
-    data: { labels: labels1, datasets: [{ label:'Volume (ton)', data: vals1.map(v=>v/1000), backgroundColor:'#3b82f6' }] },
+    data: { labels: labels1, datasets: [{ label:'Volume (ton)', data: vals1.map(v=>v/1000),
+      backgroundColor: labels1.map(l => l===sel ? '#1B7A43' : '#3b82f6') }] },
     options: {
       responsive: true, maintainAspectRatio: false,
-      plugins: { legend: { display:false } },
+      plugins: { legend: { display:false },
+        tooltip: { callbacks: { label: ctx => `${(ctx.parsed.y).toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2})} ton` } }
+      },
       scales: {
         x: { ticks: { maxRotation: 45, minRotation: 45, font:{ size:11 } } },
         y: { beginAtZero:true, ticks: { callback: v=>v.toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2})+' ton' } }
+      },
+      onClick: (e, els) => {
+        if (!els.length) return;
+        const nome = labels1[els[0].index];
+        document.getElementById('forn-sel').value = nome;
+        renderChartForn();
       }
     }
   });
-
 }
 
 async function calcularMediaHistorica() {
@@ -792,6 +865,19 @@ document.getElementById('csv-import').addEventListener('change', async function(
 
 document.getElementById('btn-filtrar').addEventListener('click', carregar);
 document.getElementById('btn-calc-media').addEventListener('click', calcularMediaHistorica);
+
+document.getElementById('btn-filt-forn').addEventListener('click', () => {
+  const el = document.getElementById('forn-filtros');
+  el.style.display = el.style.display === 'none' ? 'block' : 'none';
+});
+document.getElementById('btn-aplicar-forn').addEventListener('click', renderChartForn);
+document.getElementById('forn-sel').addEventListener('change', renderChartForn);
+document.getElementById('btn-limpar-forn').addEventListener('click', () => {
+  document.getElementById('forn-de').value = '';
+  document.getElementById('forn-ate').value = '';
+  document.getElementById('forn-sel').value = '';
+  renderChartForn();
+});
 document.getElementById('ate-dia').value = new Date().getDate();
 
 // Popula select de clientes do gráfico com fornecedores disponíveis
