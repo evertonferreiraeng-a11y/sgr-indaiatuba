@@ -311,11 +311,14 @@ function renderBalanco({ recebido, expedido, rejeito, estoque, passivo, periodo 
 
   // Edição do passivo ao clicar no card
   document.getElementById('balanco-passivo-card')?.addEventListener('click', () => {
-    const atual = passivo / 1000; // em ton para exibição
-    const novo  = prompt('Passivo (em toneladas):', atual.toFixed(3));
+    const maxKg  = Math.max(0, recebido - expedido - rejeito - estoque);
+    const maxTon = (maxKg / 1000).toFixed(3);
+    const atual  = passivo / 1000;
+    const novo   = prompt(`Passivo (em toneladas) — máximo ${maxTon} ton:`, atual.toFixed(3));
     if (novo === null) return;
     const novoKg = parseFloat(novo.replace(',', '.')) * 1000;
     if (isNaN(novoKg) || novoKg < 0) return alert('Valor inválido.');
+    if (novoKg > maxKg) return alert(`Valor excede o limite de ${maxTon} ton disponíveis no balanço.`);
     localStorage.setItem('balanco-passivo-' + periodo, novoKg);
     renderBalanco({ ..._balancoBase, passivo: novoKg, periodo });
   });
