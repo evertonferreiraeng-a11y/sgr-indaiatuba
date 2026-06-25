@@ -6,6 +6,7 @@
   <title>Dashboard — SGR Indaiatuba</title>
   <link rel="stylesheet" href="css/style.css" />
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4/dist/chart.umd.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2/dist/chartjs-plugin-datalabels.min.js"></script>
   <style>
     .dash-section-title {
       font-size: 13px; font-weight: 700; color: var(--primary);
@@ -278,16 +279,23 @@ function atualizarGauge(taxa) {
 
 /* ── Equipamentos ── */
 async function carregarEquipamentos() {
-  const { data } = await supabase.from('equipamentos').select('nome, ativo');
-  const total  = (data||[]).length;
-  const ativos = (data||[]).filter(e=>e.ativo).length;
-  const pct    = total > 0 ? Math.round(ativos/total*100) : 0;
+  const { data } = await supabase.from('equipamentos').select('nome, status, capacidade_pct');
+  const total    = (data||[]).length;
+  const operando = (data||[]).filter(e=>e.status==='operando').length;
+  const restricao= (data||[]).filter(e=>e.status==='restricao').length;
+  const ativos   = operando + restricao;
+  const capTotal = (data||[]).reduce((s,e)=>{
+    if (e.status==='operando')  return s+100;
+    if (e.status==='restricao') return s+(parseFloat(e.capacidade_pct)||50);
+    return s;
+  }, 0);
+  const pct = total > 0 ? Math.round(capTotal / total) : 0;
   document.getElementById('equip-total').textContent  = total;
   document.getElementById('equip-ativos').textContent = ativos;
   document.getElementById('equip-pct').textContent    = pct+'%';
   document.getElementById('equip-bar').style.width    = pct+'%';
   document.getElementById('equip-lista').textContent  =
-    (data||[]).filter(e=>e.ativo).map(e=>e.nome).join(' · ') || 'Nenhum ativo';
+    (data||[]).filter(e=>e.status!=='parado').map(e=>e.nome).join(' · ') || 'Nenhum ativo';
 }
 
 /* ── Equipe Hoje ── */
@@ -435,7 +443,16 @@ async function carregarFatPrevisto() {
         { label:'Previsto',  data:prev, backgroundColor:'rgba(214,69,69,.2)', borderColor:'#D64545', borderWidth:2, type:'line', tension:.3, pointRadius:4, order:1 },
       ]
     },
-    options: { responsive:true, maintainAspectRatio:false, plugins:{legend:{position:'top'}},
+    options: { responsive:true, maintainAspectRatio:false,
+      plugins:{
+        legend:{position:'top'},
+        datalabels:{
+          display: ctx => ctx.dataset.type !== 'line' && ctx.parsed.y > 0,
+          anchor:'end', align:'end',
+          color:'#1B7A43', font:{size:10, weight:'600'},
+          formatter: v => v > 0 ? 'R$'+v.toLocaleString('pt-BR',{minimumFractionDigits:0,maximumFractionDigits:0}) : ''
+        }
+      },
       scales:{ x:{grid:{display:false}}, y:{grid:{color:'#F0F0F0'}, ticks:{callback:v=>'R$'+v.toLocaleString('pt-BR'),font:{size:10}}} } }
   });
 
