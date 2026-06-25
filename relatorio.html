@@ -224,17 +224,16 @@ async function carregar() {
   const hc        = ativos.length + demAno;
   const turnover  = hc ? ((demAno/hc)*100).toFixed(1) : '0.0';
 
+  // Usa apenas a avaliação mais recente de cada colaborador
   const notasAtivos = ativos.map(c => {
-    const avals  = avaliacoes.filter(a=>a.colaborador_id===c.id);
-    const medias = avals.map(calcMediaAval).filter(v=>v!==null);
-    return medias.length ? medias.reduce((a,b)=>a+b,0)/medias.length : null;
+    const avals = avaliacoes.filter(a=>a.colaborador_id===c.id).sort((a,b)=>b.data_avaliacao>a.data_avaliacao?1:-1);
+    return avals.length ? calcMediaAval(avals[0]) : null;
   }).filter(v=>v!==null);
   const notaMedia = notasAtivos.length ? (notasAtivos.reduce((a,b)=>a+b,0)/notasAtivos.length) : null;
 
   const colobsComNota = ativos.map(c => {
-    const avals  = avaliacoes.filter(a=>a.colaborador_id===c.id);
-    const medias = avals.map(calcMediaAval).filter(v=>v!==null);
-    const nota   = medias.length ? medias.reduce((a,b)=>a+b,0)/medias.length : null;
+    const avals = avaliacoes.filter(a=>a.colaborador_id===c.id).sort((a,b)=>b.data_avaliacao>a.data_avaliacao?1:-1);
+    const nota  = avals.length ? calcMediaAval(avals[0]) : null;
     return { nome: c.nome, nota };
   }).sort((a,b)=>(b.nota??-1)-(a.nota??-1));
 
@@ -426,14 +425,6 @@ async function carregar() {
         <div class="rel-kpi">
           <div class="rel-kpi-label">Nota Média</div>
           <div class="rel-kpi-val" style="color:${notaMedia===null?'#94a3b8':notaMedia>=7?'#1B7A43':notaMedia>=5?'#D97706':'#DC2626'}">${notaMedia!==null?notaMedia.toFixed(1):'—'}</div>
-        </div>
-        <div class="rel-kpi">
-          <div class="rel-kpi-label">Faltas (período)</div>
-          <div class="rel-kpi-val" style="color:${faltas>0?'#DC2626':'#1B7A43'}">${faltas}</div>
-        </div>
-        <div class="rel-kpi">
-          <div class="rel-kpi-label">Atestados (período)</div>
-          <div class="rel-kpi-val">${atestados}</div>
         </div>
         <div class="rel-kpi">
           <div class="rel-kpi-label">Turnover (ano)</div>
