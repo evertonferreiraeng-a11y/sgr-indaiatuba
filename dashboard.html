@@ -221,8 +221,19 @@ const anoAtualVal = anoAtual();
 });
 document.getElementById('filtro-mes').value = mesAtual();
 
-document.getElementById('filtro-mes').addEventListener('change', carregarDados);
-document.getElementById('filtro-ano').addEventListener('change', carregarDados);
+document.getElementById('filtro-mes').addEventListener('change', () => {
+  const ano = document.getElementById('filtro-mes').value.split('-')[0];
+  document.getElementById('filtro-ano').value = ano;
+  document.getElementById('fat-ano').value = ano;
+  carregarDados();
+});
+document.getElementById('filtro-ano').addEventListener('change', () => {
+  const ano = document.getElementById('filtro-ano').value;
+  const mes = document.getElementById('filtro-mes').value.split('-')[1] || '01';
+  document.getElementById('filtro-mes').value = `${ano}-${mes}`;
+  document.getElementById('fat-ano').value = ano;
+  carregarDados();
+});
 document.getElementById('fat-ano').addEventListener('change', carregarFatPrevisto);
 
 async function carregarDados() {
