@@ -176,7 +176,7 @@ function renderTabela() {
 }
 
 // ── Formatação ────────────────────────────────────────────────────────────────
-function fmtKg(v)    { return v.toLocaleString('pt-BR',{maximumFractionDigits:2}) + ' kg'; }
+function fmtKg(v)    { return (v/1000).toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2}) + ' ton'; }
 function fmtNum(v)   { return v.toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2}); }
 function fmtMoeda(v) { return 'R$ ' + v.toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2}); }
 
