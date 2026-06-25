@@ -381,7 +381,7 @@ async function carregar() {
         <div class="rel-kpi">
           <div class="rel-kpi-label">Ativos</div>
           <div class="rel-kpi-val" style="color:#1B7A43">${equAtivos}</div>
-          <div class="rel-kpi-sub">${equOperando} operando · ${equRestricao} restrição</div>
+          <div class="rel-kpi-sub">${equOperando} operando</div>
         </div>
         <div class="rel-kpi">
           <div class="rel-kpi-label">Disponibilidade</div>
@@ -390,7 +390,7 @@ async function carregar() {
       </div>
       <table class="rel-table">
         <thead>
-          <tr><th>Equipamento</th><th>Função</th><th>Descrição</th><th style="text-align:center">Status</th></tr>
+          <tr><th>Equipamento</th><th>Função</th><th>Observação</th><th style="text-align:center">Status</th></tr>
         </thead>
         <tbody>
           ${equipamentos.sort((a,b)=>a.nome.localeCompare(b.nome)).map(e => {
@@ -403,7 +403,7 @@ async function carregar() {
             return `<tr>
               <td style="font-weight:600">${e.nome}</td>
               <td style="color:#475569">${e.funcao||'—'}</td>
-              <td style="color:#475569;font-size:12px">${e.descricao||'—'}</td>
+              <td><div contenteditable="true" style="min-width:160px;border:1px dashed #cbd5e1;border-radius:4px;padding:3px 7px;font-size:12px;color:#374151;outline:none" placeholder="Digite uma observação…"></div></td>
               <td style="text-align:center"><span style="background:${st.bg};color:${st.cor};padding:2px 10px;border-radius:10px;font-size:12px;font-weight:600;white-space:nowrap">${st.label}</span></td>
             </tr>`;
           }).join('')}
