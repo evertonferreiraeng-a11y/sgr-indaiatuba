@@ -260,16 +260,6 @@ async function carregarKPIs(inicio, fim) {
   const saldoKg  = (mats||[]).reduce((s,r)=>s+parseFloat(r.estoque_kg||0), 0);
   const saldoVal = (mats||[]).reduce((s,r)=>s+(parseFloat(r.estoque_kg||0)*parseFloat(r.valor_unitario||0)), 0);
 
-  const pct = (n, d) => d > 0 ? (n/d*100).toFixed(1)+'%' : '0%';
-  document.getElementById('kpi-rec-kg').textContent  = ton(recicKg);
-  document.getElementById('kpi-rec-pct').textContent = pct(recicKg, totalEnt);
-  document.getElementById('kpi-rej-kg').textContent  = ton(rejKg);
-  document.getElementById('kpi-rej-pct').textContent = pct(rejKg, totalEnt);
-  document.getElementById('kpi-exp-kg').textContent  = ton(expKg);
-  document.getElementById('kpi-exp-pct').textContent = pct(expKg, totalEnt);
-  document.getElementById('kpi-est-kg').textContent  = ton(saldoKg);
-  document.getElementById('kpi-est-val').textContent = moeda(saldoVal);
-
   const taxa = recicKg > 0 ? Math.min(((expKg + saldoKg) / recicKg) * 100, 100) : 0;
   atualizarGauge(taxa);
 }
