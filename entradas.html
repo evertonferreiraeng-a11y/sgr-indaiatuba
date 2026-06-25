@@ -470,7 +470,7 @@ async function renderChartForn() {
   if (sel) rows = rows.filter(r => (r.fornecedores?.nome || 'Desconhecido') === sel);
 
   const fornMap = {};
-  rows.forEach(r => {
+  rows.filter(r => r.tipo_movimentacao !== 'saida').forEach(r => {
     const nome = r.fornecedores?.nome || 'Desconhecido';
     fornMap[nome] = (fornMap[nome]||0) + parseFloat(r.peso_liquido_descontos ?? r.peso_kg ?? 0);
   });
