@@ -338,8 +338,8 @@ async function carregarKPIs(inicio, fim) {
 let _balancoBase = {}; // cache para reedição de passivo
 
 function renderBalanco({ recebido, expedido, rejeito, estoque, periodo }) {
-  // Passivo = saldo automático (o que entrou mas ainda não saiu)
-  const passivo = Math.max(0, recebido - expedido - rejeito);
+  // Passivo = saldo automático descontando o estoque já classificado
+  const passivo = Math.max(0, recebido - expedido - rejeito - estoque);
   const pct     = v => recebido > 0 ? (v / recebido * 100).toFixed(1) : '0.0';
 
   const segmentos = [
