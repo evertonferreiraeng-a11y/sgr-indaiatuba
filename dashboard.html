@@ -337,22 +337,20 @@ async function carregarKPIs(inicio, fim) {
 /* ── Balanço de Massa ── */
 let _balancoBase = {}; // cache para reedição de passivo
 
-function renderBalanco({ recebido, expedido, rejeito, estoque, passivo, periodo }) {
-  // Outros = o que entrou mas ainda não saiu nem foi classificado
-  const outros = Math.max(0, recebido - expedido - rejeito);
-  const pct    = v => recebido > 0 ? (v / recebido * 100).toFixed(1) : '0.0';
+function renderBalanco({ recebido, expedido, rejeito, estoque, periodo }) {
+  // Passivo = saldo automático (o que entrou mas ainda não saiu)
+  const passivo = Math.max(0, recebido - expedido - rejeito);
+  const pct     = v => recebido > 0 ? (v / recebido * 100).toFixed(1) : '0.0';
 
-  // Barra: apenas o que saiu + o que ainda está no sistema
   const segmentos = [
     { label:'Expedido', val:expedido, cor:'#1B7A43' },
     { label:'Rejeito',  val:rejeito,  cor:'#EF4444' },
-    { label:'Outros',   val:outros,   cor:'#8B5CF6' },
+    { label:'Passivo',  val:passivo,  cor:'#F59E0B' },
   ];
 
-  // Cards informativos (percentual do recebido, não afetam balanço)
+  // Card informativo
   const cardsInfo = [
-    { label:'Estoque',  val:estoque,  cor:'#3B82F6' },
-    { label:'Passivo',  val:passivo,  cor:'#F59E0B', editavel:true },
+    { label:'Estoque', val:estoque, cor:'#3B82F6' },
   ];
 
   document.getElementById('balanco-cards').innerHTML = `
@@ -368,9 +366,9 @@ function renderBalanco({ recebido, expedido, rejeito, estoque, passivo, periodo 
       <div class="bc-pct" style="color:${s.cor}">${pct(s.val)}% do recebido</div>
     </div>`).join('')}
     ${cardsInfo.map(s=>`
-    <div class="balanco-card" ${s.editavel?'style="border:1px dashed #F59E0B;cursor:pointer" title="Clique para editar o passivo" id="balanco-passivo-card"':''}>
-      <div class="bc-label" style="color:${s.cor}">${s.label}${s.editavel?' ✏️':''} <span style="font-size:10px;color:#94a3b8;font-weight:400">(informativo)</span></div>
-      <div class="bc-val" style="color:${s.cor}" id="${s.editavel?'balanco-passivo-val':''}">${ton(s.val)}</div>
+    <div class="balanco-card">
+      <div class="bc-label" style="color:${s.cor}">${s.label} <span style="font-size:10px;color:#94a3b8;font-weight:400">(informativo)</span></div>
+      <div class="bc-val" style="color:${s.cor}">${ton(s.val)}</div>
       <div class="bc-pct" style="color:${s.cor}">${pct(s.val)}% do recebido</div>
     </div>`).join('')}
   `;
@@ -383,27 +381,10 @@ function renderBalanco({ recebido, expedido, rejeito, estoque, passivo, periodo 
     `<span><i style="background:${s.cor}"></i>${s.label} ${pct(s.val)}%</span>`
   ).join('');
 
-  const fechou = outros < 1;
   document.getElementById('balanco-fechamento').innerHTML = `
-    <div class="balanco-fechamento" style="background:${fechou?'#D1FAE5':'#FEF9C3'};border:1px solid ${fechou?'#6EE7B7':'#FDE047'}">
-      ${fechou
-        ? '✅ Balanço fechado — todo o material recebido está contabilizado (Expedido + Rejeito).'
-        : `⚠️ <strong>Atenção:</strong> ${ton(outros)} ainda não saíram como Expedido ou Rejeito. Verifique os lançamentos.`}
+    <div class="balanco-fechamento" style="background:#D1FAE5;border:1px solid #6EE7B7">
+      ✅ Balanço fechado — Passivo de ${ton(passivo)} (${pct(passivo)}% do recebido) em processamento ou aguardando destinação.
     </div>`;
-
-  // Edição do passivo ao clicar no card
-  document.getElementById('balanco-passivo-card')?.addEventListener('click', () => {
-    const maxKg  = Math.max(0, recebido - expedido - rejeito);
-    const maxTon = (maxKg / 1000).toFixed(3);
-    const atual  = passivo / 1000;
-    const novo   = prompt(`Passivo (em toneladas) — máximo ${maxTon} ton:`, atual.toFixed(3));
-    if (novo === null) return;
-    const novoKg = parseFloat(novo.replace(',', '.')) * 1000;
-    if (isNaN(novoKg) || novoKg < 0) return alert('Valor inválido.');
-    if (novoKg > maxKg) return alert(`Valor excede o limite de ${maxTon} ton disponíveis no balanço.`);
-    localStorage.setItem('balanco-passivo-' + periodo, novoKg);
-    renderBalanco({ ..._balancoBase, passivo: novoKg, periodo });
-  });
 }
 
 async function fetchAllPaginated(table, selectFields, filters) {
@@ -436,7 +417,7 @@ async function carregarBalanco(inicio, fim) {
   const passivo  = parseFloat(localStorage.getItem('balanco-passivo-' + periodo) || 0);
 
   _balancoBase = { recebido, expedido, rejeito, estoque };
-  renderBalanco({ recebido, expedido, rejeito, estoque, passivo, periodo });
+  renderBalanco({ recebido, expedido, rejeito, estoque, periodo });
 }
 
 /* ── Gauge ── */
