@@ -224,16 +224,18 @@ async function carregar() {
   const hc        = ativos.length + demAno;
   const turnover  = hc ? ((demAno/hc)*100).toFixed(1) : '0.0';
 
-  // Usa apenas a avaliação mais recente de cada colaborador
+  // Mesma fórmula do módulo RH: média de todas as avaliações do colaborador
   const notasAtivos = ativos.map(c => {
-    const avals = avaliacoes.filter(a=>a.colaborador_id===c.id).sort((a,b)=>b.data_avaliacao>a.data_avaliacao?1:-1);
-    return avals.length ? calcMediaAval(avals[0]) : null;
+    const avals  = avaliacoes.filter(a=>a.colaborador_id===c.id);
+    const medias = avals.map(calcMediaAval).filter(v=>v!==null);
+    return medias.length ? medias.reduce((a,b)=>a+b,0)/medias.length : null;
   }).filter(v=>v!==null);
   const notaMedia = notasAtivos.length ? (notasAtivos.reduce((a,b)=>a+b,0)/notasAtivos.length) : null;
 
   const colobsComNota = ativos.map(c => {
-    const avals = avaliacoes.filter(a=>a.colaborador_id===c.id).sort((a,b)=>b.data_avaliacao>a.data_avaliacao?1:-1);
-    const nota  = avals.length ? calcMediaAval(avals[0]) : null;
+    const avals  = avaliacoes.filter(a=>a.colaborador_id===c.id);
+    const medias = avals.map(calcMediaAval).filter(v=>v!==null);
+    const nota   = medias.length ? medias.reduce((a,b)=>a+b,0)/medias.length : null;
     return { nome: c.nome, nota };
   }).sort((a,b)=>(b.nota??-1)-(a.nota??-1));
 
