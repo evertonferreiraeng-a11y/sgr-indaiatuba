@@ -329,6 +329,11 @@ async function carregar() {
           <div class="rel-kpi-label">Ticket Médio</div>
           <div class="rel-kpi-val" style="font-size:18px">${moeda(ticketMedio)}<span style="font-size:11px">/ton</span></div>
         </div>
+        <div class="rel-kpi">
+          <div class="rel-kpi-label">Valor em Estoque</div>
+          <div class="rel-kpi-val" style="font-size:18px;color:#3B82F6">${moeda(valorEstoque)}</div>
+          <div class="rel-kpi-sub">${ton(estoque)} em estoque</div>
+        </div>
         <div class="rel-kpi" style="border:2px solid #1B7A43;background:#f0fdf4">
           <div class="rel-kpi-label" style="color:#1B7A43">Faturamento + Estoque</div>
           <div class="rel-kpi-val" style="font-size:18px;color:#1B7A43">${moeda(totalPotencial)}</div>
