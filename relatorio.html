@@ -162,7 +162,7 @@ async function carregar() {
     fetchAll('entradas', 'peso_liquido, peso_liquido_descontos, tipo_movimentacao, data', [['gte','data',inicio],['lte','data',fim]]),
     fetchAll('vendas', 'peso_kg, valor_total, data, clientes(nome)', [['gte','data',inicio],['lte','data',fim]]),
     fetchAll('materiais', 'nome, estoque_kg, valor_unitario, no_estoque', [['eq','no_estoque',true]]),
-    fetchAll('equipamentos', 'nome, status, capacidade_pct', []),
+    fetchAll('equipamentos', 'nome, status, capacidade_pct, descricao, funcao', []),
     fetchAll('colaboradores', '*', []),
     fetchAll('colaborador_avaliacoes', '*', []),
     fetchAll('ocorrencias', 'tipo, data, colaborador_id', [['gte','data',inicio],['lte','data',fim]]),
@@ -373,7 +373,7 @@ async function carregar() {
     <!-- 4. Equipamentos -->
     <div class="card rel-section">
       <div class="rel-section-title">Equipamentos</div>
-      <div class="rel-kpi-grid">
+      <div class="rel-kpi-grid" style="margin-bottom:16px">
         <div class="rel-kpi">
           <div class="rel-kpi-label">Total</div>
           <div class="rel-kpi-val">${equTotal}</div>
@@ -388,6 +388,27 @@ async function carregar() {
           <div class="rel-kpi-val" style="color:${equPct>=80?'#1B7A43':equPct>=50?'#D97706':'#DC2626'}">${equPct}%</div>
         </div>
       </div>
+      <table class="rel-table">
+        <thead>
+          <tr><th>Equipamento</th><th>Função</th><th>Descrição</th><th style="text-align:center">Status</th></tr>
+        </thead>
+        <tbody>
+          ${equipamentos.sort((a,b)=>a.nome.localeCompare(b.nome)).map(e => {
+            const statusMap = {
+              operando:  { label:'✅ Operando',    cor:'#065f46', bg:'#d1fae5' },
+              restricao: { label:'⚠️ Restrição',  cor:'#92400e', bg:'#fef3c7' },
+              parado:    { label:'❌ Parado',      cor:'#991b1b', bg:'#fee2e2' },
+            };
+            const st = statusMap[e.status] || { label:e.status||'—', cor:'#374151', bg:'#f1f5f9' };
+            return `<tr>
+              <td style="font-weight:600">${e.nome}</td>
+              <td style="color:#475569">${e.funcao||'—'}</td>
+              <td style="color:#475569;font-size:12px">${e.descricao||'—'}</td>
+              <td style="text-align:center"><span style="background:${st.bg};color:${st.cor};padding:2px 10px;border-radius:10px;font-size:12px;font-weight:600;white-space:nowrap">${st.label}</span></td>
+            </tr>`;
+          }).join('')}
+        </tbody>
+      </table>
     </div>
 
     <!-- 5. Recursos Humanos -->
