@@ -218,12 +218,12 @@ async function carregar() {
     fetchAll('materiais', 'nome, estoque_kg, valor_unitario, no_estoque', [['eq','no_estoque',true]]),
     fetchAll('equipamentos', 'nome, frota, status, capacidade_pct, descricao, funcao', []),
     fetchAll('colaboradores', '*, cargos(nome, vagas)', []),
-    fetchAll('cargos', 'nome, vagas', []),
     fetchAll('colaborador_avaliacoes', '*', []),
     fetchAll('ocorrencias', 'tipo, data, colaborador_id', [['gte','data',inicio],['lte','data',fim]]),
     fetchAll('producao', 'peso_kg, data', [['gte','data',inicio],['lte','data',fim]]),
     fetchAll('metas', 'periodo, valor_meta', [['eq','indicador','faturamento'],['gte','periodo',`${ano}-01`],['lte','periodo',`${ano}-12`]]),
     fetchAll('vendas', 'peso_kg, valor_total, data', [['gte','data',`${ano}-01-01`],['lte','data',`${ano}-12-31`]]),
+    fetchAll('cargos', 'nome, vagas', []),
   ]);
 
   // ── Balanço ──────────────────────────────────────────────────────────────
@@ -542,7 +542,7 @@ async function carregar() {
           if (!vagasMap[nome]) vagasMap[nome] = { preenchido: 0, total: c.cargos?.vagas ?? null };
           vagasMap[nome].preenchido++;
         });
-        const linhas = Object.entries(vagasMap).sort((a,b)=>a[0].localeCompare(b[0]));
+        const linhas = Object.entries(vagasMap).filter(([k])=>k && k!=='undefined' && k!=='Sem cargo').sort((a,b)=>a[0].localeCompare(b[0]));
         return `
         <div style="font-size:11px;font-weight:700;text-transform:uppercase;color:#94a3b8;margin-bottom:8px">Balanço de vagas</div>
         <table class="rel-table" style="margin-bottom:16px">
