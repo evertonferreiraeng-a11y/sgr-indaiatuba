@@ -154,7 +154,7 @@
         <div class="table-scroll" style="margin-top:16px">
           <table class="fat-table">
             <thead>
-              <tr><th>Mês</th><th class="text-right">Realizado (R$)</th><th class="text-right">Previsto (R$) ✏️</th><th class="text-right">kg Vendidas</th><th class="text-right">Atingimento</th><th class="text-right">Ticket Médio</th></tr>
+              <tr><th>Mês</th><th class="text-right">Realizado (R$)</th><th class="text-right">Previsto (R$) ✏️</th><th class="text-right">Ton Vendidas</th><th class="text-right">Atingimento</th><th class="text-right">Ticket Médio (R$/ton)</th></tr>
             </thead>
             <tbody id="tb-fat-mensal"></tbody>
             <tfoot id="tf-fat-geral" style="background:#EBF5EE;font-weight:700"></tfoot>
@@ -165,7 +165,7 @@
       <!-- ── PRODUÇÃO MENSAL ── -->
       <div class="dash-section-title">Produção do Ano</div>
       <div class="chart-card">
-        <h3 style="font-size:14px;font-weight:600;margin-bottom:16px">Produção Mensal (kg)</h3>
+        <h3 style="font-size:14px;font-weight:600;margin-bottom:16px">Produção Mensal (ton)</h3>
         <div class="chart-wrap" style="height:240px"><canvas id="chart-producao"></canvas></div>
       </div>
 
@@ -194,6 +194,7 @@
 <div id="toast-container"></div>
 <script type="module">
 import { initPage, supabase, moeda, peso, mesAtual, anoAtual, toast, abrirModal, fecharModal } from './js/config.js';
+const ton = kg => (kg/1000).toLocaleString('pt-BR',{minimumFractionDigits:3,maximumFractionDigits:3})+' ton';
 
 await initPage();
 
@@ -248,13 +249,13 @@ async function carregarKPIs(inicio, fim) {
   const saldoVal = (mats||[]).reduce((s,r)=>s+(parseFloat(r.estoque_kg||0)*parseFloat(r.valor_unitario||0)), 0);
 
   const pct = (n, d) => d > 0 ? (n/d*100).toFixed(1)+'%' : '0%';
-  document.getElementById('kpi-rec-kg').textContent  = peso(recicKg);
+  document.getElementById('kpi-rec-kg').textContent  = ton(recicKg);
   document.getElementById('kpi-rec-pct').textContent = pct(recicKg, totalEnt);
-  document.getElementById('kpi-rej-kg').textContent  = peso(rejKg);
+  document.getElementById('kpi-rej-kg').textContent  = ton(rejKg);
   document.getElementById('kpi-rej-pct').textContent = pct(rejKg, totalEnt);
-  document.getElementById('kpi-exp-kg').textContent  = peso(expKg);
+  document.getElementById('kpi-exp-kg').textContent  = ton(expKg);
   document.getElementById('kpi-exp-pct').textContent = pct(expKg, totalEnt);
-  document.getElementById('kpi-est-kg').textContent  = peso(saldoKg);
+  document.getElementById('kpi-est-kg').textContent  = ton(saldoKg);
   document.getElementById('kpi-est-val').textContent = moeda(saldoVal);
 
   const taxa = totalEnt > 0 ? Math.min((expKg/totalEnt)*100, 100) : 0;
@@ -394,7 +395,7 @@ async function carregarGraficoProducao(ano) {
     options: {
       responsive: true, maintainAspectRatio: false,
       plugins: { legend: { display: false } },
-      scales: { x: { grid: { display: false } }, y: { grid: { color: '#F0F0F0' }, ticks: { callback: v => v+' kg', font: { size: 11 } } } }
+      scales: { x: { grid: { display: false } }, y: { grid: { color: '#F0F0F0' }, ticks: { callback: v => (v/1000).toLocaleString('pt-BR',{maximumFractionDigits:3})+' t', font: { size: 11 } } } }
     }
   });
 }
@@ -422,7 +423,7 @@ async function carregarFatPrevisto() {
     const i = parseInt(m.periodo.split('-')[1])-1;
     if(i>=0&&i<12) { prev[i]=m.valor_meta; metaId[i]=m.id; }
   });
-  const ticket = real.map((r,i) => qtd[i]>0 ? r/qtd[i] : 0);
+  const ticket = real.map((r,i) => kgVnd[i]>0 ? r/(kgVnd[i]/1000) : 0);
 
   if (chartFatPrev) chartFatPrev.destroy();
   chartFatPrev = new Chart(document.getElementById('chart-fat-prev'), {
@@ -448,7 +449,7 @@ async function carregarFatPrevisto() {
       <td>${m}</td>
       <td class="num">${moeda(real[i])}</td>
       <td class="num prev-cell" data-mes="${i}" data-periodo="${periodo}" data-meta-id="${metaId[i]||''}" title="Clique para editar">${prev[i]>0?moeda(prev[i]):'— (clique)'}</td>
-      <td class="num">${kgVnd[i]>0 ? kgVnd[i].toLocaleString('pt-BR',{minimumFractionDigits:0,maximumFractionDigits:1})+' kg' : '—'}</td>
+      <td class="num">${kgVnd[i]>0 ? (kgVnd[i]/1000).toLocaleString('pt-BR',{minimumFractionDigits:3,maximumFractionDigits:3})+' ton' : '—'}</td>
       <td class="num ${cor}">${ating}</td>
       <td class="num">${qtd[i]>0?moeda(ticket[i]):'—'}</td>
     </tr>`;
@@ -458,9 +459,9 @@ async function carregarFatPrevisto() {
   document.getElementById('tf-fat-geral').innerHTML = `
     <tr><td>TOTAL / GERAL</td><td class="num">${moeda(totReal)}</td>
     <td class="num">${totPrev>0?moeda(totPrev):'—'}</td>
-    <td class="num">${totKg>0?totKg.toLocaleString('pt-BR',{maximumFractionDigits:1})+' kg':'—'}</td>
+    <td class="num">${totKg>0?(totKg/1000).toLocaleString('pt-BR',{minimumFractionDigits:3,maximumFractionDigits:3})+' ton':'—'}</td>
     <td class="num">${atingGeral}</td>
-    <td class="num">${totQtd>0?moeda(totReal/totQtd):'—'}</td></tr>
+    <td class="num">${totKg>0?moeda(totReal/(totKg/1000)):'—'}</td></tr>
   `;
 
   // Inline edit do Previsto
