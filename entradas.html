@@ -384,6 +384,10 @@ function renderTabela() {
       <td>${r.transportadora||'—'}</td>
       <td><span class="badge ${isSaida?'badge-red':'badge-green'}">${isSaida?'Saída de produtos':'Entrada de produtos'}</span></td>
       <td>${r.destino||'—'}</td>
+      <td style="white-space:nowrap">
+        <button onclick="editarEntrada('${r.id}')" style="background:none;border:none;cursor:pointer;color:#2563eb;font-size:14px;padding:2px 5px" title="Editar">✏️</button>
+        <button onclick="excluirEntrada('${r.id}')" style="background:none;border:none;cursor:pointer;color:#dc2626;font-size:14px;padding:2px 5px" title="Excluir">🗑️</button>
+      </td>
     </tr>`;
   }).join('');
 
