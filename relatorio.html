@@ -174,15 +174,14 @@ async function carregar() {
   const rejeito  = ents.filter(r=>r.tipo_movimentacao==='saida').reduce((s,r)=>s+parseFloat(r.peso_liquido||r.peso_liquido_descontos||0),0);
   const expedido = vends.reduce((s,r)=>s+(r.peso_kg||0),0);
   const estoque  = mats.reduce((s,r)=>s+parseFloat(r.estoque_kg||0),0);
-  const outros   = Math.max(0, recebido - expedido - rejeito - estoque);
+  const passivo  = Math.max(0, recebido - expedido - rejeito - estoque);
   const taxa     = recebido > 0 ? Math.min(((expedido + estoque) / recebido) * 100, 100) : 0;
 
   const pct = v => recebido > 0 ? ((v / recebido) * 100).toFixed(1) : '0.0';
   const segs = [
     { label:'Expedido', val:expedido, cor:'#1B7A43' },
     { label:'Rejeito',  val:rejeito,  cor:'#DC2626' },
-    { label:'Estoque',  val:estoque,  cor:'#3B82F6' },
-    { label:'Outros',   val:outros,   cor:'#7C3AED' },
+    { label:'Passivo',  val:passivo,  cor:'#F59E0B' },
   ];
 
   // ── Faturamento ──────────────────────────────────────────────────────────
@@ -280,6 +279,11 @@ async function carregar() {
           <div class="rel-kpi-label">Estoque</div>
           <div class="rel-kpi-val" style="color:#3B82F6">${ton(estoque)}</div>
           <div class="rel-kpi-sub">${pct(estoque)}% do recebido</div>
+        </div>
+        <div class="rel-kpi">
+          <div class="rel-kpi-label">Passivo</div>
+          <div class="rel-kpi-val" style="color:#F59E0B">${ton(passivo)}</div>
+          <div class="rel-kpi-sub">${pct(passivo)}% do recebido</div>
         </div>
       </div>
       <div style="display:flex;align-items:center;justify-content:center;margin-bottom:16px">
