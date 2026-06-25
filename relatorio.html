@@ -58,14 +58,68 @@
 
     /* ── Impressão ── */
     @media print {
+      @page { size: A4 landscape; margin: 12mm 14mm; }
+
       .sidebar, .sidebar-overlay, .sidebar-toggle, .mobile-menu-btn,
-      .rel-controls, .btn-pdf, .page-header .rel-header > div:last-child { display: none !important; }
+      .rel-controls, .btn-pdf { display: none !important; }
+
+      body { background: #fff !important; font-size: 11px !important; }
       .main-content { margin-left: 0 !important; padding: 0 !important; }
-      body { background: #fff !important; }
-      .rel-section { break-inside: avoid; page-break-inside: avoid; }
-      .rel-kpi-grid { grid-template-columns: repeat(5, 1fr); }
-      .card { box-shadow: none; border: 1px solid #e2e8f0; }
+
+      /* Cabeçalho da página */
+      .page-header { margin-bottom: 10px !important; padding-bottom: 6px !important; border-bottom: 2px solid #1B7A43; }
+      .page-header h2 { font-size: 15px !important; margin: 0; }
+      .page-header p  { font-size: 11px !important; margin: 0; }
+
+      /* Cards e seções */
+      .card { box-shadow: none !important; border: 1px solid #d1d5db !important; margin-bottom: 10px !important; padding: 10px 12px !important; }
+      .rel-section { break-inside: avoid; page-break-inside: avoid; margin-bottom: 10px !important; }
+      .rel-section-title { font-size: 10px !important; padding-bottom: 3px !important; margin-bottom: 8px !important; }
       .print-break { page-break-before: always; }
+
+      /* KPI grid compacto */
+      .rel-kpi-grid { grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)) !important; gap: 6px !important; margin-bottom: 8px !important; }
+      .rel-kpi { padding: 8px 10px !important; border-radius: 6px !important; }
+      .rel-kpi-val { font-size: 16px !important; }
+      .rel-kpi-label { font-size: 9px !important; }
+      .rel-kpi-sub { font-size: 9px !important; }
+
+      /* Tabelas */
+      .rel-table { font-size: 10px !important; }
+      .rel-table th { padding: 5px 7px !important; font-size: 9px !important; background: #f1f5f9 !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+      .rel-table td { padding: 4px 7px !important; }
+
+      /* Badges de nota e status — forçar cores */
+      .nota-badge, [style*="border-radius"][style*="background"] {
+        -webkit-print-color-adjust: exact !important;
+        print-color-adjust: exact !important;
+      }
+      .nota-verde   { background: #d1fae5 !important; color: #065f46 !important; }
+      .nota-amarelo { background: #fef3c7 !important; color: #92400e !important; }
+      .nota-vermelho{ background: #fee2e2 !important; color: #991b1b !important; }
+
+      /* Barra do balanço */
+      .balanco-bar-wrap, .balanco-bar-seg {
+        -webkit-print-color-adjust: exact !important;
+        print-color-adjust: exact !important;
+      }
+
+      /* Linha verde do mês atual na tabela */
+      tr[style*="dcfce7"] {
+        background: #dcfce7 !important;
+        -webkit-print-color-adjust: exact !important;
+        print-color-adjust: exact !important;
+      }
+
+      /* Linha de total */
+      tr[style*="EBF5EE"] {
+        background: #EBF5EE !important;
+        -webkit-print-color-adjust: exact !important;
+        print-color-adjust: exact !important;
+      }
+
+      /* Gauge canvas */
+      canvas { max-width: 180px !important; max-height: 100px !important; }
     }
   </style>
 </head>
