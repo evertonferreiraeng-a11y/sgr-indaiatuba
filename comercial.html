@@ -296,13 +296,19 @@ async function carregarGraficos() {
 
   const rows = data || [];
 
-  // Vendas por cliente (barras)
+  // Vendas por cliente (barras) com detalhamento por material
   const cliMap = {};
   rows.forEach(r => {
     const nome = r.clientes?.nome || 'Desconhecido';
-    if (!cliMap[nome]) cliMap[nome] = { vol:0, fat:0 };
-    cliMap[nome].vol += r.peso_kg||0;
-    cliMap[nome].fat += r.valor_total||0;
+    const mat  = r.materiais?.nome || r.tipo_material || 'Material';
+    const vol  = r.peso_kg||0;
+    const fat  = r.valor_total||0;
+    if (!cliMap[nome]) cliMap[nome] = { vol:0, fat:0, mats:{} };
+    cliMap[nome].vol += vol;
+    cliMap[nome].fat += fat;
+    if (!cliMap[nome].mats[mat]) cliMap[nome].mats[mat] = { vol:0, fat:0 };
+    cliMap[nome].mats[mat].vol += vol;
+    cliMap[nome].mats[mat].fat += fat;
   });
   const labCli = Object.keys(cliMap).sort((a,b)=>cliMap[b].fat-cliMap[a].fat);
 
@@ -318,7 +324,34 @@ async function carregarGraficos() {
     },
     options: {
       responsive:true,
-      plugins:{ legend:{ position:'bottom' } },
+      plugins:{
+        legend:{ position:'bottom' },
+        tooltip:{
+          callbacks:{
+            afterBody: items => {
+              const cli = labCli[items[0].dataIndex];
+              const info = cliMap[cli];
+              if (!info) return [];
+              const ticket = info.vol > 0 ? info.fat/(info.vol/1000) : 0;
+              const linhas = [
+                `─────────────────────`,
+                `Total: ${(info.vol/1000).toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2})} ton | ${info.fat.toLocaleString('pt-BR',{style:'currency',currency:'BRL'})}`,
+                `Ticket médio: ${ticket.toLocaleString('pt-BR',{style:'currency',currency:'BRL'})}/ton`,
+                ``,
+                `Materiais:`,
+              ];
+              Object.entries(info.mats)
+                .sort((a,b)=>b[1].fat-a[1].fat)
+                .forEach(([mat,d])=>{
+                  const tk = d.vol > 0 ? d.fat/(d.vol/1000) : 0;
+                  linhas.push(`• ${mat}`);
+                  linhas.push(`  ${(d.vol/1000).toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2})} ton | ${d.fat.toLocaleString('pt-BR',{style:'currency',currency:'BRL'})} | TM: ${tk.toLocaleString('pt-BR',{style:'currency',currency:'BRL'})}/ton`);
+                });
+              return linhas;
+            }
+          }
+        }
+      },
       scales: {
         y:  { beginAtZero:true, ticks:{ callback:v=>'R$'+v.toLocaleString('pt-BR') }, position:'left' },
         y2: { beginAtZero:true, ticks:{ callback:v=>v.toLocaleString('pt-BR',{maximumFractionDigits:2})+'t' }, position:'right', grid:{drawOnChartArea:false} },
