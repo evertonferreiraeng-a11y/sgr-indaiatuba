@@ -54,7 +54,13 @@
         <div class="card" style="padding:16px;margin-bottom:16px;max-width:700px">
           <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;margin-bottom:12px">
             <h4>Volume por Fornecedor</h4>
-            <button class="btn btn-sm btn-outline" id="btn-filt-forn" style="font-size:12px">⚙ Filtros</button>
+            <div style="display:flex;gap:6px">
+              <div style="display:flex;border:1px solid #e2e8f0;border-radius:6px;overflow:hidden;font-size:12px">
+                <button id="btn-view-consolidado" style="padding:4px 10px;background:#1B7A43;color:#fff;border:none;cursor:pointer;font-size:12px">Consolidado</button>
+                <button id="btn-view-mensal" style="padding:4px 10px;background:#fff;color:#374151;border:none;cursor:pointer;font-size:12px">Mensal</button>
+              </div>
+              <button class="btn btn-sm btn-outline" id="btn-filt-forn" style="font-size:12px">⚙ Filtros</button>
+            </div>
           </div>
           <div id="forn-filtros" style="display:none;background:#f8fafc;border-radius:8px;padding:12px;margin-bottom:12px;gap:12px;flex-wrap:wrap">
             <div style="display:flex;gap:12px;flex-wrap:wrap;margin-bottom:8px">
@@ -235,7 +241,7 @@ import { initPage, supabase, peso, ton, dataBR, toast, abrirModal, fecharModal, 
 await initPage();
 
 let perfil, entData = [], fornData = [], matData = [];
-let chartForn = null, chartMedia = null;
+let chartForn = null, chartMedia = null, fornViewMode = 'consolidado';
 const hoje = new Date();
 
 // Sem filtro de período por padrão — mostra todos os dados
@@ -502,31 +508,46 @@ async function renderChartForn() {
     </div>
   `;
 
-  const labels1 = Object.keys(fornMap).sort((a,b)=>fornMap[b]-fornMap[a]).slice(0,15);
-  const vals1   = labels1.map(l=>fornMap[l]);
-
   if (chartForn) chartForn.destroy();
-  chartForn = new Chart(document.getElementById('chart-fornecedor').getContext('2d'), {
-    type: 'bar',
-    data: { labels: labels1, datasets: [{ label:'Volume (ton)', data: vals1.map(v=>v/1000),
-      backgroundColor: labels1.map(l => l===sel ? '#1B7A43' : '#3b82f6') }] },
-    options: {
-      responsive: true, maintainAspectRatio: false,
-      plugins: { legend: { display:false },
-        tooltip: { callbacks: { label: ctx => `${(ctx.parsed.y).toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2})} ton` } }
-      },
-      scales: {
-        x: { ticks: { maxRotation: 45, minRotation: 45, font:{ size:11 } } },
-        y: { beginAtZero:true, ticks: { callback: v=>v.toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2})+' ton' } }
-      },
-      onClick: (e, els) => {
-        if (!els.length) return;
-        const nome = labels1[els[0].index];
-        document.getElementById('forn-sel').value = nome;
-        renderChartForn();
+  const fmt = v => v.toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2})+' ton';
+
+  if (fornViewMode === 'mensal') {
+    const mesesMap = {};
+    rows.filter(r => r.tipo_movimentacao !== 'saida').forEach(r => {
+      const nome = r.fornecedores?.nome || 'Desconhecido';
+      if (sel && nome !== sel) return;
+      const mes = (r.data||'').substring(0,7);
+      if (!mes) return;
+      mesesMap[mes] = (mesesMap[mes]||0) + parseFloat(r.peso_liquido_descontos ?? r.peso_kg ?? 0);
+    });
+    const labMes = Object.keys(mesesMap).sort();
+    const MESES_PT = ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
+    const labFmt  = labMes.map(m => { const [y,mo]=m.split('-'); return `${MESES_PT[+mo-1]}/${y.slice(2)}`; });
+    chartForn = new Chart(document.getElementById('chart-fornecedor').getContext('2d'), {
+      type: 'bar',
+      data: { labels: labFmt, datasets: [{ label:'Volume (ton)', data: labMes.map(m=>mesesMap[m]/1000), backgroundColor:'#1B7A43', borderRadius:4 }] },
+      options: { responsive:true, maintainAspectRatio:false,
+        plugins:{ legend:{display:false}, tooltip:{callbacks:{label:ctx=>fmt(ctx.parsed.y)}} },
+        scales:{ x:{ticks:{font:{size:11}}}, y:{beginAtZero:true,ticks:{callback:fmt}} }
       }
-    }
-  });
+    });
+  } else {
+    const labels1 = Object.keys(fornMap).sort((a,b)=>fornMap[b]-fornMap[a]).slice(0,15);
+    const vals1   = labels1.map(l=>fornMap[l]);
+    chartForn = new Chart(document.getElementById('chart-fornecedor').getContext('2d'), {
+      type: 'bar',
+      data: { labels: labels1, datasets: [{ label:'Volume (ton)', data: vals1.map(v=>v/1000),
+        backgroundColor: labels1.map(l => l===sel ? '#1B7A43' : '#3b82f6') }] },
+      options: { responsive:true, maintainAspectRatio:false,
+        plugins:{ legend:{display:false}, tooltip:{callbacks:{label:ctx=>fmt(ctx.parsed.y)}} },
+        scales:{
+          x:{ticks:{maxRotation:45,minRotation:45,font:{size:11}}},
+          y:{beginAtZero:true,ticks:{callback:fmt}}
+        },
+        onClick:(e,els)=>{ if(!els.length)return; document.getElementById('forn-sel').value=labels1[els[0].index]; renderChartForn(); }
+      }
+    });
+  }
 }
 
 async function calcularMediaHistorica() {
@@ -887,6 +908,18 @@ document.getElementById('csv-import').addEventListener('change', async function(
 document.getElementById('btn-filtrar').addEventListener('click', carregar);
 document.getElementById('btn-calc-media').addEventListener('click', calcularMediaHistorica);
 
+document.getElementById('btn-view-consolidado').addEventListener('click', () => {
+  fornViewMode = 'consolidado';
+  document.getElementById('btn-view-consolidado').style.cssText = 'padding:4px 10px;background:#1B7A43;color:#fff;border:none;cursor:pointer;font-size:12px';
+  document.getElementById('btn-view-mensal').style.cssText     = 'padding:4px 10px;background:#fff;color:#374151;border:none;cursor:pointer;font-size:12px';
+  renderChartForn();
+});
+document.getElementById('btn-view-mensal').addEventListener('click', () => {
+  fornViewMode = 'mensal';
+  document.getElementById('btn-view-mensal').style.cssText      = 'padding:4px 10px;background:#1B7A43;color:#fff;border:none;cursor:pointer;font-size:12px';
+  document.getElementById('btn-view-consolidado').style.cssText = 'padding:4px 10px;background:#fff;color:#374151;border:none;cursor:pointer;font-size:12px';
+  renderChartForn();
+});
 document.getElementById('btn-filt-forn').addEventListener('click', () => {
   const el = document.getElementById('forn-filtros');
   el.style.display = el.style.display === 'none' ? 'block' : 'none';
