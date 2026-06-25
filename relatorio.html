@@ -158,7 +158,7 @@ async function carregar() {
 
   const ano = inicio.slice(0, 4);
 
-  const [ents, vends, mats, equipamentos, colaboradores, avaliacoes, ocorrencias, producoes, metas] = await Promise.all([
+  const [ents, vends, mats, equipamentos, colaboradores, avaliacoes, ocorrencias, producoes, metas, vendsAno] = await Promise.all([
     fetchAll('entradas', 'peso_liquido, peso_liquido_descontos, tipo_movimentacao, data', [['gte','data',inicio],['lte','data',fim]]),
     fetchAll('vendas', 'peso_kg, valor_total, data, clientes(nome)', [['gte','data',inicio],['lte','data',fim]]),
     fetchAll('materiais', 'nome, estoque_kg, valor_unitario, no_estoque', [['eq','no_estoque',true]]),
@@ -168,6 +168,7 @@ async function carregar() {
     fetchAll('ocorrencias', 'tipo, data, colaborador_id', [['gte','data',inicio],['lte','data',fim]]),
     fetchAll('producao', 'peso_kg, data', [['gte','data',inicio],['lte','data',fim]]),
     fetchAll('metas', 'periodo, valor_meta', [['eq','indicador','faturamento'],['gte','periodo',`${ano}-01`],['lte','periodo',`${ano}-12`]]),
+    fetchAll('vendas', 'peso_kg, valor_total, data', [['gte','data',`${ano}-01-01`],['lte','data',`${ano}-12-31`]]),
   ]);
 
   // ── Balanço ──────────────────────────────────────────────────────────────
@@ -192,11 +193,12 @@ async function carregar() {
   const valorEstoque  = mats.reduce((s,r)=>s+(parseFloat(r.estoque_kg||0)*parseFloat(r.valor_unitario||0)),0);
   const totalPotencial = faturamento + valorEstoque;
 
-  // ── Tabela mensal faturamento ────────────────────────────────────────────
+  // ── Tabela mensal faturamento (ano inteiro) ──────────────────────────────
   const fatReal  = Array(12).fill(0);
   const fatPrev  = Array(12).fill(0);
   const fatKg    = Array(12).fill(0);
-  vends.forEach(r => {
+  const mesAtualIdx = new Date().getMonth();
+  (vendsAno||[]).forEach(r => {
     const i = new Date(r.data+'T00:00:00').getMonth();
     fatReal[i] += r.valor_total||0;
     fatKg[i]   += r.peso_kg||0;
@@ -352,8 +354,9 @@ async function carregar() {
               const ating = fatPrev[i]>0 ? (fatReal[i]/fatPrev[i]*100).toFixed(1)+'%' : '—';
               const cor   = fatPrev[i]>0 ? (fatReal[i]>=fatPrev[i]?'#1B7A43':'#DC2626') : '#374151';
               const tk    = fatKg[i]>0 ? moeda(fatReal[i]/(fatKg[i]/1000)) : '—';
-              return `<tr>
-                <td>${m}</td>
+              const rowBg = i===mesAtualIdx ? 'background:#dcfce7' : '';
+              return `<tr style="${rowBg}">
+                <td>${i===mesAtualIdx?`<strong>${m}</strong>`:m}</td>
                 <td style="text-align:right">${fatReal[i]>0?moeda(fatReal[i]):'—'}</td>
                 <td style="text-align:right">${fatPrev[i]>0?moeda(fatPrev[i]):'—'}</td>
                 <td style="text-align:right">${fatKg[i]>0?ton(fatKg[i]):'—'}</td>
