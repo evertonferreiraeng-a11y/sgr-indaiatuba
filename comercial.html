@@ -330,7 +330,20 @@ async function carregarGraficos() {
 
 async function carregarEvolucao(rows) {
   const cliSel = document.getElementById('sel-cliente-chart').value;
-  const filtrado = cliSel ? rows.filter(r=>r.cliente_id===cliSel) : rows;
+  const ano = new Date().getFullYear();
+
+  // Evolução sempre busca o ano inteiro para ter histórico mensal
+  let evRows = rows;
+  if (rows.length === 0 || !rows.some(r => r.data?.startsWith(String(ano)))) {
+    const { data } = await supabase.from('vendas')
+      .select('*, clientes(nome)')
+      .gte('data', `${ano}-01-01`)
+      .lte('data', `${ano}-12-31`)
+      .order('data');
+    evRows = data || [];
+  }
+
+  const filtrado = cliSel ? evRows.filter(r=>r.cliente_id===cliSel) : evRows;
 
   const meses = {};
   filtrado.forEach(r => {
