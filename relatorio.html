@@ -1,0 +1,447 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Relatório de Reunião — SGR Indaiatuba</title>
+  <link rel="stylesheet" href="css/style.css" />
+  <style>
+    /* ── Tela ── */
+    .rel-header {
+      display: flex; align-items: center; justify-content: space-between;
+      flex-wrap: wrap; gap: 12px; margin-bottom: 24px;
+    }
+    .rel-controls {
+      display: flex; gap: 8px; align-items: center; flex-wrap: wrap;
+    }
+    .rel-section { margin-bottom: 28px; }
+    .rel-section-title {
+      font-size: 13px; font-weight: 700; text-transform: uppercase;
+      letter-spacing: .06em; color: var(--primary); border-bottom: 2px solid var(--primary);
+      padding-bottom: 4px; margin-bottom: 14px;
+    }
+    .rel-kpi-grid {
+      display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 12px;
+    }
+    .rel-kpi {
+      background: #fff; border: 1px solid #e2e8f0; border-radius: 10px;
+      padding: 14px 16px;
+    }
+    .rel-kpi-label { font-size: 10px; font-weight: 700; text-transform: uppercase; color: #64748b; margin-bottom: 4px; }
+    .rel-kpi-val   { font-size: 22px; font-weight: 800; color: var(--primary); }
+    .rel-kpi-sub   { font-size: 11px; color: #94a3b8; margin-top: 2px; }
+
+    .rel-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+    .rel-table th { background: #f1f5f9; font-weight: 700; padding: 7px 10px; text-align: left; border-bottom: 2px solid #e2e8f0; }
+    .rel-table td { padding: 6px 10px; border-bottom: 1px solid #f1f5f9; }
+    .rel-table tr:last-child td { border-bottom: none; }
+
+    .balanco-bar-wrap { background:#F3F4F6; border-radius:8px; height:22px; display:flex; overflow:hidden; margin-bottom:8px; }
+    .balanco-bar-seg  { height:100%; display:flex; align-items:center; justify-content:center; font-size:10px; font-weight:700; color:#fff; overflow:hidden; white-space:nowrap; }
+    .balanco-legenda  { display:flex; flex-wrap:wrap; gap:10px; font-size:11px; }
+    .balanco-legenda span { display:flex; align-items:center; gap:4px; }
+    .balanco-legenda i { width:10px; height:10px; border-radius:2px; display:inline-block; }
+
+    .btn-pdf {
+      background: #DC2626; color: #fff; border: none; border-radius: 8px;
+      padding: 10px 20px; font-size: 14px; font-weight: 700; cursor: pointer;
+      display: flex; align-items: center; gap: 8px;
+    }
+    .btn-pdf:hover { background: #b91c1c; }
+
+    .nota-badge {
+      display: inline-block; padding: 2px 10px; border-radius: 12px; font-weight: 700; font-size: 13px;
+    }
+    .nota-verde  { background: #d1fae5; color: #065f46; }
+    .nota-amarelo{ background: #fef3c7; color: #92400e; }
+    .nota-vermelho{ background: #fee2e2; color: #991b1b; }
+
+    /* ── Impressão ── */
+    @media print {
+      .sidebar, .sidebar-overlay, .sidebar-toggle, .mobile-menu-btn,
+      .rel-controls, .btn-pdf, .page-header .rel-header > div:last-child { display: none !important; }
+      .main-content { margin-left: 0 !important; padding: 0 !important; }
+      body { background: #fff !important; }
+      .rel-section { break-inside: avoid; page-break-inside: avoid; }
+      .rel-kpi-grid { grid-template-columns: repeat(5, 1fr); }
+      .card { box-shadow: none; border: 1px solid #e2e8f0; }
+      .print-break { page-break-before: always; }
+    }
+  </style>
+</head>
+<body>
+<div class="main-content">
+  <div class="page-header">
+    <div>
+      <h2>Relatório de Reunião</h2>
+      <p id="rel-periodo-label">Carregando…</p>
+    </div>
+    <div class="rel-controls">
+      <span style="font-size:13px;color:var(--text-muted)">Período:</span>
+      <select id="rel-ano" style="padding:7px 10px;border-radius:6px;border:1px solid #D1D5DB;font-size:13px"></select>
+      <input type="month" id="rel-mes" style="width:150px" />
+      <button id="rel-btn-mes" style="padding:6px 12px;border-radius:6px;border:1px solid #D1D5DB;background:#fff;cursor:pointer;font-size:12px">Mês</button>
+      <button id="rel-btn-ano" style="padding:6px 12px;border-radius:6px;border:1px solid #D1D5DB;background:#fff;cursor:pointer;font-size:12px">Ano</button>
+      <button class="btn-pdf" id="btn-gerar-pdf" onclick="window.print()">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 01-2-2v-5a2 2 0 012-2h16a2 2 0 012 2v5a2 2 0 01-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>
+        Imprimir / PDF
+      </button>
+    </div>
+  </div>
+
+  <div class="page-body" id="rel-body">
+    <div style="text-align:center;padding:48px;color:#94a3b8">Carregando indicadores…</div>
+  </div>
+</div>
+
+<script type="module">
+import { supabase, initPage, mesAtual, anoAtual, moeda, ton, dataBR } from './js/config.js';
+
+const MESES = ['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
+const CRITERIOS = ['pontualidade','disciplina','produtividade','qualidade','trabalho_equipe'];
+
+await initPage();
+
+// ── Ano selector ─────────────────────────────────────────────────────────────
+const selAno = document.getElementById('rel-ano');
+const anoAtualVal = anoAtual();
+for (let a = anoAtualVal; a >= anoAtualVal - 4; a--) {
+  selAno.add(new Option(a, a));
+}
+selAno.value = anoAtualVal;
+document.getElementById('rel-mes').value = mesAtual();
+
+let modoAtual = 'mes'; // 'mes' | 'ano'
+
+function getPeriodo() {
+  if (modoAtual === 'ano') {
+    const a = selAno.value;
+    return { inicio: `${a}-01-01`, fim: `${a}-12-31`, label: `Ano ${a}` };
+  }
+  const mes = document.getElementById('rel-mes').value;
+  const [y, m] = mes.split('-');
+  return {
+    inicio: `${y}-${m}-01`,
+    fim: new Date(y, m, 0).toISOString().split('T')[0],
+    label: `${MESES[+m-1]} de ${y}`,
+  };
+}
+
+async function fetchAll(table, fields, filters = []) {
+  const PAGE = 1000; let all = [], from = 0;
+  while (true) {
+    let q = supabase.from(table).select(fields).range(from, from + PAGE - 1);
+    filters.forEach(([fn, ...args]) => { q = q[fn](...args); });
+    const { data } = await q;
+    if (!data || !data.length) break;
+    all = all.concat(data);
+    if (data.length < PAGE) break;
+    from += PAGE;
+  }
+  return all;
+}
+
+function calcMediaAval(a) {
+  const notas = CRITERIOS.map(c => parseFloat(a[c]) || 0).filter(v => v > 0);
+  return notas.length ? notas.reduce((s, v) => s + v, 0) / notas.length : null;
+}
+
+function notaClass(n) {
+  if (n === null) return '';
+  return n >= 7 ? 'nota-verde' : n >= 5 ? 'nota-amarelo' : 'nota-vermelho';
+}
+
+async function carregar() {
+  const { inicio, fim, label } = getPeriodo();
+  document.getElementById('rel-periodo-label').textContent = label;
+  document.getElementById('rel-body').innerHTML = '<div style="text-align:center;padding:48px;color:#94a3b8">Carregando…</div>';
+
+  const ano = inicio.slice(0, 4);
+
+  const [ents, vends, mats, equipamentos, colaboradores, avaliacoes, ocorrencias, producoes] = await Promise.all([
+    fetchAll('entradas', 'peso_liquido, peso_liquido_descontos, tipo_movimentacao, data', [['gte','data',inicio],['lte','data',fim]]),
+    fetchAll('vendas', 'peso_kg, valor_total, data, cliente', [['gte','data',inicio],['lte','data',fim]]),
+    fetchAll('materiais', 'nome, estoque_kg, no_estoque', [['eq','no_estoque',true]]),
+    fetchAll('equipamentos', 'nome, status, capacidade_pct', []),
+    fetchAll('colaboradores', '*', []),
+    fetchAll('colaborador_avaliacoes', '*', []),
+    fetchAll('ocorrencias', 'tipo, data, colaborador_id', [['gte','data',inicio],['lte','data',fim]]),
+    fetchAll('producao', 'peso_kg, data', [['gte','data',inicio],['lte','data',fim]]),
+  ]);
+
+  // ── Balanço ──────────────────────────────────────────────────────────────
+  const recebido = ents.filter(r=>r.tipo_movimentacao!=='saida').reduce((s,r)=>s+parseFloat(r.peso_liquido_descontos||r.peso_liquido||0),0);
+  const rejeito  = ents.filter(r=>r.tipo_movimentacao==='saida').reduce((s,r)=>s+parseFloat(r.peso_liquido||r.peso_liquido_descontos||0),0);
+  const expedido = vends.reduce((s,r)=>s+(r.peso_kg||0),0);
+  const estoque  = mats.reduce((s,r)=>s+parseFloat(r.estoque_kg||0),0);
+  const outros   = Math.max(0, recebido - expedido - rejeito - estoque);
+  const taxa     = recebido > 0 ? Math.min(((expedido + estoque) / recebido) * 100, 100) : 0;
+
+  const pct = v => recebido > 0 ? ((v / recebido) * 100).toFixed(1) : '0.0';
+  const segs = [
+    { label:'Expedido', val:expedido, cor:'#1B7A43' },
+    { label:'Rejeito',  val:rejeito,  cor:'#DC2626' },
+    { label:'Estoque',  val:estoque,  cor:'#3B82F6' },
+    { label:'Outros',   val:outros,   cor:'#7C3AED' },
+  ];
+
+  // ── Faturamento ──────────────────────────────────────────────────────────
+  const faturamento   = vends.reduce((s,r)=>s+(r.valor_total||0),0);
+  const ticketMedio   = expedido > 0 ? faturamento / (expedido / 1000) : 0;
+
+  // ── Clientes top ────────────────────────────────────────────────────────
+  const cliMap = {};
+  vends.forEach(v => {
+    const k = v.cliente || 'Sem cliente';
+    if (!cliMap[k]) cliMap[k] = { kg: 0, val: 0 };
+    cliMap[k].kg  += v.peso_kg || 0;
+    cliMap[k].val += v.valor_total || 0;
+  });
+  const topCli = Object.entries(cliMap).sort((a,b)=>b[1].val-a[1].val).slice(0,5);
+
+  // ── Produção ────────────────────────────────────────────────────────────
+  const prodTotal = producoes.reduce((s,r)=>s+(r.peso_kg||0),0);
+
+  // ── Equipamentos ────────────────────────────────────────────────────────
+  const equTotal    = equipamentos.length;
+  const equOperando = equipamentos.filter(e=>e.status==='operando').length;
+  const equRestricao= equipamentos.filter(e=>e.status==='restricao').length;
+  const equAtivos   = equOperando + equRestricao;
+  const equPct      = equTotal ? Math.round((equAtivos/equTotal)*100) : 0;
+
+  // ── RH ──────────────────────────────────────────────────────────────────
+  const hoje = new Date().toISOString().split('T')[0];
+  const ativos = colaboradores.filter(c => !c.demissao);
+  const emExp  = ativos.filter(c =>
+    (c.fim_experiencia_1 && hoje <= c.fim_experiencia_1) ||
+    (c.fim_experiencia_2 && hoje <= c.fim_experiencia_2)
+  );
+  const faltas    = ocorrencias.filter(o=>o.tipo==='falta').length;
+  const atestados = ocorrencias.filter(o=>o.tipo==='atestado').length;
+  const demAno    = colaboradores.filter(c=>c.demissao && c.demissao.startsWith(ano)).length;
+  const hc        = ativos.length + demAno;
+  const turnover  = hc ? ((demAno/hc)*100).toFixed(1) : '0.0';
+
+  const notasAtivos = ativos.map(c => {
+    const avals  = avaliacoes.filter(a=>a.colaborador_id===c.id);
+    const medias = avals.map(calcMediaAval).filter(v=>v!==null);
+    return medias.length ? medias.reduce((a,b)=>a+b,0)/medias.length : null;
+  }).filter(v=>v!==null);
+  const notaMedia = notasAtivos.length ? (notasAtivos.reduce((a,b)=>a+b,0)/notasAtivos.length) : null;
+
+  const colobsComNota = ativos.map(c => {
+    const avals  = avaliacoes.filter(a=>a.colaborador_id===c.id);
+    const medias = avals.map(calcMediaAval).filter(v=>v!==null);
+    const nota   = medias.length ? medias.reduce((a,b)=>a+b,0)/medias.length : null;
+    return { nome: c.nome, nota };
+  }).sort((a,b)=>(b.nota??-1)-(a.nota??-1));
+
+  // ── Materiais em estoque ─────────────────────────────────────────────────
+  const matsEstoque = mats.filter(m=>parseFloat(m.estoque_kg||0)>0).sort((a,b)=>b.estoque_kg-a.estoque_kg);
+
+  // ── Render ───────────────────────────────────────────────────────────────
+  document.getElementById('rel-body').innerHTML = `
+
+    <!-- Capa -->
+    <div class="card rel-section" style="padding:28px 32px;margin-bottom:24px">
+      <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:16px">
+        <div>
+          <div style="font-size:11px;font-weight:700;text-transform:uppercase;color:#94a3b8;letter-spacing:.08em">SGR Indaiatuba — UVRR Indaiatuba</div>
+          <div style="font-size:26px;font-weight:900;color:var(--primary);margin:4px 0">Relatório de Indicadores</div>
+          <div style="font-size:15px;color:#475569;font-weight:600">${label}</div>
+        </div>
+        <div style="text-align:right;font-size:12px;color:#94a3b8">
+          Gerado em ${new Date().toLocaleDateString('pt-BR')}<br>
+          ${inicio} a ${fim}
+        </div>
+      </div>
+    </div>
+
+    <!-- 1. Balanço de Massa -->
+    <div class="card rel-section">
+      <div class="rel-section-title">1. Balanço de Massa</div>
+      <div class="rel-kpi-grid" style="margin-bottom:16px">
+        <div class="rel-kpi">
+          <div class="rel-kpi-label">Recebido</div>
+          <div class="rel-kpi-val">${ton(recebido)}</div>
+          <div class="rel-kpi-sub">base do balanço</div>
+        </div>
+        <div class="rel-kpi">
+          <div class="rel-kpi-label">Expedido</div>
+          <div class="rel-kpi-val" style="color:#1B7A43">${ton(expedido)}</div>
+          <div class="rel-kpi-sub">${pct(expedido)}% do recebido</div>
+        </div>
+        <div class="rel-kpi">
+          <div class="rel-kpi-label">Rejeito</div>
+          <div class="rel-kpi-val" style="color:#DC2626">${ton(rejeito)}</div>
+          <div class="rel-kpi-sub">${pct(rejeito)}% do recebido</div>
+        </div>
+        <div class="rel-kpi">
+          <div class="rel-kpi-label">Estoque</div>
+          <div class="rel-kpi-val" style="color:#3B82F6">${ton(estoque)}</div>
+          <div class="rel-kpi-sub">${pct(estoque)}% do recebido</div>
+        </div>
+        <div class="rel-kpi">
+          <div class="rel-kpi-label">Taxa de Reciclagem</div>
+          <div class="rel-kpi-val" style="color:${taxa>=70?'#1B7A43':taxa>=40?'#D97706':'#DC2626'}">${taxa.toFixed(1)}%</div>
+          <div class="rel-kpi-sub">(Expedido + Estoque) / Recebido</div>
+        </div>
+      </div>
+      <div class="balanco-bar-wrap">
+        ${segs.map(s=>`<div class="balanco-bar-seg" style="width:${pct(s.val)}%;background:${s.cor}" title="${s.label}: ${pct(s.val)}%">${parseFloat(pct(s.val))>5?pct(s.val)+'%':''}</div>`).join('')}
+      </div>
+      <div class="balanco-legenda">
+        ${segs.map(s=>`<span><i style="background:${s.cor}"></i>${s.label} ${pct(s.val)}%</span>`).join('')}
+      </div>
+    </div>
+
+    <!-- 2. Comercial / Faturamento -->
+    <div class="card rel-section">
+      <div class="rel-section-title">2. Comercial / Faturamento</div>
+      <div class="rel-kpi-grid" style="margin-bottom:16px">
+        <div class="rel-kpi">
+          <div class="rel-kpi-label">Faturamento</div>
+          <div class="rel-kpi-val" style="font-size:18px">${moeda(faturamento)}</div>
+        </div>
+        <div class="rel-kpi">
+          <div class="rel-kpi-label">Volume Vendido</div>
+          <div class="rel-kpi-val">${ton(expedido)}</div>
+        </div>
+        <div class="rel-kpi">
+          <div class="rel-kpi-label">Ticket Médio</div>
+          <div class="rel-kpi-val" style="font-size:18px">${moeda(ticketMedio)}<span style="font-size:11px">/ton</span></div>
+        </div>
+      </div>
+      ${topCli.length ? `
+      <div style="font-size:11px;font-weight:700;text-transform:uppercase;color:#94a3b8;margin-bottom:8px">Top clientes</div>
+      <table class="rel-table">
+        <thead><tr><th>Cliente</th><th style="text-align:right">Volume</th><th style="text-align:right">Faturamento</th><th style="text-align:right">Ticket (R$/ton)</th></tr></thead>
+        <tbody>
+          ${topCli.map(([cli, d])=>`<tr>
+            <td>${cli}</td>
+            <td style="text-align:right">${ton(d.kg)}</td>
+            <td style="text-align:right">${moeda(d.val)}</td>
+            <td style="text-align:right">${moeda(d.kg>0?d.val/(d.kg/1000):0)}</td>
+          </tr>`).join('')}
+        </tbody>
+      </table>` : '<p style="color:#94a3b8;font-size:13px">Sem vendas no período.</p>'}
+    </div>
+
+    <!-- 3. Produção & Estoque -->
+    <div class="card rel-section">
+      <div class="rel-section-title">3. Produção &amp; Estoque</div>
+      <div class="rel-kpi-grid" style="margin-bottom:${matsEstoque.length?'16px':'0'}">
+        <div class="rel-kpi">
+          <div class="rel-kpi-label">Produção no Período</div>
+          <div class="rel-kpi-val">${ton(prodTotal)}</div>
+        </div>
+        <div class="rel-kpi">
+          <div class="rel-kpi-label">Estoque Total</div>
+          <div class="rel-kpi-val">${ton(estoque)}</div>
+          <div class="rel-kpi-sub">${matsEstoque.length} material(ais)</div>
+        </div>
+      </div>
+      ${matsEstoque.length ? `
+      <div style="font-size:11px;font-weight:700;text-transform:uppercase;color:#94a3b8;margin-bottom:8px">Composição do estoque</div>
+      <table class="rel-table">
+        <thead><tr><th>Material</th><th style="text-align:right">Estoque</th><th style="text-align:right">% do total</th></tr></thead>
+        <tbody>
+          ${matsEstoque.map(m=>`<tr>
+            <td>${m.nome}</td>
+            <td style="text-align:right">${ton(m.estoque_kg)}</td>
+            <td style="text-align:right">${estoque>0?((m.estoque_kg/estoque)*100).toFixed(1):0}%</td>
+          </tr>`).join('')}
+        </tbody>
+      </table>` : ''}
+    </div>
+
+    <!-- 4. Equipamentos -->
+    <div class="card rel-section">
+      <div class="rel-section-title">4. Equipamentos</div>
+      <div class="rel-kpi-grid">
+        <div class="rel-kpi">
+          <div class="rel-kpi-label">Total</div>
+          <div class="rel-kpi-val">${equTotal}</div>
+        </div>
+        <div class="rel-kpi">
+          <div class="rel-kpi-label">Ativos</div>
+          <div class="rel-kpi-val" style="color:#1B7A43">${equAtivos}</div>
+          <div class="rel-kpi-sub">${equOperando} operando · ${equRestricao} restrição</div>
+        </div>
+        <div class="rel-kpi">
+          <div class="rel-kpi-label">Disponibilidade</div>
+          <div class="rel-kpi-val" style="color:${equPct>=80?'#1B7A43':equPct>=50?'#D97706':'#DC2626'}">${equPct}%</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 5. Recursos Humanos -->
+    <div class="card rel-section">
+      <div class="rel-section-title">5. Recursos Humanos</div>
+      <div class="rel-kpi-grid" style="margin-bottom:16px">
+        <div class="rel-kpi">
+          <div class="rel-kpi-label">Colaboradores Ativos</div>
+          <div class="rel-kpi-val">${ativos.length}</div>
+        </div>
+        <div class="rel-kpi">
+          <div class="rel-kpi-label">Em Experiência</div>
+          <div class="rel-kpi-val">${emExp.length}</div>
+        </div>
+        <div class="rel-kpi">
+          <div class="rel-kpi-label">Nota Média</div>
+          <div class="rel-kpi-val" style="color:${notaMedia===null?'#94a3b8':notaMedia>=7?'#1B7A43':notaMedia>=5?'#D97706':'#DC2626'}">${notaMedia!==null?notaMedia.toFixed(1):'—'}</div>
+        </div>
+        <div class="rel-kpi">
+          <div class="rel-kpi-label">Faltas (período)</div>
+          <div class="rel-kpi-val" style="color:${faltas>0?'#DC2626':'#1B7A43'}">${faltas}</div>
+        </div>
+        <div class="rel-kpi">
+          <div class="rel-kpi-label">Atestados (período)</div>
+          <div class="rel-kpi-val">${atestados}</div>
+        </div>
+        <div class="rel-kpi">
+          <div class="rel-kpi-label">Turnover (ano)</div>
+          <div class="rel-kpi-val" style="color:${parseFloat(turnover)>10?'#DC2626':'#1B7A43'}">${turnover}%</div>
+          <div class="rel-kpi-sub">${demAno} demissão(ões)</div>
+        </div>
+      </div>
+      ${colobsComNota.length ? `
+      <div style="font-size:11px;font-weight:700;text-transform:uppercase;color:#94a3b8;margin-bottom:8px">Avaliação por colaborador</div>
+      <table class="rel-table">
+        <thead><tr><th>Colaborador</th><th style="text-align:center">Nota</th><th>Classificação</th></tr></thead>
+        <tbody>
+          ${colobsComNota.map(c=>`<tr>
+            <td>${c.nome}</td>
+            <td style="text-align:center">
+              ${c.nota!==null?`<span class="nota-badge ${notaClass(c.nota)}">${c.nota.toFixed(1)}</span>`:'<span style="color:#94a3b8">—</span>'}
+            </td>
+            <td style="font-size:12px;color:#475569">
+              ${c.nota===null?'Sem avaliação':c.nota>=7?'✅ Recomendado':c.nota>=5?'⚠️ Em observação':'❌ Avaliar desligamento'}
+            </td>
+          </tr>`).join('')}
+        </tbody>
+      </table>` : ''}
+    </div>
+
+  `;
+}
+
+// ── Controles ────────────────────────────────────────────────────────────────
+function setModo(modo) {
+  modoAtual = modo;
+  const ativo = 'background:var(--primary);color:#fff;border-color:var(--primary)';
+  const inativo = 'background:#fff;color:#374151;border:1px solid #D1D5DB';
+  document.getElementById('rel-btn-mes').style.cssText = (modo==='mes'?ativo:inativo) + ';padding:6px 12px;border-radius:6px;cursor:pointer;font-size:12px';
+  document.getElementById('rel-btn-ano').style.cssText = (modo==='ano'?ativo:inativo) + ';padding:6px 12px;border-radius:6px;cursor:pointer;font-size:12px';
+  carregar();
+}
+
+document.getElementById('rel-btn-mes').addEventListener('click', () => setModo('mes'));
+document.getElementById('rel-btn-ano').addEventListener('click', () => setModo('ano'));
+document.getElementById('rel-mes').addEventListener('change', () => { modoAtual='mes'; carregar(); });
+document.getElementById('rel-ano').addEventListener('change', () => carregar());
+
+setModo('mes');
+</script>
+</body>
+</html>
