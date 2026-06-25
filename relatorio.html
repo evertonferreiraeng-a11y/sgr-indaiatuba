@@ -163,7 +163,7 @@ async function carregar() {
     fetchAll('vendas', 'peso_kg, valor_total, data, clientes(nome)', [['gte','data',inicio],['lte','data',fim]]),
     fetchAll('materiais', 'nome, estoque_kg, valor_unitario, no_estoque', [['eq','no_estoque',true]]),
     fetchAll('equipamentos', 'nome, status, capacidade_pct, descricao, funcao', []),
-    fetchAll('colaboradores', '*', []),
+    fetchAll('colaboradores', '*, cargos(nome)', []),
     fetchAll('colaborador_avaliacoes', '*', []),
     fetchAll('ocorrencias', 'tipo, data, colaborador_id', [['gte','data',inicio],['lte','data',fim]]),
     fetchAll('producao', 'peso_kg, data', [['gte','data',inicio],['lte','data',fim]]),
@@ -243,7 +243,11 @@ async function carregar() {
     const avals  = avaliacoes.filter(a=>a.colaborador_id===c.id);
     const medias = avals.map(calcMediaAval).filter(v=>v!==null);
     const nota   = medias.length ? medias.reduce((a,b)=>a+b,0)/medias.length : null;
-    return { nome: c.nome, nota };
+    const hoje = new Date().toISOString().slice(0,10);
+    const exp1 = c.fim_experiencia_1 && hoje <= c.fim_experiencia_1 ? c.fim_experiencia_1 : null;
+    const exp2 = c.fim_experiencia_2 && hoje <= c.fim_experiencia_2 ? c.fim_experiencia_2 : null;
+    const fimExp = exp2 || exp1;
+    return { nome: c.nome, cargo: c.cargos?.nome || '—', fimExp, nota };
   }).sort((a,b)=>(b.nota??-1)-(a.nota??-1));
 
   // ── Materiais em estoque ─────────────────────────────────────────────────
@@ -474,15 +478,19 @@ async function carregar() {
       ${colobsComNota.length ? `
       <div style="font-size:11px;font-weight:700;text-transform:uppercase;color:#94a3b8;margin-bottom:8px">Avaliação por colaborador</div>
       <table class="rel-table">
-        <thead><tr><th>Colaborador</th><th style="text-align:center">Nota</th><th>Classificação</th></tr></thead>
+        <thead><tr><th>Colaborador</th><th>Cargo</th><th style="text-align:center">Nota</th><th>Classificação</th><th>Fim Experiência</th></tr></thead>
         <tbody>
           ${colobsComNota.map(c=>`<tr>
             <td>${c.nome}</td>
+            <td style="color:#64748b;font-size:13px">${c.cargo}</td>
             <td style="text-align:center">
               ${c.nota!==null?`<span class="nota-badge ${notaClass(c.nota)}">${c.nota.toFixed(1)}</span>`:'<span style="color:#94a3b8">—</span>'}
             </td>
             <td style="font-size:12px;color:#475569">
               ${c.nota===null?'Sem avaliação':c.nota>=7?'✅ Recomendado':c.nota>=5?'⚠️ Em observação':'❌ Avaliar desligamento'}
+            </td>
+            <td style="font-size:12px;color:#F59E0B;font-weight:600">
+              ${c.fimExp ? dataBR(c.fimExp) : '<span style="color:#94a3b8">—</span>'}
             </td>
           </tr>`).join('')}
         </tbody>
