@@ -217,7 +217,7 @@ async function carregar() {
     fetchAll('vendas', 'peso_kg, valor_total, data, clientes(nome)', [['gte','data',inicio],['lte','data',fim]]),
     fetchAll('materiais', 'nome, estoque_kg, valor_unitario, no_estoque', [['eq','no_estoque',true]]),
     fetchAll('equipamentos', 'nome, frota, status, capacidade_pct, descricao, funcao', []),
-    fetchAll('colaboradores', '*, cargos(nome)', []),
+    fetchAll('colaboradores', '*, cargos(nome, vagas)', []),
     fetchAll('colaborador_avaliacoes', '*', []),
     fetchAll('ocorrencias', 'tipo, data, colaborador_id', [['gte','data',inicio],['lte','data',fim]]),
     fetchAll('producao', 'peso_kg, data', [['gte','data',inicio],['lte','data',fim]]),
@@ -530,6 +530,36 @@ async function carregar() {
           <div class="rel-kpi-sub">${demAno} demissão(ões)</div>
         </div>
       </div>
+      ${(() => {
+        // Balanço de vagas por cargo
+        const vagasMap = {};
+        ativos.forEach(c => {
+          const nome  = c.cargos?.nome || 'Sem cargo';
+          const total = c.cargos?.vagas ?? null;
+          if (!vagasMap[nome]) vagasMap[nome] = { preenchido: 0, total };
+          vagasMap[nome].preenchido++;
+        });
+        const linhas = Object.entries(vagasMap).sort((a,b)=>a[0].localeCompare(b[0]));
+        return `
+        <div style="font-size:11px;font-weight:700;text-transform:uppercase;color:#94a3b8;margin-bottom:8px">Balanço de vagas</div>
+        <table class="rel-table" style="margin-bottom:16px">
+          <thead><tr><th>Cargo</th><th style="text-align:center">Preenchido</th><th style="text-align:center">Total de vagas</th><th style="text-align:center">Situação</th></tr></thead>
+          <tbody>
+            ${linhas.map(([cargo, d]) => {
+              const cor = d.total === null ? '#64748b' : d.preenchido >= d.total ? '#1B7A43' : '#DC2626';
+              const sit = d.total === null ? '—' : d.preenchido >= d.total
+                ? `<span style="color:#1B7A43;font-weight:600">✅ Completo</span>`
+                : `<span style="color:#DC2626;font-weight:600">⚠️ ${d.total - d.preenchido} vaga(s) em aberto</span>`;
+              return `<tr>
+                <td>${cargo}</td>
+                <td style="text-align:center;font-weight:700;color:${cor}">${d.preenchido}</td>
+                <td style="text-align:center;color:#64748b">${d.total ?? '—'}</td>
+                <td style="text-align:center">${sit}</td>
+              </tr>`;
+            }).join('')}
+          </tbody>
+        </table>`;
+      })()}
       ${colobsComNota.length ? `
       <div style="font-size:11px;font-weight:700;text-transform:uppercase;color:#94a3b8;margin-bottom:8px">Avaliação por colaborador</div>
       <table class="rel-table">
