@@ -158,7 +158,7 @@ async function carregar() {
 
   const ano = inicio.slice(0, 4);
 
-  const [ents, vends, mats, equipamentos, colaboradores, avaliacoes, ocorrencias, producoes] = await Promise.all([
+  const [ents, vends, mats, equipamentos, colaboradores, avaliacoes, ocorrencias, producoes, metas] = await Promise.all([
     fetchAll('entradas', 'peso_liquido, peso_liquido_descontos, tipo_movimentacao, data', [['gte','data',inicio],['lte','data',fim]]),
     fetchAll('vendas', 'peso_kg, valor_total, data, clientes(nome)', [['gte','data',inicio],['lte','data',fim]]),
     fetchAll('materiais', 'nome, estoque_kg, valor_unitario, no_estoque', [['eq','no_estoque',true]]),
@@ -167,6 +167,7 @@ async function carregar() {
     fetchAll('colaborador_avaliacoes', '*', []),
     fetchAll('ocorrencias', 'tipo, data, colaborador_id', [['gte','data',inicio],['lte','data',fim]]),
     fetchAll('producao', 'peso_kg, data', [['gte','data',inicio],['lte','data',fim]]),
+    fetchAll('metas', 'periodo, valor_meta', [['eq','indicador','faturamento'],['gte','periodo',`${ano}-01`],['lte','periodo',`${ano}-12`]]),
   ]);
 
   // ── Balanço ──────────────────────────────────────────────────────────────
@@ -191,15 +192,19 @@ async function carregar() {
   const valorEstoque  = mats.reduce((s,r)=>s+(parseFloat(r.estoque_kg||0)*parseFloat(r.valor_unitario||0)),0);
   const totalPotencial = faturamento + valorEstoque;
 
-  // ── Clientes top ────────────────────────────────────────────────────────
-  const cliMap = {};
-  vends.forEach(v => {
-    const k = v.clientes?.nome || 'Sem cliente';
-    if (!cliMap[k]) cliMap[k] = { kg: 0, val: 0 };
-    cliMap[k].kg  += v.peso_kg || 0;
-    cliMap[k].val += v.valor_total || 0;
+  // ── Tabela mensal faturamento ────────────────────────────────────────────
+  const fatReal  = Array(12).fill(0);
+  const fatPrev  = Array(12).fill(0);
+  const fatKg    = Array(12).fill(0);
+  vends.forEach(r => {
+    const i = new Date(r.data+'T00:00:00').getMonth();
+    fatReal[i] += r.valor_total||0;
+    fatKg[i]   += r.peso_kg||0;
   });
-  const topCli = Object.entries(cliMap).sort((a,b)=>b[1].val-a[1].val).slice(0,5);
+  (metas||[]).forEach(m => {
+    const i = parseInt(m.periodo.split('-')[1])-1;
+    if (i>=0 && i<12) fatPrev[i] = m.valor_meta||0;
+  });
 
   // ── Produção ────────────────────────────────────────────────────────────
   const prodTotal = producoes.reduce((s,r)=>s+(r.peso_kg||0),0);
@@ -328,19 +333,47 @@ async function carregar() {
           <div class="rel-kpi-sub" style="color:#4ade80">Realizado + valor em estoque</div>
         </div>
       </div>
-      ${topCli.length ? `
-      <div style="font-size:11px;font-weight:700;text-transform:uppercase;color:#94a3b8;margin-bottom:8px">Top clientes</div>
-      <table class="rel-table">
-        <thead><tr><th>Cliente</th><th style="text-align:right">Volume</th><th style="text-align:right">Faturamento</th><th style="text-align:right">Ticket (R$/ton)</th></tr></thead>
+      <table class="rel-table" style="margin-top:8px">
+        <thead>
+          <tr>
+            <th>Mês</th>
+            <th style="text-align:right">Realizado</th>
+            <th style="text-align:right">Previsto</th>
+            <th style="text-align:right">Ton Vendidas</th>
+            <th style="text-align:right">Atingimento</th>
+            <th style="text-align:right">Ticket Médio</th>
+          </tr>
+        </thead>
         <tbody>
-          ${topCli.map(([cli, d])=>`<tr>
-            <td>${cli}</td>
-            <td style="text-align:right">${ton(d.kg)}</td>
-            <td style="text-align:right">${moeda(d.val)}</td>
-            <td style="text-align:right">${moeda(d.kg>0?d.val/(d.kg/1000):0)}</td>
-          </tr>`).join('')}
+          ${(() => {
+            let totR=0,totP=0,totKg=0;
+            const rows = MESES.map((m,i) => {
+              totR+=fatReal[i]; totP+=fatPrev[i]; totKg+=fatKg[i];
+              const ating = fatPrev[i]>0 ? (fatReal[i]/fatPrev[i]*100).toFixed(1)+'%' : '—';
+              const cor   = fatPrev[i]>0 ? (fatReal[i]>=fatPrev[i]?'#1B7A43':'#DC2626') : '#374151';
+              const tk    = fatKg[i]>0 ? moeda(fatReal[i]/(fatKg[i]/1000)) : '—';
+              return `<tr>
+                <td>${m}</td>
+                <td style="text-align:right">${fatReal[i]>0?moeda(fatReal[i]):'—'}</td>
+                <td style="text-align:right">${fatPrev[i]>0?moeda(fatPrev[i]):'—'}</td>
+                <td style="text-align:right">${fatKg[i]>0?ton(fatKg[i]):'—'}</td>
+                <td style="text-align:right;color:${cor};font-weight:600">${ating}</td>
+                <td style="text-align:right">${tk}</td>
+              </tr>`;
+            });
+            const atingG = totP>0?(totR/totP*100).toFixed(1)+'%':'—';
+            rows.push(`<tr style="background:#EBF5EE;font-weight:700">
+              <td>TOTAL</td>
+              <td style="text-align:right">${moeda(totR)}</td>
+              <td style="text-align:right">${totP>0?moeda(totP):'—'}</td>
+              <td style="text-align:right">${totKg>0?ton(totKg):'—'}</td>
+              <td style="text-align:right">${atingG}</td>
+              <td style="text-align:right">${totKg>0?moeda(totR/(totKg/1000)):'—'}</td>
+            </tr>`);
+            return rows.join('');
+          })()}
         </tbody>
-      </table>` : '<p style="color:#94a3b8;font-size:13px">Sem vendas no período.</p>'}
+      </table>
     </div>
 
     <!-- 3. Produção & Estoque -->
