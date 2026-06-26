@@ -4,7 +4,6 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>RNC – Não Conformidade de Cargas | Corpus</title>
-<link rel="stylesheet" href="css/style.css" />
 <style>
 :root{
   --gr:#006636;--gr2:#004d28;--gr3:#e8f5ee;
@@ -12,12 +11,12 @@
   --wh:#ffffff;--bg:#f0f4f1;--bd:#d8e4dc;--tx:#1a2e1a;--cz:#6b7c6b;
 }
 *{box-sizing:border-box;margin:0;padding:0}
-body{font-family:'Segoe UI',Arial,sans-serif;background:var(--bg);color:var(--tx);min-height:100vh}
+body{font-family:'Segoe UI',Arial,sans-serif;background:var(--bg);color:var(--tx);min-height:100vh;margin-left:240px}
 
 
 
 /* PAGES */
-.page{display:none;padding:24px 28px}
+.page{display:none;padding:24px 28px;max-width:900px}
 .page.active{display:block}
 
 /* BREADCRUMB */
@@ -211,8 +210,6 @@ body{font-family:'Segoe UI',Arial,sans-serif;background:var(--bg);color:var(--tx
 </style>
 </head>
 <body>
-<div class="app-layout">
-<div class="main-content">
 <div id="toast"></div>
 
 <!-- PAGE: CLIENTS -->
@@ -840,7 +837,6 @@ Object.assign(window, {
 // ── INIT ──
 renderClients();
 </script>
-</div></div>
 <div id="toast-container"></div>
 </body>
 </html>
