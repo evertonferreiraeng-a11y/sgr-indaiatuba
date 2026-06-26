@@ -833,6 +833,15 @@ function gerarPDF(){
   setTimeout(()=>window.print(),120);
 }
 
+// ── EXPOSE TO WINDOW (required for inline onclick in module scripts) ──
+Object.assign(window, {
+  goHome, goClientPage, goNewRNC, goEditRNC,
+  openNewClientModal, openEditClientModal, salvarCliente, confirmDeleteClient,
+  closeModal, openCombo, closeComboDelay, filterCombo, pickCombo, pickSuggest,
+  handleFotos, removeFoto, renderClients, renderRNCs,
+  salvarRNC, gerarPDF, setStatusFilter
+});
+
 // ── INIT ──
 renderClients();
 </script>
