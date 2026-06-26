@@ -749,177 +749,185 @@ async function gerarPPTX() {
     const pptx = new PptxGenJS();
     pptx.defineLayout({ name:'CUSTOM_16x9', width:10, height:5.625 });
     pptx.layout = 'CUSTOM_16x9';
-    pptx.title  = 'Comitê de Gestão UVR Indaiatuba';
+    pptx.title  = 'Comite de Gestao UVR Indaiatuba';
+
+    // Paleta de cores
+    const C = { verde:'006636', teal:'0F766E', azul:'1D4ED8', vermelho:'DC2626', amarelo:'D97706',
+                roxo:'7C3AED', cinza:'64748b', texto:'1e293b', branco:'FFFFFF', bg:'F8FAFC' };
+
+    // Helper: KPI box
+    function kpi(s,x,y,w,h,label,val,sub,bg,fgOverride) {
+      const fg = fgOverride||C.branco;
+      s.addShape('roundRect',{x,y,w,h,fill:{color:bg||C.bg},rectRadius:0.08,line:{color:'E2E8F0',pt:bg?0:1}});
+      s.addText(label,{x,y:y+0.07,w,h:0.2,fontSize:7,bold:true,color:bg?fg:C.cinza,align:'center',fontFace:'Calibri'});
+      s.addText(val,  {x,y:y+0.27,w,h:0.38,fontSize:12,bold:true,color:bg?fg:C.verde,align:'center',fontFace:'Calibri'});
+      if(sub) s.addText(sub,{x,y:y+0.65,w,h:0.18,fontSize:7,color:bg?'ccffdd':C.cinza,align:'center',fontFace:'Calibri'});
+    }
+
+    // Helper: slide de conteudo (fundo branco + strip verde direita + titulo)
+    function contentSlide(title) {
+      const s = pptx.addSlide();
+      s.background = {color:'FFFFFF'};
+      s.addImage({data:BG_STRIP,x:8.08,y:0,w:1.92,h:5.625});
+      s.addText(title,{x:0.35,y:0.22,w:7.5,h:0.5,fontSize:17,bold:true,color:C.verde,align:'left',fontFace:'Calibri'});
+      s.addShape('line',{x:0.35,y:0.76,w:5.5,h:0,line:{color:C.verde,pt:1.5}});
+      return s;
+    }
 
     // ── Slide 1: Capa ────────────────────────────────────────────────────────
     const s1 = pptx.addSlide();
-    s1.addImage({ data: BG_CAPA, x:0, y:0, w:10, h:5.625 });
-    s1.addText('COMITÊ DE GESTÃO', { x:0.35, y:1.1, w:6, h:0.7, fontSize:22, bold:true, color:'FFFFFF', align:'left', fontFace:'Calibri' });
-    s1.addText(d.label, { x:0.35, y:1.85, w:5, h:0.4, fontSize:14, color:'FFFFFF', align:'left', fontFace:'Calibri' });
+    s1.addImage({data:BG_CAPA,x:0,y:0,w:10,h:5.625});
+    // Faixa de subtitulo no fundo, sem sobrepor "UVR INDAIATUBA"
+    s1.addShape('rect',{x:0,y:4.55,w:10,h:1.075,fill:{color:'00000066'},line:{color:'00000000',pt:0}});
+    s1.addText('COMITE DE GESTAO  |  '+d.label,{x:0.4,y:4.65,w:9.2,h:0.4,fontSize:13,bold:true,color:C.branco,align:'left',fontFace:'Calibri'});
+    s1.addText('SGR Indaiatuba — UVRR Indaiatuba',{x:0.4,y:5.05,w:9,h:0.3,fontSize:10,color:'ccffdd',align:'left',fontFace:'Calibri'});
 
     // ── Slide 2: Pauta ───────────────────────────────────────────────────────
     const s2 = pptx.addSlide();
-    s2.addImage({ data: BG_PAUTA, x:0, y:0, w:10, h:5.625 });
-    s2.addShape('rect', { x:0, y:0, w:7.8, h:5.625, fill:{ color:'FFFFFF' }, line:{ color:'FFFFFF' } });
-    s2.addText('FLUXO DE INFORMAÇÕES', { x:0.4, y:1.2, w:6.8, h:0.9, fontSize:26, bold:true, color:'006636', align:'left', fontFace:'Calibri' });
-    s2.addShape('line', { x:0.4, y:2.2, w:5.5, h:0, line:{ color:'006636', pt:2 } });
-    s2.addText(new Date().toLocaleDateString('pt-BR'), { x:0.4, y:2.3, w:5, h:0.5, fontSize:18, bold:false, color:'006636', align:'left', fontFace:'Calibri' });
-    const pautaItems = ['Balanço de Massa;', 'Comercial;', 'Estoque;', 'Equipamentos;', 'Recursos Humanos.'];
-    s2.addText(pautaItems.map(i=>({ text:i+'\n', options:{fontSize:12, color:'4A7C59', fontFace:'Calibri'} })), { x:0.4, y:2.95, w:6, h:1.8, align:'left' });
-
-    // Helper: add strip + title to content slides
-    function addContentBg(slide, title) {
-      slide.background = { color: 'FFFFFF' };
-      slide.addImage({ data: BG_STRIP, x:8.0, y:0, w:2.0, h:5.625 });
-      slide.addText(title, { x:0.35, y:0.25, w:7.3, h:0.55, fontSize:18, bold:true, color:'006636', align:'left', fontFace:'Calibri' });
-      slide.addShape('line', { x:0.35, y:0.85, w:5, h:0, line:{ color:'006636', pt:1.5 } });
-    }
+    s2.addImage({data:BG_PAUTA,x:0,y:0,w:10,h:5.625});
+    s2.addShape('rect',{x:0,y:0,w:7.9,h:5.625,fill:{color:'FFFFFF'},line:{color:'FFFFFF',pt:0}});
+    s2.addText('FLUXO DE\nINFORMACOES',{x:0.4,y:1.0,w:6.5,h:1.4,fontSize:28,bold:true,color:C.verde,align:'left',fontFace:'Calibri'});
+    s2.addShape('line',{x:0.4,y:2.55,w:6.0,h:0,line:{color:C.verde,pt:2}});
+    s2.addText(new Date().toLocaleDateString('pt-BR'),{x:0.4,y:2.65,w:5,h:0.5,fontSize:18,color:C.verde,align:'left',fontFace:'Calibri'});
+    const itens = 'Balanco de Massa;\nComercial;\nEstoque;\nEquipamentos;\nRecursos Humanos.';
+    s2.addText(itens,{x:0.4,y:3.25,w:6.5,h:1.8,fontSize:13,color:'2d6a47',align:'left',fontFace:'Calibri'});
 
     // ── Slide 3: Balanço de Massa ────────────────────────────────────────────
-    const s3 = pptx.addSlide();
-    addContentBg(s3, 'BALANÇO DE MASSA');
-
+    const s3 = contentSlide('BALANCO DE MASSA');
     const bKpis = [
-      ['⬇ RECEBIDO', fmtTon(d.recebido), '100% — base', VERDE],
-      ['EXPEDIDO',   fmtTon(d.expedido), pctR(d.expedido,d.recebido), '147a43'],
-      ['REJEITO',    fmtTon(d.rejeito),  pctR(d.rejeito, d.recebido), 'B91C1C'],
-      ['ESTOQUE',    fmtTon(d.estoque),  pctR(d.estoque, d.recebido), '1D4ED8'],
-      ['PASSIVO',    fmtTon(d.passivo),  pctR(d.passivo, d.recebido), 'B45309'],
+      ['RECEBIDO',  fmtTon(d.recebido), '100% base',           C.verde],
+      ['EXPEDIDO',  fmtTon(d.expedido), pctR(d.expedido,d.recebido), '0d7a4a'],
+      ['REJEITO',   fmtTon(d.rejeito),  pctR(d.rejeito,d.recebido),  C.vermelho],
+      ['ESTOQUE',   fmtTon(d.estoque),  pctR(d.estoque,d.recebido),   C.azul],
+      ['PASSIVO',   fmtTon(d.passivo),  pctR(d.passivo,d.recebido),   C.amarelo],
     ];
-    const cw=1.42, cy=1.05;
-    bKpis.forEach(([lbl,val,sub,bg],i) => kpiBox(s3, 0.2+i*(cw+0.05), cy, cw, 0.95, lbl, val, sub, bg));
+    const kw=1.47, ky=0.9;
+    bKpis.forEach(([l,v,s,bg],i)=>kpi(s3,0.22+i*(kw+0.06),ky,kw,0.95,l,v,s,bg));
 
-    const barY=2.18, barH=0.32, barX=0.2, barTotal=7.6;
-    const segs3 = [
-      { v:d.expedido, c:'006636' }, { v:d.rejeito, c:'DC2626' },
-      { v:d.estoque,  c:'2563EB' }, { v:d.passivo, c:'D97706' },
-    ];
-    let cx3 = barX;
-    segs3.forEach(seg => {
-      const w3 = d.recebido>0 ? (seg.v/d.recebido)*barTotal : 0;
-      if (w3 > 0.05) s3.addShape('rect', { x:cx3, y:barY, w:w3, h:barH, fill:{ color:seg.c } });
-      cx3 += w3;
+    // Barra proporcional
+    const barY=2.02, barH=0.3, barX=0.22, barW=7.76;
+    [{v:d.expedido,c:'006636'},{v:d.rejeito,c:'DC2626'},{v:d.estoque,c:'1D4ED8'},{v:d.passivo,c:'D97706'}]
+      .reduce((cx,seg)=>{
+        const w=d.recebido>0?(seg.v/d.recebido)*barW:0;
+        if(w>0.05) s3.addShape('rect',{x:cx,y:barY,w,h:barH,fill:{color:seg.c}});
+        return cx+w;
+      }, barX);
+
+    // Painel taxa de reciclagem com grafico de rosca (velocimetro)
+    const taxaVal = Math.min(d.taxa||0, 100);
+    const taxaCor = taxaVal>=70?C.verde:taxaVal>=40?C.amarelo:C.vermelho;
+    s3.addShape('roundRect',{x:0.22,y:2.42,w:4.8,h:1.05,fill:{color:C.bg},rectRadius:0.06,line:{color:'E2E8F0',pt:1}});
+    s3.addText('TAXA DE RECICLAGEM',{x:0.35,y:2.48,w:3,h:0.22,fontSize:8,bold:true,color:C.cinza,fontFace:'Calibri'});
+    s3.addText(taxaVal.toFixed(1)+'%',{x:0.35,y:2.68,w:1.8,h:0.65,fontSize:26,bold:true,color:taxaCor,fontFace:'Calibri'});
+    s3.addText('(Expedido + Estoque) / Recebido',{x:2.2,y:2.78,w:2.7,h:0.3,fontSize:8,color:C.cinza,fontFace:'Calibri'});
+    // Barra visual de progresso para velocimetro
+    s3.addShape('rect',{x:0.35,y:3.1,w:4.5,h:0.14,fill:{color:'E2E8F0'}});
+    s3.addShape('rect',{x:0.35,y:3.1,w:Math.min(taxaVal/100*4.5,4.5),h:0.14,fill:{color:taxaCor}});
+    s3.addText('0%',{x:0.35,y:3.25,w:0.5,h:0.15,fontSize:6,color:C.cinza,fontFace:'Calibri'});
+    s3.addText('100%',{x:4.35,y:3.25,w:0.6,h:0.15,fontSize:6,color:C.cinza,align:'right',fontFace:'Calibri'});
+    // Grafico de rosca simulando velocimetro
+    s3.addChart('doughnut',[{name:'Taxa',labels:['Atingido','Restante'],values:[taxaVal,100-taxaVal]}],{
+      x:4.8,y:2.32,w:2.9,h:1.7,holeSize:65,
+      chartColors:[taxaCor,'E2E8F0'],showLegend:false,showTitle:false,
+      dataLabelFormatCode:'0%',showLabel:false,showValue:false,
     });
 
-    s3.addShape('roundRect', { x:0.2, y:2.62, w:7.6, h:0.9, fill:{ color:'F8FAFC' }, rectRadius:0.06, line:{ color:'E2E8F0', pt:1 } });
-    s3.addText('TAXA DE RECICLAGEM', { x:0.35, y:2.68, w:3, h:0.22, fontSize:8, bold:true, color:CINZA, fontFace:'Calibri' });
-    const taxaCor = d.taxa>=70?VERDE:d.taxa>=40?AMARELO:VERMELHO;
-    s3.addText(d.taxa.toFixed(1)+'%', { x:0.35, y:2.88, w:2, h:0.52, fontSize:24, bold:true, color:taxaCor, fontFace:'Calibri' });
-    s3.addText('(Expedido + Estoque) / Recebido', { x:2.5, y:2.96, w:4, h:0.32, fontSize:9, color:CINZA, fontFace:'Calibri' });
-
-    s3.addShape('roundRect', { x:0.2, y:3.65, w:7.6, h:0.4, fill:{ color:'D1FAE5' }, rectRadius:0.06 });
-    s3.addText('✅  Balanço fechado — material em processamento/aguardando destinação.', { x:0.3, y:3.72, w:7.3, h:0.26, fontSize:9, color:'065f46', fontFace:'Calibri' });
+    s3.addShape('roundRect',{x:0.22,y:3.5,w:7.76,h:0.38,fill:{color:'D1FAE5'},rectRadius:0.06});
+    s3.addText('Balanco fechado - material em processamento/aguardando destinacao.',{x:0.35,y:3.58,w:7.4,h:0.22,fontSize:9,color:'065f46',fontFace:'Calibri'});
 
     // ── Slide 4: Comercial ───────────────────────────────────────────────────
-    const s4 = pptx.addSlide();
-    addContentBg(s4, 'COMERCIAL');
-
+    const s4 = contentSlide('COMERCIAL');
     const cKpis = [
-      ['FATURAMENTO',      fmtM(d.faturamento),       null,             VERDE],
-      ['VOLUME VENDIDO',   fmtTon(d.expedido),         null,             '1D4ED8'],
-      ['TICKET MÉDIO',     fmtM(d.ticketMedio)+'/t',   null,             '0F766E'],
-      ['VALOR EM ESTOQUE', fmtM(d.valorEstoque),       null,             '7C3AED'],
-      ['FAT.+ESTOQUE',     fmtM(d.totalPotencial),     null,             '065f46'],
+      ['FATURAMENTO',     fmtM(d.faturamento),        null, C.verde],
+      ['VOLUME VENDIDO',  fmtTon(d.expedido),          null, '0d7a4a'],
+      ['TICKET MEDIO',    fmtM(d.ticketMedio)+'/t',    null, C.teal],
+      ['VALOR ESTOQUE',   fmtM(d.valorEstoque),        null, '1a5fa8'],
+      ['FAT+ESTOQUE',     fmtM(d.totalPotencial),      null, '2d3f6e'],
     ];
-    cKpis.forEach(([lbl,val,sub,bg],i) => kpiBox(s4, 0.2+i*(cw+0.05), 1.05, cw, 0.95, lbl, val, sub, bg));
+    cKpis.forEach(([l,v,s,bg],i)=>kpi(s4,0.22+i*(kw+0.06),0.9,kw,0.95,l,v,s,bg));
 
-    const tRows = [['Mês','Realizado','Previsto','Ton Vend.','Ating.','Ticket Méd.']];
-    let totR=0,totP=0,totKg2=0;
-    MESES_PT.forEach((m,i) => {
-      totR+=d.fatReal[i]; totP+=d.fatPrev[i]; totKg2+=d.fatKg[i];
-      const ating = d.fatPrev[i]>0?(d.fatReal[i]/d.fatPrev[i]*100).toFixed(1)+'%':'—';
-      const tk = d.fatKg[i]>0?fmtM(d.fatReal[i]/(d.fatKg[i]/1000)):'—';
-      tRows.push([m, d.fatReal[i]>0?fmtM(d.fatReal[i]):'—', d.fatPrev[i]>0?fmtM(d.fatPrev[i]):'—', d.fatKg[i]>0?fmtTon(d.fatKg[i]):'—', ating, tk]);
+    const tRows=[['Mes','Realizado','Previsto','Ton Vend.','Ating.','Ticket Med.']];
+    let tR=0,tP=0,tK=0;
+    MESES_PT.forEach((m,i)=>{
+      tR+=d.fatReal[i]; tP+=d.fatPrev[i]; tK+=d.fatKg[i];
+      const at=d.fatPrev[i]>0?(d.fatReal[i]/d.fatPrev[i]*100).toFixed(1)+'%':'0.0%';
+      const tk=d.fatKg[i]>0?fmtM(d.fatReal[i]/(d.fatKg[i]/1000)):'--';
+      tRows.push([m,d.fatReal[i]>0?fmtM(d.fatReal[i]):'--',d.fatPrev[i]>0?fmtM(d.fatPrev[i]):'--',d.fatKg[i]>0?fmtTon(d.fatKg[i]):'--',at,tk]);
     });
-    tRows.push(['TOTAL', fmtM(totR), totP>0?fmtM(totP):'—', totKg2>0?fmtTon(totKg2):'—', totP>0?(totR/totP*100).toFixed(1)+'%':'—', totKg2>0?fmtM(totR/(totKg2/1000)):'—']);
-    s4.addTable(tRows, {
-      x:0.2, y:2.12, w:7.6, h:3.3,
-      fontSize:7, fontFace:'Calibri', color:TEXTO,
-      colW:[1.2,1.45,1.45,1.2,0.8,1.5],
-      border:{ type:'solid', color:'E2E8F0', pt:0.5 },
-      rowH:0.21, fill:{ color:'FFFFFF' }, align:'center',
-      thead:{ fill:{ color:'006636' }, color:'FFFFFF', bold:true },
-      lastRow:{ fill:{ color:'EBF5EE' }, bold:true },
-    });
+    tRows.push(['TOTAL',fmtM(tR),tP>0?fmtM(tP):'--',tK>0?fmtTon(tK):'--',tP>0?(tR/tP*100).toFixed(1)+'%':'--',tK>0?fmtM(tR/(tK/1000)):'--']);
+    s4.addTable(tRows,{x:0.22,y:2.0,w:7.76,h:3.4,fontSize:7,fontFace:'Calibri',color:C.texto,
+      colW:[1.2,1.45,1.45,1.2,0.76,1.7],rowH:0.21,fill:{color:'FFFFFF'},align:'center',
+      border:{type:'solid',color:'E2E8F0',pt:0.5},
+      thead:{fill:{color:C.verde},color:'FFFFFF',bold:true},
+      lastRow:{fill:{color:'EBF5EE'},bold:true}});
 
     // ── Slide 5: Estoque ─────────────────────────────────────────────────────
-    const s5 = pptx.addSlide();
-    addContentBg(s5, 'ESTOQUE');
-    kpiBox(s5, 0.2, 1.05, 2.2, 0.95, 'ESTOQUE TOTAL',    fmtTon(d.estoque),    d.matsEstoque.length+' material(ais)', '1D4ED8');
-    kpiBox(s5, 2.6, 1.05, 2.2, 0.95, 'VALOR EM ESTOQUE', fmtM(d.valorEstoque), null, '7C3AED');
+    const s5 = contentSlide('ESTOQUE');
+    kpi(s5,0.22,0.9,2.3,0.95,'ESTOQUE TOTAL',   fmtTon(d.estoque),    d.matsEstoque.length+' materiais', C.verde);
+    kpi(s5,2.72,0.9,2.3,0.95,'VALOR EM ESTOQUE',fmtM(d.valorEstoque), null,                              '1a5fa8');
 
-    const eRows = [['Material','Estoque (ton)','% do Total']];
-    d.matsEstoque.forEach(m => {
-      const kg = parseFloat(m.estoque_kg||0);
-      eRows.push([m.nome, fmtTon(kg), d.estoque>0?((kg/d.estoque)*100).toFixed(1)+'%':'—']);
+    const eRows=[['Material','Estoque (ton)','% do Total']];
+    d.matsEstoque.forEach(m=>{
+      const kg=parseFloat(m.estoque_kg||0);
+      eRows.push([m.nome,fmtTon(kg),d.estoque>0?((kg/d.estoque)*100).toFixed(1)+'%':'--']);
     });
-    s5.addTable(eRows, {
-      x:0.2, y:2.12, w:5.2, h:3.3,
-      fontSize:9, fontFace:'Calibri', color:TEXTO, colW:[2.8,1.4,1.0],
-      border:{ type:'solid', color:'E2E8F0', pt:0.5 }, fill:{ color:'FFFFFF' }, align:'center',
-      thead:{ fill:{ color:'006636' }, color:'FFFFFF', bold:true }, rowH:0.28,
-    });
+    s5.addTable(eRows,{x:0.22,y:2.0,w:5.5,h:3.4,fontSize:9,fontFace:'Calibri',color:C.texto,
+      colW:[3.0,1.5,1.0],rowH:0.3,fill:{color:'FFFFFF'},align:'center',
+      border:{type:'solid',color:'E2E8F0',pt:0.5},
+      thead:{fill:{color:C.verde},color:'FFFFFF',bold:true}});
 
     // ── Slide 6: Equipamentos ────────────────────────────────────────────────
-    const s6 = pptx.addSlide();
-    addContentBg(s6, 'EQUIPAMENTOS');
-    kpiBox(s6, 0.2,  1.05, 1.8, 0.95, 'TOTAL',          String(d.equTotal),  null, VERDE);
-    kpiBox(s6, 2.2,  1.05, 1.8, 0.95, 'ATIVOS',         String(d.equAtivos), d.equOperando+' operando', '0F766E');
-    kpiBox(s6, 4.2,  1.05, 1.8, 0.95, 'DISPONIBILIDADE', d.equPct+'%',       null, d.equPct>=80?VERDE:d.equPct>=60?AMARELO:VERMELHO);
+    const s6 = contentSlide('EQUIPAMENTOS');
+    kpi(s6,0.22,0.9,2.0,0.95,'TOTAL',          String(d.equTotal),   null,              C.verde);
+    kpi(s6,2.32,0.9,2.0,0.95,'ATIVOS',         String(d.equAtivos),  d.equOperando+' operando', C.teal);
+    kpi(s6,4.42,0.9,2.0,0.95,'DISPONIBILIDADE',d.equPct+'%',         null,
+        d.equPct>=80?C.verde:d.equPct>=60?C.amarelo:C.vermelho);
 
-    const eqRows = [['Equipamento','Nº Frota','Função','Status']];
-    d.equipamentos.forEach(e => {
-      const st = e.status==='operando'?'Operando':e.status==='restricao'?'Restrição':'Parado';
-      eqRows.push([e.nome||'—', e.frota||'—', e.funcao||'—', st]);
+    const eqRows=[['Equipamento','No Frota','Funcao','Status']];
+    d.equipamentos.forEach(e=>{
+      const st=e.status==='operando'?'Operando':e.status==='restricao'?'Restricao':'Parado';
+      eqRows.push([e.nome||'--',e.frota||'--',e.funcao||'--',st]);
     });
-    s6.addTable(eqRows, {
-      x:0.2, y:2.12, w:7.6, h:3.3,
-      fontSize:9, fontFace:'Calibri', color:TEXTO, colW:[2.5,1.3,2.6,1.2],
-      border:{ type:'solid', color:'E2E8F0', pt:0.5 }, fill:{ color:'FFFFFF' }, align:'left',
-      thead:{ fill:{ color:'006636' }, color:'FFFFFF', bold:true }, rowH:0.28,
-    });
+    s6.addTable(eqRows,{x:0.22,y:2.0,w:7.76,h:3.4,fontSize:9,fontFace:'Calibri',color:C.texto,
+      colW:[2.5,1.3,2.66,1.3],rowH:0.3,fill:{color:'FFFFFF'},align:'left',
+      border:{type:'solid',color:'E2E8F0',pt:0.5},
+      thead:{fill:{color:C.verde},color:'FFFFFF',bold:true}});
 
-    // ── Slide 7: RH ──────────────────────────────────────────────────────────
-    const s7 = pptx.addSlide();
-    addContentBg(s7, 'RECURSOS HUMANOS');
-    kpiBox(s7, 0.2,  1.05, 1.6, 0.95, 'ATIVOS',          String(d.ativos),   null, VERDE);
-    kpiBox(s7, 2.0,  1.05, 1.6, 0.95, 'EM EXPERIÊNCIA',  String(d.emExp),    null, AMARELO);
-    kpiBox(s7, 3.8,  1.05, 1.6, 0.95, 'NOTA MÉDIA',      d.notaMedia?d.notaMedia.toFixed(1):'—', null, '0F766E');
-    kpiBox(s7, 5.6,  1.05, 1.6, 0.95, 'TURNOVER (ANO)',  d.turnover+'%',     null, parseFloat(d.turnover)>10?VERMELHO:VERDE);
+    // ── Slide 7: Recursos Humanos ────────────────────────────────────────────
+    const s7 = contentSlide('RECURSOS HUMANOS');
+    kpi(s7,0.22,0.9,1.7,0.95,'ATIVOS',         String(d.ativos),   null, C.verde);
+    kpi(s7,2.02,0.9,1.7,0.95,'EM EXPERIENCIA', String(d.emExp),    null, C.amarelo);
+    kpi(s7,3.82,0.9,1.7,0.95,'NOTA MEDIA',     d.notaMedia?d.notaMedia.toFixed(1):'--', null, C.teal);
+    kpi(s7,5.62,0.9,1.7,0.95,'TURNOVER (ANO)', d.turnover+'%', null, parseFloat(d.turnover)>10?C.vermelho:C.verde);
 
-    const vagasEntries = Object.entries(d.vagasMap||{}).filter(([k])=>k&&k!=='undefined');
-    if (vagasEntries.length) {
-      const vRows = [['Cargo','Preenchido','Total Vagas','Situação']];
-      vagasEntries.sort((a,b)=>a[0].localeCompare(b[0])).forEach(([cargo, info]) => {
-        const sit = info.total===null?'—':info.preenchido>=info.total?'Completo':`${info.total-info.preenchido} vaga(s) em aberto`;
-        vRows.push([cargo, String(info.preenchido), info.total!==null?String(info.total):'—', sit]);
+    const vagasEntries=Object.entries(d.vagasMap||{}).filter(([k])=>k&&k!=='undefined');
+    if(vagasEntries.length){
+      const vRows=[['Cargo','Preenchido','Total Vagas','Situacao']];
+      vagasEntries.sort((a,b)=>a[0].localeCompare(b[0])).forEach(([cargo,info])=>{
+        const sit=info.total===null?'--':info.preenchido>=info.total?'Completo':`${info.total-info.preenchido} em aberto`;
+        vRows.push([cargo,String(info.preenchido),info.total!==null?String(info.total):'--',sit]);
       });
-      s7.addText('BALANÇO DE VAGAS', { x:0.2, y:2.1, w:4, h:0.22, fontSize:8, bold:true, color:CINZA, fontFace:'Calibri' });
-      s7.addTable(vRows, {
-        x:0.2, y:2.32, w:5.5, h:1.3,
-        fontSize:8, fontFace:'Calibri', color:TEXTO, colW:[2.3,0.9,1.0,1.3],
-        border:{ type:'solid', color:'E2E8F0', pt:0.5 }, fill:{ color:'FFFFFF' }, align:'center',
-        thead:{ fill:{ color:'006636' }, color:'FFFFFF', bold:true }, rowH:0.26,
-      });
+      s7.addText('BALANCO DE VAGAS',{x:0.22,y:2.02,w:4,h:0.22,fontSize:8,bold:true,color:C.cinza,fontFace:'Calibri'});
+      s7.addTable(vRows,{x:0.22,y:2.24,w:5.8,h:1.3,fontSize:8,fontFace:'Calibri',color:C.texto,
+        colW:[2.5,0.9,1.1,1.3],rowH:0.26,fill:{color:'FFFFFF'},align:'center',
+        border:{type:'solid',color:'E2E8F0',pt:0.5},
+        thead:{fill:{color:C.verde},color:'FFFFFF',bold:true}});
     }
 
-    const aRows = [['Colaborador','Cargo','Nota','Classificação','Fim Exp.']];
-    d.colobsComNota.forEach(c => {
-      const cls = c.nota===null?'Sem avaliação':c.nota>=7?'Recomendado':c.nota>=5?'Em observação':'Avaliar desligamento';
-      aRows.push([c.nome, c.cargo, c.nota!==null?c.nota.toFixed(1):'—', cls, c.fimExp||'—']);
+    const aRows=[['Colaborador','Cargo','Nota','Classificacao','Fim Exp.']];
+    d.colobsComNota.forEach(c=>{
+      const cls=c.nota===null?'Sem avaliacao':c.nota>=7?'Recomendado':c.nota>=5?'Em observacao':'Avaliar desligamento';
+      aRows.push([c.nome,c.cargo,c.nota!==null?c.nota.toFixed(1):'--',cls,c.fimExp||'--']);
     });
-    s7.addText('AVALIAÇÃO POR COLABORADOR', { x:0.2, y:3.7, w:9, h:0.22, fontSize:8, bold:true, color:CINZA, fontFace:'Calibri' });
-    s7.addTable(aRows, {
-      x:0.2, y:3.92, w:7.6, h:1.55,
-      fontSize:8, fontFace:'Calibri', color:TEXTO, colW:[2.3,2.1,0.6,2.1,0.5],
-      border:{ type:'solid', color:'E2E8F0', pt:0.5 }, fill:{ color:'FFFFFF' }, align:'center',
-      thead:{ fill:{ color:'006636' }, color:'FFFFFF', bold:true }, rowH:0.26, autoPage:false,
-    });
+    s7.addText('AVALIACAO POR COLABORADOR',{x:0.22,y:3.65,w:9,h:0.22,fontSize:8,bold:true,color:C.cinza,fontFace:'Calibri'});
+    s7.addTable(aRows,{x:0.22,y:3.87,w:7.76,h:1.55,fontSize:8,fontFace:'Calibri',color:C.texto,
+      colW:[2.3,2.1,0.6,2.06,0.7],rowH:0.26,fill:{color:'FFFFFF'},align:'center',
+      border:{type:'solid',color:'E2E8F0',pt:0.5},
+      thead:{fill:{color:C.verde},color:'FFFFFF',bold:true},autoPage:false});
 
     // ── Slide 8: Encerramento ────────────────────────────────────────────────
     const s8 = pptx.addSlide();
-    s8.addImage({ data: BG_ENCERRA, x:0, y:0, w:10, h:5.625 });
-
+    s8.addImage({data:BG_ENCERRA,x:0,y:0,w:10,h:5.625});
     const data = new Date().toLocaleDateString('pt-BR').replace(/\//g,'-');
     await pptx.writeFile({ fileName: 'Comite_UVR_Indaiatuba_'+data+'.pptx' });
   } catch(e) {
