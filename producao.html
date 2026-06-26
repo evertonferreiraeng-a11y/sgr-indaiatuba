@@ -12,6 +12,15 @@
     .prod-tab.active{color:var(--primary);border-bottom-color:var(--primary)}
     .prod-tab:hover:not(.active){color:var(--text)}
     .tab-pane{display:none}.tab-pane.active{display:block}
+    .colab-row{display:grid;grid-template-columns:1fr 100px 100px 32px;gap:8px;align-items:start;background:#f8faf9;border:1px solid #d8e4dc;border-radius:8px;padding:10px 12px;margin-bottom:8px}
+    .colab-row label{font-size:10px;font-weight:700;color:#6b7c6b;text-transform:uppercase;margin-bottom:3px;display:block}
+    .colab-row input,.colab-row select{padding:7px 10px;border:1.5px solid #d8e4dc;border-radius:6px;font-size:13px;width:100%;font-family:inherit}
+    .colab-row input:focus,.colab-row select:focus{border-color:#006636;outline:none}
+    .btn-remove-colab{background:#fee2e2;border:none;color:#dc2626;border-radius:6px;width:32px;height:34px;cursor:pointer;font-size:15px;display:flex;align-items:center;justify-content:center;margin-top:19px;flex-shrink:0}
+    .btn-remove-colab:hover{background:#fca5a5}
+    .btn-add-colab{background:#f0faf4;border:1.5px dashed #006636;color:#006636;border-radius:8px;padding:8px 16px;font-size:13px;font-weight:700;cursor:pointer;width:100%;margin-top:4px;text-align:center}
+    .btn-add-colab:hover{background:#e0f5ea}
+    #modal-triagem .modal{max-width:620px}
   </style>
 </head>
 <body>
@@ -216,15 +225,22 @@
         <div class="form-grid">
           <div class="form-group"><label>Data *</label><input type="date" name="data" required /></div>
           <div class="form-group"><label>Cliente *</label><input type="text" name="cliente" required placeholder="Ex: GL Foods" list="tri-clientes-list" /></div>
-          <div class="form-group"><label>Operador</label><select name="operador_id"><option value="">— Nenhum —</option></select></div>
-          <div class="form-group"><label>Hora Início *</label><input type="time" name="hora_inicio" required /></div>
-          <div class="form-group"><label>Hora Fim *</label><input type="time" name="hora_fim" required /></div>
           <div class="form-group"><label>Peso Triado (kg) *</label><input type="number" name="peso_kg" min="0.01" step="0.01" required placeholder="kg triados nessa carga" /></div>
           <div class="form-group"><label>Material Triado</label><input type="text" name="material" placeholder="Ex: Recicláveis Mistos" /></div>
           <div class="form-group full"><label>Observações</label><textarea name="observacoes" rows="2" placeholder="Detalhes da triagem…"></textarea></div>
         </div>
         <datalist id="tri-clientes-list"></datalist>
-        <div id="tri-duracao-preview" style="display:none;margin-top:8px;padding:8px 12px;background:#f0f9f4;color:#006636;border-radius:6px;font-size:13px;font-weight:600"></div>
+
+        <!-- Colaboradores com horários individuais -->
+        <div style="margin-top:16px;margin-bottom:8px">
+          <div style="font-size:11px;font-weight:800;color:#6b7c6b;text-transform:uppercase;letter-spacing:.5px;margin-bottom:10px">
+            Colaboradores na Triagem
+          </div>
+          <div id="colab-rows"></div>
+          <button type="button" class="btn-add-colab" id="btn-add-colab">+ Adicionar Colaborador</button>
+        </div>
+
+        <div id="tri-duracao-preview" style="display:none;margin-top:10px;padding:8px 12px;background:#f0f9f4;color:#006636;border-radius:6px;font-size:13px;font-weight:600"></div>
       </form>
     </div>
     <div class="modal-footer">
@@ -323,8 +339,7 @@ function popularSelects() {
   document.getElementById('f-mat').innerHTML   = '<option value="">Todos</option>' + mtOpts;
   document.querySelector('#form-prod [name="equipamento_id"]').innerHTML = '<option value="">Selecione…</option>' + eqOpts;
   document.querySelector('#form-prod [name="material_id"]').innerHTML    = '<option value="">Selecione…</option>' + mtOpts;
-  document.querySelector('#form-prod [name="operador_id"]').innerHTML    = colOpts;
-  document.querySelector('#form-triagem [name="operador_id"]').innerHTML = colOpts;
+  document.querySelector('#form-prod [name="operador_id"]').innerHTML = colOpts;
   document.getElementById('tri-f-op').innerHTML = '<option value="">Todos</option>' + colaboradores.map(c=>`<option value="${c.id}">${c.nome}</option>`).join('');
 }
 
@@ -474,26 +489,37 @@ function fmtKg(v) {
 }
 
 async function carregarTriagem() {
-  let q = supabase.from('triagem').select('*, colaboradores(nome)').order('data', { ascending: false });
+  let q = supabase.from('triagem').select('*').order('data', { ascending: false });
   const mes = document.getElementById('tri-f-mes').value;
   const op  = document.getElementById('tri-f-op').value;
   if (mes) {
     const [y,m] = mes.split('-');
     q = q.gte('data',`${y}-${m}-01`).lte('data', new Date(y,m,0).toISOString().split('T')[0]);
   }
-  if (op) q = q.eq('operador_id', op);
+  // Filtro por operador: filtra pelo array equipe (client-side após busca)
+  let opFiltro = op || null;
 
   const { data, error } = await q;
   if (error) {
     document.getElementById('tri-tb').innerHTML = '<tr><td colspan="10" class="table-empty" style="text-align:left;padding:16px">⚠ <strong>Execute este SQL no Supabase para ativar o módulo de Triagem:</strong><br><br><code style="display:block;font-size:11px;background:#f5f5f5;padding:12px;border-radius:6px;white-space:pre;margin-top:8px">CREATE TABLE triagem (\n  id uuid DEFAULT gen_random_uuid() PRIMARY KEY,\n  data date NOT NULL,\n  cliente text NOT NULL,\n  hora_inicio time,\n  hora_fim time,\n  tempo_minutos integer,\n  operador_id uuid REFERENCES colaboradores(id),\n  material text,\n  peso_kg numeric NOT NULL DEFAULT 0,\n  observacoes text,\n  criado_por uuid,\n  created_at timestamptz DEFAULT now()\n);</code></td></tr>';
     return;
   }
-  triagemData = data || [];
+  // Filtro client-side por operador (dentro do JSONB equipe)
+  let allData = data || [];
+  if (opFiltro) allData = allData.filter(r => Array.isArray(r.equipe) && r.equipe.some(c => c.operador_id === opFiltro));
+  triagemData = allData;
 
-  // KPIs de capacidade
-  const validos = triagemData.filter(r => (r.peso_kg||0) > 0 && calcMinutos(r.hora_inicio, r.hora_fim) > 0);
+  // KPIs de capacidade — usa duração real (min início até max fim da equipe)
+  function duracao(r) {
+    const eq = Array.isArray(r.equipe) ? r.equipe : [];
+    const inis = eq.filter(c=>c.hora_inicio).map(c=>c.hora_inicio);
+    const fins  = eq.filter(c=>c.hora_fim).map(c=>c.hora_fim);
+    if (!inis.length || !fins.length) return 0;
+    return calcMinutos(inis.reduce((a,b)=>a<b?a:b), fins.reduce((a,b)=>a>b?a:b));
+  }
+  const validos = triagemData.filter(r => (r.peso_kg||0) > 0 && duracao(r) > 0);
   const totalKg = triagemData.reduce((s,r) => s + (r.peso_kg||0), 0);
-  const velocidades = validos.map(r => kgH(r.peso_kg, calcMinutos(r.hora_inicio, r.hora_fim)));
+  const velocidades = validos.map(r => kgH(r.peso_kg, duracao(r)));
   const velMedia = velocidades.length ? Math.round(velocidades.reduce((s,v)=>s+v,0) / velocidades.length) : 0;
   const capDia = Math.round(velMedia * 8);
   const capMes = Math.round(capDia * 22);
@@ -514,7 +540,7 @@ async function carregarTriagem() {
   triagemData.forEach(r => {
     const c = r.cliente || '(Sem cliente)';
     if (!clienteMap[c]) clienteMap[c] = { tempos:[], kgs:[], vels:[] };
-    const min = calcMinutos(r.hora_inicio, r.hora_fim);
+    const min = duracao(r);
     if (min > 0) clienteMap[c].tempos.push(min);
     if (r.peso_kg) clienteMap[c].kgs.push(r.peso_kg);
     const v = kgH(r.peso_kg, min);
@@ -555,13 +581,22 @@ async function carregarTriagem() {
     }
   });
 
-  // Gráfico velocidade por operador
+  // Gráfico velocidade por operador — usa horários individuais de cada membro da equipe
   const opVels = {};
   triagemData.forEach(r => {
-    const nome = r.colaboradores?.nome || '(Sem operador)';
-    if (!opVels[nome]) opVels[nome] = [];
-    const v = kgH(r.peso_kg, calcMinutos(r.hora_inicio, r.hora_fim));
-    if (v > 0) opVels[nome].push(v);
+    const equipe = Array.isArray(r.equipe) ? r.equipe : [];
+    equipe.forEach(c => {
+      const nome = colaboradores.find(x=>x.id===c.operador_id)?.nome || c.nome || '(Sem nome)';
+      const primeiroNome = nome.split(' ')[0];
+      const min = calcMinutos(c.hora_inicio, c.hora_fim);
+      const v = kgH(r.peso_kg, min); // velocidade proporcional ao turno individual
+      if (v > 0) { if (!opVels[primeiroNome]) opVels[primeiroNome] = []; opVels[primeiroNome].push(v); }
+    });
+    if (!equipe.length) {
+      if (!opVels['(Sem operador)']) opVels['(Sem operador)'] = [];
+      const v = kgH(r.peso_kg, calcMinutos(r.hora_inicio, r.hora_fim));
+      if (v > 0) opVels['(Sem operador)'].push(v);
+    }
   });
   const opVelSorted = Object.entries(opVels)
     .map(([n,vs]) => [n, Math.round(vs.reduce((s,v)=>s+v,0)/vs.length)])
@@ -580,44 +615,113 @@ async function carregarTriagem() {
     }
   });
 
+  // Tabela de registros — exibe colaboradores como lista resumida
   const isAdmin = perfil?.role === 'admin';
   document.getElementById('tri-tb').innerHTML = triagemData.length ? triagemData.map(r => {
-    const min = calcMinutos(r.hora_inicio, r.hora_fim);
+    const colabs = Array.isArray(r.equipe) ? r.equipe : [];
+    // duração geral: menor início até maior fim dos colaboradores
+    let minIni = null, maxFim = null;
+    colabs.forEach(c => {
+      if (c.hora_inicio && (!minIni || c.hora_inicio < minIni)) minIni = c.hora_inicio;
+      if (c.hora_fim   && (!maxFim  || c.hora_fim   > maxFim))  maxFim = c.hora_fim;
+    });
+    const min = calcMinutos(minIni, maxFim);
     const vel = kgH(r.peso_kg, min);
+    const colabStr = colabs.length
+      ? colabs.map(c => {
+          const nome = colaboradores.find(x=>x.id===c.operador_id)?.nome || c.nome || '?';
+          const primeiroNome = nome.split(' ')[0];
+          const dur = calcMinutos(c.hora_inicio, c.hora_fim);
+          return primeiroNome + (dur > 0 ? ' ('+fmtTempo(dur)+')' : '');
+        }).join(', ')
+      : '—';
     return `<tr>
       <td>${dataBR(r.data)}</td>
       <td><strong>${r.cliente||'—'}</strong></td>
-      <td>${r.colaboradores?.nome||'—'}</td>
-      <td class="text-right">${r.hora_inicio?.slice(0,5)||'—'}</td>
-      <td class="text-right">${r.hora_fim?.slice(0,5)||'—'}</td>
+      <td style="font-size:12px">${colabStr}</td>
+      <td class="text-right">${minIni?.slice(0,5)||'—'}</td>
+      <td class="text-right">${maxFim?.slice(0,5)||'—'}</td>
       <td class="text-right fw-600">${fmtTempo(min)}</td>
       <td class="text-right">${r.peso_kg ? ton(r.peso_kg) : '—'}</td>
       <td class="text-right" style="color:#1B7A43;font-weight:700">${vel > 0 ? vel+' kg/h' : '—'}</td>
-      <td style="max-width:120px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis" title="${r.observacoes||''}">${r.observacoes||'—'}</td>
+      <td style="max-width:110px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis" title="${r.observacoes||''}">${r.observacoes||'—'}</td>
       <td>${isAdmin?`<button class="btn-icon" onclick="editarTriagem('${r.id}')">✏️</button><button class="btn-icon danger" onclick="excluirTriagem('${r.id}')">🗑️</button>`:'—'}</td>
     </tr>`;
   }).join('') : '<tr><td colspan="10" class="table-empty">Nenhum registro de triagem ainda</td></tr>';
 }
+
+// ── COLABORADORES DINÂMICOS ──
+function colabOpts(selectedId = '') {
+  return '<option value="">— Selecione —</option>' +
+    colaboradores.map(c => `<option value="${c.id}"${c.id===selectedId?' selected':''}>${c.nome}</option>`).join('');
+}
+
+function addColabRow(operador_id = '', hora_inicio = '', hora_fim = '') {
+  const div = document.createElement('div');
+  div.className = 'colab-row';
+  div.innerHTML = `
+    <div>
+      <label>Colaborador</label>
+      <select class="colab-op">${colabOpts(operador_id)}</select>
+    </div>
+    <div>
+      <label>Entrada</label>
+      <input type="time" class="colab-ini" value="${hora_inicio}" />
+    </div>
+    <div>
+      <label>Saída</label>
+      <input type="time" class="colab-fim" value="${hora_fim}" />
+    </div>
+    <button type="button" class="btn-remove-colab" title="Remover">✕</button>`;
+  div.querySelector('.btn-remove-colab').addEventListener('click', () => {
+    div.remove();
+    atualizarDuracaoPreview();
+  });
+  // Atualiza preview de duração ao mudar horários
+  div.querySelector('.colab-ini').addEventListener('change', atualizarDuracaoPreview);
+  div.querySelector('.colab-fim').addEventListener('change', atualizarDuracaoPreview);
+  document.getElementById('colab-rows').appendChild(div);
+}
+
+function getColabRows() {
+  return [...document.querySelectorAll('#colab-rows .colab-row')].map(row => ({
+    operador_id: row.querySelector('.colab-op').value || null,
+    nome: row.querySelector('.colab-op option:checked')?.textContent || '',
+    hora_inicio: row.querySelector('.colab-ini').value || null,
+    hora_fim: row.querySelector('.colab-fim').value || null,
+  })).filter(c => c.operador_id || c.hora_inicio);
+}
+
+function atualizarDuracaoPreview() {
+  const colabs = getColabRows();
+  let minIni = null, maxFim = null;
+  colabs.forEach(c => {
+    if (c.hora_inicio && (!minIni || c.hora_inicio < minIni)) minIni = c.hora_inicio;
+    if (c.hora_fim   && (!maxFim  || c.hora_fim   > maxFim))  maxFim = c.hora_fim;
+  });
+  const min = calcMinutos(minIni, maxFim);
+  const prev = document.getElementById('tri-duracao-preview');
+  if (min > 0) {
+    const pessoas = colabs.filter(c=>c.operador_id).length;
+    prev.style.display = 'block';
+    prev.textContent = `⏱ Duração total: ${fmtTempo(min)}${pessoas > 1 ? ' · '+pessoas+' colaboradores' : ''}`;
+  } else {
+    prev.style.display = 'none';
+  }
+}
+
+document.getElementById('btn-add-colab').addEventListener('click', () => addColabRow());
 
 function abrirNovaTriagem() {
   document.getElementById('modal-triagem-title').textContent = 'Nova Triagem';
   document.getElementById('form-triagem').reset();
   document.querySelector('#form-triagem [name="id"]').value = '';
   document.getElementById('tri-duracao-preview').style.display = 'none';
+  document.getElementById('colab-rows').innerHTML = '';
   document.querySelector('#form-triagem [name="data"]').value = new Date().toISOString().split('T')[0];
+  addColabRow(); // começa com 1 linha
   abrirModal('modal-triagem');
 }
-
-['hora_inicio','hora_fim'].forEach(n => {
-  document.querySelector(`#form-triagem [name="${n}"]`).addEventListener('change', () => {
-    const ini = document.querySelector('#form-triagem [name="hora_inicio"]').value;
-    const fim = document.querySelector('#form-triagem [name="hora_fim"]').value;
-    const min = calcMinutos(ini, fim);
-    const prev = document.getElementById('tri-duracao-preview');
-    if (min > 0) { prev.style.display='block'; prev.textContent = '⏱ Duração: ' + fmtTempo(min); }
-    else prev.style.display = 'none';
-  });
-});
 
 document.getElementById('tri-btn-nova').addEventListener('click', abrirNovaTriagem);
 document.getElementById('tri-btn-filtrar').addEventListener('click', carregarTriagem);
@@ -626,14 +730,30 @@ document.getElementById('btn-salvar-triagem').addEventListener('click', async ()
   const f = document.getElementById('form-triagem');
   if (!f.checkValidity()) { f.reportValidity(); return; }
   const fd = Object.fromEntries(new FormData(f));
-  const min = calcMinutos(fd.hora_inicio, fd.hora_fim);
-  if (min <= 0) { toast('Hora fim deve ser maior que hora início','error'); return; }
+  const equipe = getColabRows();
+  if (!equipe.length) { toast('Adicione ao menos um colaborador','error'); return; }
+  // Valida que todos com horário têm saída > entrada
+  for (const c of equipe) {
+    if (c.hora_inicio && c.hora_fim && calcMinutos(c.hora_inicio, c.hora_fim) <= 0) {
+      toast('Saída deve ser após a entrada para todos os colaboradores','error'); return;
+    }
+  }
+  // Calcula hora_inicio/fim geral (min/max dos colaboradores)
+  const inis = equipe.filter(c=>c.hora_inicio).map(c=>c.hora_inicio);
+  const fins = equipe.filter(c=>c.hora_fim).map(c=>c.hora_fim);
+  const hora_inicio = inis.length ? inis.reduce((a,b)=>a<b?a:b) : null;
+  const hora_fim    = fins.length ? fins.reduce((a,b)=>a>b?a:b) : null;
+  const tempo_minutos = calcMinutos(hora_inicio, hora_fim);
+
   const { data: { user } } = await supabase.auth.getUser();
   const payload = {
-    data: fd.data, cliente: fd.cliente, hora_inicio: fd.hora_inicio, hora_fim: fd.hora_fim, tempo_minutos: min,
-    operador_id: fd.operador_id || null, material: fd.material || null,
+    data: fd.data, cliente: fd.cliente,
+    hora_inicio, hora_fim, tempo_minutos,
+    equipe,               // JSONB com colaboradores e horários individuais
+    material: fd.material || null,
     peso_kg: fd.peso_kg ? parseFloat(fd.peso_kg) : null,
-    observacoes: fd.observacoes || null, criado_por: user.id,
+    observacoes: fd.observacoes || null,
+    criado_por: user.id,
   };
   if (fd.id) {
     const { error } = await supabase.from('triagem').update(payload).eq('id', fd.id);
@@ -653,18 +773,17 @@ window.editarTriagem = id => {
   if (!r) return;
   document.getElementById('modal-triagem-title').textContent = 'Editar Triagem';
   const f = document.getElementById('form-triagem');
-  f.querySelector('[name="id"]').value          = r.id;
-  f.querySelector('[name="data"]').value        = r.data;
-  f.querySelector('[name="cliente"]').value     = r.cliente||'';
-  f.querySelector('[name="hora_inicio"]').value = r.hora_inicio?.slice(0,5)||'';
-  f.querySelector('[name="hora_fim"]').value    = r.hora_fim?.slice(0,5)||'';
-  f.querySelector('[name="operador_id"]').value = r.operador_id||'';
+  f.querySelector('[name="id"]').value      = r.id;
+  f.querySelector('[name="data"]').value    = r.data;
+  f.querySelector('[name="cliente"]').value = r.cliente||'';
   f.querySelector('[name="material"]').value    = r.material||'';
   f.querySelector('[name="peso_kg"]').value     = r.peso_kg||'';
   f.querySelector('[name="observacoes"]').value = r.observacoes||'';
-  const min = calcMinutos(r.hora_inicio, r.hora_fim);
-  const prev = document.getElementById('tri-duracao-preview');
-  if (min > 0) { prev.style.display='block'; prev.textContent = '⏱ Duração: ' + fmtTempo(min); }
+  // Recriar linhas de colaboradores
+  document.getElementById('colab-rows').innerHTML = '';
+  const equipe = Array.isArray(r.equipe) && r.equipe.length ? r.equipe : [{}];
+  equipe.forEach(c => addColabRow(c.operador_id||'', c.hora_inicio?.slice(0,5)||'', c.hora_fim?.slice(0,5)||''));
+  atualizarDuracaoPreview();
   abrirModal('modal-triagem');
 };
 
