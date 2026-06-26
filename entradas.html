@@ -127,6 +127,13 @@
             </div>
             <button class="btn btn-sm btn-primary" id="btn-calc-media" style="height:32px;font-size:12px;align-self:flex-end">Comparar</button>
           </div>
+          <div style="display:flex;gap:6px;align-items:center;margin-bottom:10px">
+            <span style="font-size:11px;font-weight:600;color:#64748b">Exibir:</span>
+            <button class="btn-top-forn" data-top="5"  style="font-size:11px;padding:3px 12px;border-radius:6px;border:1px solid #D1D5DB;background:#1B7A43;color:#fff;cursor:pointer">Top 5</button>
+            <button class="btn-top-forn" data-top="10" style="font-size:11px;padding:3px 12px;border-radius:6px;border:1px solid #D1D5DB;background:#fff;color:#374151;cursor:pointer">Top 10</button>
+            <button class="btn-top-forn" data-top="15" style="font-size:11px;padding:3px 12px;border-radius:6px;border:1px solid #D1D5DB;background:#fff;color:#374151;cursor:pointer">Top 15</button>
+            <button class="btn-top-forn" data-top="0"  style="font-size:11px;padding:3px 12px;border-radius:6px;border:1px solid #D1D5DB;background:#fff;color:#374151;cursor:pointer">Todos</button>
+          </div>
           <div style="overflow-x:auto">
             <div id="chart-media-wrap" style="height:420px;position:relative;min-width:800px"><canvas id="chart-media"></canvas></div>
           </div>
@@ -625,7 +632,11 @@ async function calcularMediaHistorica() {
   // Ordena por volume atual decrescente; aplica filtro de clientes se houver seleção
   let labels = Object.keys(atualMap).sort((a,b) => atualMap[b] - atualMap[a]);
   if (clientesSel.length > 0) labels = labels.filter(l => clientesSel.includes(l));
-  else labels = labels.slice(0, 15);
+  else {
+    const topAtivo = document.querySelector('.btn-top-forn[data-active="1"]');
+    const topN = topAtivo ? parseInt(topAtivo.dataset.top) : 5;
+    if (topN > 0) labels = labels.slice(0, topN);
+  }
 
   const vAtual = labels.map(l => atualMap[l] || 0);
   const vMedia = labels.map(l => mediaHist[l] || 0);
@@ -636,7 +647,7 @@ async function calcularMediaHistorica() {
   if (chartMedia) chartMedia.destroy();
   // Redimensiona o container para dar espaço a cada barra
   const wrapEl = document.getElementById('chart-media-wrap');
-  if (wrapEl) wrapEl.style.minWidth = Math.max(800, labels.length * 40) + 'px';
+  if (wrapEl) wrapEl.style.minWidth = Math.max(600, labels.length * 70) + 'px';
 
   chartMedia = new Chart(document.getElementById('chart-media').getContext('2d'), {
     type: 'bar',
@@ -648,7 +659,7 @@ async function calcularMediaHistorica() {
           data: vAtual,
           backgroundColor: cores,
           borderRadius: 4,
-          barThickness: 20,
+          barThickness: 30,
         },
         {
           label: 'Média histórica mensal (kg)',
@@ -919,6 +930,19 @@ document.getElementById('csv-import').addEventListener('change', async function(
 
 document.getElementById('btn-filtrar').addEventListener('click', carregar);
 document.getElementById('btn-calc-media').addEventListener('click', calcularMediaHistorica);
+
+// Botões Top 5 / 10 / 15 / Todos
+document.querySelectorAll('.btn-top-forn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.btn-top-forn').forEach(b => {
+      b.style.background = '#fff'; b.style.color = '#374151'; b.removeAttribute('data-active');
+    });
+    btn.style.background = '#1B7A43'; btn.style.color = '#fff'; btn.dataset.active = '1';
+    calcularMediaHistorica();
+  });
+});
+// Marca Top 5 como ativo por padrão
+document.querySelector('.btn-top-forn[data-top="5"]').dataset.active = '1';
 
 document.getElementById('btn-view-consolidado').addEventListener('click', () => {
   fornViewMode = 'consolidado';
