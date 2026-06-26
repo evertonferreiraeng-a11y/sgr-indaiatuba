@@ -899,6 +899,17 @@ async function gerarPPTX() {
     kpi(s7,3.82,0.9,1.7,0.95,'NOTA MEDIA',     d.notaMedia?d.notaMedia.toFixed(1):'--', null, C.teal);
     kpi(s7,5.62,0.9,1.7,0.95,'TURNOVER (ANO)', d.turnover+'%', null, parseFloat(d.turnover)>10?C.vermelho:C.verde);
 
+    // Tabela auxiliar: estilo padrao
+    const tblOpts = (x,y,w,colW,h) => ({
+      x,y,w,h,colW,fontFace:'Calibri',color:C.texto,fill:{color:'FFFFFF'},
+      border:{type:'solid',color:'E2E8F0',pt:0.5},
+      thead:{fill:{color:C.verde},color:'FFFFFF',bold:true},
+      rowH:0.25,align:'center',autoPage:false
+    });
+
+    // Formato de data compacto: "2026-08-02" -> "02/08"
+    const fmtExp = v => v ? v.substring(5).split('-').reverse().join('/') : '--';
+
     const vagasEntries=Object.entries(d.vagasMap||{}).filter(([k])=>k&&k!=='undefined');
     if(vagasEntries.length){
       const vRows=[['Cargo','Preenchido','Total Vagas','Situacao']];
@@ -906,23 +917,19 @@ async function gerarPPTX() {
         const sit=info.total===null?'--':info.preenchido>=info.total?'Completo':`${info.total-info.preenchido} em aberto`;
         vRows.push([cargo,String(info.preenchido),info.total!==null?String(info.total):'--',sit]);
       });
-      s7.addText('BALANCO DE VAGAS',{x:0.22,y:2.02,w:4,h:0.22,fontSize:8,bold:true,color:C.cinza,fontFace:'Calibri'});
-      s7.addTable(vRows,{x:0.22,y:2.24,w:5.8,h:1.3,fontSize:8,fontFace:'Calibri',color:C.texto,
-        colW:[2.5,0.9,1.1,1.3],rowH:0.26,fill:{color:'FFFFFF'},align:'center',
-        border:{type:'solid',color:'E2E8F0',pt:0.5},
-        thead:{fill:{color:C.verde},color:'FFFFFF',bold:true}});
+      s7.addText('BALANCO DE VAGAS',{x:0.22,y:2.02,w:4,h:0.2,fontSize:7,bold:true,color:C.verde,fontFace:'Calibri'});
+      s7.addTable(vRows,{...tblOpts(0.22,2.22,7.56,[3.2,1.0,1.1,2.26],null),fontSize:8});
     }
 
     const aRows=[['Colaborador','Cargo','Nota','Classificacao','Fim Exp.']];
     d.colobsComNota.forEach(c=>{
       const cls=c.nota===null?'Sem avaliacao':c.nota>=7?'Recomendado':c.nota>=5?'Em observacao':'Avaliar desligamento';
-      aRows.push([c.nome,c.cargo,c.nota!==null?c.nota.toFixed(1):'--',cls,c.fimExp||'--']);
+      aRows.push([c.nome,c.cargo,c.nota!==null?c.nota.toFixed(1):'--',cls,fmtExp(c.fimExp)]);
     });
-    s7.addText('AVALIACAO POR COLABORADOR',{x:0.22,y:3.65,w:9,h:0.22,fontSize:8,bold:true,color:C.cinza,fontFace:'Calibri'});
-    s7.addTable(aRows,{x:0.22,y:3.87,w:7.76,h:1.55,fontSize:8,fontFace:'Calibri',color:C.texto,
-      colW:[2.3,2.1,0.6,2.06,0.7],rowH:0.26,fill:{color:'FFFFFF'},align:'center',
-      border:{type:'solid',color:'E2E8F0',pt:0.5},
-      thead:{fill:{color:C.verde},color:'FFFFFF',bold:true},autoPage:false});
+    const vagasH = vagasEntries.length ? 0.2+0.25*(vagasEntries.length+1)+0.18 : 0;
+    const avalY = 2.22 + vagasH + 0.15;
+    s7.addText('AVALIACAO POR COLABORADOR',{x:0.22,y:avalY,w:9,h:0.2,fontSize:7,bold:true,color:C.verde,fontFace:'Calibri'});
+    s7.addTable(aRows,{...tblOpts(0.22,avalY+0.2,7.56,[2.1,2.0,0.55,2.06,0.85],null),fontSize:8});
 
     // ── Slide 8: Encerramento ────────────────────────────────────────────────
     const s8 = pptx.addSlide();
