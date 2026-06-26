@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Relatório de Reunião — SGR Indaiatuba</title>
   <link rel="stylesheet" href="css/style.css" />
+  <script src="https://cdn.jsdelivr.net/npm/pptxgenjs@3/dist/pptxgen.bundle.js"></script>
   <style>
     /* ── Identidade visual do modelo de apresentação ── */
     :root {
@@ -148,8 +149,12 @@
       <button id="rel-btn-mes" style="padding:6px 12px;border-radius:6px;border:1px solid #D1D5DB;background:#fff;cursor:pointer;font-size:12px">Mês</button>
       <button id="rel-btn-ano" style="padding:6px 12px;border-radius:6px;border:1px solid #D1D5DB;background:#fff;cursor:pointer;font-size:12px">Ano</button>
       <button class="btn-pdf" id="btn-gerar-pdf" onclick="window.print()">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 01-2-2v-5a2 2 0 012-2h16a2 2 0 012 2v5a2 2 0 01-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 01-2-2v-5a2 2 0 012-2v5a2 2 0 01-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>
         Imprimir / PDF
+      </button>
+      <button class="btn-pdf" id="btn-gerar-pptx" style="background:#006636" onclick="gerarPPTX()">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8M12 17v4"/></svg>
+        Exportar PPTX
       </button>
     </div>
   </div>
@@ -318,6 +323,28 @@ async function carregar() {
 
   // ── Materiais em estoque ─────────────────────────────────────────────────
   const matsEstoque = mats.filter(m=>parseFloat(m.estoque_kg||0)>0).sort((a,b)=>b.estoque_kg-a.estoque_kg);
+
+  // ── Expõe dados globalmente para gerarPPTX() ─────────────────────────────
+  window.relData = {
+    label, inicio, fim, ano,
+    recebido, expedido, rejeito, estoque, passivo, taxa,
+    faturamento, ticketMedio, valorEstoque, totalPotencial,
+    fatReal: [...fatReal], fatPrev: [...fatPrev], fatKg: [...fatKg], mesAtualIdx,
+    equTotal, equAtivos, equOperando, equRestricao, equPct,
+    equipamentos: equipamentos.map(e=>({ nome:e.nome, frota:e.frota, funcao:e.funcao, status:e.status })),
+    matsEstoque: matsEstoque.map(m=>({ nome:m.nome, estoque_kg:m.estoque_kg })),
+    colobsComNota: colobsComNota.map(c=>({ nome:c.nome, cargo:c.cargo, nota:c.nota, fimExp:c.fimExp })),
+    notaMedia, turnover,
+    ativos: ativos.length, emExp: emExp.length,
+    vagasMap: Object.fromEntries(
+      Object.entries((() => {
+        const vm = {};
+        (cargosAll||[]).forEach(c=>{ vm[c.nome]={ preenchido:0, total:c.vagas??null }; });
+        ativos.forEach(c=>{ const n=c.cargos?.nome||'Sem cargo'; if(!vm[n]) vm[n]={preenchido:0,total:null}; vm[n].preenchido++; });
+        return vm;
+      })()).filter(([k])=>k&&k!=='undefined'&&k!=='Sem cargo')
+    ),
+  };
 
   // ── Render ───────────────────────────────────────────────────────────────
   document.getElementById('rel-body').innerHTML = `
@@ -674,6 +701,230 @@ document.getElementById('rel-mes').addEventListener('change', () => { modoAtual=
 document.getElementById('rel-ano').addEventListener('change', () => carregar());
 
 setModo('mes');
+</script>
+
+<script>
+const MESES_PT = ['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
+const VERDE='006636', TEAL='5EC5BF', BRANCO='FFFFFF', CINZA='64748b', TEXTO='1e293b', VERMELHO='DC2626', AZUL='2563EB', AMARELO='D97706';
+
+function addTitleSlide(pptx, title) {
+  const s = pptx.addSlide();
+  s.background = { color: VERDE };
+  s.addShape(pptx.ShapeType.rect, { x:0, y:0, w:0.18, h:5.625, fill:{ color:TEAL } });
+  s.addText(title, { x:0.5, y:2.1, w:9, h:1.2, fontSize:32, bold:true, color:BRANCO, align:'center', fontFace:'Calibri' });
+  s.addShape(pptx.ShapeType.rect, { x:3.8, y:3.4, w:2.4, h:0.07, fill:{ color:TEAL } });
+  return s;
+}
+
+function addSectionTitle(s, title) {
+  s.addShape(pptx.ShapeType.rect, { x:0, y:0, w:10, h:0.65, fill:{ color:VERDE } });
+  s.addShape(pptx.ShapeType.rect, { x:0, y:0, w:0.12, h:0.65, fill:{ color:TEAL } });
+  s.addText(title, { x:0.3, y:0.1, w:9.5, h:0.5, fontSize:13, bold:true, color:BRANCO, fontFace:'Calibri', valign:'middle' });
+}
+
+function kpiBox(s, x, y, w, h, label, val, sub, bg) {
+  s.addShape(pptx.ShapeType.roundRect, { x, y, w, h, fill:{ color: bg||'F1F5F9' }, rectRadius:0.08, line:{ color:'E2E8F0', pt:1 } });
+  s.addText(label, { x, y:y+0.06, w, h:0.22, fontSize:7, bold:true, color:CINZA, align:'center', fontFace:'Calibri' });
+  s.addText(val,   { x, y:y+0.28, w, h:0.38, fontSize:13, bold:true, color:bg?BRANCO:VERDE, align:'center', fontFace:'Calibri' });
+  if (sub) s.addText(sub, { x, y:y+0.66, w, h:0.18, fontSize:7, color:bg?'ccffdd':CINZA, align:'center', fontFace:'Calibri' });
+}
+
+function fmtTon(v) { return ((v??0)/1000).toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2})+' ton'; }
+function fmtM(v)   { return new Intl.NumberFormat('pt-BR',{style:'currency',currency:'BRL'}).format(v??0); }
+function pctR(v,t) { return t>0?((v/t)*100).toFixed(1)+'%':'—'; }
+
+async function gerarPPTX() {
+  const d = window.relData;
+  if (!d) { alert('Carregue o relatório primeiro.'); return; }
+
+  const btn = document.getElementById('btn-gerar-pptx');
+  btn.textContent = 'Gerando…'; btn.disabled = true;
+
+  try {
+    const pptx = new PptxGenJS();
+    pptx.layout = 'LAYOUT_WIDE';
+    pptx.title  = 'Comitê de Gestão UVR Indaiatuba';
+
+    // ── Slide 1: Capa ────────────────────────────────────────────────────────
+    const s1 = pptx.addSlide();
+    s1.background = { color: VERDE };
+    s1.addShape(pptx.ShapeType.rect, { x:0, y:0, w:0.18, h:5.625, fill:{ color:TEAL } });
+    s1.addText('COMITÊ DE GESTÃO', { x:0.5, y:1.5, w:9, h:1.1, fontSize:36, bold:true, color:BRANCO, align:'center', fontFace:'Calibri' });
+    s1.addText('UVR INDAIATUBA', { x:0.5, y:2.65, w:9, h:0.6, fontSize:20, bold:true, color:TEAL, align:'center', fontFace:'Calibri' });
+    s1.addText(d.label, { x:0.5, y:3.35, w:9, h:0.45, fontSize:14, color:BRANCO, align:'center', fontFace:'Calibri' });
+    s1.addShape(pptx.ShapeType.rect, { x:3.8, y:4.0, w:2.4, h:0.07, fill:{ color:TEAL } });
+
+    // ── Slide 2: Balanço de Massa ────────────────────────────────────────────
+    const s2 = pptx.addSlide();
+    s2.background = { color:'F8FAFC' };
+    addSectionTitle(s2, 'BALANÇO DE MASSA');
+
+    const bKpis = [
+      ['⬇ RECEBIDO', fmtTon(d.recebido), '100% — base', VERDE],
+      ['EXPEDIDO',   fmtTon(d.expedido), pctR(d.expedido,d.recebido), '147a43'],
+      ['REJEITO',    fmtTon(d.rejeito),  pctR(d.rejeito, d.recebido), 'B91C1C'],
+      ['ESTOQUE',    fmtTon(d.estoque),  pctR(d.estoque, d.recebido), '1D4ED8'],
+      ['PASSIVO',    fmtTon(d.passivo),  pctR(d.passivo, d.recebido), 'B45309'],
+    ];
+    const cw=1.82, cy=0.8;
+    bKpis.forEach(([lbl,val,sub,bg],i) => kpiBox(s2, 0.2+i*(cw+0.08), cy, cw, 1.0, lbl, val, sub, bg));
+
+    // Barra visual
+    const barY=2.08, barH=0.38, barX=0.2, barTotal=9.6;
+    const segs2 = [
+      { v:d.expedido, c:'006636' }, { v:d.rejeito, c:'DC2626' },
+      { v:d.estoque,  c:'2563EB' }, { v:d.passivo, c:'D97706' },
+    ];
+    let cx2 = barX;
+    segs2.forEach(seg => {
+      const w = d.recebido>0 ? (seg.v/d.recebido)*barTotal : 0;
+      if (w > 0.05) s2.addShape(pptx.ShapeType.rect, { x:cx2, y:barY, w, h:barH, fill:{ color:seg.c } });
+      cx2 += w;
+    });
+
+    // Taxa de reciclagem
+    s2.addShape(pptx.ShapeType.rect, { x:0.2, y:2.6, w:9.6, h:1.0, fill:{ color:BRANCO }, line:{ color:'E2E8F0', pt:1 }, rectRadius:0.08 });
+    s2.addText('TAXA DE RECICLAGEM', { x:0.3, y:2.65, w:4, h:0.25, fontSize:8, bold:true, color:CINZA, fontFace:'Calibri' });
+    const taxaCor = d.taxa>=70?VERDE:d.taxa>=40?AMARELO:VERMELHO;
+    s2.addText(d.taxa.toFixed(1)+'%', { x:0.3, y:2.88, w:2.5, h:0.6, fontSize:28, bold:true, color:taxaCor, fontFace:'Calibri' });
+    s2.addText('(Expedido + Estoque) / Recebido', { x:2.9, y:2.95, w:4, h:0.35, fontSize:9, color:CINZA, fontFace:'Calibri' });
+    s2.addText('✅ Balanço fechado — material em processamento/aguardando destinação.', { x:0.3, y:3.7, w:9.4, h:0.3, fontSize:9, color:'065f46', fontFace:'Calibri' });
+
+    // ── Slide 3: Comercial ───────────────────────────────────────────────────
+    const s3 = pptx.addSlide();
+    s3.background = { color:'F8FAFC' };
+    addSectionTitle(s3, 'COMERCIAL / FATURAMENTO');
+
+    const cKpis = [
+      ['FATURAMENTO',       fmtM(d.faturamento),    null,             VERDE],
+      ['VOLUME VENDIDO',    fmtTon(d.expedido),     null,             '1D4ED8'],
+      ['TICKET MÉDIO',      fmtM(d.ticketMedio)+'/ton', null,         '0F766E'],
+      ['VALOR EM ESTOQUE',  fmtM(d.valorEstoque),   null,             '7C3AED'],
+      ['FAT. + ESTOQUE',    fmtM(d.totalPotencial), 'Realizado+estoque','065f46'],
+    ];
+    cKpis.forEach(([lbl,val,sub,bg],i) => kpiBox(s3, 0.2+i*(cw+0.08), 0.8, cw, 1.0, lbl, val, sub, bg));
+
+    // Tabela mensal
+    const tRows = [['Mês','Realizado','Previsto','Ton Vendidas','Atingimento','Ticket Médio']];
+    let totR=0,totP=0,totKg2=0;
+    MESES_PT.forEach((m,i) => {
+      totR+=d.fatReal[i]; totP+=d.fatPrev[i]; totKg2+=d.fatKg[i];
+      const ating = d.fatPrev[i]>0?(d.fatReal[i]/d.fatPrev[i]*100).toFixed(1)+'%':'—';
+      const tk = d.fatKg[i]>0?fmtM(d.fatReal[i]/(d.fatKg[i]/1000)):'—';
+      tRows.push([m, d.fatReal[i]>0?fmtM(d.fatReal[i]):'—', d.fatPrev[i]>0?fmtM(d.fatPrev[i]):'—', d.fatKg[i]>0?fmtTon(d.fatKg[i]):'—', ating, tk]);
+    });
+    tRows.push(['TOTAL', fmtM(totR), totP>0?fmtM(totP):'—', totKg2>0?fmtTon(totKg2):'—', totP>0?(totR/totP*100).toFixed(1)+'%':'—', totKg2>0?fmtM(totR/(totKg2/1000)):'—']);
+
+    s3.addTable(tRows, {
+      x:0.2, y:1.95, w:9.6, h:3.5,
+      fontSize:7, fontFace:'Calibri', color:TEXTO,
+      colW:[1.4,1.7,1.7,1.5,1.3,2.0],
+      border:{ type:'solid', color:'E2E8F0', pt:0.5 },
+      autoPage:false,
+      rowH:0.23,
+      fill:{ color:BRANCO },
+      align:'center',
+      thead:{ fill:{ color:VERDE }, color:BRANCO, bold:true },
+      lastRow:{ fill:{ color:'EBF5EE' }, bold:true },
+    });
+
+    // ── Slide 4: Estoque ─────────────────────────────────────────────────────
+    const s4 = pptx.addSlide();
+    s4.background = { color:'F8FAFC' };
+    addSectionTitle(s4, 'ESTOQUE');
+    kpiBox(s4, 0.2, 0.85, 2.5, 1.0, 'ESTOQUE TOTAL', fmtTon(d.estoque), d.matsEstoque.length+' material(ais)', '1D4ED8');
+    kpiBox(s4, 2.9, 0.85, 2.5, 1.0, 'VALOR EM ESTOQUE', fmtM(d.valorEstoque), null, '7C3AED');
+
+    const eRows = [['Material','Estoque (ton)','% do Total']];
+    d.matsEstoque.forEach(m => {
+      const kg = parseFloat(m.estoque_kg||0);
+      eRows.push([m.nome, fmtTon(kg), d.estoque>0?((kg/d.estoque)*100).toFixed(1)+'%':'—']);
+    });
+    s4.addTable(eRows, {
+      x:0.2, y:2.0, w:5.5, h:3.4,
+      fontSize:9, fontFace:'Calibri', color:TEXTO, colW:[3,1.5,1],
+      border:{ type:'solid', color:'E2E8F0', pt:0.5 }, fill:{ color:BRANCO }, align:'center',
+      thead:{ fill:{ color:VERDE }, color:BRANCO, bold:true }, rowH:0.28,
+    });
+
+    // ── Slide 5: Equipamentos ────────────────────────────────────────────────
+    const s5 = pptx.addSlide();
+    s5.background = { color:'F8FAFC' };
+    addSectionTitle(s5, 'EQUIPAMENTOS');
+    kpiBox(s5, 0.2,  0.8, 2.0, 1.0, 'TOTAL',         String(d.equTotal),  null, VERDE);
+    kpiBox(s5, 2.4,  0.8, 2.0, 1.0, 'ATIVOS',        String(d.equAtivos), d.equOperando+' operando', '0F766E');
+    kpiBox(s5, 4.6,  0.8, 2.0, 1.0, 'DISPONIBILIDADE', d.equPct+'%',      null, d.equPct>=80?VERDE:d.equPct>=60?AMARELO:VERMELHO);
+
+    const eqRows = [['Equipamento','Nº Frota','Função','Status']];
+    d.equipamentos.forEach(e => {
+      const st = e.status==='operando'?'✅ Operando':e.status==='restricao'?'⚠️ Restrição':'❌ Parado';
+      eqRows.push([e.nome||'—', e.frota||'—', e.funcao||'—', st]);
+    });
+    s5.addTable(eqRows, {
+      x:0.2, y:1.95, w:9.6, h:3.5,
+      fontSize:9, fontFace:'Calibri', color:TEXTO, colW:[2.8,1.4,3.4,2.0],
+      border:{ type:'solid', color:'E2E8F0', pt:0.5 }, fill:{ color:BRANCO }, align:'left',
+      thead:{ fill:{ color:VERDE }, color:BRANCO, bold:true }, rowH:0.3,
+    });
+
+    // ── Slide 6: RH ──────────────────────────────────────────────────────────
+    const s6 = pptx.addSlide();
+    s6.background = { color:'F8FAFC' };
+    addSectionTitle(s6, 'RECURSOS HUMANOS');
+    kpiBox(s6, 0.2,  0.8, 1.8, 1.0, 'ATIVOS',        String(d.ativos),  null, VERDE);
+    kpiBox(s6, 2.2,  0.8, 1.8, 1.0, 'EM EXPERIÊNCIA', String(d.emExp),  null, AMARELO);
+    kpiBox(s6, 4.2,  0.8, 1.8, 1.0, 'NOTA MÉDIA',    d.notaMedia?d.notaMedia.toFixed(1):'—', null, '0F766E');
+    kpiBox(s6, 6.2,  0.8, 1.8, 1.0, 'TURNOVER (ANO)', d.turnover+'%',  null, parseFloat(d.turnover)>10?VERMELHO:VERDE);
+
+    // Balanço de vagas
+    const vagasEntries = Object.entries(d.vagasMap||{}).filter(([k])=>k&&k!=='undefined');
+    if (vagasEntries.length) {
+      const vRows = [['Cargo','Preenchido','Total Vagas','Situação']];
+      vagasEntries.sort((a,b)=>a[0].localeCompare(b[0])).forEach(([cargo, info]) => {
+        const sit = info.total===null?'—':info.preenchido>=info.total?'✅ Completo':`⚠️ ${info.total-info.preenchido} vaga(s) em aberto`;
+        vRows.push([cargo, String(info.preenchido), info.total!==null?String(info.total):'—', sit]);
+      });
+      s6.addText('BALANÇO DE VAGAS', { x:0.2, y:1.92, w:4, h:0.22, fontSize:8, bold:true, color:CINZA, fontFace:'Calibri' });
+      s6.addTable(vRows, {
+        x:0.2, y:2.15, w:5.8, h:1.4,
+        fontSize:8, fontFace:'Calibri', color:TEXTO, colW:[2.5,1.0,1.1,1.2],
+        border:{ type:'solid', color:'E2E8F0', pt:0.5 }, fill:{ color:BRANCO }, align:'center',
+        thead:{ fill:{ color:VERDE }, color:BRANCO, bold:true }, rowH:0.28,
+      });
+    }
+
+    // Avaliação por colaborador
+    const aRows = [['Colaborador','Cargo','Nota','Classificação','Fim Exp.']];
+    d.colobsComNota.forEach(c => {
+      const cls = c.nota===null?'Sem avaliação':c.nota>=7?'✅ Recomendado':c.nota>=5?'⚠️ Em observação':'❌ Avaliar desligamento';
+      aRows.push([c.nome, c.cargo, c.nota!==null?c.nota.toFixed(1):'—', cls, c.fimExp||'—']);
+    });
+    s6.addText('AVALIAÇÃO POR COLABORADOR', { x:0.2, y:3.62, w:9, h:0.22, fontSize:8, bold:true, color:CINZA, fontFace:'Calibri' });
+    s6.addTable(aRows, {
+      x:0.2, y:3.85, w:9.6, h:1.6,
+      fontSize:8, fontFace:'Calibri', color:TEXTO, colW:[2.5,2.5,0.7,2.2,1.7],
+      border:{ type:'solid', color:'E2E8F0', pt:0.5 }, fill:{ color:BRANCO }, align:'center',
+      thead:{ fill:{ color:VERDE }, color:BRANCO, bold:true }, rowH:0.28, autoPage:false,
+    });
+
+    // ── Slide 7: Encerramento ────────────────────────────────────────────────
+    const s7 = pptx.addSlide();
+    s7.background = { color: VERDE };
+    s7.addShape(pptx.ShapeType.rect, { x:0, y:0, w:0.18, h:5.625, fill:{ color:TEAL } });
+    s7.addText('Obrigado!', { x:0.5, y:1.9, w:9, h:1.2, fontSize:40, bold:true, color:BRANCO, align:'center', fontFace:'Calibri' });
+    s7.addText('UVR Indaiatuba — SGR Indaiatuba', { x:0.5, y:3.1, w:9, h:0.5, fontSize:14, color:TEAL, align:'center', fontFace:'Calibri' });
+    s7.addShape(pptx.ShapeType.rect, { x:3.8, y:3.8, w:2.4, h:0.07, fill:{ color:TEAL } });
+
+    const data = new Date().toLocaleDateString('pt-BR').replace(/\//g,'-');
+    await pptx.writeFile({ fileName: `Comite_UVR_Indaiatuba_${data}.pptx` });
+  } catch(e) {
+    alert('Erro ao gerar PPTX: '+e.message);
+    console.error(e);
+  } finally {
+    btn.innerHTML = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8M12 17v4"/></svg> Exportar PPTX';
+    btn.disabled = false;
+  }
+}
 </script>
 </body>
 </html>
