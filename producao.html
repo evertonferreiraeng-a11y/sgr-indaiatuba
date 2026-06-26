@@ -6,101 +6,162 @@
   <title>Produção — SGR Indaiatuba</title>
   <link rel="stylesheet" href="css/style.css" />
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4/dist/chart.umd.min.js"></script>
+  <style>
+    .prod-tabs{display:flex;gap:0;border-bottom:2px solid var(--border);margin-bottom:24px}
+    .prod-tab{padding:10px 28px;font-size:14px;font-weight:600;cursor:pointer;border-bottom:3px solid transparent;margin-bottom:-2px;color:var(--text-muted);transition:.15s;background:none;border-top:none;border-left:none;border-right:none}
+    .prod-tab.active{color:var(--primary);border-bottom-color:var(--primary)}
+    .prod-tab:hover:not(.active){color:var(--text)}
+    .tab-pane{display:none}.tab-pane.active{display:block}
+  </style>
 </head>
 <body>
 <div class="app-layout">
   <div id="sidebar-root"></div>
   <div class="main-content">
     <div class="page-header">
-      <div><h2>Produção</h2><p>Controle de processamento e equipamentos</p></div>
+      <div><h2>Produção</h2><p>Controle de prensagem e triagem</p></div>
       <button class="btn btn-primary" id="btn-nova">+ Novo Registro</button>
     </div>
     <div class="page-body">
 
-      <!-- Capacidade dos equipamentos hoje -->
-      <div class="card mb-16">
-        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px">
-          <h3 style="font-size:14px;font-weight:600">Capacidade dos Equipamentos — Hoje</h3>
-          <span id="data-hoje" class="text-muted" style="font-size:12px"></span>
-        </div>
-        <div class="capacity-grid" id="capacity-grid">
-          <div class="loading-spinner"><div class="spinner"></div> Carregando…</div>
-        </div>
+      <!-- TABS -->
+      <div class="prod-tabs">
+        <button class="prod-tab active" data-tab="prensagem">🏭 Prensagem</button>
+        <button class="prod-tab" data-tab="triagem">⏱ Triagem de Cargas</button>
       </div>
 
-      <!-- KPIs do mês -->
-      <div class="kpi-grid" style="grid-template-columns:repeat(auto-fill,minmax(160px,1fr))">
-        <div class="kpi-card"><div class="kpi-label">Produção do Mês</div><div class="kpi-value" id="kpi-mes">—</div><div class="kpi-sub">kg processados</div></div>
-        <div class="kpi-card"><div class="kpi-label">Registros</div><div class="kpi-value" id="kpi-regs">—</div><div class="kpi-sub">no período</div></div>
-        <div class="kpi-card"><div class="kpi-label">Média por Dia</div><div class="kpi-value" id="kpi-dia">—</div><div class="kpi-sub">kg/dia no mês</div></div>
-        <div class="kpi-card"><div class="kpi-label">Média por Pessoa</div><div class="kpi-value" id="kpi-pessoa">—</div><div class="kpi-sub">kg/colaborador ativo</div></div>
-        <div class="kpi-card"><div class="kpi-label">Eficiência</div><div class="kpi-value" id="kpi-efic">—</div><div class="kpi-sub">produção / entradas</div></div>
-      </div>
+      <!-- ══ TAB: PRENSAGEM ══ -->
+      <div class="tab-pane active" id="tab-prensagem">
 
-      <!-- Filtros -->
-      <div class="card mb-16" style="padding:16px">
-        <div class="filters-row">
-          <div class="form-group"><label>Mês</label><input type="month" id="f-mes" /></div>
-          <div class="form-group"><label>Equipamento</label><select id="f-equip"><option value="">Todos</option></select></div>
-          <div class="form-group"><label>Material</label><select id="f-mat"><option value="">Todos</option></select></div>
-          <div class="form-group" style="justify-content:flex-end"><label>&nbsp;</label><button class="btn btn-primary" id="btn-filtrar">Filtrar</button></div>
+        <!-- Capacidade hoje -->
+        <div class="card mb-16">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px">
+            <h3 style="font-size:14px;font-weight:600">Capacidade dos Equipamentos — Hoje</h3>
+            <span id="data-hoje" class="text-muted" style="font-size:12px"></span>
+          </div>
+          <div class="capacity-grid" id="capacity-grid">
+            <div class="loading-spinner"><div class="spinner"></div> Carregando…</div>
+          </div>
         </div>
-      </div>
 
-      <!-- Gráficos produção -->
-      <div class="charts-grid" style="margin-bottom:20px">
-        <div class="chart-card">
-          <h3>Produção Diária no Mês (kg)</h3>
-          <div class="chart-wrap"><canvas id="chart-diario"></canvas></div>
+        <!-- KPIs prensagem -->
+        <div class="kpi-grid" style="grid-template-columns:repeat(auto-fill,minmax(160px,1fr))">
+          <div class="kpi-card"><div class="kpi-label">Produção do Mês</div><div class="kpi-value" id="kpi-mes">—</div><div class="kpi-sub">kg processados</div></div>
+          <div class="kpi-card"><div class="kpi-label">Total de Fardos</div><div class="kpi-value" id="kpi-fardos">—</div><div class="kpi-sub">unidades prensadas</div></div>
+          <div class="kpi-card"><div class="kpi-label">Registros</div><div class="kpi-value" id="kpi-regs">—</div><div class="kpi-sub">no período</div></div>
+          <div class="kpi-card"><div class="kpi-label">Média por Dia</div><div class="kpi-value" id="kpi-dia">—</div><div class="kpi-sub">kg/dia no mês</div></div>
+          <div class="kpi-card"><div class="kpi-label">Eficiência</div><div class="kpi-value" id="kpi-efic">—</div><div class="kpi-sub">produção / entradas</div></div>
         </div>
-        <div class="chart-card">
-          <h3>Produção por Operador (kg)</h3>
-          <div class="chart-wrap"><canvas id="chart-operador"></canvas></div>
-        </div>
-      </div>
 
-      <!-- Ranking operadores -->
-      <div class="table-card" style="margin-bottom:20px">
-        <div class="table-card-header"><h3>Ranking de Operadores no Período</h3></div>
-        <div class="table-scroll">
-          <table>
-            <thead><tr><th>#</th><th>Operador</th><th class="text-right">Registros</th><th class="text-right">Total (kg)</th><th class="text-right">Média por Dia</th></tr></thead>
-            <tbody id="tb-ranking"></tbody>
-          </table>
+        <!-- Filtros prensagem -->
+        <div class="card mb-16" style="padding:16px">
+          <div class="filters-row">
+            <div class="form-group"><label>Mês</label><input type="month" id="f-mes" /></div>
+            <div class="form-group"><label>Equipamento</label><select id="f-equip"><option value="">Todos</option></select></div>
+            <div class="form-group"><label>Material</label><select id="f-mat"><option value="">Todos</option></select></div>
+            <div class="form-group" style="justify-content:flex-end"><label>&nbsp;</label><button class="btn btn-primary" id="btn-filtrar">Filtrar</button></div>
+          </div>
         </div>
-      </div>
 
-      <!-- Tabela produção -->
-      <div class="table-card">
-        <div class="table-card-header"><h3>Registros de Produção</h3><span id="prod-count" class="text-muted" style="font-size:12px"></span></div>
-        <div class="table-scroll">
-          <table>
-            <thead><tr><th>Data</th><th>Equipamento</th><th>Material</th><th>Operador</th><th class="text-right">Peso (kg)</th><th>Ações</th></tr></thead>
-            <tbody id="tb-producao"></tbody>
-          </table>
+        <!-- Gráficos prensagem -->
+        <div class="charts-grid" style="margin-bottom:20px">
+          <div class="chart-card">
+            <h3>Produção Diária no Mês (kg)</h3>
+            <div class="chart-wrap"><canvas id="chart-diario"></canvas></div>
+          </div>
+          <div class="chart-card">
+            <h3>Produção por Operador (kg)</h3>
+            <div class="chart-wrap"><canvas id="chart-operador"></canvas></div>
+          </div>
         </div>
-      </div>
 
+        <!-- Ranking operadores -->
+        <div class="table-card" style="margin-bottom:20px">
+          <div class="table-card-header"><h3>Ranking de Operadores no Período</h3></div>
+          <div class="table-scroll">
+            <table>
+              <thead><tr><th>#</th><th>Operador</th><th class="text-right">Registros</th><th class="text-right">Total (kg)</th><th class="text-right">Fardos</th><th class="text-right">Média/Dia</th></tr></thead>
+              <tbody id="tb-ranking"></tbody>
+            </table>
+          </div>
+        </div>
 
-      <!-- Materiais CRUD -->
-      <div class="table-card">
-        <div class="table-card-header">
-          <h3>Materiais</h3>
-          <button class="btn btn-sm btn-primary" id="btn-novo-mat">+ Adicionar</button>
+        <!-- Tabela produção -->
+        <div class="table-card" style="margin-bottom:20px">
+          <div class="table-card-header"><h3>Registros de Produção</h3><span id="prod-count" class="text-muted" style="font-size:12px"></span></div>
+          <div class="table-scroll">
+            <table>
+              <thead><tr><th>Data</th><th>Equipamento</th><th>Material</th><th>Operador</th><th class="text-right">Peso (kg)</th><th class="text-right">Fardos</th><th>Ações</th></tr></thead>
+              <tbody id="tb-producao"></tbody>
+            </table>
+          </div>
         </div>
-        <div class="table-scroll">
-          <table>
-            <thead><tr><th>Nome</th><th>Unidade</th><th>Categoria</th><th>Status</th><th>Ações</th></tr></thead>
-            <tbody id="tb-materiais"></tbody>
-          </table>
+
+        <!-- Materiais CRUD -->
+        <div class="table-card">
+          <div class="table-card-header">
+            <h3>Materiais</h3>
+            <button class="btn btn-sm btn-primary" id="btn-novo-mat">+ Adicionar</button>
+          </div>
+          <div class="table-scroll">
+            <table>
+              <thead><tr><th>Nome</th><th>Unidade</th><th>Categoria</th><th>Status</th><th>Ações</th></tr></thead>
+              <tbody id="tb-materiais"></tbody>
+            </table>
+          </div>
         </div>
-      </div>
+      </div><!-- /tab-prensagem -->
+
+      <!-- ══ TAB: TRIAGEM ══ -->
+      <div class="tab-pane" id="tab-triagem">
+
+        <!-- KPIs triagem -->
+        <div class="kpi-grid" style="grid-template-columns:repeat(auto-fill,minmax(170px,1fr));margin-bottom:20px">
+          <div class="kpi-card"><div class="kpi-label">Triagens no Mês</div><div class="kpi-value" id="tri-kpi-total">—</div><div class="kpi-sub">registros</div></div>
+          <div class="kpi-card"><div class="kpi-label">Tempo Médio</div><div class="kpi-value" id="tri-kpi-media">—</div><div class="kpi-sub">por triagem</div></div>
+          <div class="kpi-card"><div class="kpi-label">Tempo Total</div><div class="kpi-value" id="tri-kpi-total-tempo">—</div><div class="kpi-sub">no período</div></div>
+          <div class="kpi-card"><div class="kpi-label">Mais Rápido</div><div class="kpi-value" id="tri-kpi-rapido" style="font-size:16px">—</div><div class="kpi-sub">menor tempo médio</div></div>
+        </div>
+
+        <!-- Filtros triagem -->
+        <div class="card mb-16" style="padding:16px">
+          <div class="filters-row">
+            <div class="form-group"><label>Mês</label><input type="month" id="tri-f-mes" /></div>
+            <div class="form-group"><label>Operador</label><select id="tri-f-op"><option value="">Todos</option></select></div>
+            <div class="form-group" style="justify-content:flex-end"><label>&nbsp;</label><button class="btn btn-primary" id="tri-btn-filtrar">Filtrar</button></div>
+            <div class="form-group" style="justify-content:flex-end"><label>&nbsp;</label><button class="btn btn-primary" id="tri-btn-nova">+ Nova Triagem</button></div>
+          </div>
+        </div>
+
+        <!-- Gráficos triagem -->
+        <div class="charts-grid" style="margin-bottom:20px">
+          <div class="chart-card">
+            <h3>Tempo de Triagem por Dia (min)</h3>
+            <div class="chart-wrap"><canvas id="tri-chart-dia"></canvas></div>
+          </div>
+          <div class="chart-card">
+            <h3>Tempo Médio por Operador (min)</h3>
+            <div class="chart-wrap"><canvas id="tri-chart-op"></canvas></div>
+          </div>
+        </div>
+
+        <!-- Tabela triagem -->
+        <div class="table-card">
+          <div class="table-card-header"><h3>Registros de Triagem</h3><span id="tri-count" class="text-muted" style="font-size:12px"></span></div>
+          <div class="table-scroll">
+            <table>
+              <thead><tr><th>Data</th><th>Operador</th><th>Material</th><th class="text-right">Início</th><th class="text-right">Fim</th><th class="text-right">Duração</th><th class="text-right">Peso (kg)</th><th>Obs.</th><th>Ações</th></tr></thead>
+              <tbody id="tri-tb"></tbody>
+            </table>
+          </div>
+        </div>
+      </div><!-- /tab-triagem -->
 
     </div>
   </div>
 </div>
 
-<!-- Modal: Nova/Editar Produção -->
+<!-- Modal: Nova/Editar Produção (Prensagem) -->
 <div class="modal-backdrop" id="modal-prod">
   <div class="modal">
     <div class="modal-header">
@@ -115,7 +176,8 @@
           <div class="form-group"><label>Equipamento *</label><select name="equipamento_id" required><option value="">Selecione…</option></select></div>
           <div class="form-group"><label>Material *</label><select name="material_id" required><option value="">Selecione…</option></select></div>
           <div class="form-group"><label>Operador</label><select name="operador_id"><option value="">— Nenhum —</option></select></div>
-          <div class="form-group full"><label>Peso Produzido (kg) *</label><input type="number" name="peso_produzido_kg" min="0.01" step="0.01" required /></div>
+          <div class="form-group"><label>Peso Produzido (kg) *</label><input type="number" name="peso_produzido_kg" min="0.01" step="0.01" required /></div>
+          <div class="form-group"><label>Quantidade de Fardos</label><input type="number" name="quantidade_fardos" min="0" step="1" placeholder="Unidades prensadas" /></div>
         </div>
         <div id="alerta-capacidade" style="display:none;margin-top:12px;padding:8px 12px;background:var(--danger-light);color:var(--danger);border-radius:6px;font-size:12px">
           ⚠ Produção ultrapassa a capacidade do equipamento hoje!
@@ -129,6 +191,34 @@
   </div>
 </div>
 
+<!-- Modal: Triagem -->
+<div class="modal-backdrop" id="modal-triagem">
+  <div class="modal">
+    <div class="modal-header">
+      <h3 id="modal-triagem-title">Nova Triagem</h3>
+      <button class="modal-close" data-close="modal-triagem">✕</button>
+    </div>
+    <div class="modal-body">
+      <form id="form-triagem">
+        <input type="hidden" name="id" />
+        <div class="form-grid">
+          <div class="form-group"><label>Data *</label><input type="date" name="data" required /></div>
+          <div class="form-group"><label>Operador</label><select name="operador_id"><option value="">— Nenhum —</option></select></div>
+          <div class="form-group"><label>Hora Início *</label><input type="time" name="hora_inicio" required /></div>
+          <div class="form-group"><label>Hora Fim *</label><input type="time" name="hora_fim" required /></div>
+          <div class="form-group"><label>Material Triado</label><input type="text" name="material" placeholder="Ex: Recicláveis Mistos" /></div>
+          <div class="form-group"><label>Peso Triado (kg)</label><input type="number" name="peso_kg" min="0" step="0.01" placeholder="Opcional" /></div>
+          <div class="form-group full"><label>Observações</label><textarea name="observacoes" rows="2" placeholder="Detalhes da triagem…"></textarea></div>
+        </div>
+        <div id="tri-duracao-preview" style="display:none;margin-top:8px;padding:8px 12px;background:#f0f9f4;color:#006636;border-radius:6px;font-size:13px;font-weight:600"></div>
+      </form>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-outline" data-close="modal-triagem">Cancelar</button>
+      <button class="btn btn-primary" id="btn-salvar-triagem">Salvar</button>
+    </div>
+  </div>
+</div>
 
 <!-- Modal: Material -->
 <div class="modal-backdrop" id="modal-mat">
@@ -165,9 +255,27 @@ import { initPage, supabase, peso, ton, dataBR, toast, abrirModal, fecharModal, 
 
 await initPage();
 
-let perfil, equipamentos = [], materiais = [], colaboradores = [], producaoData = [];
-let chartDiario, chartOperador;
+let perfil, equipamentos = [], materiais = [], colaboradores = [], producaoData = [], triagemData = [];
+let chartDiario, chartOperador, chartTriaDia, chartTriaOp;
 
+// ── TABS ──
+document.querySelectorAll('.prod-tab').forEach(tab => {
+  tab.addEventListener('click', () => {
+    document.querySelectorAll('.prod-tab').forEach(t => t.classList.remove('active'));
+    document.querySelectorAll('.tab-pane').forEach(p => p.classList.remove('active'));
+    tab.classList.add('active');
+    document.getElementById('tab-' + tab.dataset.tab).classList.add('active');
+    document.getElementById('btn-nova').textContent = tab.dataset.tab === 'prensagem' ? '+ Novo Registro' : '+ Nova Triagem';
+  });
+});
+
+document.getElementById('btn-nova').addEventListener('click', () => {
+  const active = document.querySelector('.prod-tab.active')?.dataset.tab;
+  if (active === 'triagem') abrirNovaTriagem();
+  else abrirNovaProd();
+});
+
+// ── INIT ──
 async function init() {
   const { data: { user } } = await supabase.auth.getUser();
   const { data: p } = await supabase.from('profiles').select('*').eq('id', user.id).single();
@@ -183,12 +291,13 @@ async function init() {
   colaboradores = col || [];
 
   popularSelects();
-  document.getElementById('f-mes').value = mesAtual();
+  document.getElementById('f-mes').value     = mesAtual();
+  document.getElementById('tri-f-mes').value = mesAtual();
 
   const hoje = new Date().toISOString().split('T')[0];
   document.getElementById('data-hoje').textContent = dataBR(hoje);
 
-  await Promise.all([carregarCapacidades(), carregarProducao(), carregarMateriais()]);
+  await Promise.all([carregarCapacidades(), carregarProducao(), carregarMateriais(), carregarTriagem()]);
 }
 
 function popularSelects() {
@@ -201,29 +310,20 @@ function popularSelects() {
   document.querySelector('#form-prod [name="equipamento_id"]').innerHTML = '<option value="">Selecione…</option>' + eqOpts;
   document.querySelector('#form-prod [name="material_id"]').innerHTML    = '<option value="">Selecione…</option>' + mtOpts;
   document.querySelector('#form-prod [name="operador_id"]').innerHTML    = colOpts;
+  document.querySelector('#form-triagem [name="operador_id"]').innerHTML = colOpts;
+  document.getElementById('tri-f-op').innerHTML = '<option value="">Todos</option>' + colaboradores.map(c=>`<option value="${c.id}">${c.nome}</option>`).join('');
 }
 
+// ── PRENSAGEM ──
 async function carregarCapacidades() {
   const hoje = new Date().toISOString().split('T')[0];
-  const { data: prodHoje } = await supabase.from('producao')
-    .select('equipamento_id, peso_produzido_kg').eq('data', hoje);
-
+  const { data: prodHoje } = await supabase.from('producao').select('equipamento_id, peso_produzido_kg').eq('data', hoje);
   const prodPorEquip = {};
-  (prodHoje||[]).forEach(r => {
-    prodPorEquip[r.equipamento_id] = (prodPorEquip[r.equipamento_id]||0) + r.peso_produzido_kg;
-  });
-
+  (prodHoje||[]).forEach(r => { prodPorEquip[r.equipamento_id] = (prodPorEquip[r.equipamento_id]||0) + r.peso_produzido_kg; });
   const grid = document.getElementById('capacity-grid');
-  if (!equipamentos.length) {
-    grid.innerHTML = '<p class="text-muted" style="font-size:13px">Nenhum equipamento cadastrado.</p>';
-    return;
-  }
-  // Mostra apenas equipamentos com produção lançada hoje
+  if (!equipamentos.length) { grid.innerHTML = '<p class="text-muted" style="font-size:13px">Nenhum equipamento cadastrado.</p>'; return; }
   const comProducao = equipamentos.filter(eq => prodPorEquip[eq.id] > 0);
-  if (!comProducao.length) {
-    grid.innerHTML = '<p class="text-muted" style="font-size:13px;padding:8px 0">Nenhuma produção lançada hoje.</p>';
-    return;
-  }
+  if (!comProducao.length) { grid.innerHTML = '<p class="text-muted" style="font-size:13px;padding:8px 0">Nenhuma produção lançada hoje.</p>'; return; }
   grid.innerHTML = comProducao.map(eq => {
     const prod = prodPorEquip[eq.id] || 0;
     const cap  = eq.capacidade_kg_dia || 0;
@@ -232,10 +332,7 @@ async function carregarCapacidades() {
     return `<div class="capacity-card">
       <h4>${eq.nome}</h4>
       <div class="progress-bar"><div class="progress-fill ${cls}" style="width:${Math.min(pct,100)}%"></div></div>
-      <div class="capacity-info">
-        <span>${ton(prod)} produzido</span>
-        <span>Cap: ${cap > 0 ? ton(cap) : 'N/D'}</span>
-      </div>
+      <div class="capacity-info"><span>${ton(prod)} produzido</span><span>Cap: ${cap > 0 ? ton(cap) : 'N/D'}</span></div>
       ${pct >= 100 ? '<div style="font-size:11px;color:var(--danger);margin-top:6px">⚠ Capacidade excedida!</div>' : ''}
     </div>`;
   }).join('');
@@ -245,27 +342,22 @@ async function carregarProducao() {
   let q = supabase.from('producao')
     .select('*, equipamentos(nome), materiais(nome), colaboradores(nome)')
     .order('data', { ascending: false });
-
   const mes = document.getElementById('f-mes').value;
   const eq  = document.getElementById('f-equip').value;
   const mat = document.getElementById('f-mat').value;
-
   if (mes) {
     const [y,m] = mes.split('-');
     q = q.gte('data',`${y}-${m}-01`).lte('data', new Date(y,m,0).toISOString().split('T')[0]);
   }
   if (eq)  q = q.eq('equipamento_id', eq);
   if (mat) q = q.eq('material_id', mat);
-
   const { data } = await q;
   producaoData = data || [];
 
-  // KPIs
-  const totKg = producaoData.reduce((s,r)=>s+r.peso_produzido_kg, 0);
-  const dias  = new Set(producaoData.map(r=>r.data)).size || 1;
-  const { count: nColabs } = await supabase.from('colaboradores').select('*', { count:'exact', head:true }).eq('ativo',true);
+  const totKg     = producaoData.reduce((s,r)=>s+r.peso_produzido_kg, 0);
+  const totFardos = producaoData.reduce((s,r)=>s+(r.quantidade_fardos||0), 0);
+  const dias      = new Set(producaoData.map(r=>r.data)).size || 1;
 
-  // Eficiência: produção / entradas no período
   let efic = '—';
   if (mes) {
     const [y,m] = mes.split('-');
@@ -276,17 +368,15 @@ async function carregarProducao() {
   }
 
   document.getElementById('kpi-mes').textContent    = ton(totKg);
+  document.getElementById('kpi-fardos').textContent = totFardos > 0 ? totFardos.toLocaleString('pt-BR') + ' un' : '—';
   document.getElementById('kpi-regs').textContent   = producaoData.length;
   document.getElementById('kpi-dia').textContent    = ton(totKg/dias);
-  document.getElementById('kpi-pessoa').textContent = ton(nColabs > 0 ? totKg/nColabs : 0);
   document.getElementById('kpi-efic').textContent   = efic;
   document.getElementById('prod-count').textContent = `${producaoData.length} registros`;
 
-  // Gráfico diário
   const diasMap = {};
   producaoData.forEach(r => { diasMap[r.data] = (diasMap[r.data]||0) + r.peso_produzido_kg; });
   const diasSorted = Object.keys(diasMap).sort();
-
   if (chartDiario) chartDiario.destroy();
   chartDiario = new Chart(document.getElementById('chart-diario'), {
     type: 'bar',
@@ -294,24 +384,18 @@ async function carregarProducao() {
       labels: diasSorted.map(d => { const [,, dd] = d.split('-'); return dd+'/'+d.split('-')[1]; }),
       datasets: [{ data: diasSorted.map(d=>diasMap[d]), backgroundColor:'#1B7A43', borderRadius:4 }]
     },
-    options: {
-      responsive: true, maintainAspectRatio: false,
-      plugins: { legend:{display:false} },
-      scales: { x:{grid:{display:false},ticks:{font:{size:10}}}, y:{grid:{color:'#F0F0F0'}} }
-    }
+    options: { responsive:true, maintainAspectRatio:false, plugins:{legend:{display:false}}, scales:{x:{grid:{display:false},ticks:{font:{size:10}}}, y:{grid:{color:'#F0F0F0'}}} }
   });
 
-  // Gráfico e ranking por operador
-  const opMap = {};
-  const opDias = {};
+  const opMap = {}, opFardos = {}, opDias = {};
   producaoData.forEach(r => {
     const nome = r.colaboradores?.nome || '(Sem operador)';
-    opMap[nome]  = (opMap[nome]||0)  + r.peso_produzido_kg;
+    opMap[nome]    = (opMap[nome]||0) + r.peso_produzido_kg;
+    opFardos[nome] = (opFardos[nome]||0) + (r.quantidade_fardos||0);
     if (!opDias[nome]) opDias[nome] = new Set();
     opDias[nome].add(r.data);
   });
   const opSorted = Object.entries(opMap).sort((a,b)=>b[1]-a[1]);
-
   if (chartOperador) chartOperador.destroy();
   chartOperador = new Chart(document.getElementById('chart-operador'), {
     type: 'bar',
@@ -319,75 +403,213 @@ async function carregarProducao() {
       labels: opSorted.map(([n])=>n),
       datasets: [{ data: opSorted.map(([,v])=>v), backgroundColor:'#2E9E5B', borderRadius:4 }]
     },
-    options: {
-      indexAxis: 'y',
-      responsive: true, maintainAspectRatio: false,
-      plugins: { legend:{display:false} },
-      scales: { x:{grid:{color:'#F0F0F0'}}, y:{grid:{display:false},ticks:{font:{size:11}}} }
-    }
+    options: { indexAxis:'y', responsive:true, maintainAspectRatio:false, plugins:{legend:{display:false}}, scales:{x:{grid:{color:'#F0F0F0'}}, y:{grid:{display:false},ticks:{font:{size:11}}}} }
   });
 
-  const tb = document.getElementById('tb-ranking');
-  tb.innerHTML = opSorted.length ? opSorted.map(([nome, kg], i) => {
+  document.getElementById('tb-ranking').innerHTML = opSorted.length ? opSorted.map(([nome, kg], i) => {
     const d = opDias[nome]?.size || 1;
-    return `<tr>
-      <td><strong>${i+1}</strong></td>
-      <td>${nome}</td>
-      <td class="text-right">${[...opDias[nome]].length}</td>
-      <td class="text-right fw-600">${ton(kg)}</td>
-      <td class="text-right">${ton(kg/d)}</td>
-    </tr>`;
-  }).join('') : '<tr><td colspan="5" class="table-empty">Sem dados</td></tr>';
+    return `<tr><td><strong>${i+1}</strong></td><td>${nome}</td><td class="text-right">${[...opDias[nome]].length}</td><td class="text-right fw-600">${ton(kg)}</td><td class="text-right">${opFardos[nome]||0} un</td><td class="text-right">${ton(kg/d)}</td></tr>`;
+  }).join('') : '<tr><td colspan="6" class="table-empty">Sem dados</td></tr>';
 
-  // Tabela
   const isAdmin = perfil?.role === 'admin';
-  const tbProd = document.getElementById('tb-producao');
-  if (!producaoData.length) {
-    tbProd.innerHTML = '<tr><td colspan="6" class="table-empty">Nenhum registro encontrado</td></tr>';
-    return;
-  }
-  tbProd.innerHTML = producaoData.map(r => `
+  document.getElementById('tb-producao').innerHTML = producaoData.length ? producaoData.map(r => `
     <tr>
-      <td>${dataBR(r.data)}</td>
-      <td>${r.equipamentos?.nome||'—'}</td>
-      <td>${r.materiais?.nome||'—'}</td>
-      <td>${r.colaboradores?.nome||'—'}</td>
+      <td>${dataBR(r.data)}</td><td>${r.equipamentos?.nome||'—'}</td><td>${r.materiais?.nome||'—'}</td><td>${r.colaboradores?.nome||'—'}</td>
       <td class="text-right">${ton(r.peso_produzido_kg)}</td>
-      <td>${isAdmin?`
-        <button class="btn-icon" onclick="editarProd('${r.id}')">✏️</button>
-        <button class="btn-icon danger" onclick="excluirProd('${r.id}')">🗑️</button>
-      `:'—'}</td>
-    </tr>
-  `).join('');
+      <td class="text-right">${r.quantidade_fardos ? r.quantidade_fardos+' un' : '—'}</td>
+      <td>${isAdmin?`<button class="btn-icon" onclick="editarProd('${r.id}')">✏️</button><button class="btn-icon danger" onclick="excluirProd('${r.id}')">🗑️</button>`:'—'}</td>
+    </tr>`).join('')
+  : '<tr><td colspan="7" class="table-empty">Nenhum registro encontrado</td></tr>';
 }
-
 
 async function carregarMateriais() {
   const { data } = await supabase.from('materiais').select('*').order('nome');
   const isAdmin = perfil?.role === 'admin';
   document.getElementById('tb-materiais').innerHTML = (data||[]).map(m=>`
     <tr>
-      <td>${m.nome}</td>
-      <td>${m.unidade_medida||'kg'}</td>
+      <td>${m.nome}</td><td>${m.unidade_medida||'kg'}</td>
       <td><span class="badge ${m.categoria==='rejeito'?'badge-red':'badge-green'}">${m.categoria==='rejeito'?'Rejeito':'Reciclável'}</span></td>
       <td><span class="badge ${m.ativo?'badge-green':'badge-gray'}">${m.ativo?'Ativo':'Inativo'}</span></td>
-      <td>${isAdmin?`
-        <button class="btn-icon" onclick="editarMat(${JSON.stringify(m).replace(/"/g,'&quot;')})">✏️</button>
-        <button class="btn-icon danger" onclick="toggleMat('${m.id}',${m.ativo})" title="${m.ativo?'Desativar':'Ativar'}">${m.ativo?'🚫':'✅'}</button>
-        <button class="btn-icon danger" onclick="excluirMat('${m.id}','${m.nome.replace(/'/g,"\\'")}')\" title="Excluir">🗑️</button>
-      `:'—'}</td>
-    </tr>
-  `).join('') || '<tr><td colspan="5" class="table-empty">Nenhum material</td></tr>';
+      <td>${isAdmin?`<button class="btn-icon" onclick="editarMat(${JSON.stringify(m).replace(/"/g,'&quot;')})">✏️</button><button class="btn-icon danger" onclick="toggleMat('${m.id}',${m.ativo})">${m.ativo?'🚫':'✅'}</button><button class="btn-icon danger" onclick="excluirMat('${m.id}','${m.nome.replace(/'/g,"\\'")}')">🗑️</button>`:'—'}</td>
+    </tr>`).join('') || '<tr><td colspan="5" class="table-empty">Nenhum material</td></tr>';
 }
 
-/* ── Produção CRUD ── */
-document.getElementById('btn-nova').addEventListener('click', () => {
+// ── TRIAGEM ──
+function fmtTempo(min) {
+  if (!min || min <= 0) return '—';
+  if (min < 60) return min + ' min';
+  const h = Math.floor(min/60), m = min%60;
+  return h + 'h' + (m > 0 ? m.toString().padStart(2,'0') : '00') + 'min';
+}
+
+function calcMinutos(inicio, fim) {
+  if (!inicio || !fim) return 0;
+  const [hi, mi] = inicio.split(':').map(Number);
+  const [hf, mf] = fim.split(':').map(Number);
+  return (hf * 60 + mf) - (hi * 60 + mi);
+}
+
+async function carregarTriagem() {
+  let q = supabase.from('triagem').select('*, colaboradores(nome)').order('data', { ascending: false });
+  const mes = document.getElementById('tri-f-mes').value;
+  const op  = document.getElementById('tri-f-op').value;
+  if (mes) {
+    const [y,m] = mes.split('-');
+    q = q.gte('data',`${y}-${m}-01`).lte('data', new Date(y,m,0).toISOString().split('T')[0]);
+  }
+  if (op) q = q.eq('operador_id', op);
+
+  const { data, error } = await q;
+  if (error) {
+    document.getElementById('tri-tb').innerHTML = `<tr><td colspan="9" class="table-empty">⚠ Execute o SQL abaixo no Supabase para ativar este módulo:<br><br><code style="font-size:11px;background:#f5f5f5;padding:4px 8px;border-radius:4px">CREATE TABLE triagem (id uuid DEFAULT gen_random_uuid() PRIMARY KEY, data date NOT NULL, hora_inicio time, hora_fim time, tempo_minutos integer, operador_id uuid REFERENCES colaboradores(id), material text, peso_kg numeric, observacoes text, criado_por uuid, created_at timestamptz DEFAULT now());</code></td></tr>`;
+    return;
+  }
+  triagemData = data || [];
+
+  const tempos = triagemData.map(r => calcMinutos(r.hora_inicio, r.hora_fim)).filter(t => t > 0);
+  const totalMin = tempos.reduce((s,t)=>s+t, 0);
+  const media = tempos.length ? Math.round(totalMin / tempos.length) : 0;
+
+  const opTempos = {};
+  triagemData.forEach(r => {
+    const nome = r.colaboradores?.nome || '(Sem operador)';
+    if (!opTempos[nome]) opTempos[nome] = [];
+    const t = calcMinutos(r.hora_inicio, r.hora_fim);
+    if (t > 0) opTempos[nome].push(t);
+  });
+  let melhor = '—', menorMedia = Infinity;
+  Object.entries(opTempos).forEach(([nome, ts]) => {
+    const med = ts.reduce((s,t)=>s+t,0) / ts.length;
+    if (med < menorMedia) { menorMedia = med; melhor = nome.split(' ')[0]; }
+  });
+
+  document.getElementById('tri-kpi-total').textContent       = triagemData.length;
+  document.getElementById('tri-kpi-media').textContent       = fmtTempo(media);
+  document.getElementById('tri-kpi-total-tempo').textContent = fmtTempo(totalMin);
+  document.getElementById('tri-kpi-rapido').textContent      = melhor;
+  document.getElementById('tri-count').textContent           = `${triagemData.length} registros`;
+
+  const diaMap = {};
+  triagemData.forEach(r => { const t = calcMinutos(r.hora_inicio, r.hora_fim); if (t>0) diaMap[r.data] = (diaMap[r.data]||0) + t; });
+  const diasSorted = Object.keys(diaMap).sort();
+  if (chartTriaDia) chartTriaDia.destroy();
+  chartTriaDia = new Chart(document.getElementById('tri-chart-dia'), {
+    type: 'bar',
+    data: {
+      labels: diasSorted.map(d => { const [,, dd] = d.split('-'); return dd+'/'+d.split('-')[1]; }),
+      datasets: [{ data: diasSorted.map(d=>diaMap[d]), backgroundColor:'#1B7A43', borderRadius:4 }]
+    },
+    options: { responsive:true, maintainAspectRatio:false, plugins:{legend:{display:false}}, scales:{x:{grid:{display:false},ticks:{font:{size:10}}}, y:{grid:{color:'#F0F0F0'}}} }
+  });
+
+  const opMed = Object.entries(opTempos).map(([n,ts]) => [n, Math.round(ts.reduce((s,t)=>s+t,0)/ts.length)]).sort((a,b)=>b[1]-a[1]);
+  if (chartTriaOp) chartTriaOp.destroy();
+  chartTriaOp = new Chart(document.getElementById('tri-chart-op'), {
+    type: 'bar',
+    data: {
+      labels: opMed.map(([n])=>n),
+      datasets: [{ data: opMed.map(([,v])=>v), backgroundColor:'#2E9E5B', borderRadius:4 }]
+    },
+    options: { indexAxis:'y', responsive:true, maintainAspectRatio:false, plugins:{legend:{display:false}}, scales:{x:{grid:{color:'#F0F0F0'}}, y:{grid:{display:false},ticks:{font:{size:11}}}} }
+  });
+
+  const isAdmin = perfil?.role === 'admin';
+  document.getElementById('tri-tb').innerHTML = triagemData.length ? triagemData.map(r => {
+    const min = calcMinutos(r.hora_inicio, r.hora_fim);
+    return `<tr>
+      <td>${dataBR(r.data)}</td><td>${r.colaboradores?.nome||'—'}</td><td>${r.material||'—'}</td>
+      <td class="text-right">${r.hora_inicio?.slice(0,5)||'—'}</td><td class="text-right">${r.hora_fim?.slice(0,5)||'—'}</td>
+      <td class="text-right fw-600">${fmtTempo(min)}</td>
+      <td class="text-right">${r.peso_kg ? ton(r.peso_kg) : '—'}</td>
+      <td style="max-width:140px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis" title="${r.observacoes||''}">${r.observacoes||'—'}</td>
+      <td>${isAdmin?`<button class="btn-icon" onclick="editarTriagem('${r.id}')">✏️</button><button class="btn-icon danger" onclick="excluirTriagem('${r.id}')">🗑️</button>`:'—'}</td>
+    </tr>`;
+  }).join('') : '<tr><td colspan="9" class="table-empty">Nenhum registro de triagem</td></tr>';
+}
+
+function abrirNovaTriagem() {
+  document.getElementById('modal-triagem-title').textContent = 'Nova Triagem';
+  document.getElementById('form-triagem').reset();
+  document.querySelector('#form-triagem [name="id"]').value = '';
+  document.getElementById('tri-duracao-preview').style.display = 'none';
+  document.querySelector('#form-triagem [name="data"]').value = new Date().toISOString().split('T')[0];
+  abrirModal('modal-triagem');
+}
+
+['hora_inicio','hora_fim'].forEach(n => {
+  document.querySelector(`#form-triagem [name="${n}"]`).addEventListener('change', () => {
+    const ini = document.querySelector('#form-triagem [name="hora_inicio"]').value;
+    const fim = document.querySelector('#form-triagem [name="hora_fim"]').value;
+    const min = calcMinutos(ini, fim);
+    const prev = document.getElementById('tri-duracao-preview');
+    if (min > 0) { prev.style.display='block'; prev.textContent = '⏱ Duração: ' + fmtTempo(min); }
+    else prev.style.display = 'none';
+  });
+});
+
+document.getElementById('tri-btn-nova').addEventListener('click', abrirNovaTriagem);
+document.getElementById('tri-btn-filtrar').addEventListener('click', carregarTriagem);
+
+document.getElementById('btn-salvar-triagem').addEventListener('click', async () => {
+  const f = document.getElementById('form-triagem');
+  if (!f.checkValidity()) { f.reportValidity(); return; }
+  const fd = Object.fromEntries(new FormData(f));
+  const min = calcMinutos(fd.hora_inicio, fd.hora_fim);
+  if (min <= 0) { toast('Hora fim deve ser maior que hora início','error'); return; }
+  const { data: { user } } = await supabase.auth.getUser();
+  const payload = {
+    data: fd.data, hora_inicio: fd.hora_inicio, hora_fim: fd.hora_fim, tempo_minutos: min,
+    operador_id: fd.operador_id || null, material: fd.material || null,
+    peso_kg: fd.peso_kg ? parseFloat(fd.peso_kg) : null,
+    observacoes: fd.observacoes || null, criado_por: user.id,
+  };
+  if (fd.id) {
+    const { error } = await supabase.from('triagem').update(payload).eq('id', fd.id);
+    if (error) { toast('Erro: ' + error.message, 'error'); return; }
+    toast('Triagem atualizada!');
+  } else {
+    const { error } = await supabase.from('triagem').insert(payload);
+    if (error) { toast('Erro: ' + error.message, 'error'); return; }
+    toast('Triagem registrada!');
+  }
+  fecharModal('modal-triagem');
+  carregarTriagem();
+});
+
+window.editarTriagem = id => {
+  const r = triagemData.find(t=>t.id===id);
+  if (!r) return;
+  document.getElementById('modal-triagem-title').textContent = 'Editar Triagem';
+  const f = document.getElementById('form-triagem');
+  f.querySelector('[name="id"]').value          = r.id;
+  f.querySelector('[name="data"]').value        = r.data;
+  f.querySelector('[name="hora_inicio"]').value = r.hora_inicio?.slice(0,5)||'';
+  f.querySelector('[name="hora_fim"]').value    = r.hora_fim?.slice(0,5)||'';
+  f.querySelector('[name="operador_id"]').value = r.operador_id||'';
+  f.querySelector('[name="material"]').value    = r.material||'';
+  f.querySelector('[name="peso_kg"]').value     = r.peso_kg||'';
+  f.querySelector('[name="observacoes"]').value = r.observacoes||'';
+  const min = calcMinutos(r.hora_inicio, r.hora_fim);
+  const prev = document.getElementById('tri-duracao-preview');
+  if (min > 0) { prev.style.display='block'; prev.textContent = '⏱ Duração: ' + fmtTempo(min); }
+  abrirModal('modal-triagem');
+};
+
+window.excluirTriagem = async id => {
+  if (!confirm('Excluir este registro de triagem?')) return;
+  await supabase.from('triagem').delete().eq('id', id);
+  toast('Registro excluído!');
+  carregarTriagem();
+};
+
+// ── PRENSAGEM CRUD ──
+function abrirNovaProd() {
   document.getElementById('modal-prod-title').textContent = 'Novo Registro de Produção';
   document.getElementById('form-prod').reset();
   document.querySelector('#form-prod [name="id"]').value = '';
   document.getElementById('alerta-capacidade').style.display = 'none';
   abrirModal('modal-prod');
-});
+}
 
 ['peso_produzido_kg','equipamento_id','data'].forEach(nm => {
   document.querySelector(`#form-prod [name="${nm}"]`)?.addEventListener('change', verificarCapacidade);
@@ -401,8 +623,7 @@ async function verificarCapacidade() {
   if (!eqId || !data || !pesoV) { alerta.style.display='none'; return; }
   const eq = equipamentos.find(e=>e.id===eqId);
   if (!eq?.capacidade_kg_dia) { alerta.style.display='none'; return; }
-  const { data: prod } = await supabase.from('producao')
-    .select('peso_produzido_kg').eq('equipamento_id', eqId).eq('data', data);
+  const { data: prod } = await supabase.from('producao').select('peso_produzido_kg').eq('equipamento_id', eqId).eq('data', data);
   const total = (prod||[]).reduce((s,r)=>s+r.peso_produzido_kg,0) + pesoV;
   alerta.style.display = total > eq.capacidade_kg_dia ? 'block' : 'none';
 }
@@ -412,12 +633,13 @@ window.editarProd = id => {
   if (!r) return;
   document.getElementById('modal-prod-title').textContent = 'Editar Produção';
   const f = document.getElementById('form-prod');
-  f.querySelector('[name="id"]').value               = r.id;
-  f.querySelector('[name="data"]').value             = r.data;
-  f.querySelector('[name="equipamento_id"]').value   = r.equipamento_id;
-  f.querySelector('[name="material_id"]').value      = r.material_id;
-  f.querySelector('[name="operador_id"]').value      = r.operador_id || '';
+  f.querySelector('[name="id"]').value                = r.id;
+  f.querySelector('[name="data"]').value              = r.data;
+  f.querySelector('[name="equipamento_id"]').value    = r.equipamento_id;
+  f.querySelector('[name="material_id"]').value       = r.material_id;
+  f.querySelector('[name="operador_id"]').value       = r.operador_id || '';
   f.querySelector('[name="peso_produzido_kg"]').value = r.peso_produzido_kg;
+  f.querySelector('[name="quantidade_fardos"]').value = r.quantidade_fardos || '';
   abrirModal('modal-prod');
 };
 
@@ -430,23 +652,18 @@ document.getElementById('btn-salvar-prod').addEventListener('click', async () =>
     equipamento_id: fd.equipamento_id, material_id: fd.material_id,
     operador_id: fd.operador_id || null,
     peso_produzido_kg: parseFloat(fd.peso_produzido_kg),
+    quantidade_fardos: fd.quantidade_fardos ? parseInt(fd.quantidade_fardos) : null,
     data: fd.data, criado_por: user.id,
   };
   if (fd.id) {
     await supabase.from('producao').update(payload).eq('id', fd.id);
     await supabase.from('estoque_movimentacoes').delete().eq('origem_id', fd.id);
-    await supabase.from('estoque_movimentacoes').insert({
-      material_id: payload.material_id, tipo:'entrada', peso_kg: payload.peso_produzido_kg,
-      origem_tipo:'producao', origem_id: fd.id, data: payload.data
-    });
+    await supabase.from('estoque_movimentacoes').insert({ material_id: payload.material_id, tipo:'entrada', peso_kg: payload.peso_produzido_kg, origem_tipo:'producao', origem_id: fd.id, data: payload.data });
     toast('Produção atualizada!');
   } else {
     const { data: nova, error } = await supabase.from('producao').insert(payload).select().single();
     if (error) { toast('Erro ao salvar','error'); return; }
-    await supabase.from('estoque_movimentacoes').insert({
-      material_id: payload.material_id, tipo:'entrada', peso_kg: payload.peso_produzido_kg,
-      origem_tipo:'producao', origem_id: nova.id, data: payload.data
-    });
+    await supabase.from('estoque_movimentacoes').insert({ material_id: payload.material_id, tipo:'entrada', peso_kg: payload.peso_produzido_kg, origem_tipo:'producao', origem_id: nova.id, data: payload.data });
     toast('Produção registrada!');
   }
   fecharModal('modal-prod');
@@ -463,8 +680,7 @@ window.excluirProd = async id => {
   carregarCapacidades();
 };
 
-
-/* ── Material CRUD ── */
+// ── MATERIAIS CRUD ──
 document.getElementById('btn-novo-mat').addEventListener('click', () => {
   document.getElementById('modal-mat-title').textContent = 'Novo Material';
   document.getElementById('form-mat').reset();
@@ -474,43 +690,26 @@ document.getElementById('btn-novo-mat').addEventListener('click', () => {
 window.editarMat = m => {
   document.getElementById('modal-mat-title').textContent = 'Editar Material';
   const f = document.getElementById('form-mat');
-  f.querySelector('[name="id"]').value            = m.id;
-  f.querySelector('[name="nome"]').value          = m.nome;
+  f.querySelector('[name="id"]').value             = m.id;
+  f.querySelector('[name="nome"]').value           = m.nome;
   f.querySelector('[name="unidade_medida"]').value = m.unidade_medida||'';
-  f.querySelector('[name="categoria"]').value     = m.categoria||'reciclavel';
+  f.querySelector('[name="categoria"]').value      = m.categoria||'reciclavel';
   abrirModal('modal-mat');
 };
-window.toggleMat = async (id, ativo) => {
-  await supabase.from('materiais').update({ ativo: !ativo }).eq('id', id);
-  carregarMateriais();
-};
-
+window.toggleMat = async (id, ativo) => { await supabase.from('materiais').update({ ativo: !ativo }).eq('id', id); carregarMateriais(); };
 window.excluirMat = async (id, nome) => {
-  if (!confirm(`Deseja excluir o material "${nome}"? Esta ação não pode ser desfeita.`)) return;
-
-  // Verificar uso em todas as tabelas relacionadas
-  const [{ count: cVendas }, { count: cEntradas }, { count: cProd }, { count: cEstoque }] = await Promise.all([
+  if (!confirm(`Deseja excluir "${nome}"?`)) return;
+  const [{ count: cVendas }, { count: cEntradas }, { count: cProd }] = await Promise.all([
     supabase.from('vendas').select('*', { count:'exact', head:true }).eq('material_id', id),
     supabase.from('entradas').select('*', { count:'exact', head:true }).eq('material_id', id),
     supabase.from('producao').select('*', { count:'exact', head:true }).eq('material_id', id),
-    supabase.from('estoque_movimentacoes').select('*', { count:'exact', head:true }).eq('material_id', id),
   ]);
-
   const usos = [];
-  if (cVendas  > 0) usos.push(`• Vendas: ${cVendas} registro(s)`);
-  if (cEntradas> 0) usos.push(`• Entradas: ${cEntradas} registro(s)`);
-  if (cProd    > 0) usos.push(`• Produção: ${cProd} registro(s)`);
-  if (cEstoque > 0) usos.push(`• Estoque: ${cEstoque} movimentação(ões)`);
-
-  if (usos.length > 0) {
-    alert(`Não é possível excluir "${nome}" pois está vinculado a:\n\n${usos.join('\n')}\n\nRemova os vínculos antes de excluir.`);
-    return;
-  }
-
+  if (cVendas>0) usos.push(`Vendas: ${cVendas}`); if (cEntradas>0) usos.push(`Entradas: ${cEntradas}`); if (cProd>0) usos.push(`Produção: ${cProd}`);
+  if (usos.length) { alert(`Não é possível excluir "${nome}".\nVinculado em: ${usos.join(', ')}`); return; }
   const { error } = await supabase.from('materiais').delete().eq('id', id);
-  if (error) { toast('Erro ao excluir: ' + error.message, 'error'); return; }
-  toast('Material excluído!');
-  carregarMateriais();
+  if (error) { toast('Erro: ' + error.message, 'error'); return; }
+  toast('Material excluído!'); carregarMateriais();
 };
 document.getElementById('btn-salvar-mat').addEventListener('click', async () => {
   const f = document.getElementById('form-mat');
@@ -521,9 +720,7 @@ document.getElementById('btn-salvar-mat').addEventListener('click', async () => 
   else       { await supabase.from('materiais').insert(payload); toast('Material criado!'); }
   fecharModal('modal-mat');
   const { data: mt } = await supabase.from('materiais').select('*').eq('ativo',true).order('nome');
-  materiais = mt||[];
-  popularSelects();
-  carregarMateriais();
+  materiais = mt||[]; popularSelects(); carregarMateriais();
 });
 
 document.getElementById('btn-filtrar').addEventListener('click', carregarProducao);
