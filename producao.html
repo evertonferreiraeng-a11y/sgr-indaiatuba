@@ -171,7 +171,7 @@
           <div class="table-card-header"><h3>Registros de Triagem</h3><span id="tri-count" class="text-muted" style="font-size:12px"></span></div>
           <div class="table-scroll">
             <table>
-              <thead><tr><th>Data</th><th>Cliente</th><th>Operador</th><th class="text-right">Início</th><th class="text-right">Fim</th><th class="text-right">Duração</th><th class="text-right">Peso (kg)</th><th class="text-right">kg/h</th><th>Obs.</th><th>Ações</th></tr></thead>
+              <thead><tr><th>Data</th><th>Cliente</th><th>Equipe</th><th class="text-right">Início</th><th class="text-right">Fim</th><th class="text-right">Pausa</th><th class="text-right">Duração</th><th class="text-right">Peso (kg)</th><th class="text-right">kg/h</th><th>Obs.</th><th>Ações</th></tr></thead>
               <tbody id="tri-tb"></tbody>
             </table>
           </div>
@@ -225,22 +225,22 @@
         <div class="form-grid">
           <div class="form-group"><label>Data *</label><input type="date" name="data" required /></div>
           <div class="form-group"><label>Cliente *</label><input type="text" name="cliente" required placeholder="Ex: GL Foods" list="tri-clientes-list" /></div>
+          <div class="form-group"><label>Hora Início *</label><input type="time" name="hora_inicio" required /></div>
+          <div class="form-group"><label>Hora Fim *</label><input type="time" name="hora_fim" required /></div>
+          <div class="form-group"><label>Pausa (min)</label><input type="number" name="pausa_minutos" min="0" step="1" placeholder="Ex: 60 para 1h de almoço" /></div>
           <div class="form-group"><label>Peso Triado (kg) *</label><input type="number" name="peso_kg" min="0.01" step="0.01" required placeholder="kg triados nessa carga" /></div>
           <div class="form-group"><label>Material Triado</label><input type="text" name="material" placeholder="Ex: Recicláveis Mistos" /></div>
           <div class="form-group full"><label>Observações</label><textarea name="observacoes" rows="2" placeholder="Detalhes da triagem…"></textarea></div>
         </div>
         <datalist id="tri-clientes-list"></datalist>
 
-        <!-- Colaboradores com horários individuais -->
-        <div style="margin-top:16px;margin-bottom:8px">
-          <div style="font-size:11px;font-weight:800;color:#6b7c6b;text-transform:uppercase;letter-spacing:.5px;margin-bottom:10px">
-            Colaboradores na Triagem
-          </div>
-          <div id="colab-rows"></div>
-          <button type="button" class="btn-add-colab" id="btn-add-colab">+ Adicionar Colaborador</button>
+        <!-- Colaboradores (seleção múltipla sem horário individual) -->
+        <div style="margin-top:16px">
+          <div style="font-size:11px;font-weight:800;color:#6b7c6b;text-transform:uppercase;letter-spacing:.5px;margin-bottom:10px">Colaboradores na Triagem</div>
+          <div id="colab-checks" style="display:flex;flex-wrap:wrap;gap:8px"></div>
         </div>
 
-        <div id="tri-duracao-preview" style="display:none;margin-top:10px;padding:8px 12px;background:#f0f9f4;color:#006636;border-radius:6px;font-size:13px;font-weight:600"></div>
+        <div id="tri-duracao-preview" style="display:none;margin-top:14px;padding:10px 14px;background:#f0faf4;color:#006636;border-radius:8px;font-size:13px;font-weight:600;line-height:1.6"></div>
       </form>
     </div>
     <div class="modal-footer">
@@ -511,11 +511,9 @@ async function carregarTriagem() {
 
   // KPIs de capacidade — usa duração real (min início até max fim da equipe)
   function duracao(r) {
-    const eq = Array.isArray(r.equipe) ? r.equipe : [];
-    const inis = eq.filter(c=>c.hora_inicio).map(c=>c.hora_inicio);
-    const fins  = eq.filter(c=>c.hora_fim).map(c=>c.hora_fim);
-    if (!inis.length || !fins.length) return 0;
-    return calcMinutos(inis.reduce((a,b)=>a<b?a:b), fins.reduce((a,b)=>a>b?a:b));
+    // usa tempo_minutos salvo (já com pausa descontada); fallback para cálculo bruto
+    if (r.tempo_minutos > 0) return r.tempo_minutos;
+    return calcMinutos(r.hora_inicio, r.hora_fim);
   }
   const validos = triagemData.filter(r => (r.peso_kg||0) > 0 && duracao(r) > 0);
   const totalKg = triagemData.reduce((s,r) => s + (r.peso_kg||0), 0);
@@ -615,111 +613,84 @@ async function carregarTriagem() {
     }
   });
 
-  // Tabela de registros — exibe colaboradores como lista resumida
+  // Tabela de registros
   const isAdmin = perfil?.role === 'admin';
   document.getElementById('tri-tb').innerHTML = triagemData.length ? triagemData.map(r => {
-    const colabs = Array.isArray(r.equipe) ? r.equipe : [];
-    // duração geral: menor início até maior fim dos colaboradores
-    let minIni = null, maxFim = null;
-    colabs.forEach(c => {
-      if (c.hora_inicio && (!minIni || c.hora_inicio < minIni)) minIni = c.hora_inicio;
-      if (c.hora_fim   && (!maxFim  || c.hora_fim   > maxFim))  maxFim = c.hora_fim;
-    });
-    const min = calcMinutos(minIni, maxFim);
+    const min = duracao(r);
     const vel = kgH(r.peso_kg, min);
-    const colabStr = colabs.length
-      ? colabs.map(c => {
-          const nome = colaboradores.find(x=>x.id===c.operador_id)?.nome || c.nome || '?';
-          const primeiroNome = nome.split(' ')[0];
-          const dur = calcMinutos(c.hora_inicio, c.hora_fim);
-          return primeiroNome + (dur > 0 ? ' ('+fmtTempo(dur)+')' : '');
+    const equipe = Array.isArray(r.equipe) ? r.equipe : [];
+    const nomes = equipe.length
+      ? equipe.map(c => {
+          const n = colaboradores.find(x=>x.id===c.operador_id)?.nome || c.nome || '?';
+          const parts = n.split(' ');
+          return parts[0] + (parts.length > 1 ? ' '+parts[parts.length-1][0]+'.' : '');
         }).join(', ')
       : '—';
     return `<tr>
       <td>${dataBR(r.data)}</td>
       <td><strong>${r.cliente||'—'}</strong></td>
-      <td style="font-size:12px">${colabStr}</td>
-      <td class="text-right">${minIni?.slice(0,5)||'—'}</td>
-      <td class="text-right">${maxFim?.slice(0,5)||'—'}</td>
+      <td style="font-size:12px">${nomes}</td>
+      <td class="text-right">${r.hora_inicio?.slice(0,5)||'—'}</td>
+      <td class="text-right">${r.hora_fim?.slice(0,5)||'—'}</td>
+      <td class="text-right" style="color:#D97706">${r.pausa_minutos>0 ? fmtTempo(r.pausa_minutos) : '—'}</td>
       <td class="text-right fw-600">${fmtTempo(min)}</td>
       <td class="text-right">${r.peso_kg ? ton(r.peso_kg) : '—'}</td>
       <td class="text-right" style="color:#1B7A43;font-weight:700">${vel > 0 ? vel+' kg/h' : '—'}</td>
-      <td style="max-width:110px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis" title="${r.observacoes||''}">${r.observacoes||'—'}</td>
+      <td style="max-width:100px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis" title="${r.observacoes||''}">${r.observacoes||'—'}</td>
       <td>${isAdmin?`<button class="btn-icon" onclick="editarTriagem('${r.id}')">✏️</button><button class="btn-icon danger" onclick="excluirTriagem('${r.id}')">🗑️</button>`:'—'}</td>
     </tr>`;
-  }).join('') : '<tr><td colspan="10" class="table-empty">Nenhum registro de triagem ainda</td></tr>';
+  }).join('') : '<tr><td colspan="11" class="table-empty">Nenhum registro de triagem ainda</td></tr>';
 }
 
-// ── COLABORADORES DINÂMICOS ──
-function colabOpts(selectedId = '') {
-  return '<option value="">— Selecione —</option>' +
-    colaboradores.map(c => `<option value="${c.id}"${c.id===selectedId?' selected':''}>${c.nome}</option>`).join('');
+// ── COLABORADORES (checkboxes) ──
+function renderColabChecks(selecionados = []) {
+  const container = document.getElementById('colab-checks');
+  container.innerHTML = colaboradores.map(c => {
+    const checked = selecionados.includes(c.id) ? 'checked' : '';
+    return `<label style="display:flex;align-items:center;gap:6px;background:#f8faf9;border:1.5px solid #d8e4dc;border-radius:20px;padding:6px 14px;cursor:pointer;font-size:13px;font-weight:600;color:#1a2e1a;transition:.15s;user-select:none">
+      <input type="checkbox" class="colab-check" value="${c.id}" ${checked} style="accent-color:#006636;width:15px;height:15px" />
+      ${c.nome.split(' ')[0]} ${c.nome.split(' ').slice(-1)[0]}
+    </label>`;
+  }).join('');
+  container.querySelectorAll('.colab-check').forEach(cb => cb.addEventListener('change', atualizarDuracaoPreview));
 }
 
-function addColabRow(operador_id = '', hora_inicio = '', hora_fim = '') {
-  const div = document.createElement('div');
-  div.className = 'colab-row';
-  div.innerHTML = `
-    <div>
-      <label>Colaborador</label>
-      <select class="colab-op">${colabOpts(operador_id)}</select>
-    </div>
-    <div>
-      <label>Entrada</label>
-      <input type="time" class="colab-ini" value="${hora_inicio}" />
-    </div>
-    <div>
-      <label>Saída</label>
-      <input type="time" class="colab-fim" value="${hora_fim}" />
-    </div>
-    <button type="button" class="btn-remove-colab" title="Remover">✕</button>`;
-  div.querySelector('.btn-remove-colab').addEventListener('click', () => {
-    div.remove();
-    atualizarDuracaoPreview();
-  });
-  // Atualiza preview de duração ao mudar horários
-  div.querySelector('.colab-ini').addEventListener('change', atualizarDuracaoPreview);
-  div.querySelector('.colab-fim').addEventListener('change', atualizarDuracaoPreview);
-  document.getElementById('colab-rows').appendChild(div);
-}
-
-function getColabRows() {
-  return [...document.querySelectorAll('#colab-rows .colab-row')].map(row => ({
-    operador_id: row.querySelector('.colab-op').value || null,
-    nome: row.querySelector('.colab-op option:checked')?.textContent || '',
-    hora_inicio: row.querySelector('.colab-ini').value || null,
-    hora_fim: row.querySelector('.colab-fim').value || null,
-  })).filter(c => c.operador_id || c.hora_inicio);
+function getColabSelecionados() {
+  return [...document.querySelectorAll('#colab-checks .colab-check:checked')].map(cb => cb.value);
 }
 
 function atualizarDuracaoPreview() {
-  const colabs = getColabRows();
-  let minIni = null, maxFim = null;
-  colabs.forEach(c => {
-    if (c.hora_inicio && (!minIni || c.hora_inicio < minIni)) minIni = c.hora_inicio;
-    if (c.hora_fim   && (!maxFim  || c.hora_fim   > maxFim))  maxFim = c.hora_fim;
-  });
-  const min = calcMinutos(minIni, maxFim);
-  const prev = document.getElementById('tri-duracao-preview');
-  if (min > 0) {
-    const pessoas = colabs.filter(c=>c.operador_id).length;
+  const ini    = document.querySelector('#form-triagem [name="hora_inicio"]').value;
+  const fim    = document.querySelector('#form-triagem [name="hora_fim"]').value;
+  const pausa  = parseInt(document.querySelector('#form-triagem [name="pausa_minutos"]').value) || 0;
+  const bruto  = calcMinutos(ini, fim);
+  const efetivo = bruto - pausa;
+  const prev   = document.getElementById('tri-duracao-preview');
+  const pessoas = getColabSelecionados().length;
+  if (bruto > 0) {
+    let txt = `⏱ ${ini}–${fim} = ${fmtTempo(bruto)}`;
+    if (pausa > 0) txt += ` − ${fmtTempo(pausa)} pausa = <strong>${fmtTempo(efetivo)} efetivos</strong>`;
+    if (pessoas > 0) txt += `<br>👥 ${pessoas} colaborador${pessoas > 1 ? 'es' : ''} na carga`;
     prev.style.display = 'block';
-    prev.textContent = `⏱ Duração total: ${fmtTempo(min)}${pessoas > 1 ? ' · '+pessoas+' colaboradores' : ''}`;
+    prev.innerHTML = txt;
   } else {
     prev.style.display = 'none';
   }
 }
 
-document.getElementById('btn-add-colab').addEventListener('click', () => addColabRow());
+// Atualiza preview ao mudar horários/pausa
+['hora_inicio','hora_fim','pausa_minutos'].forEach(n => {
+  document.querySelector(`#form-triagem [name="${n}"]`).addEventListener('change', atualizarDuracaoPreview);
+  document.querySelector(`#form-triagem [name="${n}"]`).addEventListener('input', atualizarDuracaoPreview);
+});
 
 function abrirNovaTriagem() {
   document.getElementById('modal-triagem-title').textContent = 'Nova Triagem';
   document.getElementById('form-triagem').reset();
   document.querySelector('#form-triagem [name="id"]').value = '';
   document.getElementById('tri-duracao-preview').style.display = 'none';
-  document.getElementById('colab-rows').innerHTML = '';
   document.querySelector('#form-triagem [name="data"]').value = new Date().toISOString().split('T')[0];
-  addColabRow(); // começa com 1 linha
+  renderColabChecks([]);
   abrirModal('modal-triagem');
 }
 
@@ -730,26 +701,21 @@ document.getElementById('btn-salvar-triagem').addEventListener('click', async ()
   const f = document.getElementById('form-triagem');
   if (!f.checkValidity()) { f.reportValidity(); return; }
   const fd = Object.fromEntries(new FormData(f));
-  const equipe = getColabRows();
-  if (!equipe.length) { toast('Adicione ao menos um colaborador','error'); return; }
-  // Valida que todos com horário têm saída > entrada
-  for (const c of equipe) {
-    if (c.hora_inicio && c.hora_fim && calcMinutos(c.hora_inicio, c.hora_fim) <= 0) {
-      toast('Saída deve ser após a entrada para todos os colaboradores','error'); return;
-    }
-  }
-  // Calcula hora_inicio/fim geral (min/max dos colaboradores)
-  const inis = equipe.filter(c=>c.hora_inicio).map(c=>c.hora_inicio);
-  const fins = equipe.filter(c=>c.hora_fim).map(c=>c.hora_fim);
-  const hora_inicio = inis.length ? inis.reduce((a,b)=>a<b?a:b) : null;
-  const hora_fim    = fins.length ? fins.reduce((a,b)=>a>b?a:b) : null;
-  const tempo_minutos = calcMinutos(hora_inicio, hora_fim);
-
+  const bruto = calcMinutos(fd.hora_inicio, fd.hora_fim);
+  if (bruto <= 0) { toast('Hora fim deve ser após o início','error'); return; }
+  const pausa_minutos = parseInt(fd.pausa_minutos) || 0;
+  const tempo_minutos = bruto - pausa_minutos;
+  if (tempo_minutos <= 0) { toast('Pausa não pode ser maior que a duração total','error'); return; }
+  const equipe = getColabSelecionados().map(id => ({
+    operador_id: id,
+    nome: colaboradores.find(c=>c.id===id)?.nome || ''
+  }));
   const { data: { user } } = await supabase.auth.getUser();
   const payload = {
     data: fd.data, cliente: fd.cliente,
-    hora_inicio, hora_fim, tempo_minutos,
-    equipe,               // JSONB com colaboradores e horários individuais
+    hora_inicio: fd.hora_inicio, hora_fim: fd.hora_fim,
+    pausa_minutos, tempo_minutos,
+    equipe,
     material: fd.material || null,
     peso_kg: fd.peso_kg ? parseFloat(fd.peso_kg) : null,
     observacoes: fd.observacoes || null,
@@ -773,16 +739,17 @@ window.editarTriagem = id => {
   if (!r) return;
   document.getElementById('modal-triagem-title').textContent = 'Editar Triagem';
   const f = document.getElementById('form-triagem');
-  f.querySelector('[name="id"]').value      = r.id;
-  f.querySelector('[name="data"]').value    = r.data;
-  f.querySelector('[name="cliente"]').value = r.cliente||'';
-  f.querySelector('[name="material"]').value    = r.material||'';
-  f.querySelector('[name="peso_kg"]').value     = r.peso_kg||'';
-  f.querySelector('[name="observacoes"]').value = r.observacoes||'';
-  // Recriar linhas de colaboradores
-  document.getElementById('colab-rows').innerHTML = '';
-  const equipe = Array.isArray(r.equipe) && r.equipe.length ? r.equipe : [{}];
-  equipe.forEach(c => addColabRow(c.operador_id||'', c.hora_inicio?.slice(0,5)||'', c.hora_fim?.slice(0,5)||''));
+  f.querySelector('[name="id"]').value             = r.id;
+  f.querySelector('[name="data"]').value           = r.data;
+  f.querySelector('[name="cliente"]').value        = r.cliente||'';
+  f.querySelector('[name="hora_inicio"]').value    = r.hora_inicio?.slice(0,5)||'';
+  f.querySelector('[name="hora_fim"]').value       = r.hora_fim?.slice(0,5)||'';
+  f.querySelector('[name="pausa_minutos"]').value  = r.pausa_minutos||'';
+  f.querySelector('[name="material"]').value       = r.material||'';
+  f.querySelector('[name="peso_kg"]').value        = r.peso_kg||'';
+  f.querySelector('[name="observacoes"]').value    = r.observacoes||'';
+  const ids = Array.isArray(r.equipe) ? r.equipe.map(c=>c.operador_id).filter(Boolean) : [];
+  renderColabChecks(ids);
   atualizarDuracaoPreview();
   abrirModal('modal-triagem');
 };
