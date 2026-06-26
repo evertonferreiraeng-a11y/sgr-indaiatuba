@@ -440,6 +440,9 @@ body{font-family:'Segoe UI',Arial,sans-serif;background:var(--bg);color:var(--tx
 <div id="print-area"></div>
 
 <script type="module">
+import { initPage } from './js/config.js';
+await initPage();
+
 const LS_CLIENTS='rnc_clients', LS_RNCS='rnc_registros';
 const CLIENTES_PADRAO=[
   'GL Foods','Ambev','Coca-Cola','Nestlé','Mondelez','BRF','Marfrig',
