@@ -233,12 +233,12 @@ body{font-family:'Segoe UI',Arial,sans-serif;background:var(--bg);color:var(--tx
     <span class="sep">›</span>
     <span class="bc-cur" id="bc-client">—</span>
   </div>
-  <div class="pg-title">
+  <div style="display:flex;align-items:flex-start;justify-content:space-between;flex-wrap:wrap;gap:12px;margin-bottom:20px">
     <div>
-      <h2 id="client-name-title">—</h2>
-      <p id="client-rnc-count">—</p>
+      <h2 id="client-name-title" style="font-size:22px;font-weight:800;color:var(--tx)">—</h2>
+      <p id="client-rnc-count" style="font-size:13px;color:var(--cz);margin-top:4px">—</p>
     </div>
-    <div style="display:flex;gap:10px;flex-wrap:wrap">
+    <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center">
       <button class="btn btn-ghost btn-sm" onclick="openEditClientModal()">✏️ Editar</button>
       <button class="btn btn-danger btn-sm" onclick="confirmDeleteClient()">🗑 Excluir</button>
       <button class="btn btn-primary" onclick="goNewRNC()">+ Nova RNC</button>
