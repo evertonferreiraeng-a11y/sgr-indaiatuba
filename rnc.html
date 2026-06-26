@@ -4,6 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>RNC – Não Conformidade de Cargas | Corpus</title>
+<link rel="stylesheet" href="css/style.css" />
 <style>
 :root{
   --gr:#006636;--gr2:#004d28;--gr3:#e8f5ee;
@@ -13,32 +14,20 @@
 *{box-sizing:border-box;margin:0;padding:0}
 body{font-family:'Segoe UI',Arial,sans-serif;background:var(--bg);color:var(--tx);min-height:100vh}
 
-/* HEADER */
-#header{background:var(--gr);color:#fff;padding:0 24px;display:flex;align-items:center;height:58px;gap:14px;position:sticky;top:0;z-index:100;box-shadow:0 2px 12px #0004}
-#logo{display:flex;align-items:center;gap:10px;cursor:pointer;text-decoration:none}
-#logo svg{flex-shrink:0}
-#logo-text{line-height:1.15}
-#logo-text .l1{font-size:15px;font-weight:900;color:#fff;letter-spacing:.5px}
-#logo-text .l2{font-size:10px;color:rgba(255,255,255,.7)}
-#header h1{font-size:15px;font-weight:600;flex:1;opacity:.9;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.nav-btn{background:rgba(255,255,255,.15);border:none;color:#fff;padding:7px 16px;border-radius:7px;cursor:pointer;font-size:13px;font-weight:600;transition:.2s;white-space:nowrap}
-.nav-btn:hover{background:rgba(255,255,255,.25)}
+
 
 /* PAGES */
-.page{display:none;padding:28px 24px;max-width:1080px;margin:0 auto}
+.page{display:none}
 .page.active{display:block}
 
 /* BREADCRUMB */
 .breadcrumb{display:flex;align-items:center;gap:6px;font-size:13px;color:var(--cz);margin-bottom:22px}
-.breadcrumb .bc-link{cursor:pointer;color:var(--gr);font-weight:600}
+.breadcrumb .bc-link{cursor:pointer;color:var(--primary);font-weight:600}
 .breadcrumb .bc-link:hover{text-decoration:underline}
 .breadcrumb .sep{color:#bbb}
 .breadcrumb .bc-cur{color:var(--tx);font-weight:600}
 
-/* PAGE TITLE */
-.pg-title{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:22px;flex-wrap:wrap;gap:12px}
-.pg-title h2{font-size:22px;font-weight:800;color:var(--gr2)}
-.pg-title p{font-size:13px;color:var(--cz);margin-top:3px}
+
 
 /* BUTTONS */
 .btn{display:inline-flex;align-items:center;gap:6px;padding:9px 20px;border-radius:8px;border:none;cursor:pointer;font-size:13px;font-weight:700;transition:.15s;letter-spacing:.2px}
@@ -223,33 +212,19 @@ body{font-family:'Segoe UI',Arial,sans-serif;background:var(--bg);color:var(--tx
 </head>
 <body>
 
-<div id="header">
-  <a id="logo" onclick="goHome()" href="javascript:void(0)">
-    <svg width="34" height="34" viewBox="0 0 48 48" fill="none">
-      <circle cx="24" cy="24" r="24" fill="rgba(255,255,255,.2)"/>
-      <circle cx="24" cy="24" r="20" fill="none" stroke="#fff" stroke-width="2.5"/>
-      <path d="M15 30l6-9 5 6 4-6 5 9H15z" fill="#fff"/>
-    </svg>
-    <div id="logo-text">
-      <div class="l1">CORPUS</div>
-      <div class="l2">Saneamento e Obras</div>
-    </div>
-  </a>
-  <h1>Não Conformidade de Cargas</h1>
-  <button class="nav-btn" onclick="goHome()">← Clientes</button>
-</div>
+<div class="app-layout">
+<div id="sidebar-root"></div>
+<div class="main-content">
 
 <div id="toast"></div>
 
 <!-- PAGE: CLIENTS -->
 <div id="pg-clients" class="page active">
-  <div class="pg-title">
-    <div>
-      <h2>Clientes</h2>
-      <p>Selecione um cliente para ver ou registrar não conformidades</p>
-    </div>
+  <div class="page-header">
+    <div><h2>Não Conformidade</h2><p>Selecione um cliente para ver ou registrar não conformidades</p></div>
     <button class="btn btn-primary" onclick="openNewClientModal()">+ Novo Cliente</button>
   </div>
+  <div class="page-body">
   <div class="search-bar">
     <span class="sico">🔍</span>
     <input type="text" id="search-clients" placeholder="Buscar cliente..." oninput="renderClients()">
@@ -259,6 +234,7 @@ body{font-family:'Segoe UI',Arial,sans-serif;background:var(--bg);color:var(--tx
 
 <!-- PAGE: CLIENT DETAIL -->
 <div id="pg-client" class="page">
+  <div class="page-body">
   <div class="breadcrumb">
     <span class="bc-link" onclick="goHome()">Clientes</span>
     <span class="sep">›</span>
@@ -291,6 +267,7 @@ body{font-family:'Segoe UI',Arial,sans-serif;background:var(--bg);color:var(--tx
 
 <!-- PAGE: RNC FORM -->
 <div id="pg-rnc-form" class="page">
+  <div class="page-body">
   <div class="breadcrumb">
     <span class="bc-link" onclick="goHome()">Clientes</span>
     <span class="sep">›</span>
@@ -462,7 +439,7 @@ body{font-family:'Segoe UI',Arial,sans-serif;background:var(--bg);color:var(--tx
 
 <div id="print-area"></div>
 
-<script>
+<script type="module">
 const LS_CLIENTS='rnc_clients', LS_RNCS='rnc_registros';
 const CLIENTES_PADRAO=[
   'GL Foods','Ambev','Coca-Cola','Nestlé','Mondelez','BRF','Marfrig',
@@ -856,5 +833,7 @@ function gerarPDF(){
 // ── INIT ──
 renderClients();
 </script>
+</div></div>
+<div id="toast-container"></div>
 </body>
 </html>
