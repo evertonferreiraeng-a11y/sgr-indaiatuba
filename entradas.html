@@ -127,7 +127,9 @@
             </div>
             <button class="btn btn-sm btn-primary" id="btn-calc-media" style="height:32px;font-size:12px;align-self:flex-end">Comparar</button>
           </div>
-          <div style="height:420px;position:relative"><canvas id="chart-media"></canvas></div>
+          <div style="overflow-x:auto">
+            <div id="chart-media-wrap" style="height:420px;position:relative;min-width:800px"><canvas id="chart-media"></canvas></div>
+          </div>
           <div id="media-legenda" style="margin-top:10px;font-size:12px;color:#64748b;display:none">
             🟦 Acima da média &nbsp;|&nbsp; 🟧 Abaixo da média
           </div>
@@ -632,6 +634,10 @@ async function calcularMediaHistorica() {
   const cores = labels.map((l, i) => vAtual[i] >= (vMedia[i] || 0) ? '#3b82f6' : '#f59e0b');
 
   if (chartMedia) chartMedia.destroy();
+  // Redimensiona o container para dar espaço a cada barra
+  const wrapEl = document.getElementById('chart-media-wrap');
+  if (wrapEl) wrapEl.style.minWidth = Math.max(800, labels.length * 40) + 'px';
+
   chartMedia = new Chart(document.getElementById('chart-media').getContext('2d'), {
     type: 'bar',
     data: {
@@ -642,6 +648,7 @@ async function calcularMediaHistorica() {
           data: vAtual,
           backgroundColor: cores,
           borderRadius: 4,
+          barThickness: 20,
         },
         {
           label: 'Média histórica mensal (kg)',
