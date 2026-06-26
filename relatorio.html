@@ -329,46 +329,53 @@ async function carregar() {
     <!-- 1. Balanço de Massa -->
     <div class="card rel-section">
       <div class="rel-section-title">Balanço de Massa</div>
-      <div class="rel-kpi-grid" style="margin-bottom:16px">
-        <div class="rel-kpi">
-          <div class="rel-kpi-label">Recebido</div>
-          <div class="rel-kpi-val">${ton(recebido)}</div>
-          <div class="rel-kpi-sub">base do balanço</div>
+      <div style="display:grid;grid-template-columns:2fr 1fr;gap:16px;margin-bottom:12px">
+        <!-- Coluna esquerda: cards + barra + legenda -->
+        <div>
+          <div style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:14px">
+            <div class="rel-kpi" style="flex:1;min-width:100px">
+              <div class="rel-kpi-label">⬇ Recebido</div>
+              <div class="rel-kpi-val">${ton(recebido)}</div>
+              <div class="rel-kpi-sub">base do balanço</div>
+            </div>
+            <div class="rel-kpi" style="flex:1;min-width:100px">
+              <div class="rel-kpi-label" style="color:#1B7A43">Expedido</div>
+              <div class="rel-kpi-val" style="color:#1B7A43">${ton(expedido)}</div>
+              <div class="rel-kpi-sub" style="color:#1B7A43">${pct(expedido)}% do recebido</div>
+            </div>
+            <div class="rel-kpi" style="flex:1;min-width:100px">
+              <div class="rel-kpi-label" style="color:#DC2626">Rejeito</div>
+              <div class="rel-kpi-val" style="color:#DC2626">${ton(rejeito)}</div>
+              <div class="rel-kpi-sub" style="color:#DC2626">${pct(rejeito)}% do recebido</div>
+            </div>
+            <div class="rel-kpi" style="flex:1;min-width:100px">
+              <div class="rel-kpi-label" style="color:#3B82F6">Estoque</div>
+              <div class="rel-kpi-val" style="color:#3B82F6">${ton(estoque)}</div>
+              <div class="rel-kpi-sub" style="color:#3B82F6">${pct(estoque)}% do recebido</div>
+            </div>
+            <div class="rel-kpi" style="flex:1;min-width:100px">
+              <div class="rel-kpi-label" style="color:#F59E0B">Passivo</div>
+              <div class="rel-kpi-val" style="color:#F59E0B">${ton(passivo)}</div>
+              <div class="rel-kpi-sub" style="color:#F59E0B">${pct(passivo)}% do recebido</div>
+            </div>
+          </div>
+          <div class="balanco-bar-wrap" style="margin-bottom:8px">
+            ${segs.map(s=>`<div class="balanco-bar-seg" style="width:${pct(s.val)}%;background:${s.cor}" title="${s.label}: ${pct(s.val)}%">${parseFloat(pct(s.val))>5?pct(s.val)+'%':''}</div>`).join('')}
+          </div>
+          <div class="balanco-legenda" style="margin-bottom:10px">
+            ${[...segs,{label:'Estoque',val:estoque,cor:'#3B82F6'}].map(s=>`<span><i style="background:${s.cor}"></i>${s.label} ${pct(s.val)}%</span>`).join('')}
+          </div>
+          <div style="background:#D1FAE5;border:1px solid #6EE7B7;border-radius:8px;padding:8px 12px;font-size:12px;color:#065f46">
+            ✅ Balanço fechado — Passivo de ${ton(passivo)} (${pct(passivo)}% do recebido) em processamento ou aguardando destinação.
+          </div>
         </div>
-        <div class="rel-kpi">
-          <div class="rel-kpi-label">Expedido</div>
-          <div class="rel-kpi-val" style="color:#1B7A43">${ton(expedido)}</div>
-          <div class="rel-kpi-sub">${pct(expedido)}% do recebido</div>
-        </div>
-        <div class="rel-kpi">
-          <div class="rel-kpi-label">Rejeito</div>
-          <div class="rel-kpi-val" style="color:#DC2626">${ton(rejeito)}</div>
-          <div class="rel-kpi-sub">${pct(rejeito)}% do recebido</div>
-        </div>
-        <div class="rel-kpi">
-          <div class="rel-kpi-label">Estoque</div>
-          <div class="rel-kpi-val" style="color:#3B82F6">${ton(estoque)}</div>
-          <div class="rel-kpi-sub">${pct(estoque)}% do recebido</div>
-        </div>
-        <div class="rel-kpi">
-          <div class="rel-kpi-label">Passivo</div>
-          <div class="rel-kpi-val" style="color:#F59E0B">${ton(passivo)}</div>
-          <div class="rel-kpi-sub">${pct(passivo)}% do recebido</div>
-        </div>
-      </div>
-      <div style="display:flex;align-items:center;justify-content:center;margin-bottom:16px">
-        <div style="text-align:center">
-          <div style="font-size:11px;font-weight:700;text-transform:uppercase;color:#64748b;margin-bottom:6px">Taxa de Reciclagem</div>
+        <!-- Coluna direita: gauge -->
+        <div style="text-align:center;display:flex;flex-direction:column;align-items:center;justify-content:center">
+          <div style="font-size:12px;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:.04em;margin-bottom:4px">Taxa de Reciclagem</div>
           <canvas id="gauge-rel" width="220" height="120"></canvas>
-          <div id="gauge-rel-val" style="font-size:28px;font-weight:900;margin-top:-24px"></div>
+          <div id="gauge-rel-val" style="font-size:28px;font-weight:900;margin-top:-20px"></div>
           <div style="font-size:11px;color:#94a3b8;margin-top:4px">(Expedido + Estoque) / Recebido</div>
         </div>
-      </div>
-      <div class="balanco-bar-wrap">
-        ${segs.map(s=>`<div class="balanco-bar-seg" style="width:${pct(s.val)}%;background:${s.cor}" title="${s.label}: ${pct(s.val)}%">${parseFloat(pct(s.val))>5?pct(s.val)+'%':''}</div>`).join('')}
-      </div>
-      <div class="balanco-legenda">
-        ${segs.map(s=>`<span><i style="background:${s.cor}"></i>${s.label} ${pct(s.val)}%</span>`).join('')}
       </div>
     </div>
 
