@@ -377,9 +377,10 @@ function renderBalanco({ recebido, expedido, rejeito, estoque, periodo }) {
     ? segmentos.map(s=>`<div class="balanco-bar-seg" style="width:${pct(s.val)}%;background:${s.cor}" title="${s.label}: ${pct(s.val)}%">${parseFloat(pct(s.val))>5?pct(s.val)+'%':''}</div>`).join('')
     : '<div style="width:100%;background:#E5E7EB;border-radius:8px;height:22px"></div>';
 
-  document.getElementById('balanco-legenda').innerHTML = segmentos.map(s=>
-    `<span><i style="background:${s.cor}"></i>${s.label} ${pct(s.val)}%</span>`
-  ).join('');
+  document.getElementById('balanco-legenda').innerHTML = [
+    ...segmentos,
+    { label:'Estoque', val:estoque, cor:'#3B82F6' }
+  ].map(s=>`<span><i style="background:${s.cor}"></i>${s.label} ${pct(s.val)}%</span>`).join('');
 
   document.getElementById('balanco-fechamento').innerHTML = `
     <div class="balanco-fechamento" style="background:#D1FAE5;border:1px solid #6EE7B7">
