@@ -723,7 +723,7 @@ function addSectionTitle(pptx, s, title) {
 }
 
 function kpiBox(s, x, y, w, h, label, val, sub, bg) {
-  s.addShape(pptx.ShapeType.roundRect, { x, y, w, h, fill:{ color: bg||'F1F5F9' }, rectRadius:0.08, line:{ color:'E2E8F0', pt:1 } });
+  s.addShape('roundRect', { x, y, w, h, fill:{ color: bg||'F1F5F9' }, rectRadius:0.08, line:{ color:'E2E8F0', pt:1 } });
   s.addText(label, { x, y:y+0.06, w, h:0.22, fontSize:7, bold:true, color:CINZA, align:'center', fontFace:'Calibri' });
   s.addText(val,   { x, y:y+0.28, w, h:0.38, fontSize:13, bold:true, color:bg?BRANCO:VERDE, align:'center', fontFace:'Calibri' });
   if (sub) s.addText(sub, { x, y:y+0.66, w, h:0.18, fontSize:7, color:bg?'ccffdd':CINZA, align:'center', fontFace:'Calibri' });
@@ -733,6 +733,12 @@ function fmtTon(v) { return ((v??0)/1000).toLocaleString('pt-BR',{minimumFractio
 function fmtM(v)   { return new Intl.NumberFormat('pt-BR',{style:'currency',currency:'BRL'}).format(v??0); }
 function pctR(v,t) { return t>0?((v/t)*100).toFixed(1)+'%':'—'; }
 
+async function imgToB64(url) {
+  const resp = await fetch(url);
+  const blob = await resp.blob();
+  return new Promise(res => { const r = new FileReader(); r.onloadend = ()=>res(r.result); r.readAsDataURL(blob); });
+}
+
 async function gerarPPTX() {
   const d = window.relData;
   if (!d) { alert('Carregue o relatório primeiro.'); return; }
@@ -741,6 +747,13 @@ async function gerarPPTX() {
   btn.textContent = 'Gerando…'; btn.disabled = true;
 
   try {
+    // Pré-carrega imagens do modelo
+    const [bgCapa, bgContent, logo] = await Promise.all([
+      imgToB64('img/pptx/image47.png'),
+      imgToB64('img/pptx/image108.png'),
+      imgToB64('img/pptx/image89.png'),
+    ]);
+
     const pptx = new PptxGenJS();
     pptx.layout = 'LAYOUT_WIDE';
     pptx.title  = 'Comitê de Gestão UVR Indaiatuba';
@@ -748,15 +761,17 @@ async function gerarPPTX() {
     // ── Slide 1: Capa ────────────────────────────────────────────────────────
     const s1 = pptx.addSlide();
     s1.background = { color: VERDE };
-    s1.addShape(pptx.ShapeType.rect, { x:0, y:0, w:0.18, h:5.625, fill:{ color:TEAL } });
-    s1.addText('COMITÊ DE GESTÃO', { x:0.5, y:1.5, w:9, h:1.1, fontSize:36, bold:true, color:BRANCO, align:'center', fontFace:'Calibri' });
-    s1.addText('UVR INDAIATUBA', { x:0.5, y:2.65, w:9, h:0.6, fontSize:20, bold:true, color:TEAL, align:'center', fontFace:'Calibri' });
-    s1.addText(d.label, { x:0.5, y:3.35, w:9, h:0.45, fontSize:14, color:BRANCO, align:'center', fontFace:'Calibri' });
-    s1.addShape(pptx.ShapeType.rect, { x:3.8, y:4.0, w:2.4, h:0.07, fill:{ color:TEAL } });
+    s1.addImage({ data: bgCapa, x:4.5, y:-0.3, w:5.8, h:6.2 });
+    s1.addImage({ data: logo, x:0.3, y:0.3, w:0.9, h:1.8 });
+    s1.addText('COMITÊ DE GESTÃO', { x:1.5, y:1.5, w:8, h:1.1, fontSize:36, bold:true, color:BRANCO, align:'left', fontFace:'Calibri' });
+    s1.addText('UVR INDAIATUBA', { x:1.5, y:2.65, w:8, h:0.6, fontSize:20, bold:true, color:TEAL, align:'left', fontFace:'Calibri' });
+    s1.addText(d.label, { x:1.5, y:3.35, w:8, h:0.45, fontSize:14, color:BRANCO, align:'left', fontFace:'Calibri' });
+    s1.addText('SGR Indaiatuba — UVRR Indaiatuba', { x:1.5, y:4.85, w:8, h:0.3, fontSize:10, color:TEAL, align:'left', fontFace:'Calibri' });
 
     // ── Slide 2: Balanço de Massa ────────────────────────────────────────────
     const s2 = pptx.addSlide();
     s2.background = { color:'F8FAFC' };
+    s2.addImage({ data: bgContent, x:0, y:0, w:10, h:5.625 });
     addSectionTitle(pptx, s2, 'BALANÇO DE MASSA');
 
     const bKpis = [
@@ -793,6 +808,7 @@ async function gerarPPTX() {
     // ── Slide 3: Comercial ───────────────────────────────────────────────────
     const s3 = pptx.addSlide();
     s3.background = { color:'F8FAFC' };
+    s3.addImage({ data: bgContent, x:0, y:0, w:10, h:5.625 });
     addSectionTitle(pptx, s3, 'COMERCIAL / FATURAMENTO');
 
     const cKpis = [
@@ -831,6 +847,7 @@ async function gerarPPTX() {
     // ── Slide 4: Estoque ─────────────────────────────────────────────────────
     const s4 = pptx.addSlide();
     s4.background = { color:'F8FAFC' };
+    s4.addImage({ data: bgContent, x:0, y:0, w:10, h:5.625 });
     addSectionTitle(pptx, s4, 'ESTOQUE');
     kpiBox(s4, 0.2, 0.85, 2.5, 1.0, 'ESTOQUE TOTAL', fmtTon(d.estoque), d.matsEstoque.length+' material(ais)', '1D4ED8');
     kpiBox(s4, 2.9, 0.85, 2.5, 1.0, 'VALOR EM ESTOQUE', fmtM(d.valorEstoque), null, '7C3AED');
@@ -850,6 +867,7 @@ async function gerarPPTX() {
     // ── Slide 5: Equipamentos ────────────────────────────────────────────────
     const s5 = pptx.addSlide();
     s5.background = { color:'F8FAFC' };
+    s5.addImage({ data: bgContent, x:0, y:0, w:10, h:5.625 });
     addSectionTitle(pptx, s5, 'EQUIPAMENTOS');
     kpiBox(s5, 0.2,  0.8, 2.0, 1.0, 'TOTAL',         String(d.equTotal),  null, VERDE);
     kpiBox(s5, 2.4,  0.8, 2.0, 1.0, 'ATIVOS',        String(d.equAtivos), d.equOperando+' operando', '0F766E');
@@ -870,6 +888,7 @@ async function gerarPPTX() {
     // ── Slide 6: RH ──────────────────────────────────────────────────────────
     const s6 = pptx.addSlide();
     s6.background = { color:'F8FAFC' };
+    s6.addImage({ data: bgContent, x:0, y:0, w:10, h:5.625 });
     addSectionTitle(pptx, s6, 'RECURSOS HUMANOS');
     kpiBox(s6, 0.2,  0.8, 1.8, 1.0, 'ATIVOS',        String(d.ativos),  null, VERDE);
     kpiBox(s6, 2.2,  0.8, 1.8, 1.0, 'EM EXPERIÊNCIA', String(d.emExp),  null, AMARELO);
@@ -910,10 +929,11 @@ async function gerarPPTX() {
     // ── Slide 7: Encerramento ────────────────────────────────────────────────
     const s7 = pptx.addSlide();
     s7.background = { color: VERDE };
-    s7.addShape(pptx.ShapeType.rect, { x:0, y:0, w:0.18, h:5.625, fill:{ color:TEAL } });
-    s7.addText('Obrigado!', { x:0.5, y:1.9, w:9, h:1.2, fontSize:40, bold:true, color:BRANCO, align:'center', fontFace:'Calibri' });
-    s7.addText('UVR Indaiatuba — SGR Indaiatuba', { x:0.5, y:3.1, w:9, h:0.5, fontSize:14, color:TEAL, align:'center', fontFace:'Calibri' });
-    s7.addShape(pptx.ShapeType.rect, { x:3.8, y:3.8, w:2.4, h:0.07, fill:{ color:TEAL } });
+    s7.addImage({ data: bgCapa, x:4.5, y:-0.3, w:5.8, h:6.2 });
+    s7.addImage({ data: logo, x:0.3, y:0.3, w:0.9, h:1.8 });
+    s7.addText('Obrigado!', { x:1.5, y:1.8, w:8, h:1.2, fontSize:40, bold:true, color:BRANCO, align:'left', fontFace:'Calibri' });
+    s7.addText('UVR Indaiatuba — SGR Indaiatuba', { x:1.5, y:3.1, w:8, h:0.5, fontSize:14, color:TEAL, align:'left', fontFace:'Calibri' });
+    s7.addText(d.label, { x:1.5, y:3.7, w:8, h:0.35, fontSize:11, color:BRANCO, align:'left', fontFace:'Calibri' });
 
     const data = new Date().toLocaleDateString('pt-BR').replace(/\//g,'-');
     await pptx.writeFile({ fileName: `Comite_UVR_Indaiatuba_${data}.pptx` });
