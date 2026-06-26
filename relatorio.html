@@ -890,7 +890,7 @@ async function gerarPPTX() {
     if (vagasEntries.length) {
       const vRows = [['Cargo','Preenchido','Total Vagas','Situação']];
       vagasEntries.sort((a,b)=>a[0].localeCompare(b[0])).forEach(([cargo, info]) => {
-        const sit = info.total===null?'—':info.preenchido>=info.total?'Completo':${info.total-info.preenchido} vaga(s) em aberto;
+        const sit = info.total===null?'—':info.preenchido>=info.total?'Completo':`${info.total-info.preenchido} vaga(s) em aberto`;
         vRows.push([cargo, String(info.preenchido), info.total!==null?String(info.total):'—', sit]);
       });
       s7.addText('BALANÇO DE VAGAS', { x:0.2, y:2.1, w:4, h:0.22, fontSize:8, bold:true, color:CINZA, fontFace:'Calibri' });
@@ -920,7 +920,7 @@ async function gerarPPTX() {
     s8.addImage({ data: BG_ENCERRA, x:0, y:0, w:10, h:5.625 });
 
     const data = new Date().toLocaleDateString('pt-BR').replace(/\//g,'-');
-    await pptx.writeFile({ fileName: Comite_UVR_Indaiatuba_.pptx });
+    await pptx.writeFile({ fileName: 'Comite_UVR_Indaiatuba_'+data+'.pptx' });
   } catch(e) {
     alert('Erro ao gerar PPTX: '+e.message);
     console.error(e);
