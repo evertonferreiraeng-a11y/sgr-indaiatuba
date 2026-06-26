@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="pt-BR">
 <head>
   <meta charset="UTF-8" />
@@ -115,12 +115,13 @@
       <!-- ══ TAB: TRIAGEM ══ -->
       <div class="tab-pane" id="tab-triagem">
 
-        <!-- KPIs triagem -->
+        <!-- KPIs capacidade -->
         <div class="kpi-grid" style="grid-template-columns:repeat(auto-fill,minmax(170px,1fr));margin-bottom:20px">
-          <div class="kpi-card"><div class="kpi-label">Triagens no Mês</div><div class="kpi-value" id="tri-kpi-total">—</div><div class="kpi-sub">registros</div></div>
-          <div class="kpi-card"><div class="kpi-label">Tempo Médio</div><div class="kpi-value" id="tri-kpi-media">—</div><div class="kpi-sub">por triagem</div></div>
-          <div class="kpi-card"><div class="kpi-label">Tempo Total</div><div class="kpi-value" id="tri-kpi-total-tempo">—</div><div class="kpi-sub">no período</div></div>
-          <div class="kpi-card"><div class="kpi-label">Mais Rápido</div><div class="kpi-value" id="tri-kpi-rapido" style="font-size:16px">—</div><div class="kpi-sub">menor tempo médio</div></div>
+          <div class="kpi-card"><div class="kpi-label">Triagens Registradas</div><div class="kpi-value" id="tri-kpi-total">—</div><div class="kpi-sub">sessões no período</div></div>
+          <div class="kpi-card"><div class="kpi-label">Total Triado</div><div class="kpi-value" id="tri-kpi-kg">—</div><div class="kpi-sub">kg no período</div></div>
+          <div class="kpi-card"><div class="kpi-label">Velocidade Média</div><div class="kpi-value" id="tri-kpi-vel">—</div><div class="kpi-sub">kg por hora</div></div>
+          <div class="kpi-card"><div class="kpi-label">Capacidade/Dia</div><div class="kpi-value" id="tri-kpi-dia">—</div><div class="kpi-sub">projeção em 8h de trabalho</div></div>
+          <div class="kpi-card"><div class="kpi-label">Capacidade/Mês</div><div class="kpi-value" id="tri-kpi-mes">—</div><div class="kpi-sub">projeção em 22 dias úteis</div></div>
         </div>
 
         <!-- Filtros triagem -->
@@ -136,21 +137,32 @@
         <!-- Gráficos triagem -->
         <div class="charts-grid" style="margin-bottom:20px">
           <div class="chart-card">
-            <h3>Tempo de Triagem por Dia (min)</h3>
-            <div class="chart-wrap"><canvas id="tri-chart-dia"></canvas></div>
+            <h3>Velocidade por Cliente (kg/h)</h3>
+            <div class="chart-wrap"><canvas id="tri-chart-cliente"></canvas></div>
           </div>
           <div class="chart-card">
-            <h3>Tempo Médio por Operador (min)</h3>
+            <h3>Velocidade por Operador (kg/h)</h3>
             <div class="chart-wrap"><canvas id="tri-chart-op"></canvas></div>
           </div>
         </div>
 
-        <!-- Tabela triagem -->
+        <!-- Resumo por cliente -->
+        <div class="table-card" style="margin-bottom:20px">
+          <div class="table-card-header"><h3>Médias por Cliente</h3><span class="text-muted" style="font-size:12px">Baseado nas triagens registradas</span></div>
+          <div class="table-scroll">
+            <table>
+              <thead><tr><th>Cliente</th><th class="text-right">Triagens</th><th class="text-right">Média Tempo</th><th class="text-right">Média kg</th><th class="text-right">Velocidade (kg/h)</th></tr></thead>
+              <tbody id="tri-tb-clientes"></tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- Registros -->
         <div class="table-card">
           <div class="table-card-header"><h3>Registros de Triagem</h3><span id="tri-count" class="text-muted" style="font-size:12px"></span></div>
           <div class="table-scroll">
             <table>
-              <thead><tr><th>Data</th><th>Operador</th><th>Material</th><th class="text-right">Início</th><th class="text-right">Fim</th><th class="text-right">Duração</th><th class="text-right">Peso (kg)</th><th>Obs.</th><th>Ações</th></tr></thead>
+              <thead><tr><th>Data</th><th>Cliente</th><th>Operador</th><th class="text-right">Início</th><th class="text-right">Fim</th><th class="text-right">Duração</th><th class="text-right">Peso (kg)</th><th class="text-right">kg/h</th><th>Obs.</th><th>Ações</th></tr></thead>
               <tbody id="tri-tb"></tbody>
             </table>
           </div>
@@ -203,13 +215,15 @@
         <input type="hidden" name="id" />
         <div class="form-grid">
           <div class="form-group"><label>Data *</label><input type="date" name="data" required /></div>
+          <div class="form-group"><label>Cliente *</label><input type="text" name="cliente" required placeholder="Ex: GL Foods" list="tri-clientes-list" /></div>
           <div class="form-group"><label>Operador</label><select name="operador_id"><option value="">— Nenhum —</option></select></div>
           <div class="form-group"><label>Hora Início *</label><input type="time" name="hora_inicio" required /></div>
           <div class="form-group"><label>Hora Fim *</label><input type="time" name="hora_fim" required /></div>
+          <div class="form-group"><label>Peso Triado (kg) *</label><input type="number" name="peso_kg" min="0.01" step="0.01" required placeholder="kg triados nessa carga" /></div>
           <div class="form-group"><label>Material Triado</label><input type="text" name="material" placeholder="Ex: Recicláveis Mistos" /></div>
-          <div class="form-group"><label>Peso Triado (kg)</label><input type="number" name="peso_kg" min="0" step="0.01" placeholder="Opcional" /></div>
           <div class="form-group full"><label>Observações</label><textarea name="observacoes" rows="2" placeholder="Detalhes da triagem…"></textarea></div>
         </div>
+        <datalist id="tri-clientes-list"></datalist>
         <div id="tri-duracao-preview" style="display:none;margin-top:8px;padding:8px 12px;background:#f0f9f4;color:#006636;border-radius:6px;font-size:13px;font-weight:600"></div>
       </form>
     </div>
@@ -449,6 +463,16 @@ function calcMinutos(inicio, fim) {
   return (hf * 60 + mf) - (hi * 60 + mi);
 }
 
+function kgH(kg, min) {
+  if (!kg || !min || min <= 0) return 0;
+  return Math.round((kg / (min / 60)) * 10) / 10;
+}
+
+function fmtKg(v) {
+  if (!v || v <= 0) return '—';
+  return v >= 1000 ? (v/1000).toFixed(2) + ' ton' : Math.round(v) + ' kg';
+}
+
 async function carregarTriagem() {
   let q = supabase.from('triagem').select('*, colaboradores(nome)').order('data', { ascending: false });
   const mes = document.getElementById('tri-f-mes').value;
@@ -461,70 +485,118 @@ async function carregarTriagem() {
 
   const { data, error } = await q;
   if (error) {
-    document.getElementById('tri-tb').innerHTML = `<tr><td colspan="9" class="table-empty">⚠ Execute o SQL abaixo no Supabase para ativar este módulo:<br><br><code style="font-size:11px;background:#f5f5f5;padding:4px 8px;border-radius:4px">CREATE TABLE triagem (id uuid DEFAULT gen_random_uuid() PRIMARY KEY, data date NOT NULL, hora_inicio time, hora_fim time, tempo_minutos integer, operador_id uuid REFERENCES colaboradores(id), material text, peso_kg numeric, observacoes text, criado_por uuid, created_at timestamptz DEFAULT now());</code></td></tr>`;
+    document.getElementById('tri-tb').innerHTML = '<tr><td colspan="10" class="table-empty" style="text-align:left;padding:16px">⚠ <strong>Execute este SQL no Supabase para ativar o módulo de Triagem:</strong><br><br><code style="display:block;font-size:11px;background:#f5f5f5;padding:12px;border-radius:6px;white-space:pre;margin-top:8px">CREATE TABLE triagem (\n  id uuid DEFAULT gen_random_uuid() PRIMARY KEY,\n  data date NOT NULL,\n  cliente text NOT NULL,\n  hora_inicio time,\n  hora_fim time,\n  tempo_minutos integer,\n  operador_id uuid REFERENCES colaboradores(id),\n  material text,\n  peso_kg numeric NOT NULL DEFAULT 0,\n  observacoes text,\n  criado_por uuid,\n  created_at timestamptz DEFAULT now()\n);</code></td></tr>';
     return;
   }
   triagemData = data || [];
 
-  const tempos = triagemData.map(r => calcMinutos(r.hora_inicio, r.hora_fim)).filter(t => t > 0);
-  const totalMin = tempos.reduce((s,t)=>s+t, 0);
-  const media = tempos.length ? Math.round(totalMin / tempos.length) : 0;
+  // KPIs de capacidade
+  const validos = triagemData.filter(r => (r.peso_kg||0) > 0 && calcMinutos(r.hora_inicio, r.hora_fim) > 0);
+  const totalKg = triagemData.reduce((s,r) => s + (r.peso_kg||0), 0);
+  const velocidades = validos.map(r => kgH(r.peso_kg, calcMinutos(r.hora_inicio, r.hora_fim)));
+  const velMedia = velocidades.length ? Math.round(velocidades.reduce((s,v)=>s+v,0) / velocidades.length) : 0;
+  const capDia = Math.round(velMedia * 8);
+  const capMes = Math.round(capDia * 22);
 
-  const opTempos = {};
+  document.getElementById('tri-kpi-total').textContent = triagemData.length;
+  document.getElementById('tri-kpi-kg').textContent    = fmtKg(totalKg);
+  document.getElementById('tri-kpi-vel').textContent   = velMedia > 0 ? velMedia + ' kg/h' : '—';
+  document.getElementById('tri-kpi-dia').textContent   = fmtKg(capDia);
+  document.getElementById('tri-kpi-mes').textContent   = fmtKg(capMes);
+  document.getElementById('tri-count').textContent     = triagemData.length + ' registros';
+
+  // Atualizar datalist de clientes para autocomplete
+  const clientesUnicos = [...new Set(triagemData.map(r=>r.cliente).filter(Boolean))];
+  document.getElementById('tri-clientes-list').innerHTML = clientesUnicos.map(c=>`<option value="${c}">`).join('');
+
+  // Resumo por cliente
+  const clienteMap = {};
   triagemData.forEach(r => {
-    const nome = r.colaboradores?.nome || '(Sem operador)';
-    if (!opTempos[nome]) opTempos[nome] = [];
-    const t = calcMinutos(r.hora_inicio, r.hora_fim);
-    if (t > 0) opTempos[nome].push(t);
+    const c = r.cliente || '(Sem cliente)';
+    if (!clienteMap[c]) clienteMap[c] = { tempos:[], kgs:[], vels:[] };
+    const min = calcMinutos(r.hora_inicio, r.hora_fim);
+    if (min > 0) clienteMap[c].tempos.push(min);
+    if (r.peso_kg) clienteMap[c].kgs.push(r.peso_kg);
+    const v = kgH(r.peso_kg, min);
+    if (v > 0) clienteMap[c].vels.push(v);
   });
-  let melhor = '—', menorMedia = Infinity;
-  Object.entries(opTempos).forEach(([nome, ts]) => {
-    const med = ts.reduce((s,t)=>s+t,0) / ts.length;
-    if (med < menorMedia) { menorMedia = med; melhor = nome.split(' ')[0]; }
-  });
+  const clientesSorted = Object.entries(clienteMap).sort((a,b) => b[1].kgs.length - a[1].kgs.length);
 
-  document.getElementById('tri-kpi-total').textContent       = triagemData.length;
-  document.getElementById('tri-kpi-media').textContent       = fmtTempo(media);
-  document.getElementById('tri-kpi-total-tempo').textContent = fmtTempo(totalMin);
-  document.getElementById('tri-kpi-rapido').textContent      = melhor;
-  document.getElementById('tri-count').textContent           = `${triagemData.length} registros`;
+  document.getElementById('tri-tb-clientes').innerHTML = clientesSorted.length ? clientesSorted.map(([nome, d]) => {
+    const avgTempo = d.tempos.length ? Math.round(d.tempos.reduce((s,t)=>s+t,0)/d.tempos.length) : 0;
+    const avgKg    = d.kgs.length ? (d.kgs.reduce((s,k)=>s+k,0)/d.kgs.length).toFixed(0) : 0;
+    const avgVel   = d.vels.length ? Math.round(d.vels.reduce((s,v)=>s+v,0)/d.vels.length) : 0;
+    const n = Math.max(d.tempos.length, d.kgs.length);
+    const confianca = n >= 3 ? '<span style="color:#006636;font-size:10px;font-weight:700">✓ base confiável</span>' : n >= 2 ? '<span style="color:#D97706;font-size:10px">amostra parcial</span>' : '<span style="color:#9ca3af;font-size:10px">amostra única</span>';
+    return `<tr>
+      <td><strong>${nome}</strong></td>
+      <td class="text-right">${n} ${confianca}</td>
+      <td class="text-right">${fmtTempo(avgTempo)}</td>
+      <td class="text-right">${avgKg > 0 ? avgKg + ' kg' : '—'}</td>
+      <td class="text-right fw-600" style="color:#1B7A43">${avgVel > 0 ? avgVel + ' kg/h' : '—'}</td>
+    </tr>`;
+  }).join('') : '<tr><td colspan="5" class="table-empty">Nenhum dado ainda</td></tr>';
 
-  const diaMap = {};
-  triagemData.forEach(r => { const t = calcMinutos(r.hora_inicio, r.hora_fim); if (t>0) diaMap[r.data] = (diaMap[r.data]||0) + t; });
-  const diasSorted = Object.keys(diaMap).sort();
+  // Gráfico velocidade por cliente
+  const cliVel = clientesSorted
+    .map(([n,d]) => [n, d.vels.length ? Math.round(d.vels.reduce((s,v)=>s+v,0)/d.vels.length) : 0])
+    .filter(([,v]) => v > 0);
   if (chartTriaDia) chartTriaDia.destroy();
-  chartTriaDia = new Chart(document.getElementById('tri-chart-dia'), {
+  chartTriaDia = new Chart(document.getElementById('tri-chart-cliente'), {
     type: 'bar',
     data: {
-      labels: diasSorted.map(d => { const [,, dd] = d.split('-'); return dd+'/'+d.split('-')[1]; }),
-      datasets: [{ data: diasSorted.map(d=>diaMap[d]), backgroundColor:'#1B7A43', borderRadius:4 }]
+      labels: cliVel.map(([n])=>n),
+      datasets: [{ data: cliVel.map(([,v])=>v), backgroundColor:'#1B7A43', borderRadius:4 }]
     },
-    options: { responsive:true, maintainAspectRatio:false, plugins:{legend:{display:false}}, scales:{x:{grid:{display:false},ticks:{font:{size:10}}}, y:{grid:{color:'#F0F0F0'}}} }
+    options: {
+      responsive:true, maintainAspectRatio:false,
+      plugins:{ legend:{display:false}, tooltip:{callbacks:{label:ctx=>ctx.raw+' kg/h'}} },
+      scales:{ x:{grid:{display:false},ticks:{font:{size:10}}}, y:{grid:{color:'#F0F0F0'},title:{display:true,text:'kg/h',font:{size:10}}} }
+    }
   });
 
-  const opMed = Object.entries(opTempos).map(([n,ts]) => [n, Math.round(ts.reduce((s,t)=>s+t,0)/ts.length)]).sort((a,b)=>b[1]-a[1]);
+  // Gráfico velocidade por operador
+  const opVels = {};
+  triagemData.forEach(r => {
+    const nome = r.colaboradores?.nome || '(Sem operador)';
+    if (!opVels[nome]) opVels[nome] = [];
+    const v = kgH(r.peso_kg, calcMinutos(r.hora_inicio, r.hora_fim));
+    if (v > 0) opVels[nome].push(v);
+  });
+  const opVelSorted = Object.entries(opVels)
+    .map(([n,vs]) => [n, Math.round(vs.reduce((s,v)=>s+v,0)/vs.length)])
+    .sort((a,b) => b[1]-a[1]);
   if (chartTriaOp) chartTriaOp.destroy();
   chartTriaOp = new Chart(document.getElementById('tri-chart-op'), {
     type: 'bar',
     data: {
-      labels: opMed.map(([n])=>n),
-      datasets: [{ data: opMed.map(([,v])=>v), backgroundColor:'#2E9E5B', borderRadius:4 }]
+      labels: opVelSorted.map(([n])=>n),
+      datasets: [{ data: opVelSorted.map(([,v])=>v), backgroundColor:'#2E9E5B', borderRadius:4 }]
     },
-    options: { indexAxis:'y', responsive:true, maintainAspectRatio:false, plugins:{legend:{display:false}}, scales:{x:{grid:{color:'#F0F0F0'}}, y:{grid:{display:false},ticks:{font:{size:11}}}} }
+    options: {
+      indexAxis:'y', responsive:true, maintainAspectRatio:false,
+      plugins:{ legend:{display:false}, tooltip:{callbacks:{label:ctx=>ctx.raw+' kg/h'}} },
+      scales:{ x:{grid:{color:'#F0F0F0'},title:{display:true,text:'kg/h',font:{size:10}}}, y:{grid:{display:false},ticks:{font:{size:11}}} }
+    }
   });
 
   const isAdmin = perfil?.role === 'admin';
   document.getElementById('tri-tb').innerHTML = triagemData.length ? triagemData.map(r => {
     const min = calcMinutos(r.hora_inicio, r.hora_fim);
+    const vel = kgH(r.peso_kg, min);
     return `<tr>
-      <td>${dataBR(r.data)}</td><td>${r.colaboradores?.nome||'—'}</td><td>${r.material||'—'}</td>
-      <td class="text-right">${r.hora_inicio?.slice(0,5)||'—'}</td><td class="text-right">${r.hora_fim?.slice(0,5)||'—'}</td>
+      <td>${dataBR(r.data)}</td>
+      <td><strong>${r.cliente||'—'}</strong></td>
+      <td>${r.colaboradores?.nome||'—'}</td>
+      <td class="text-right">${r.hora_inicio?.slice(0,5)||'—'}</td>
+      <td class="text-right">${r.hora_fim?.slice(0,5)||'—'}</td>
       <td class="text-right fw-600">${fmtTempo(min)}</td>
       <td class="text-right">${r.peso_kg ? ton(r.peso_kg) : '—'}</td>
-      <td style="max-width:140px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis" title="${r.observacoes||''}">${r.observacoes||'—'}</td>
+      <td class="text-right" style="color:#1B7A43;font-weight:700">${vel > 0 ? vel+' kg/h' : '—'}</td>
+      <td style="max-width:120px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis" title="${r.observacoes||''}">${r.observacoes||'—'}</td>
       <td>${isAdmin?`<button class="btn-icon" onclick="editarTriagem('${r.id}')">✏️</button><button class="btn-icon danger" onclick="excluirTriagem('${r.id}')">🗑️</button>`:'—'}</td>
     </tr>`;
-  }).join('') : '<tr><td colspan="9" class="table-empty">Nenhum registro de triagem</td></tr>';
+  }).join('') : '<tr><td colspan="10" class="table-empty">Nenhum registro de triagem ainda</td></tr>';
 }
 
 function abrirNovaTriagem() {
@@ -558,7 +630,7 @@ document.getElementById('btn-salvar-triagem').addEventListener('click', async ()
   if (min <= 0) { toast('Hora fim deve ser maior que hora início','error'); return; }
   const { data: { user } } = await supabase.auth.getUser();
   const payload = {
-    data: fd.data, hora_inicio: fd.hora_inicio, hora_fim: fd.hora_fim, tempo_minutos: min,
+    data: fd.data, cliente: fd.cliente, hora_inicio: fd.hora_inicio, hora_fim: fd.hora_fim, tempo_minutos: min,
     operador_id: fd.operador_id || null, material: fd.material || null,
     peso_kg: fd.peso_kg ? parseFloat(fd.peso_kg) : null,
     observacoes: fd.observacoes || null, criado_por: user.id,
@@ -583,6 +655,7 @@ window.editarTriagem = id => {
   const f = document.getElementById('form-triagem');
   f.querySelector('[name="id"]').value          = r.id;
   f.querySelector('[name="data"]').value        = r.data;
+  f.querySelector('[name="cliente"]').value     = r.cliente||'';
   f.querySelector('[name="hora_inicio"]').value = r.hora_inicio?.slice(0,5)||'';
   f.querySelector('[name="hora_fim"]').value    = r.hora_fim?.slice(0,5)||'';
   f.querySelector('[name="operador_id"]').value = r.operador_id||'';
