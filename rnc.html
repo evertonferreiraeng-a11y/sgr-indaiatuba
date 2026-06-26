@@ -17,7 +17,7 @@ body{font-family:'Segoe UI',Arial,sans-serif;background:var(--bg);color:var(--tx
 
 
 /* PAGES */
-.page{display:none}
+.page{display:none;padding:24px;max-width:1080px;margin-left:240px}
 .page.active{display:block}
 
 /* BREADCRUMB */
@@ -212,10 +212,6 @@ body{font-family:'Segoe UI',Arial,sans-serif;background:var(--bg);color:var(--tx
 </head>
 <body>
 
-<div class="app-layout">
-<div id="sidebar-root"></div>
-<div class="main-content">
-
 <div id="toast"></div>
 
 <!-- PAGE: CLIENTS -->
@@ -234,7 +230,6 @@ body{font-family:'Segoe UI',Arial,sans-serif;background:var(--bg);color:var(--tx
 
 <!-- PAGE: CLIENT DETAIL -->
 <div id="pg-client" class="page">
-  <div class="page-body">
   <div class="breadcrumb">
     <span class="bc-link" onclick="goHome()">Clientes</span>
     <span class="sep">›</span>
@@ -267,7 +262,6 @@ body{font-family:'Segoe UI',Arial,sans-serif;background:var(--bg);color:var(--tx
 
 <!-- PAGE: RNC FORM -->
 <div id="pg-rnc-form" class="page">
-  <div class="page-body">
   <div class="breadcrumb">
     <span class="bc-link" onclick="goHome()">Clientes</span>
     <span class="sep">›</span>
@@ -845,7 +839,6 @@ Object.assign(window, {
 // ── INIT ──
 renderClients();
 </script>
-</div></div>
 <div id="toast-container"></div>
 </body>
 </html>
