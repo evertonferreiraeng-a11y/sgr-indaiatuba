@@ -1,0 +1,836 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>RNC – Registro de Não Conformidade | Corpus</title>
+<style>
+:root {
+  --gr: #006636;
+  --gr2: #004d28;
+  --te: #0F766E;
+  --rd: #DC2626;
+  --am: #D97706;
+  --bl: #1D4ED8;
+  --wh: #ffffff;
+  --bg: #f4f6f4;
+  --bd: #e2e8e4;
+  --tx: #1a2e1a;
+  --cz: #6b7c6b;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Segoe UI',Arial,sans-serif;background:var(--bg);color:var(--tx);min-height:100vh}
+
+/* ── HEADER ── */
+#header{background:var(--gr);color:#fff;padding:0 24px;display:flex;align-items:center;height:56px;gap:16px;position:sticky;top:0;z-index:100;box-shadow:0 2px 8px #0003}
+#header h1{font-size:17px;font-weight:700;flex:1}
+#header .nav-btn{background:rgba(255,255,255,.15);border:none;color:#fff;padding:6px 14px;border-radius:6px;cursor:pointer;font-size:13px;font-weight:600;transition:.2s}
+#header .nav-btn:hover{background:rgba(255,255,255,.25)}
+#header .nav-btn.active{background:rgba(255,255,255,.3)}
+
+/* ── PAGES ── */
+.page{display:none;padding:24px;max-width:1100px;margin:0 auto}
+.page.active{display:block}
+
+/* ── BREADCRUMB ── */
+.breadcrumb{display:flex;align-items:center;gap:8px;font-size:13px;color:var(--cz);margin-bottom:20px}
+.breadcrumb span{cursor:pointer;color:var(--gr);font-weight:600}
+.breadcrumb span:hover{text-decoration:underline}
+.breadcrumb .sep{color:#ccc}
+
+/* ── PAGE TITLE ── */
+.pg-title{display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;flex-wrap:wrap;gap:12px}
+.pg-title h2{font-size:20px;font-weight:700;color:var(--gr2)}
+.pg-title p{font-size:13px;color:var(--cz);margin-top:2px}
+
+/* ── BUTTONS ── */
+.btn{display:inline-flex;align-items:center;gap:6px;padding:8px 18px;border-radius:7px;border:none;cursor:pointer;font-size:13px;font-weight:600;transition:.2s}
+.btn-primary{background:var(--gr);color:#fff}
+.btn-primary:hover{background:var(--gr2)}
+.btn-danger{background:var(--rd);color:#fff}
+.btn-danger:hover{background:#b91c1c}
+.btn-ghost{background:#fff;color:var(--tx);border:1.5px solid var(--bd)}
+.btn-ghost:hover{background:var(--bg)}
+.btn-pdf{background:#1D4ED8;color:#fff}
+.btn-pdf:hover{background:#1e40af}
+.btn-sm{padding:5px 12px;font-size:12px}
+
+/* ── SEARCH ── */
+.search-bar{position:relative;margin-bottom:20px}
+.search-bar input{width:100%;padding:10px 16px 10px 38px;border:1.5px solid var(--bd);border-radius:8px;font-size:14px;background:#fff;outline:none;transition:.2s}
+.search-bar input:focus{border-color:var(--gr)}
+.search-bar .ico{position:absolute;left:12px;top:50%;transform:translateY(-50%);color:var(--cz);font-size:16px}
+
+/* ── CLIENT GRID ── */
+#clients-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:16px}
+.client-card{background:#fff;border:1.5px solid var(--bd);border-radius:12px;padding:20px;cursor:pointer;transition:.2s;position:relative}
+.client-card:hover{border-color:var(--gr);box-shadow:0 4px 16px #00663620;transform:translateY(-2px)}
+.client-card .cc-icon{width:44px;height:44px;background:var(--gr);border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:20px;margin-bottom:12px}
+.client-card h3{font-size:15px;font-weight:700;color:var(--tx);margin-bottom:4px}
+.client-card .cc-meta{font-size:12px;color:var(--cz)}
+.client-card .cc-badge{position:absolute;top:16px;right:16px;background:var(--gr);color:#fff;border-radius:20px;padding:2px 10px;font-size:11px;font-weight:700}
+.client-card .cc-badge.zero{background:#e5e7eb;color:#9ca3af}
+
+/* ── RNC LIST ── */
+.rnc-list{display:flex;flex-direction:column;gap:12px}
+.rnc-item{background:#fff;border:1.5px solid var(--bd);border-radius:10px;padding:16px 20px;display:flex;align-items:center;gap:16px;cursor:pointer;transition:.2s}
+.rnc-item:hover{border-color:var(--gr);box-shadow:0 2px 10px #00663618}
+.rnc-item .ri-code{font-size:12px;font-weight:700;color:var(--gr);background:#e8f5ee;padding:3px 10px;border-radius:20px;white-space:nowrap}
+.rnc-item .ri-info{flex:1}
+.rnc-item .ri-title{font-size:14px;font-weight:600;color:var(--tx)}
+.rnc-item .ri-sub{font-size:12px;color:var(--cz);margin-top:2px}
+.rnc-item .ri-date{font-size:12px;color:var(--cz);white-space:nowrap}
+.badge{display:inline-block;padding:2px 10px;border-radius:20px;font-size:11px;font-weight:700}
+.badge-real{background:#fee2e2;color:#991b1b}
+.badge-potencial{background:#fef3c7;color:#92400e}
+.badge-corretiva{background:#dbeafe;color:#1e40af}
+.badge-preventiva{background:#d1fae5;color:#065f46}
+
+/* ── FORM ── */
+.form-card{background:#fff;border:1.5px solid var(--bd);border-radius:12px;padding:28px;margin-bottom:20px}
+.form-card h3{font-size:14px;font-weight:700;color:var(--gr);text-transform:uppercase;letter-spacing:.5px;border-bottom:2px solid var(--gr);padding-bottom:8px;margin-bottom:20px}
+.form-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:16px}
+.form-group{display:flex;flex-direction:column;gap:5px}
+.form-group.full{grid-column:1/-1}
+.form-group label{font-size:12px;font-weight:700;color:var(--cz);text-transform:uppercase;letter-spacing:.4px}
+.form-group input,.form-group select,.form-group textarea{padding:9px 12px;border:1.5px solid var(--bd);border-radius:7px;font-size:14px;font-family:inherit;outline:none;transition:.2s;background:#fff}
+.form-group input:focus,.form-group select:focus,.form-group textarea:focus{border-color:var(--gr)}
+.form-group textarea{resize:vertical;min-height:80px}
+
+/* ── FOTOS ── */
+.foto-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:16px;margin-top:12px}
+.foto-item{border:1.5px solid var(--bd);border-radius:8px;overflow:hidden;background:#fff}
+.foto-item img{width:100%;height:140px;object-fit:cover;display:block}
+.foto-item .foto-leg{padding:8px}
+.foto-item .foto-leg input{width:100%;border:none;border-bottom:1.5px solid var(--bd);padding:4px 0;font-size:12px;outline:none;background:transparent}
+.foto-item .foto-leg input:focus{border-color:var(--gr)}
+.foto-item .foto-remove{display:block;width:100%;text-align:center;padding:4px;font-size:11px;color:var(--rd);cursor:pointer;font-weight:600}
+.foto-item .foto-remove:hover{background:#fee2e2}
+.foto-upload-btn{border:2px dashed var(--bd);border-radius:8px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;height:160px;cursor:pointer;transition:.2s;color:var(--cz);font-size:13px}
+.foto-upload-btn:hover{border-color:var(--gr);color:var(--gr);background:#f0faf4}
+.foto-upload-btn .ico-big{font-size:32px}
+
+/* ── FORM ACTIONS ── */
+.form-actions{display:flex;gap:12px;justify-content:flex-end;flex-wrap:wrap;margin-top:8px}
+
+/* ── EMPTY STATE ── */
+.empty{text-align:center;padding:60px 20px;color:var(--cz)}
+.empty .ico-empty{font-size:48px;margin-bottom:16px;opacity:.4}
+.empty h3{font-size:16px;font-weight:600;margin-bottom:8px;color:var(--tx)}
+.empty p{font-size:13px}
+
+/* ── MODAL ── */
+.modal-bg{display:none;position:fixed;inset:0;background:#0006;z-index:200;align-items:center;justify-content:center}
+.modal-bg.open{display:flex}
+.modal{background:#fff;border-radius:14px;padding:28px;width:100%;max-width:440px;box-shadow:0 20px 60px #0003}
+.modal h3{font-size:16px;font-weight:700;margin-bottom:16px;color:var(--tx)}
+.modal .form-group{margin-bottom:14px}
+.modal-actions{display:flex;gap:10px;justify-content:flex-end;margin-top:20px}
+
+/* ── DELETE CONFIRM ── */
+#confirm-modal .modal{max-width:360px;text-align:center}
+#confirm-modal p{font-size:14px;color:var(--cz);margin-bottom:20px}
+
+/* ── TOAST ── */
+#toast{position:fixed;bottom:24px;right:24px;background:var(--gr);color:#fff;padding:12px 20px;border-radius:8px;font-size:13px;font-weight:600;box-shadow:0 4px 20px #0004;transform:translateY(100px);opacity:0;transition:.3s;z-index:999}
+#toast.show{transform:translateY(0);opacity:1}
+
+/* ══════════════════════════════════════
+   PRINT / PDF
+══════════════════════════════════════ */
+#print-area{display:none}
+
+@media print {
+  body > *{display:none!important}
+  #print-area{display:block!important;font-family:Arial,sans-serif;font-size:10pt;color:#000}
+
+  .p-page{page-break-after:always;padding:20mm 20mm 15mm 20mm;position:relative;min-height:277mm}
+  .p-page:last-child{page-break-after:auto}
+
+  .p-header{display:flex;align-items:center;border-bottom:2px solid #006636;padding-bottom:8px;margin-bottom:16px}
+  .p-logo{font-size:22pt;font-weight:900;color:#006636;margin-right:12px;border:3px solid #006636;border-radius:50%;width:44px;height:44px;display:flex;align-items:center;justify-content:center}
+  .p-logo-text{line-height:1.2}
+  .p-logo-text .t1{font-size:11pt;font-weight:900;color:#006636}
+  .p-logo-text .t2{font-size:7pt;color:#444}
+
+  .p-title{text-align:center;font-size:13pt;font-weight:700;margin:16px 0 20px;text-transform:uppercase}
+
+  .p-row{display:flex;margin-bottom:8px;align-items:flex-start}
+  .p-label{font-weight:700;font-size:10pt;min-width:120px;padding-right:12px}
+  .p-val{font-size:10pt;flex:1;border:1px solid #ccc;padding:4px 8px;min-height:24px}
+  .p-val.box{min-height:60px}
+
+  .p-footer{position:absolute;bottom:12mm;left:20mm;right:20mm;border-top:1.5px solid #006636;padding-top:6px;text-align:center;font-size:8pt;color:#444}
+
+  .p-foto-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px}
+  .p-foto-block{border:1px solid #ddd;text-align:center}
+  .p-foto-block .p-foto-head{background:#f0f0f0;font-weight:700;font-size:9pt;padding:4px;border-bottom:1px solid #ddd}
+  .p-foto-block img{width:100%;height:140px;object-fit:contain;display:block}
+  .p-foto-block .p-foto-cap{font-size:8pt;padding:4px 6px;color:#333}
+
+  .p-sign{margin-top:40px;text-align:center}
+  .p-sign .line{border-top:1.5px solid #000;width:280px;margin:0 auto 6px}
+  .p-sign p{font-size:9pt;line-height:1.5}
+  .p-sign strong{font-size:10pt}
+
+  .p-receb{border:1.5px solid #000;padding:12px;margin-top:24px}
+  .p-receb p{font-size:10pt;font-weight:700}
+}
+</style>
+</head>
+<body>
+
+<!-- HEADER -->
+<div id="header">
+  <div id="header-logo" style="font-size:13px;font-weight:900;color:#fff;background:rgba(255,255,255,.18);border-radius:8px;padding:4px 10px;cursor:pointer" onclick="goHome()">⬤ CORPUS</div>
+  <h1>Registro de Não Conformidade de Cargas</h1>
+  <button class="nav-btn active" onclick="goHome()">🏠 Clientes</button>
+  <button class="nav-btn" onclick="openNewClientModal()">+ Novo Cliente</button>
+</div>
+
+<!-- TOAST -->
+<div id="toast"></div>
+
+<!-- PAGE: CLIENTS -->
+<div id="pg-clients" class="page active">
+  <div class="pg-title">
+    <div>
+      <h2>Clientes</h2>
+      <p>Selecione um cliente para ver o histórico de RNCs</p>
+    </div>
+    <button class="btn btn-primary" onclick="openNewClientModal()">+ Novo Cliente</button>
+  </div>
+  <div class="search-bar">
+    <span class="ico">🔍</span>
+    <input type="text" id="search-clients" placeholder="Buscar cliente..." oninput="renderClients()">
+  </div>
+  <div id="clients-grid"></div>
+</div>
+
+<!-- PAGE: CLIENT DETAIL -->
+<div id="pg-client" class="page">
+  <div class="breadcrumb">
+    <span onclick="goHome()">Clientes</span>
+    <span class="sep">›</span>
+    <span id="bc-client">—</span>
+  </div>
+  <div class="pg-title">
+    <div>
+      <h2 id="client-name-title">—</h2>
+      <p id="client-rnc-count">—</p>
+    </div>
+    <div style="display:flex;gap:10px;flex-wrap:wrap">
+      <button class="btn btn-ghost btn-sm" onclick="openEditClientModal()">✏️ Editar</button>
+      <button class="btn btn-danger btn-sm" onclick="confirmDeleteClient()">🗑 Excluir</button>
+      <button class="btn btn-primary" onclick="goNewRNC()">+ Nova RNC</button>
+    </div>
+  </div>
+  <div class="search-bar">
+    <span class="ico">🔍</span>
+    <input type="text" id="search-rncs" placeholder="Buscar por código, resíduo..." oninput="renderRNCs()">
+  </div>
+  <div id="rnc-list"></div>
+</div>
+
+<!-- PAGE: RNC FORM -->
+<div id="pg-rnc-form" class="page">
+  <div class="breadcrumb">
+    <span onclick="goHome()">Clientes</span>
+    <span class="sep">›</span>
+    <span id="bc-client-form" onclick="goClientPage()">—</span>
+    <span class="sep">›</span>
+    <span id="bc-rnc-form">Nova RNC</span>
+  </div>
+
+  <div class="pg-title">
+    <h2 id="form-title">Nova RNC</h2>
+    <div style="display:flex;gap:10px">
+      <button class="btn btn-ghost" onclick="goClientPage()">Cancelar</button>
+      <button class="btn btn-pdf" id="btn-pdf" onclick="gerarPDF()" style="display:none">📄 Exportar PDF</button>
+      <button class="btn btn-primary" onclick="salvarRNC()">💾 Salvar</button>
+    </div>
+  </div>
+
+  <!-- Identificação -->
+  <div class="form-card">
+    <h3>Identificação</h3>
+    <div class="form-grid">
+      <div class="form-group">
+        <label>Código RNC</label>
+        <input type="text" id="f-codigo" placeholder="Ex: RNC001">
+      </div>
+      <div class="form-group">
+        <label>Data</label>
+        <input type="date" id="f-data">
+      </div>
+      <div class="form-group">
+        <label>Data da Ocorrência</label>
+        <input type="date" id="f-data-oc">
+      </div>
+      <div class="form-group">
+        <label>Resíduo</label>
+        <input type="text" id="f-residuo" placeholder="Ex: Recicláveis Misto">
+      </div>
+    </div>
+  </div>
+
+  <!-- Detalhamento -->
+  <div class="form-card">
+    <h3>Detalhamento</h3>
+    <div class="form-grid">
+      <div class="form-group full">
+        <label>Detalhamento da NC</label>
+        <textarea id="f-detalhe" rows="5" placeholder="Descreva o que foi constatado na carga..."></textarea>
+      </div>
+      <div class="form-group">
+        <label>Tipo de NC</label>
+        <select id="f-tipo-nc">
+          <option value="Real">Real</option>
+          <option value="Potencial">Potencial</option>
+        </select>
+      </div>
+      <div class="form-group full">
+        <label>Causa da NC</label>
+        <textarea id="f-causa" rows="3" placeholder="Descreva a causa da não conformidade..."></textarea>
+      </div>
+    </div>
+  </div>
+
+  <!-- Evidências / Fotos -->
+  <div class="form-card">
+    <h3>Evidências (Fotos)</h3>
+    <div class="foto-grid" id="foto-grid">
+      <label class="foto-upload-btn" for="foto-input">
+        <span class="ico-big">📷</span>
+        <span>Adicionar fotos</span>
+        <span style="font-size:11px;opacity:.7">Clique para selecionar</span>
+      </label>
+    </div>
+    <input type="file" id="foto-input" multiple accept="image/*" style="display:none" onchange="handleFotos(event)">
+  </div>
+
+  <!-- Plano de Ação -->
+  <div class="form-card">
+    <h3>Plano de Ação</h3>
+    <div class="form-grid">
+      <div class="form-group">
+        <label>Tipo de Ação</label>
+        <select id="f-tipo-acao">
+          <option value="Corretiva">Corretiva</option>
+          <option value="Preventiva">Preventiva</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>Prazo</label>
+        <input type="text" id="f-prazo" placeholder="Ex: Imediato / 30 dias">
+      </div>
+      <div class="form-group">
+        <label>Responsável pela Ação</label>
+        <input type="text" id="f-responsavel" placeholder="Ex: Ação Comercial">
+      </div>
+      <div class="form-group">
+        <label>Revisão</label>
+        <input type="text" id="f-revisao" placeholder="Ex: 00">
+      </div>
+      <div class="form-group full">
+        <label>Plano de Ação (descrição)</label>
+        <textarea id="f-plano" rows="4" placeholder="Descreva as ações a serem tomadas..."></textarea>
+      </div>
+    </div>
+  </div>
+
+  <!-- Recebimento -->
+  <div class="form-card">
+    <h3>Recebimento</h3>
+    <div class="form-grid">
+      <div class="form-group">
+        <label>Data do Recebimento</label>
+        <input type="date" id="f-data-receb">
+      </div>
+      <div class="form-group">
+        <label>Identificação do Recebedor</label>
+        <input type="text" id="f-recebedor" placeholder="Nome do recebedor">
+      </div>
+    </div>
+  </div>
+
+  <div class="form-actions">
+    <button class="btn btn-ghost" onclick="goClientPage()">Cancelar</button>
+    <button class="btn btn-pdf" id="btn-pdf2" onclick="gerarPDF()" style="display:none">📄 Exportar PDF</button>
+    <button class="btn btn-primary" onclick="salvarRNC()">💾 Salvar RNC</button>
+  </div>
+</div>
+
+<!-- MODAL: CLIENTE -->
+<div class="modal-bg" id="client-modal">
+  <div class="modal">
+    <h3 id="client-modal-title">Novo Cliente</h3>
+    <div class="form-group"><label>Nome do Cliente</label><input type="text" id="m-client-nome" placeholder="Ex: GL Foods"></div>
+    <div class="form-group"><label>Contrato / Observação (opcional)</label><input type="text" id="m-client-obs" placeholder="Ex: Contrato #2025-001"></div>
+    <div class="modal-actions">
+      <button class="btn btn-ghost" onclick="closeModal('client-modal')">Cancelar</button>
+      <button class="btn btn-primary" onclick="salvarCliente()">Salvar</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: CONFIRMAR EXCLUSÃO -->
+<div class="modal-bg" id="confirm-modal">
+  <div class="modal">
+    <h3 id="confirm-title">Confirmar exclusão</h3>
+    <p id="confirm-msg">Tem certeza?</p>
+    <div class="modal-actions">
+      <button class="btn btn-ghost" onclick="closeModal('confirm-modal')">Cancelar</button>
+      <button class="btn btn-danger" id="confirm-ok">Excluir</button>
+    </div>
+  </div>
+</div>
+
+<!-- PRINT AREA -->
+<div id="print-area"></div>
+
+<script>
+// ═══════════════════════════════════════
+// STORAGE
+// ═══════════════════════════════════════
+const LS_CLIENTS = 'rnc_clients';
+const LS_RNCS = 'rnc_registros';
+
+function getClients(){ return JSON.parse(localStorage.getItem(LS_CLIENTS)||'[]') }
+function saveClients(d){ localStorage.setItem(LS_CLIENTS,JSON.stringify(d)) }
+function getRNCs(){ return JSON.parse(localStorage.getItem(LS_RNCS)||'[]') }
+function saveRNCs(d){ localStorage.setItem(LS_RNCS,JSON.stringify(d)) }
+function uid(){ return Date.now().toString(36)+Math.random().toString(36).slice(2,6) }
+
+// ═══════════════════════════════════════
+// STATE
+// ═══════════════════════════════════════
+let currentClientId = null;
+let currentRNCId = null;
+let editingClientId = null;
+let fotos = []; // {base64, legenda}
+
+// ═══════════════════════════════════════
+// NAVIGATION
+// ═══════════════════════════════════════
+function showPage(id){
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+}
+
+function goHome(){
+  showPage('pg-clients');
+  renderClients();
+}
+
+function goClientPage(){
+  showPage('pg-client');
+  renderClientDetail();
+}
+
+function goNewRNC(){
+  currentRNCId = null;
+  fotos = [];
+  resetForm();
+  document.getElementById('form-title').textContent = 'Nova RNC';
+  document.getElementById('bc-rnc-form').textContent = 'Nova RNC';
+  document.getElementById('btn-pdf').style.display = 'none';
+  document.getElementById('btn-pdf2').style.display = 'none';
+  // default dates to today
+  const today = new Date().toISOString().slice(0,10);
+  document.getElementById('f-data').value = today;
+  document.getElementById('f-data-oc').value = today;
+  document.getElementById('f-data-receb').value = today;
+  // auto-generate code
+  const rncs = getRNCs().filter(r=>r.clienteId===currentClientId);
+  const n = rncs.length+1;
+  document.getElementById('f-codigo').value = 'RNC'+String(n).padStart(3,'0');
+  showPage('pg-rnc-form');
+}
+
+function goEditRNC(id){
+  currentRNCId = id;
+  const rncs = getRNCs();
+  const r = rncs.find(x=>x.id===id);
+  if(!r) return;
+  fotos = (r.fotos||[]).map(f=>({...f}));
+  document.getElementById('form-title').textContent = 'Editar RNC – '+r.codigo;
+  document.getElementById('bc-rnc-form').textContent = r.codigo;
+  document.getElementById('btn-pdf').style.display = '';
+  document.getElementById('btn-pdf2').style.display = '';
+  document.getElementById('f-codigo').value = r.codigo||'';
+  document.getElementById('f-data').value = r.data||'';
+  document.getElementById('f-data-oc').value = r.dataOcorrencia||'';
+  document.getElementById('f-residuo').value = r.residuo||'';
+  document.getElementById('f-detalhe').value = r.detalhamento||'';
+  document.getElementById('f-tipo-nc').value = r.tipoNC||'Real';
+  document.getElementById('f-causa').value = r.causaNC||'';
+  document.getElementById('f-tipo-acao').value = r.tipoAcao||'Corretiva';
+  document.getElementById('f-prazo').value = r.prazo||'';
+  document.getElementById('f-responsavel').value = r.responsavel||'';
+  document.getElementById('f-revisao').value = r.revisao||'00';
+  document.getElementById('f-plano').value = r.planoAcao||'';
+  document.getElementById('f-data-receb').value = r.dataRecebimento||'';
+  document.getElementById('f-recebedor').value = r.recebedor||'';
+  const client = getClients().find(c=>c.id===currentClientId);
+  document.getElementById('bc-client-form').textContent = client?.nome||'—';
+  renderFotoGrid();
+  showPage('pg-rnc-form');
+}
+
+// ═══════════════════════════════════════
+// RENDER: CLIENTS
+// ═══════════════════════════════════════
+function renderClients(){
+  const clients = getClients();
+  const rncs = getRNCs();
+  const q = document.getElementById('search-clients').value.trim().toLowerCase();
+  const grid = document.getElementById('clients-grid');
+
+  const filtered = clients.filter(c=>!q||c.nome.toLowerCase().includes(q));
+
+  if(filtered.length===0){
+    grid.innerHTML = `<div class="empty" style="grid-column:1/-1"><div class="ico-empty">🏭</div><h3>Nenhum cliente cadastrado</h3><p>Clique em "+ Novo Cliente" para começar</p></div>`;
+    return;
+  }
+
+  grid.innerHTML = filtered.map(c=>{
+    const count = rncs.filter(r=>r.clienteId===c.id).length;
+    return `<div class="client-card" onclick="selectClient('${c.id}')">
+      <div class="cc-icon">🏭</div>
+      <div class="cc-badge ${count===0?'zero':''}">${count} RNC${count!==1?'s':''}</div>
+      <h3>${esc(c.nome)}</h3>
+      ${c.obs?`<div class="cc-meta">${esc(c.obs)}</div>`:''}
+    </div>`;
+  }).join('');
+}
+
+function selectClient(id){
+  currentClientId = id;
+  const client = getClients().find(c=>c.id===id);
+  document.getElementById('bc-client').textContent = client?.nome||'—';
+  document.getElementById('bc-client-form').textContent = client?.nome||'—';
+  renderClientDetail();
+  showPage('pg-client');
+}
+
+// ═══════════════════════════════════════
+// RENDER: CLIENT DETAIL
+// ═══════════════════════════════════════
+function renderClientDetail(){
+  const client = getClients().find(c=>c.id===currentClientId);
+  if(!client) return goHome();
+  document.getElementById('client-name-title').textContent = client.nome;
+
+  renderRNCs();
+}
+
+function renderRNCs(){
+  const rncs = getRNCs().filter(r=>r.clienteId===currentClientId);
+  const q = document.getElementById('search-rncs').value.trim().toLowerCase();
+  const list = document.getElementById('rnc-list');
+  const client = getClients().find(c=>c.id===currentClientId);
+
+  const filtered = rncs.filter(r=>!q||(r.codigo||'').toLowerCase().includes(q)||(r.residuo||'').toLowerCase().includes(q)||(r.detalhamento||'').toLowerCase().includes(q));
+
+  document.getElementById('client-rnc-count').textContent = `${filtered.length} registro${filtered.length!==1?'s':''} de não conformidade`;
+
+  if(filtered.length===0){
+    list.innerHTML = `<div class="empty"><div class="ico-empty">📋</div><h3>Nenhuma RNC encontrada</h3><p>Clique em "+ Nova RNC" para registrar a primeira ocorrência</p></div>`;
+    return;
+  }
+
+  // sort by date desc
+  filtered.sort((a,b)=>(b.data||'').localeCompare(a.data||''));
+
+  list.innerHTML = filtered.map(r=>{
+    const ncBadge = r.tipoNC==='Potencial'?'badge-potencial':'badge-real';
+    const acBadge = r.tipoAcao==='Preventiva'?'badge-preventiva':'badge-corretiva';
+    const fmtDate = v=>v?v.split('-').reverse().join('/'):'—';
+    return `<div class="rnc-item" onclick="goEditRNC('${r.id}')">
+      <span class="ri-code">${esc(r.codigo||'—')}</span>
+      <div class="ri-info">
+        <div class="ri-title">${esc(r.residuo||'Sem resíduo')}
+          <span class="badge ${ncBadge}" style="margin-left:8px">${esc(r.tipoNC||'Real')}</span>
+          <span class="badge ${acBadge}" style="margin-left:4px">${esc(r.tipoAcao||'Corretiva')}</span>
+        </div>
+        <div class="ri-sub">${esc((r.detalhamento||'').slice(0,80))}${(r.detalhamento||'').length>80?'…':''} • ${(r.fotos||[]).length} foto${(r.fotos||[]).length!==1?'s':''}</div>
+      </div>
+      <div class="ri-date">${fmtDate(r.data)}</div>
+    </div>`;
+  }).join('');
+}
+
+// ═══════════════════════════════════════
+// FOTO HANDLING
+// ═══════════════════════════════════════
+function handleFotos(e){
+  const files = Array.from(e.target.files);
+  let done = 0;
+  files.forEach(file=>{
+    const reader = new FileReader();
+    reader.onload = ev=>{
+      fotos.push({base64:ev.target.result, legenda:'Imagem '+(fotos.length+1)+' (visão específica): '});
+      done++;
+      if(done===files.length) renderFotoGrid();
+    };
+    reader.readAsDataURL(file);
+  });
+  e.target.value='';
+}
+
+function renderFotoGrid(){
+  const grid = document.getElementById('foto-grid');
+  const items = fotos.map((f,i)=>`
+    <div class="foto-item">
+      <img src="${f.base64}" alt="">
+      <div class="foto-leg">
+        <input type="text" value="${esc(f.legenda)}" placeholder="Legenda da imagem" oninput="fotos[${i}].legenda=this.value">
+        <span class="foto-remove" onclick="removeFoto(${i})">✕ remover</span>
+      </div>
+    </div>`).join('');
+
+  grid.innerHTML = items + `<label class="foto-upload-btn" for="foto-input">
+    <span class="ico-big">📷</span>
+    <span>Adicionar fotos</span>
+    <span style="font-size:11px;opacity:.7">Clique para selecionar</span>
+  </label>`;
+}
+
+function removeFoto(i){
+  fotos.splice(i,1);
+  renderFotoGrid();
+}
+
+// ═══════════════════════════════════════
+// SAVE RNC
+// ═══════════════════════════════════════
+function salvarRNC(){
+  const codigo = document.getElementById('f-codigo').value.trim();
+  const residuo = document.getElementById('f-residuo').value.trim();
+  if(!codigo){ toast('Informe o Código RNC'); return; }
+  if(!residuo){ toast('Informe o Resíduo'); return; }
+
+  const client = getClients().find(c=>c.id===currentClientId);
+  const rncs = getRNCs();
+
+  const data = {
+    id: currentRNCId || uid(),
+    clienteId: currentClientId,
+    clienteNome: client?.nome||'',
+    codigo,
+    data: document.getElementById('f-data').value,
+    dataOcorrencia: document.getElementById('f-data-oc').value,
+    residuo,
+    detalhamento: document.getElementById('f-detalhe').value.trim(),
+    tipoNC: document.getElementById('f-tipo-nc').value,
+    causaNC: document.getElementById('f-causa').value.trim(),
+    fotos: fotos.map(f=>({...f})),
+    tipoAcao: document.getElementById('f-tipo-acao').value,
+    planoAcao: document.getElementById('f-plano').value.trim(),
+    prazo: document.getElementById('f-prazo').value.trim(),
+    responsavel: document.getElementById('f-responsavel').value.trim(),
+    revisao: document.getElementById('f-revisao').value.trim(),
+    dataRecebimento: document.getElementById('f-data-receb').value,
+    recebedor: document.getElementById('f-recebedor').value.trim(),
+    criadoEm: new Date().toISOString()
+  };
+
+  if(currentRNCId){
+    const idx = rncs.findIndex(r=>r.id===currentRNCId);
+    if(idx>=0) rncs[idx]=data;
+  } else {
+    rncs.push(data);
+    currentRNCId = data.id;
+  }
+  saveRNCs(rncs);
+
+  document.getElementById('form-title').textContent = 'Editar RNC – '+codigo;
+  document.getElementById('bc-rnc-form').textContent = codigo;
+  document.getElementById('btn-pdf').style.display = '';
+  document.getElementById('btn-pdf2').style.display = '';
+  toast('RNC salva com sucesso!');
+}
+
+function resetForm(){
+  ['f-codigo','f-data','f-data-oc','f-residuo','f-detalhe','f-causa','f-plano','f-prazo','f-responsavel','f-data-receb','f-recebedor'].forEach(id=>document.getElementById(id).value='');
+  document.getElementById('f-tipo-nc').value='Real';
+  document.getElementById('f-tipo-acao').value='Corretiva';
+  document.getElementById('f-revisao').value='00';
+  const client = getClients().find(c=>c.id===currentClientId);
+  document.getElementById('bc-client-form').textContent = client?.nome||'—';
+  renderFotoGrid();
+}
+
+// ═══════════════════════════════════════
+// CLIENTE MODAL
+// ═══════════════════════════════════════
+function openNewClientModal(){
+  editingClientId = null;
+  document.getElementById('client-modal-title').textContent = 'Novo Cliente';
+  document.getElementById('m-client-nome').value='';
+  document.getElementById('m-client-obs').value='';
+  openModal('client-modal');
+}
+
+function openEditClientModal(){
+  const client = getClients().find(c=>c.id===currentClientId);
+  if(!client) return;
+  editingClientId = currentClientId;
+  document.getElementById('client-modal-title').textContent = 'Editar Cliente';
+  document.getElementById('m-client-nome').value=client.nome||'';
+  document.getElementById('m-client-obs').value=client.obs||'';
+  openModal('client-modal');
+}
+
+function salvarCliente(){
+  const nome = document.getElementById('m-client-nome').value.trim();
+  if(!nome){ toast('Informe o nome do cliente'); return; }
+  const clients = getClients();
+  if(editingClientId){
+    const idx = clients.findIndex(c=>c.id===editingClientId);
+    if(idx>=0){ clients[idx].nome=nome; clients[idx].obs=document.getElementById('m-client-obs').value.trim(); }
+    saveClients(clients);
+    closeModal('client-modal');
+    document.getElementById('client-name-title').textContent=nome;
+    document.getElementById('bc-client').textContent=nome;
+    toast('Cliente atualizado!');
+  } else {
+    clients.push({id:uid(),nome,obs:document.getElementById('m-client-obs').value.trim()});
+    saveClients(clients);
+    closeModal('client-modal');
+    renderClients();
+    toast('Cliente cadastrado!');
+  }
+}
+
+function confirmDeleteClient(){
+  const client = getClients().find(c=>c.id===currentClientId);
+  const count = getRNCs().filter(r=>r.clienteId===currentClientId).length;
+  document.getElementById('confirm-title').textContent = 'Excluir cliente';
+  document.getElementById('confirm-msg').textContent = `Excluir "${client?.nome}"? Isso removerá também ${count} RNC(s). Esta ação não pode ser desfeita.`;
+  document.getElementById('confirm-ok').onclick = ()=>{
+    const clients = getClients().filter(c=>c.id!==currentClientId);
+    saveClients(clients);
+    const rncs = getRNCs().filter(r=>r.clienteId!==currentClientId);
+    saveRNCs(rncs);
+    closeModal('confirm-modal');
+    toast('Cliente excluído.');
+    goHome();
+  };
+  openModal('confirm-modal');
+}
+
+// ═══════════════════════════════════════
+// MODAL HELPERS
+// ═══════════════════════════════════════
+function openModal(id){ document.getElementById(id).classList.add('open') }
+function closeModal(id){ document.getElementById(id).classList.remove('open') }
+document.querySelectorAll('.modal-bg').forEach(bg=>bg.addEventListener('click',e=>{if(e.target===bg)bg.classList.remove('open')}));
+
+// ═══════════════════════════════════════
+// TOAST
+// ═══════════════════════════════════════
+function toast(msg){
+  const t=document.getElementById('toast');
+  t.textContent=msg;
+  t.classList.add('show');
+  setTimeout(()=>t.classList.remove('show'),2800);
+}
+
+// ═══════════════════════════════════════
+// ESCAPE
+// ═══════════════════════════════════════
+function esc(s){ return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;') }
+
+// ═══════════════════════════════════════
+// FORMAT DATE
+// ═══════════════════════════════════════
+function fmtDate(v){ return v?v.split('-').reverse().join('/'):'___/___/______' }
+
+// ═══════════════════════════════════════
+// PDF GENERATION (browser print)
+// ═══════════════════════════════════════
+function gerarPDF(){
+  const rncs = getRNCs();
+  const r = rncs.find(x=>x.id===currentRNCId);
+  if(!r){ toast('Salve a RNC antes de exportar o PDF'); return; }
+  const client = getClients().find(c=>c.id===r.clienteId);
+
+  const FOOTER = `<div class="p-footer"><strong>Corpus Saneamento e Obras LTDA.</strong><br>Rua Ouro, 140 – Recreio Campestre Jóia – Indaiatuba – SP.</div>`;
+  const HEADER = `<div class="p-header">
+    <div class="p-logo" style="font-size:14pt;font-weight:900;border:2.5px solid #006636;border-radius:50%;width:42px;height:42px;display:flex;align-items:center;justify-content:center;color:#006636;margin-right:10px">⬤</div>
+    <div class="p-logo-text"><div class="t1">CORPUS</div><div class="t2">Saneamento e Obras Ltda</div></div>
+  </div>`;
+
+  // PAGE 1: dados
+  let pg1 = `<div class="p-page">
+    ${HEADER}
+    <div class="p-title">REGISTRO DE NÃO CONFORMIDADE – ${esc((client?.nome||'').toUpperCase())}</div>
+    <div class="p-row"><span class="p-label">Data:</span><span class="p-val">${fmtDate(r.data)}</span></div>
+    <div class="p-row"><span class="p-label">Código da NC:</span><span class="p-val">${esc(r.codigo)}</span></div>
+    <div class="p-row"><span class="p-label">Resíduo:</span><span class="p-val">${esc(r.residuo)}</span></div>
+    <div class="p-row"><span class="p-label">Data da Ocorrência:</span><span class="p-val">${fmtDate(r.dataOcorrencia)}</span></div>
+    <div class="p-row"><span class="p-label">Detalhamento da NC:</span><span class="p-val box" style="white-space:pre-wrap">${esc(r.detalhamento)}</span></div>
+    <div class="p-row"><span class="p-label">Tipo de NC:</span><span class="p-val">${esc(r.tipoNC)}</span></div>
+    <div class="p-row"><span class="p-label">Causa da NC:</span><span class="p-val box" style="white-space:pre-wrap">${esc(r.causaNC)}</span></div>
+    <div class="p-receb">
+      <p>DATA DO RECEBIMENTO: ${fmtDate(r.dataRecebimento)}</p><br>
+      <p>IDENTIFICAÇÃO E ASSINATURA DO RECEBEDOR: ${esc(r.recebedor)||'_____________________________'}</p>
+    </div>
+    ${FOOTER}
+  </div>`;
+
+  // FOTO PAGES (2 por página)
+  const fotos = r.fotos||[];
+  let fotoPgs = '';
+  for(let i=0;i<fotos.length;i+=6){
+    const chunk = fotos.slice(i,i+6);
+    const pairs = [];
+    for(let j=0;j<chunk.length;j+=2) pairs.push(chunk.slice(j,j+2));
+    fotoPgs += `<div class="p-page">${HEADER}
+      <div style="margin-top:8px">${pairs.map(pair=>`
+        <div class="p-foto-grid">${pair.map(f=>`
+          <div class="p-foto-block">
+            <div class="p-foto-head">Evidências</div>
+            <img src="${f.base64}" alt="">
+            <div class="p-foto-cap">${esc(f.legenda)}</div>
+          </div>`).join('')}
+        </div>`).join('')}
+      </div>
+      ${FOOTER}
+    </div>`;
+  }
+
+  // LAST PAGE: plano de ação
+  let pgLast = `<div class="p-page">
+    ${HEADER}`;
+  // if last foto page had room, keep fotos; but for simplicity last page = plano only
+  pgLast += `
+    <div style="margin-top:16px">
+      <div class="p-row"><span class="p-label">Tipo de Ação:</span><span class="p-val">${esc(r.tipoAcao)}</span></div>
+      <div class="p-row"><span class="p-label">Plano de Ação:</span><span class="p-val box" style="white-space:pre-wrap">${esc(r.planoAcao)}</span></div>
+      <div class="p-row"><span class="p-label">Prazo:</span><span class="p-val">${esc(r.prazo)}</span></div>
+      <div class="p-row"><span class="p-label">Responsável:</span><span class="p-val">${esc(r.responsavel)}</span></div>
+      <div class="p-row"><span class="p-label">Revisão:</span><span class="p-val">${esc(r.revisao)}</span></div>
+    </div>
+    <div class="p-sign">
+      <div class="line"></div>
+      <p><strong>Everton Costa Ferreira</strong></p>
+      <p>Engenheiro Júnior</p>
+      <p>Corpus Saneamento e Obras</p>
+    </div>
+    ${FOOTER}
+  </div>`;
+
+  document.getElementById('print-area').innerHTML = pg1 + fotoPgs + pgLast;
+  setTimeout(()=>window.print(), 100);
+}
+
+// ═══════════════════════════════════════
+// INIT
+// ═══════════════════════════════════════
+renderClients();
+</script>
+</body>
+</html>
