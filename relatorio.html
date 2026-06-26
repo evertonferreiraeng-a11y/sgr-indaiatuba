@@ -777,10 +777,9 @@ async function gerarPPTX() {
     // ── Slide 1: Capa ────────────────────────────────────────────────────────
     const s1 = pptx.addSlide();
     s1.addImage({data:BG_CAPA,x:0,y:0,w:10,h:5.625});
-    // Faixa de subtitulo no fundo, sem sobrepor "UVR INDAIATUBA"
-    s1.addShape('rect',{x:0,y:4.55,w:10,h:1.075,fill:{color:'00000066'},line:{color:'00000000',pt:0}});
-    s1.addText('COMITE DE GESTAO  |  '+d.label,{x:0.4,y:4.65,w:9.2,h:0.4,fontSize:13,bold:true,color:C.branco,align:'left',fontFace:'Calibri'});
-    s1.addText('SGR Indaiatuba — UVRR Indaiatuba',{x:0.4,y:5.05,w:9,h:0.3,fontSize:10,color:'ccffdd',align:'left',fontFace:'Calibri'});
+    // Texto discreto no topo, acima de "UVR INDAIATUBA"
+    s1.addText('COMITE DE GESTAO',{x:0.35,y:0.16,w:6,h:0.38,fontSize:13,bold:true,color:C.branco,align:'left',fontFace:'Calibri'});
+    s1.addText(d.label,{x:0.35,y:0.54,w:5,h:0.3,fontSize:11,color:'ccffdd',align:'left',fontFace:'Calibri'});
 
     // ── Slide 2: Pauta ───────────────────────────────────────────────────────
     const s2 = pptx.addSlide();
