@@ -267,9 +267,9 @@ body{font-family:'Segoe UI',Arial,sans-serif;background:var(--bg);color:var(--tx
     <span class="sep">›</span>
     <span class="bc-cur" id="bc-rnc-form">Nova RNC</span>
   </div>
-  <div class="pg-title">
-    <h2 id="form-title">Nova RNC</h2>
-    <div style="display:flex;gap:10px;flex-wrap:wrap">
+  <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;margin-bottom:20px">
+    <h2 id="form-title" style="font-size:22px;font-weight:800;color:var(--tx)">Nova RNC</h2>
+    <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center">
       <button class="btn btn-ghost" onclick="goClientPage()">Cancelar</button>
       <button class="btn btn-pdf" id="btn-pdf" onclick="gerarPDF()" style="display:none">📄 Exportar PDF</button>
       <button class="btn btn-primary" onclick="salvarRNC()">💾 Salvar</button>
