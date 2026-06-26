@@ -716,7 +716,7 @@ function addTitleSlide(pptx, title) {
   return s;
 }
 
-function addSectionTitle(s, title) {
+function addSectionTitle(pptx, s, title) {
   s.addShape(pptx.ShapeType.rect, { x:0, y:0, w:10, h:0.65, fill:{ color:VERDE } });
   s.addShape(pptx.ShapeType.rect, { x:0, y:0, w:0.12, h:0.65, fill:{ color:TEAL } });
   s.addText(title, { x:0.3, y:0.1, w:9.5, h:0.5, fontSize:13, bold:true, color:BRANCO, fontFace:'Calibri', valign:'middle' });
@@ -757,7 +757,7 @@ async function gerarPPTX() {
     // ── Slide 2: Balanço de Massa ────────────────────────────────────────────
     const s2 = pptx.addSlide();
     s2.background = { color:'F8FAFC' };
-    addSectionTitle(s2, 'BALANÇO DE MASSA');
+    addSectionTitle(pptx, s2, 'BALANÇO DE MASSA');
 
     const bKpis = [
       ['⬇ RECEBIDO', fmtTon(d.recebido), '100% — base', VERDE],
@@ -793,7 +793,7 @@ async function gerarPPTX() {
     // ── Slide 3: Comercial ───────────────────────────────────────────────────
     const s3 = pptx.addSlide();
     s3.background = { color:'F8FAFC' };
-    addSectionTitle(s3, 'COMERCIAL / FATURAMENTO');
+    addSectionTitle(pptx, s3, 'COMERCIAL / FATURAMENTO');
 
     const cKpis = [
       ['FATURAMENTO',       fmtM(d.faturamento),    null,             VERDE],
@@ -831,7 +831,7 @@ async function gerarPPTX() {
     // ── Slide 4: Estoque ─────────────────────────────────────────────────────
     const s4 = pptx.addSlide();
     s4.background = { color:'F8FAFC' };
-    addSectionTitle(s4, 'ESTOQUE');
+    addSectionTitle(pptx, s4, 'ESTOQUE');
     kpiBox(s4, 0.2, 0.85, 2.5, 1.0, 'ESTOQUE TOTAL', fmtTon(d.estoque), d.matsEstoque.length+' material(ais)', '1D4ED8');
     kpiBox(s4, 2.9, 0.85, 2.5, 1.0, 'VALOR EM ESTOQUE', fmtM(d.valorEstoque), null, '7C3AED');
 
@@ -850,7 +850,7 @@ async function gerarPPTX() {
     // ── Slide 5: Equipamentos ────────────────────────────────────────────────
     const s5 = pptx.addSlide();
     s5.background = { color:'F8FAFC' };
-    addSectionTitle(s5, 'EQUIPAMENTOS');
+    addSectionTitle(pptx, s5, 'EQUIPAMENTOS');
     kpiBox(s5, 0.2,  0.8, 2.0, 1.0, 'TOTAL',         String(d.equTotal),  null, VERDE);
     kpiBox(s5, 2.4,  0.8, 2.0, 1.0, 'ATIVOS',        String(d.equAtivos), d.equOperando+' operando', '0F766E');
     kpiBox(s5, 4.6,  0.8, 2.0, 1.0, 'DISPONIBILIDADE', d.equPct+'%',      null, d.equPct>=80?VERDE:d.equPct>=60?AMARELO:VERMELHO);
@@ -870,7 +870,7 @@ async function gerarPPTX() {
     // ── Slide 6: RH ──────────────────────────────────────────────────────────
     const s6 = pptx.addSlide();
     s6.background = { color:'F8FAFC' };
-    addSectionTitle(s6, 'RECURSOS HUMANOS');
+    addSectionTitle(pptx, s6, 'RECURSOS HUMANOS');
     kpiBox(s6, 0.2,  0.8, 1.8, 1.0, 'ATIVOS',        String(d.ativos),  null, VERDE);
     kpiBox(s6, 2.2,  0.8, 1.8, 1.0, 'EM EXPERIÊNCIA', String(d.emExp),  null, AMARELO);
     kpiBox(s6, 4.2,  0.8, 1.8, 1.0, 'NOTA MÉDIA',    d.notaMedia?d.notaMedia.toFixed(1):'—', null, '0F766E');
