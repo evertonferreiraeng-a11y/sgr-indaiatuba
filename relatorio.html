@@ -6,6 +6,13 @@
   <title>Relatório de Reunião — SGR Indaiatuba</title>
   <link rel="stylesheet" href="css/style.css" />
   <style>
+    /* ── Identidade visual do modelo de apresentação ── */
+    :root {
+      --primary: #006636;
+      --primary-light: #5EC5BF;
+      --success: #006636;
+    }
+
     /* ── Tela ── */
     .rel-header {
       display: flex; align-items: center; justify-content: space-between;
@@ -16,9 +23,13 @@
     }
     .rel-section { margin-bottom: 28px; }
     .rel-section-title {
-      font-size: 13px; font-weight: 700; text-transform: uppercase;
-      letter-spacing: .06em; color: var(--primary); border-bottom: 2px solid var(--primary);
-      padding-bottom: 4px; margin-bottom: 14px;
+      font-size: 12px; font-weight: 800; text-transform: uppercase;
+      letter-spacing: .1em; color: #ffffff;
+      background: #006636;
+      padding: 7px 14px;
+      border-radius: 6px;
+      margin-bottom: 16px;
+      border-left: 5px solid #5EC5BF;
     }
     .rel-kpi-grid {
       display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 12px;
@@ -67,7 +78,7 @@
       .main-content { margin-left: 0 !important; padding: 0 !important; }
 
       /* Cabeçalho da página */
-      .page-header { margin-bottom: 10px !important; padding-bottom: 6px !important; border-bottom: 2px solid #1B7A43; }
+      .page-header { margin-bottom: 10px !important; padding-bottom: 6px !important; border-bottom: 2px solid #006636; }
       .page-header h2 { font-size: 15px !important; margin: 0; }
       .page-header p  { font-size: 11px !important; margin: 0; }
 
@@ -236,7 +247,7 @@ async function carregar() {
 
   const pct = v => recebido > 0 ? ((v / recebido) * 100).toFixed(1) : '0.0';
   const segs = [
-    { label:'Expedido', val:expedido, cor:'#1B7A43' },
+    { label:'Expedido', val:expedido, cor:'#006636' },
     { label:'Rejeito',  val:rejeito,  cor:'#DC2626' },
     { label:'Estoque',  val:estoque,  cor:'#3B82F6' },
     { label:'Passivo',  val:passivo,  cor:'#F59E0B' },
@@ -312,16 +323,18 @@ async function carregar() {
   document.getElementById('rel-body').innerHTML = `
 
     <!-- Capa -->
-    <div class="card rel-section" style="padding:28px 32px;margin-bottom:24px">
-      <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:16px">
-        <div>
-          <div style="font-size:11px;font-weight:700;text-transform:uppercase;color:#94a3b8;letter-spacing:.08em">SGR Indaiatuba — UVRR Indaiatuba</div>
-          <div style="font-size:26px;font-weight:900;color:var(--primary);margin:4px 0">Relatório de Indicadores</div>
-          <div style="font-size:15px;color:#475569;font-weight:600">${label}</div>
-        </div>
-        <div style="text-align:right;font-size:12px;color:#94a3b8">
-          Gerado em ${new Date().toLocaleDateString('pt-BR')}<br>
-          ${inicio} a ${fim}
+    <div class="rel-section" style="background:#006636;border-radius:12px;padding:32px 36px;margin-bottom:24px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:16px">
+      <div>
+        <div style="font-size:11px;font-weight:700;text-transform:uppercase;color:#5EC5BF;letter-spacing:.1em;margin-bottom:6px">SGR Indaiatuba — UVRR Indaiatuba</div>
+        <div style="font-size:30px;font-weight:900;color:#ffffff;margin:4px 0;letter-spacing:-.5px">Comitê de Gestão</div>
+        <div style="font-size:16px;color:#5EC5BF;font-weight:600;margin-top:4px">${label}</div>
+      </div>
+      <div style="text-align:right">
+        <div style="font-size:12px;color:#5EC5BF;margin-bottom:4px">Gerado em ${new Date().toLocaleDateString('pt-BR')}</div>
+        <div style="display:flex;align-items:center;gap:8px;justify-content:flex-end;margin-top:8px">
+          <div style="width:36px;height:4px;background:#5EC5BF;border-radius:2px"></div>
+          <div style="width:24px;height:4px;background:rgba(255,255,255,0.3);border-radius:2px"></div>
+          <div style="width:12px;height:4px;background:rgba(255,255,255,0.15);border-radius:2px"></div>
         </div>
       </div>
     </div>
@@ -339,9 +352,9 @@ async function carregar() {
               <div class="rel-kpi-sub">base do balanço</div>
             </div>
             <div class="rel-kpi" style="flex:1;min-width:100px">
-              <div class="rel-kpi-label" style="color:#1B7A43">Expedido</div>
-              <div class="rel-kpi-val" style="color:#1B7A43">${ton(expedido)}</div>
-              <div class="rel-kpi-sub" style="color:#1B7A43">${pct(expedido)}% do recebido</div>
+              <div class="rel-kpi-label" style="color:#006636">Expedido</div>
+              <div class="rel-kpi-val" style="color:#006636">${ton(expedido)}</div>
+              <div class="rel-kpi-sub" style="color:#006636">${pct(expedido)}% do recebido</div>
             </div>
             <div class="rel-kpi" style="flex:1;min-width:100px">
               <div class="rel-kpi-label" style="color:#DC2626">Rejeito</div>
@@ -400,9 +413,9 @@ async function carregar() {
           <div class="rel-kpi-val" style="font-size:18px;color:#3B82F6">${moeda(valorEstoque)}</div>
           <div class="rel-kpi-sub">${ton(estoque)} em estoque</div>
         </div>
-        <div class="rel-kpi" style="border:2px solid #1B7A43;background:#f0fdf4">
-          <div class="rel-kpi-label" style="color:#1B7A43">Faturamento + Estoque</div>
-          <div class="rel-kpi-val" style="font-size:18px;color:#1B7A43">${moeda(totalPotencial)}</div>
+        <div class="rel-kpi" style="border:2px solid #006636;background:#f0fdf4">
+          <div class="rel-kpi-label" style="color:#006636">Faturamento + Estoque</div>
+          <div class="rel-kpi-val" style="font-size:18px;color:#006636">${moeda(totalPotencial)}</div>
           <div class="rel-kpi-sub" style="color:#4ade80">Realizado + valor em estoque</div>
         </div>
       </div>
@@ -423,7 +436,7 @@ async function carregar() {
             const rows = MESES.map((m,i) => {
               totR+=fatReal[i]; totP+=fatPrev[i]; totKg+=fatKg[i];
               const ating = fatPrev[i]>0 ? (fatReal[i]/fatPrev[i]*100).toFixed(1)+'%' : '—';
-              const cor   = fatPrev[i]>0 ? (fatReal[i]>=fatPrev[i]?'#1B7A43':'#DC2626') : '#374151';
+              const cor   = fatPrev[i]>0 ? (fatReal[i]>=fatPrev[i]?'#006636':'#DC2626') : '#374151';
               const tk    = fatKg[i]>0 ? moeda(fatReal[i]/(fatKg[i]/1000)) : '—';
               const rowBg = i===mesAtualIdx ? 'background:#dcfce7' : '';
               return `<tr style="${rowBg}">
@@ -484,12 +497,12 @@ async function carregar() {
         </div>
         <div class="rel-kpi">
           <div class="rel-kpi-label">Ativos</div>
-          <div class="rel-kpi-val" style="color:#1B7A43">${equAtivos}</div>
+          <div class="rel-kpi-val" style="color:#006636">${equAtivos}</div>
           <div class="rel-kpi-sub">${equOperando} operando</div>
         </div>
         <div class="rel-kpi">
           <div class="rel-kpi-label">Disponibilidade</div>
-          <div class="rel-kpi-val" style="color:${equPct>=80?'#1B7A43':equPct>=50?'#D97706':'#DC2626'}">${equPct}%</div>
+          <div class="rel-kpi-val" style="color:${equPct>=80?'#006636':equPct>=50?'#D97706':'#DC2626'}">${equPct}%</div>
         </div>
       </div>
       <table class="rel-table">
@@ -530,11 +543,11 @@ async function carregar() {
         </div>
         <div class="rel-kpi">
           <div class="rel-kpi-label">Nota Média</div>
-          <div class="rel-kpi-val" style="color:${notaMedia===null?'#94a3b8':notaMedia>=7?'#1B7A43':notaMedia>=5?'#D97706':'#DC2626'}">${notaMedia!==null?notaMedia.toFixed(1):'—'}</div>
+          <div class="rel-kpi-val" style="color:${notaMedia===null?'#94a3b8':notaMedia>=7?'#006636':notaMedia>=5?'#D97706':'#DC2626'}">${notaMedia!==null?notaMedia.toFixed(1):'—'}</div>
         </div>
         <div class="rel-kpi">
           <div class="rel-kpi-label">Turnover (ano)</div>
-          <div class="rel-kpi-val" style="color:${parseFloat(turnover)>10?'#DC2626':'#1B7A43'}">${turnover}%</div>
+          <div class="rel-kpi-val" style="color:${parseFloat(turnover)>10?'#DC2626':'#006636'}">${turnover}%</div>
           <div class="rel-kpi-sub">${demAno} demissão(ões)</div>
         </div>
       </div>
@@ -556,9 +569,9 @@ async function carregar() {
           <thead><tr><th>Cargo</th><th style="text-align:center">Preenchido</th><th style="text-align:center">Total de vagas</th><th style="text-align:center">Situação</th></tr></thead>
           <tbody>
             ${linhas.map(([cargo, d]) => {
-              const cor = d.total === null ? '#64748b' : d.preenchido >= d.total ? '#1B7A43' : '#DC2626';
+              const cor = d.total === null ? '#64748b' : d.preenchido >= d.total ? '#006636' : '#DC2626';
               const sit = d.total === null ? '—' : d.preenchido >= d.total
-                ? `<span style="color:#1B7A43;font-weight:600">✅ Completo</span>`
+                ? `<span style="color:#006636;font-weight:600">✅ Completo</span>`
                 : `<span style="color:#DC2626;font-weight:600">⚠️ ${d.total - d.preenchido} vaga(s) em aberto</span>`;
               return `<tr>
                 <td>${cargo}</td>
@@ -601,7 +614,7 @@ async function carregar() {
     const cx = 110, cy = 100, r = 80;
     const startAngle = Math.PI;
     const endAngle   = 2 * Math.PI;
-    const cor = taxa >= 70 ? '#1B7A43' : taxa >= 40 ? '#D97706' : '#DC2626';
+    const cor = taxa >= 70 ? '#006636' : taxa >= 40 ? '#D97706' : '#DC2626';
     const valorAngle = startAngle + (taxa / 100) * Math.PI;
 
     ctx.clearRect(0, 0, 220, 120);
