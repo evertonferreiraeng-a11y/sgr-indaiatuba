@@ -544,13 +544,20 @@ async function renderChartForn() {
       data: { labels: labels1, datasets: [{ label:'Volume (ton)', data: vals1.map(v=>v/1000),
         backgroundColor: labels1.map(l => l===sel ? '#1B7A43' : '#3b82f6') }] },
       options: { responsive:true, maintainAspectRatio:false,
+        layout:{ padding:{ top: 28 } },
         plugins:{
           legend:{display:false},
           tooltip:{callbacks:{label:ctx=>fmt(ctx.parsed.y)}},
           datalabels:{
-            anchor:'end', align:'end',
-            font:{size:9,weight:'600'},
-            color:'#374151',
+            display: true,
+            anchor:'end', align:'top',
+            offset: 2,
+            clip: false,
+            font:{size:9,weight:'700'},
+            color:'#1e3a5f',
+            backgroundColor:'rgba(255,255,255,0.85)',
+            borderRadius:3,
+            padding:{top:2,bottom:2,left:4,right:4},
             formatter: v => v.toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2})+' ton'
           }
         },
