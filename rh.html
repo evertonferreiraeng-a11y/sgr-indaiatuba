@@ -102,6 +102,51 @@
       <!-- Grid -->
       <div id="grid-colaboradores" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(360px,1fr));gap:16px"></div>
 
+      <!-- Contratações -->
+      <div style="margin-top:32px">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
+          <div>
+            <h3 style="margin:0;font-size:16px;font-weight:700;color:#1e293b">📋 Contratações</h3>
+            <p style="margin:2px 0 0;font-size:12px;color:#64748b">Processo seletivo — candidatos por vaga</p>
+          </div>
+          <button class="btn btn-primary" id="btn-nova-contrat">+ Novo Candidato</button>
+        </div>
+
+        <!-- Filtro de cargo -->
+        <div style="display:flex;gap:10px;align-items:center;margin-bottom:12px;flex-wrap:wrap">
+          <select id="f-contrat-cargo" style="border:1px solid #e2e8f0;border-radius:6px;padding:6px 10px;font-size:13px;color:#374151">
+            <option value="">Todos os cargos</option>
+          </select>
+          <select id="f-contrat-status" style="border:1px solid #e2e8f0;border-radius:6px;padding:6px 10px;font-size:13px;color:#374151">
+            <option value="">Todos os status</option>
+            <option value="triagem">Triagem</option>
+            <option value="entrevista">Entrevista</option>
+            <option value="aprovado">Aprovado</option>
+            <option value="contratado">Contratado</option>
+            <option value="reprovado">Reprovado</option>
+          </select>
+        </div>
+
+        <div style="background:#fff;border:1px solid #e2e8f0;border-radius:10px;overflow:hidden">
+          <table style="width:100%;border-collapse:collapse;font-size:13px">
+            <thead>
+              <tr style="background:#f8fafc;border-bottom:2px solid #e2e8f0">
+                <th style="padding:10px 14px;text-align:left;font-weight:700;color:#374151;font-size:11px;text-transform:uppercase;letter-spacing:.5px">Candidato</th>
+                <th style="padding:10px 14px;text-align:left;font-weight:700;color:#374151;font-size:11px;text-transform:uppercase;letter-spacing:.5px">Cargo Pretendido</th>
+                <th style="padding:10px 14px;text-align:left;font-weight:700;color:#374151;font-size:11px;text-transform:uppercase;letter-spacing:.5px">Contato</th>
+                <th style="padding:10px 14px;text-align:left;font-weight:700;color:#374151;font-size:11px;text-transform:uppercase;letter-spacing:.5px">Data</th>
+                <th style="padding:10px 14px;text-align:left;font-weight:700;color:#374151;font-size:11px;text-transform:uppercase;letter-spacing:.5px">Status</th>
+                <th style="padding:10px 14px;text-align:left;font-weight:700;color:#374151;font-size:11px;text-transform:uppercase;letter-spacing:.5px">Obs.</th>
+                <th style="padding:10px 14px;width:64px"></th>
+              </tr>
+            </thead>
+            <tbody id="tbody-contrat">
+              <tr><td colspan="7" style="padding:24px;text-align:center;color:#94a3b8">Carregando…</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
     </div>
   </div>
 </div>
@@ -227,6 +272,44 @@
     <div class="modal-footer">
       <button class="btn btn-outline" data-close="modal-oc">Cancelar</button>
       <button class="btn btn-primary" id="btn-salvar-oc">Salvar</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal: Candidato -->
+<div class="modal-backdrop" id="modal-contrat">
+  <div class="modal" style="max-width:560px">
+    <div class="modal-header">
+      <h3 id="modal-contrat-title">Novo Candidato</h3>
+      <button class="modal-close" data-close="modal-contrat">✕</button>
+    </div>
+    <div class="modal-body">
+      <form id="form-contrat">
+        <input type="hidden" name="id" />
+        <div class="form-grid" style="grid-template-columns:repeat(2,1fr)">
+          <div class="form-group full"><label>Nome do Candidato *</label><input type="text" name="nome_candidato" required /></div>
+          <div class="form-group"><label>Cargo Pretendido *</label>
+            <select name="cargo_id" required><option value="">Selecione…</option></select>
+          </div>
+          <div class="form-group"><label>Data *</label><input type="date" name="data" required /></div>
+          <div class="form-group"><label>Contato (telefone / e-mail)</label><input type="text" name="contato" placeholder="(19) 99999-9999" /></div>
+          <div class="form-group"><label>Status *</label>
+            <select name="status" required>
+              <option value="">Selecione…</option>
+              <option value="triagem">Triagem</option>
+              <option value="entrevista">Entrevista</option>
+              <option value="aprovado">Aprovado</option>
+              <option value="contratado">Contratado</option>
+              <option value="reprovado">Reprovado</option>
+            </select>
+          </div>
+          <div class="form-group full"><label>Observações</label><textarea name="observacoes" rows="3" style="width:100%;resize:vertical"></textarea></div>
+        </div>
+      </form>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-outline" data-close="modal-contrat">Cancelar</button>
+      <button class="btn btn-primary" id="btn-salvar-contrat">Salvar</button>
     </div>
   </div>
 </div>
@@ -692,6 +775,126 @@ document.querySelectorAll('[data-close]').forEach(btn => btn.addEventListener('c
 document.querySelectorAll('.modal-backdrop').forEach(m => m.addEventListener('click', e => { if(e.target===m) fecharModal(m.id); }));
 
 await init();
+
+// ── Contratações ──────────────────────────────────────────────────────────────
+const STATUS_CONTRAT = {
+  triagem:    { label:'Triagem',    bg:'#dbeafe', cor:'#1e40af' },
+  entrevista: { label:'Entrevista', bg:'#fef3c7', cor:'#92400e' },
+  aprovado:   { label:'Aprovado',   bg:'#d1fae5', cor:'#065f46' },
+  contratado: { label:'Contratado', bg:'#bbf7d0', cor:'#14532d' },
+  reprovado:  { label:'Reprovado',  bg:'#fee2e2', cor:'#991b1b' },
+};
+
+let contratData = [];
+
+async function carregarContrat() {
+  const { data, error } = await supabase.from('contratacoes').select('*').order('data', { ascending: false });
+  if (error) { console.warn('contratacoes:', error.message); contratData = []; }
+  else contratData = data || [];
+  renderContrat();
+}
+
+function renderContrat() {
+  const cargo  = document.getElementById('f-contrat-cargo').value;
+  const status = document.getElementById('f-contrat-status').value;
+  const lista  = contratData.filter(r =>
+    (!cargo  || r.cargo_id === cargo) &&
+    (!status || r.status   === status)
+  );
+  const tbody = document.getElementById('tbody-contrat');
+  if (!lista.length) {
+    tbody.innerHTML = '<tr><td colspan="7" style="padding:24px;text-align:center;color:#94a3b8">Nenhum candidato encontrado.</td></tr>';
+    return;
+  }
+  const isAdm = perfil?.role === 'admin';
+  tbody.innerHTML = lista.map(r => {
+    const s     = STATUS_CONTRAT[r.status] || { label: r.status, bg:'#f1f5f9', cor:'#475569' };
+    const cargo = cargoData.find(c => c.id === r.cargo_id)?.nome || r.cargo_id || '—';
+    return `<tr style="border-bottom:1px solid #f1f5f9">
+      <td style="padding:10px 14px;font-weight:600;color:#1e293b">${r.nome_candidato}</td>
+      <td style="padding:10px 14px;color:#374151">${cargo}</td>
+      <td style="padding:10px 14px;color:#64748b">${r.contato||'—'}</td>
+      <td style="padding:10px 14px;color:#64748b;white-space:nowrap">${dataBR(r.data)}</td>
+      <td style="padding:10px 14px">
+        <span style="background:${s.bg};color:${s.cor};padding:2px 10px;border-radius:10px;font-size:12px;font-weight:600">${s.label}</span>
+      </td>
+      <td style="padding:10px 14px;color:#64748b;font-size:12px;max-width:180px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis" title="${r.observacoes||''}">${r.observacoes||'—'}</td>
+      <td style="padding:10px 14px">
+        ${isAdm ? `<div style="display:flex;gap:4px">
+          <button class="btn-icon" onclick="editarContrat('${r.id}')">✏️</button>
+          <button class="btn-icon danger" onclick="excluirContrat('${r.id}')">🗑️</button>
+        </div>` : ''}
+      </td>
+    </tr>`;
+  }).join('');
+}
+
+function popularSelectContrat() {
+  const sel = document.querySelector('#form-contrat [name="cargo_id"]');
+  if (!sel) return;
+  sel.innerHTML = '<option value="">Selecione…</option>' +
+    cargoData.map(c => `<option value="${c.id}">${c.nome}</option>`).join('');
+
+  const fCargo = document.getElementById('f-contrat-cargo');
+  if (fCargo) fCargo.innerHTML = '<option value="">Todos os cargos</option>' +
+    cargoData.map(c => `<option value="${c.id}">${c.nome}</option>`).join('');
+}
+
+document.getElementById('btn-nova-contrat').addEventListener('click', () => {
+  document.getElementById('modal-contrat-title').textContent = 'Novo Candidato';
+  document.getElementById('form-contrat').reset();
+  document.querySelector('#form-contrat [name="id"]').value = '';
+  document.querySelector('#form-contrat [name="data"]').value = new Date().toISOString().split('T')[0];
+  popularSelectContrat();
+  abrirModal('modal-contrat');
+});
+
+window.editarContrat = id => {
+  const r = contratData.find(x => x.id === id); if (!r) return;
+  document.getElementById('modal-contrat-title').textContent = 'Editar Candidato';
+  popularSelectContrat();
+  const f   = document.getElementById('form-contrat');
+  const set = (n,v) => { const el = f.querySelector(`[name="${n}"]`); if(el) el.value = v ?? ''; };
+  set('id', r.id); set('nome_candidato', r.nome_candidato); set('cargo_id', r.cargo_id);
+  set('data', r.data); set('contato', r.contato); set('status', r.status); set('observacoes', r.observacoes);
+  abrirModal('modal-contrat');
+};
+
+window.excluirContrat = async id => {
+  if (!confirm('Excluir este candidato?')) return;
+  const { error } = await supabase.from('contratacoes').delete().eq('id', id);
+  if (error) { toast('Erro ao excluir','error'); return; }
+  toast('Candidato removido!');
+  await carregarContrat();
+};
+
+document.getElementById('btn-salvar-contrat').addEventListener('click', async () => {
+  const f = document.getElementById('form-contrat');
+  if (!f.checkValidity()) { f.reportValidity(); return; }
+  const fd = Object.fromEntries(new FormData(f));
+  const payload = {
+    nome_candidato: fd.nome_candidato, cargo_id: fd.cargo_id||null,
+    data: fd.data, contato: fd.contato||null,
+    status: fd.status, observacoes: fd.observacoes||null,
+  };
+  if (fd.id) {
+    const { error } = await supabase.from('contratacoes').update(payload).eq('id', fd.id);
+    if (error) { toast('Erro: '+error.message,'error'); return; }
+    toast('Candidato atualizado!');
+  } else {
+    const { error } = await supabase.from('contratacoes').insert(payload);
+    if (error) { toast('Erro: '+error.message,'error'); return; }
+    toast('Candidato cadastrado!');
+  }
+  fecharModal('modal-contrat');
+  await carregarContrat();
+});
+
+document.getElementById('f-contrat-cargo').addEventListener('change', renderContrat);
+document.getElementById('f-contrat-status').addEventListener('change', renderContrat);
+document.querySelectorAll('[data-close="modal-contrat"]').forEach(b => b.addEventListener('click', () => fecharModal('modal-contrat')));
+
+await carregarContrat();
 </script>
 </body>
 </html>
