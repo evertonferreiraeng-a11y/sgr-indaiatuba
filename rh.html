@@ -65,12 +65,11 @@
     <div class="page-body">
 
       <!-- KPIs -->
-      <div class="kpi-grid" style="grid-template-columns:repeat(6,1fr)">
+      <div class="kpi-grid" style="grid-template-columns:repeat(5,1fr)">
         <div class="kpi-card"><div class="kpi-label">Colaboradores Ativos</div><div class="kpi-value" id="kpi-ativos">—</div><div class="kpi-sub">sem demissão</div></div>
         <div class="kpi-card"><div class="kpi-label">Em Experiência</div><div class="kpi-value" id="kpi-exp">—</div><div class="kpi-sub">1º ou 2º período</div></div>
         <div class="kpi-card"><div class="kpi-label">Nota Média Geral</div><div class="kpi-value" id="kpi-nota-media">—</div><div class="kpi-sub">ativos + experiência</div></div>
-        <div class="kpi-card"><div class="kpi-label">Faltas (mês)</div><div class="kpi-value" id="kpi-faltas">—</div><div class="kpi-sub">injustificadas</div></div>
-        <div class="kpi-card"><div class="kpi-label">Atestados (mês)</div><div class="kpi-value" id="kpi-atestados">—</div><div class="kpi-sub">justificados</div></div>
+        <div class="kpi-card"><div class="kpi-label">Faltas (mês)</div><div class="kpi-value" id="kpi-faltas">—</div><div class="kpi-sub">marcadas como falta</div></div>
         <div class="kpi-card kpi-turnover"><div class="kpi-label">Turnover</div><div class="kpi-value" id="kpi-turnover">—</div><div class="kpi-sub" id="kpi-turnover-sub">no ano</div></div>
       </div>
 
@@ -113,7 +112,21 @@
           <div class="form-group"><label>Cargo</label><select name="cargo_id"><option value="">Selecione…</option></select></div>
           <div class="form-group"><label>Data de Admissão *</label><input type="date" name="admissao" required /></div>
           <div class="form-group"><label>Fim 1ª Experiência (45d)</label><input type="date" name="fim_exp_1" /></div>
+          <div class="form-group"><label>Passou 1ª Experiência?</label>
+            <select name="passou_exp_1">
+              <option value="">Pendente / não avaliado</option>
+              <option value="true">✅ Sim — aprovado</option>
+              <option value="false">❌ Não — reprovado</option>
+            </select>
+          </div>
           <div class="form-group"><label>Fim 2ª Experiência (90d)</label><input type="date" name="fim_exp_2" /></div>
+          <div class="form-group"><label>Passou 2ª Experiência?</label>
+            <select name="passou_exp_2">
+              <option value="">Pendente / não avaliado</option>
+              <option value="true">✅ Sim — efetivado</option>
+              <option value="false">❌ Não — reprovado</option>
+            </select>
+          </div>
           <div class="form-group full"><label>Data de Demissão</label><input type="date" name="demissao" /></div>
         </div>
       </form>
@@ -183,6 +196,13 @@
               <option value="elogio">Elogio</option>
               <option value="outro">Outro</option>
             </select>
+          </div>
+          <div class="form-group full">
+            <label style="display:flex;align-items:center;gap:10px;cursor:pointer;font-weight:600">
+              <input type="checkbox" name="conta_como_falta" id="chk-conta-falta" style="width:16px;height:16px;accent-color:#dc2626" />
+              <span>Conta como falta no KPI?</span>
+            </label>
+            <p style="margin:4px 0 0 26px;font-size:12px;color:#64748b">Marque se esta ocorrência deve ser contabilizada no contador de Faltas do mês.</p>
           </div>
           <div class="form-group full"><label>Descrição</label><textarea name="descricao" rows="3" style="width:100%;resize:vertical"></textarea></div>
         </div>
@@ -284,8 +304,7 @@ function renderKPIs() {
 
   document.getElementById('kpi-ativos').textContent    = ativos.length;
   document.getElementById('kpi-exp').textContent       = emExp.length;
-  document.getElementById('kpi-faltas').textContent    = ocMes.filter(r => r.tipo === 'falta').length;
-  document.getElementById('kpi-atestados').textContent = ocMes.filter(r => r.tipo === 'atestado').length;
+  document.getElementById('kpi-faltas').textContent    = ocMes.filter(r => r.conta_como_falta).length;
   document.getElementById('kpi-turnover').textContent  = tv + '%';
   document.getElementById('kpi-turnover-sub').textContent = `${demAno} demissão(ões) em ${anoAtualVal}`;
 
@@ -346,7 +365,7 @@ function cardHTML(c, isAdm, hoje, iniMes, fimMes) {
                           .sort((a,b) => (b.data_avaliacao||'') > (a.data_avaliacao||'') ? 1 : -1);
   const ocColab = ocData.filter(o => o.colaborador_id === c.id);
   const ocMes   = ocColab.filter(o => o.data >= iniMes && o.data <= fimMes);
-  const faltasC = ocMes.filter(o => o.tipo === 'falta').length;
+  const faltasC = ocMes.filter(o => o.conta_como_falta).length;
   const atestC  = ocMes.filter(o => o.tipo === 'atestado').length;
 
   const mediaUltima = avals[0] ? calcMediaAval(avals[0]) : null;
@@ -355,22 +374,30 @@ function cardHTML(c, isAdm, hoje, iniMes, fimMes) {
 
   const cargoNome = c.cargo || cargoData.find(x => x.id === c.cargo_id)?.nome || 'Sem cargo';
 
-  // Badge de status
-  let expTag = '', statusExp = null;
+  // Badge de status — mostra a experiência mais próxima a vencer
+  let expTag = '';
+  const ap1 = c.passou_exp_1; // true | false | null
+  const ap2 = c.passou_exp_2;
   if (c.demissao) {
     expTag = badge('#fee2e2','#991b1b', `Demitido ${dataBR(c.demissao)}`);
-  } else if (c.fim_experiencia_2 && hoje > c.fim_experiencia_2) {
-    expTag = badge('#d1fae5','#065f46','✓ Aprovado — Efetivado');
-    statusExp = 'aprovado';
-  } else if (c.fim_experiencia_2 && hoje <= c.fim_experiencia_2) {
-    expTag = badge('#fef3c7','#92400e',`2ª Exp. até ${dataBR(c.fim_experiencia_2)}`);
-    statusExp = '2exp';
-  } else if (c.fim_experiencia_1 && hoje > c.fim_experiencia_1) {
-    expTag = badge('#fef3c7','#92400e','⏳ Passou 1ª — aguardando 2ª exp.');
-    statusExp = 'entre';
+  } else if (ap2 === true) {
+    expTag = badge('#d1fae5','#065f46','✅ Aprovado — Efetivado');
+  } else if (ap2 === false) {
+    expTag = badge('#fee2e2','#991b1b','❌ Reprovado 2ª Exp.');
+  } else if (ap1 === false) {
+    expTag = badge('#fee2e2','#991b1b','❌ Reprovado 1ª Exp.');
   } else if (c.fim_experiencia_1 && hoje <= c.fim_experiencia_1) {
+    // 1ª ainda vigente → mostra ela (a mais próxima)
     expTag = badge('#dbeafe','#1e40af',`1ª Exp. até ${dataBR(c.fim_experiencia_1)}`);
-    statusExp = '1exp';
+  } else if (ap1 === true && c.fim_experiencia_2 && hoje <= c.fim_experiencia_2) {
+    expTag = badge('#fef3c7','#92400e',`2ª Exp. até ${dataBR(c.fim_experiencia_2)}`);
+  } else if (c.fim_experiencia_2 && hoje <= c.fim_experiencia_2) {
+    // passou da 1ª pelo prazo, na 2ª
+    expTag = badge('#fef3c7','#92400e',`2ª Exp. até ${dataBR(c.fim_experiencia_2)}`);
+  } else if (c.fim_experiencia_2 && hoje > c.fim_experiencia_2) {
+    expTag = badge('#d1fae5','#065f46','✓ Efetivado');
+  } else if (c.fim_experiencia_1 && hoje > c.fim_experiencia_1) {
+    expTag = badge('#fef3c7','#92400e','⏳ Aguardando 2ª exp.');
   }
 
   // Recomendação baseada sempre na Nota Atual (média de todas as avaliações)
@@ -493,7 +520,10 @@ window.editarColab = id => {
   const set = (n,v) => { const el = f.querySelector(`[name="${n}"]`); if(el) el.value = v ?? ''; };
   set('id', c.id); set('nome', c.nome); set('chapa', c.chapa);
   set('cargo_id', c.cargo_id); set('admissao', c.data_admissao);
-  set('fim_exp_1', c.fim_experiencia_1); set('fim_exp_2', c.fim_experiencia_2);
+  set('fim_exp_1', c.fim_experiencia_1);
+  set('passou_exp_1', c.passou_exp_1 === true ? 'true' : c.passou_exp_1 === false ? 'false' : '');
+  set('fim_exp_2', c.fim_experiencia_2);
+  set('passou_exp_2', c.passou_exp_2 === true ? 'true' : c.passou_exp_2 === false ? 'false' : '');
   set('demissao', c.demissao);
   abrirModal('modal-colab');
 };
@@ -514,10 +544,12 @@ document.getElementById('btn-salvar-colab').addEventListener('click', async () =
   const f = document.getElementById('form-colab');
   if (!f.checkValidity()) { f.reportValidity(); return; }
   const fd = Object.fromEntries(new FormData(f));
+  const toBoolean = v => v === 'true' ? true : v === 'false' ? false : null;
   const payload = {
     nome: fd.nome, chapa: fd.chapa||null, cargo_id: fd.cargo_id||null,
     data_admissao: fd.admissao,
-    fim_experiencia_1: fd.fim_exp_1||null, fim_experiencia_2: fd.fim_exp_2||null,
+    fim_experiencia_1: fd.fim_exp_1||null, passou_exp_1: toBoolean(fd.passou_exp_1),
+    fim_experiencia_2: fd.fim_exp_2||null, passou_exp_2: toBoolean(fd.passou_exp_2),
     demissao: fd.demissao||null,
   };
   if (fd.id) {
@@ -596,6 +628,7 @@ document.getElementById('btn-salvar-aval').addEventListener('click', async () =>
 window.novaOcPara = colabId => {
   document.getElementById('modal-oc-title').textContent = 'Nova Ocorrência';
   document.getElementById('form-oc').reset();
+  document.getElementById('chk-conta-falta').checked = false;
   document.querySelector('#form-oc [name="id"]').value = '';
   document.querySelector('#form-oc [name="data"]').value = new Date().toISOString().split('T')[0];
   document.querySelector('#form-oc [name="colaborador_id"]').value = colabId;
@@ -614,7 +647,7 @@ document.getElementById('btn-salvar-oc').addEventListener('click', async () => {
   const f = document.getElementById('form-oc');
   if (!f.checkValidity()) { f.reportValidity(); return; }
   const fd = Object.fromEntries(new FormData(f));
-  const payload = { colaborador_id: fd.colaborador_id, tipo: fd.tipo, data: fd.data, descricao: fd.descricao||null };
+  const payload = { colaborador_id: fd.colaborador_id, tipo: fd.tipo, data: fd.data, descricao: fd.descricao||null, conta_como_falta: document.getElementById('chk-conta-falta').checked };
   if (fd.id) {
     const { error } = await supabase.from('ocorrencias').update(payload).eq('id', fd.id);
     if (error) { toast('Erro: '+error.message,'error'); return; }
