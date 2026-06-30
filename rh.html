@@ -66,7 +66,17 @@
 
       <!-- KPIs -->
       <div class="kpi-grid" style="grid-template-columns:repeat(5,1fr)">
-        <div class="kpi-card"><div class="kpi-label">Colaboradores Ativos</div><div class="kpi-value" id="kpi-ativos">—</div><div class="kpi-sub">sem demissão</div></div>
+        <div class="kpi-card" style="padding:14px 16px">
+          <div class="kpi-label">Colaboradores</div>
+          <div style="display:flex;align-items:baseline;gap:10px;margin:4px 0 2px">
+            <div class="kpi-value" id="kpi-total" style="font-size:28px">—</div>
+            <span style="font-size:12px;color:#64748b">total</span>
+          </div>
+          <div style="display:flex;gap:10px;margin-top:6px;flex-wrap:wrap">
+            <span style="font-size:12px;font-weight:600;color:#16a34a">✔ <span id="kpi-ativos">—</span> ativos</span>
+            <span style="font-size:12px;font-weight:600;color:#2563eb">☀ <span id="kpi-ferias">—</span> férias</span>
+          </div>
+        </div>
         <div class="kpi-card"><div class="kpi-label">Em Experiência</div><div class="kpi-value" id="kpi-exp">—</div><div class="kpi-sub">1º ou 2º período</div></div>
         <div class="kpi-card"><div class="kpi-label">Nota Média Geral</div><div class="kpi-value" id="kpi-nota-media">—</div><div class="kpi-sub">ativos + experiência</div></div>
         <div class="kpi-card"><div class="kpi-label">Faltas (mês)</div><div class="kpi-value" id="kpi-faltas">—</div><div class="kpi-sub">marcadas como falta</div></div>
@@ -128,6 +138,12 @@
             </select>
           </div>
           <div class="form-group full"><label>Data de Demissão</label><input type="date" name="demissao" /></div>
+          <div class="form-group full">
+            <label style="display:flex;align-items:center;gap:10px;cursor:pointer;font-weight:600">
+              <input type="checkbox" name="em_ferias" id="chk-ferias" style="width:16px;height:16px;accent-color:#2563eb" />
+              <span>☀ Colaborador em férias no momento</span>
+            </label>
+          </div>
         </div>
       </form>
     </div>
@@ -302,8 +318,12 @@ function renderKPIs() {
   const hc     = ativos.length + demAno;
   const tv     = hc ? ((demAno / hc) * 100).toFixed(1) : '0';
 
-  document.getElementById('kpi-ativos').textContent    = ativos.length;
-  document.getElementById('kpi-exp').textContent       = emExp.length;
+  const emFerias = ativos.filter(c => c.em_ferias);
+  const ativosTrabalho = ativos.filter(c => !c.em_ferias);
+  document.getElementById('kpi-total').textContent   = ativos.length;
+  document.getElementById('kpi-ativos').textContent  = ativosTrabalho.length;
+  document.getElementById('kpi-ferias').textContent  = emFerias.length;
+  document.getElementById('kpi-exp').textContent     = emExp.length;
   document.getElementById('kpi-faltas').textContent    = ocMes.filter(r => r.conta_como_falta).length;
   document.getElementById('kpi-turnover').textContent  = tv + '%';
   document.getElementById('kpi-turnover-sub').textContent = `${demAno} demissão(ões) em ${anoAtualVal}`;
@@ -525,6 +545,7 @@ window.editarColab = id => {
   set('fim_exp_2', c.fim_experiencia_2);
   set('passou_exp_2', c.passou_exp_2 === true ? 'true' : c.passou_exp_2 === false ? 'false' : '');
   set('demissao', c.demissao);
+  document.getElementById('chk-ferias').checked = !!c.em_ferias;
   abrirModal('modal-colab');
 };
 
@@ -551,6 +572,7 @@ document.getElementById('btn-salvar-colab').addEventListener('click', async () =
     fim_experiencia_1: fd.fim_exp_1||null, passou_exp_1: toBoolean(fd.passou_exp_1),
     fim_experiencia_2: fd.fim_exp_2||null, passou_exp_2: toBoolean(fd.passou_exp_2),
     demissao: fd.demissao||null,
+    em_ferias: document.getElementById('chk-ferias').checked,
   };
   if (fd.id) {
     const { error } = await supabase.from('colaboradores').update(payload).eq('id', fd.id);
