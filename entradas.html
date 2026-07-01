@@ -299,11 +299,10 @@ async function init() {
   document.getElementById('f-forn').innerHTML = '<option value="">Todos</option>' + fornOpts;
   document.getElementById('f-mat').innerHTML  = '<option value="">Todos</option>' + matFiltroOpts;
 
-  // Tipos de material distintos já usados em entradas
-  const { data: tiposUsados } = await supabase.from('entradas').select('tipo_material').not('tipo_material','is',null);
-  const tiposUnicos = [...new Set((tiposUsados||[]).map(r=>r.tipo_material).filter(Boolean))].sort();
-  document.getElementById('f-tipo-mat').innerHTML = '<option value="">Todos</option>' +
-    tiposUnicos.map(t=>`<option value="${t}">${t}</option>`).join('');
+  document.getElementById('f-tipo-mat').innerHTML =
+    '<option value="">Todos</option>' +
+    '<option value="Reciclável">Recicláveis</option>' +
+    '<option value="Não Reciclável">Não Recicláveis</option>';
   document.querySelector('#form-entrada [name="fornecedor_id"]').innerHTML = '<option value="">Selecione…</option>' + fornOpts;
   document.querySelector('#form-entrada [name="material_id"]').innerHTML   = '<option value="">Selecione…</option>' + matOpts;
 
@@ -473,14 +472,17 @@ async function renderChartForn() {
   const sel  = document.getElementById('forn-sel').value;
 
   // Buscar dados com filtro de período se informado
+  const tipoMatFiltro = document.getElementById('f-tipo-mat').value;
   let rows = entData;
   if (de || ate) {
     let q = supabase.from('entradas').select('*, fornecedores(nome)');
     if (de)  q = q.gte('data', de);
     if (ate) q = q.lte('data', ate);
+    if (tipoMatFiltro) q = q.eq('tipo_material', tipoMatFiltro);
     const { data } = await q;
     rows = data || [];
   }
+  if (tipoMatFiltro && !(de || ate)) rows = rows.filter(r => r.tipo_material === tipoMatFiltro);
 
   // Popular select de fornecedores
   const todosForns = [...new Set(entData.map(r => r.fornecedores?.nome || 'Desconhecido'))].sort();
@@ -593,11 +595,13 @@ async function calcularMediaHistorica() {
   const PAGE = 1000;
   let page = 0, histRows = [], done = false;
   while (!done) {
+    const tipoMatMedia = document.getElementById('f-tipo-mat').value;
     let q = supabase.from('entradas')
       .select('data, peso_liquido, fornecedores(nome)')
       .eq('tipo_movimentacao', 'entrada')
       .gte('data', histDe).lte('data', histAte)
       .range(page * PAGE, (page+1)*PAGE - 1);
+    if (tipoMatMedia) q = q.eq('tipo_material', tipoMatMedia);
     const { data } = await q;
     if (!data || data.length === 0) { done = true; }
     else { histRows = histRows.concat(data); page++; if (data.length < PAGE) done = true; }
@@ -632,6 +636,7 @@ async function calcularMediaHistorica() {
       .eq('tipo_movimentacao', 'entrada')
       .gte('data', atualDe).lte('data', atualAte)
       .range(page2 * PAGE, (page2+1)*PAGE - 1);
+    if (tipoMatMedia) q2 = q2.eq('tipo_material', tipoMatMedia);
     const { data: d2 } = await q2;
     if (!d2 || d2.length === 0) { done2 = true; }
     else { atualRows = atualRows.concat(d2); page2++; if (d2.length < PAGE) done2 = true; }
