@@ -299,10 +299,11 @@ async function init() {
   document.getElementById('f-forn').innerHTML = '<option value="">Todos</option>' + fornOpts;
   document.getElementById('f-mat').innerHTML  = '<option value="">Todos</option>' + matFiltroOpts;
 
+  const { data: tiposDB } = await supabase.from('entradas').select('tipo_material').not('tipo_material','is',null);
+  const tiposUnicos = [...new Set((tiposDB||[]).map(r=>r.tipo_material).filter(Boolean))].sort();
   document.getElementById('f-tipo-mat').innerHTML =
     '<option value="">Todos</option>' +
-    '<option value="Reciclável">Recicláveis</option>' +
-    '<option value="Não Reciclável">Não Recicláveis</option>';
+    tiposUnicos.map(t=>`<option value="${t}">${t}</option>`).join('');
   document.querySelector('#form-entrada [name="fornecedor_id"]').innerHTML = '<option value="">Selecione…</option>' + fornOpts;
   document.querySelector('#form-entrada [name="material_id"]').innerHTML   = '<option value="">Selecione…</option>' + matOpts;
 
