@@ -172,6 +172,7 @@
                 <th style="white-space:nowrap">Motorista</th>
                 <th style="white-space:nowrap">Placa</th>
                 <th style="white-space:nowrap">Produto</th>
+                <th style="white-space:nowrap">Tipo Material</th>
                 <th class="text-right" style="white-space:nowrap">Pes. 1</th>
                 <th class="text-right" style="white-space:nowrap">Pes. 2</th>
                 <th class="text-right" style="white-space:nowrap">Imp.</th>
@@ -206,6 +207,7 @@
           <div class="form-group"><label>Data *</label><input type="date" name="data" required /></div>
           <div class="form-group"><label>Fornecedor *</label><select name="fornecedor_id" required><option value="">Selecione…</option></select></div>
           <div class="form-group"><label>Material *</label><select name="material_id" required><option value="">Selecione…</option></select></div>
+          <div class="form-group"><label>Tipo Material</label><input type="text" name="tipo_material" placeholder="Ex: Papel, Plástico, Metal…" /></div>
           <div class="form-group"><label>Nota Fiscal</label><input type="text" name="nota_fiscal" /></div>
           <div class="form-group"><label>Motorista</label><input type="text" name="motorista" /></div>
           <div class="form-group"><label>Placa do Veículo</label><input type="text" name="placa_veiculo" /></div>
@@ -375,6 +377,7 @@ function renderTabela() {
       <td>${r.motorista||'—'}</td>
       <td>${r.placa_veiculo||'—'}</td>
       <td>${r.materiais?.nome||'—'}</td>
+      <td>${r.tipo_material||'—'}</td>
       <td class="text-right">${ton(r.pesagem_1||0)}</td>
       <td class="text-right">${ton(r.pesagem_2||0)}</td>
       <td class="text-right">${(+(r.impureza||0)).toFixed(1)}%</td>
@@ -731,7 +734,8 @@ window.editarEntrada = id => {
   set('impureza',r.impureza??0); set('umidade',r.umidade??0);
   set('peso_liquido',r.peso_liquido); set('peso_liquido_descontos',r.peso_liquido_descontos??r.peso_kg);
   set('total_descontos',r.total_descontos); set('rejeito_uvr',r.rejeito_uvr??0);
-  set('transportadora',r.transportadora); set('tipo_movimentacao',r.tipo_movimentacao||'entrada');
+  set('transportadora',r.transportadora); set('tipo_material',r.tipo_material);
+  set('tipo_movimentacao',r.tipo_movimentacao||'entrada');
   set('destino',r.destino);
   abrirModal('modal-entrada');
 };
@@ -762,6 +766,7 @@ document.getElementById('btn-salvar-entrada').addEventListener('click', async ()
     valor:parseFloat(fd.valor)||0,
     rejeito_uvr:parseFloat(fd.rejeito_uvr)||0,
     transportadora:fd.transportadora||null,
+    tipo_material:fd.tipo_material||null,
     tipo_movimentacao:fd.tipo_movimentacao||'entrada',
     destino:fd.destino||null,
   };
