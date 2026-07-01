@@ -916,6 +916,7 @@ document.getElementById('csv-import').addEventListener('change', async function(
       peso_liquido_descontos: pld,
       peso_kg:           pld,
       transportadora:    col(row,'transportadora') || null,
+      tipo_material:     col(row,'tipo_material') || col(row,'tipo material') || col(row,'tipo') || null,
       tipo_movimentacao: col(row,'entrada').trim().toUpperCase() === 'REJEITO UVR' ? 'saida' : 'entrada',
       destino:           col(row,'destino') || null,
       valor:             0,
