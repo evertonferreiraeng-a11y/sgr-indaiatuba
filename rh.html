@@ -269,9 +269,15 @@
           <label>Nome do Cargo *</label>
           <input type="text" name="nome" required />
         </div>
-        <div class="form-group">
-          <label>Total de Vagas *</label>
-          <input type="number" name="total_vagas" min="0" required style="width:120px" />
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+          <div class="form-group">
+            <label>Preenchido *</label>
+            <input type="number" name="preenchido" min="0" required style="width:100%" />
+          </div>
+          <div class="form-group">
+            <label>Total de Vagas *</label>
+            <input type="number" name="total_vagas" min="0" required style="width:100%" />
+          </div>
         </div>
       </form>
     </div>
@@ -748,13 +754,12 @@ await init();
 function renderBalancoVagas() {
   const tbody  = document.getElementById('tbody-vagas');
   const isAdm  = perfil?.role === 'admin';
-  const ativos = colabData.filter(c => !c.demissao);
   if (!cargoData.length) {
     tbody.innerHTML = '<tr><td colspan="5" style="padding:24px;text-align:center;color:#94a3b8">Nenhum cargo cadastrado.</td></tr>';
     return;
   }
   tbody.innerHTML = cargoData.map(cargo => {
-    const preenchido = ativos.filter(c => c.cargo_id === cargo.id).length;
+    const preenchido = cargo.preenchido ?? 0;
     const total      = cargo.total_vagas ?? 0;
     const emAberto   = total - preenchido;
     const completo   = total > 0 && preenchido >= total;
@@ -792,6 +797,7 @@ window.editarCargo = id => {
   const f = document.getElementById('form-cargo');
   f.querySelector('[name="id"]').value          = c.id;
   f.querySelector('[name="nome"]').value        = c.nome ?? '';
+  f.querySelector('[name="preenchido"]').value  = c.preenchido ?? 0;
   f.querySelector('[name="total_vagas"]').value = c.total_vagas ?? 0;
   abrirModal('modal-cargo');
 };
@@ -809,7 +815,7 @@ document.getElementById('btn-salvar-cargo').addEventListener('click', async () =
   const f = document.getElementById('form-cargo');
   if (!f.checkValidity()) { f.reportValidity(); return; }
   const fd = Object.fromEntries(new FormData(f));
-  const payload = { nome: fd.nome, total_vagas: parseInt(fd.total_vagas) || 0 };
+  const payload = { nome: fd.nome, preenchido: parseInt(fd.preenchido) || 0, total_vagas: parseInt(fd.total_vagas) || 0 };
   if (fd.id) {
     const { error } = await supabase.from('cargos').update(payload).eq('id', fd.id);
     if (error) { toast('Erro: ' + error.message, 'error'); return; }
