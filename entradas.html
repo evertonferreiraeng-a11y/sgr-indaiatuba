@@ -143,6 +143,7 @@
           <div class="form-group"><label>Mês rápido</label><input type="month" id="f-mes" /></div>
           <div class="form-group"><label>Fornecedor</label><select id="f-forn" multiple style="height:72px"><option value="">Todos</option></select><div style="font-size:10px;color:#94a3b8;margin-top:2px">Ctrl+clique para vários</div></div>
           <div class="form-group"><label>Material</label><select id="f-mat"><option value="">Todos</option></select></div>
+          <div class="form-group"><label>Tipo Material</label><select id="f-tipo-mat"><option value="">Todos</option></select></div>
           <div class="form-group" style="justify-content:flex-end"><label>&nbsp;</label>
             <button class="btn btn-primary" id="btn-filtrar">Filtrar</button>
             <button class="btn btn-outline" id="btn-limpar" style="margin-left:6px">Limpar</button>
@@ -297,6 +298,12 @@ async function init() {
 
   document.getElementById('f-forn').innerHTML = '<option value="">Todos</option>' + fornOpts;
   document.getElementById('f-mat').innerHTML  = '<option value="">Todos</option>' + matFiltroOpts;
+
+  // Tipos de material distintos já usados em entradas
+  const { data: tiposUsados } = await supabase.from('entradas').select('tipo_material').not('tipo_material','is',null);
+  const tiposUnicos = [...new Set((tiposUsados||[]).map(r=>r.tipo_material).filter(Boolean))].sort();
+  document.getElementById('f-tipo-mat').innerHTML = '<option value="">Todos</option>' +
+    tiposUnicos.map(t=>`<option value="${t}">${t}</option>`).join('');
   document.querySelector('#form-entrada [name="fornecedor_id"]').innerHTML = '<option value="">Selecione…</option>' + fornOpts;
   document.querySelector('#form-entrada [name="material_id"]').innerHTML   = '<option value="">Selecione…</option>' + matOpts;
 
@@ -313,7 +320,8 @@ function periodoRange(mes) {
 async function carregar() {
   const mes  = document.getElementById('f-mes').value;
   const fornSel = [...document.getElementById('f-forn').selectedOptions].map(o=>o.value).filter(v=>v!=='');
-  const mat  = document.getElementById('f-mat').value;
+  const mat      = document.getElementById('f-mat').value;
+  const tipoMat  = document.getElementById('f-tipo-mat').value;
   let ini = document.getElementById('f-de').value;
   let fim = document.getElementById('f-ate').value;
 
@@ -336,7 +344,8 @@ async function carregar() {
     if (fim)  q = q.lte('data', fim);
     if (fornSel.length === 1) q = q.eq('fornecedor_id', fornSel[0]);
     else if (fornSel.length > 1) q = q.in('fornecedor_id', fornSel);
-    if (mat)  q = q.eq('material_id', mat);
+    if (mat)     q = q.eq('material_id', mat);
+    if (tipoMat) q = q.eq('tipo_material', tipoMat);
 
     const { data } = await q;
     if (!data || data.length === 0) { done = true; }
@@ -982,7 +991,8 @@ document.getElementById('btn-limpar').addEventListener('click', () => {
   document.getElementById('f-ate').value = '';
   document.getElementById('f-mes').value = '';
   [...document.getElementById('f-forn').options].forEach(o => o.selected = false);
-  document.getElementById('f-mat').value  = '';
+  document.getElementById('f-mat').value      = '';
+  document.getElementById('f-tipo-mat').value = '';
   carregar();
 });
 // Mês rápido sincroniza com De/Até
