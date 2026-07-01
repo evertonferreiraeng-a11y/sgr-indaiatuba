@@ -296,7 +296,9 @@ async function carregar() {
     (c.fim_experiencia_1 && hoje <= c.fim_experiencia_1) ||
     (c.fim_experiencia_2 && hoje <= c.fim_experiencia_2)
   );
-  const faltas    = ocorrencias.filter(o=>o.tipo==='falta').length;
+  const emFerias  = ativos.filter(c=>c.em_ferias).length;
+  const ativosTrabalho = ativos.filter(c=>!c.em_ferias).length;
+  const faltas    = ocorrencias.filter(o=>o.conta_como_falta).length;
   const atestados = ocorrencias.filter(o=>o.tipo==='atestado').length;
   const demAno    = colaboradores.filter(c=>c.demissao && c.demissao.startsWith(ano)).length;
   const hc        = ativos.length + demAno;
@@ -561,8 +563,12 @@ async function carregar() {
       <div class="rel-section-title">Recursos Humanos</div>
       <div class="rel-kpi-grid" style="margin-bottom:16px">
         <div class="rel-kpi">
-          <div class="rel-kpi-label">Colaboradores Ativos</div>
+          <div class="rel-kpi-label">Colaboradores</div>
           <div class="rel-kpi-val">${ativos.length}</div>
+          <div style="display:flex;gap:8px;margin-top:4px;flex-wrap:wrap">
+            <span style="font-size:11px;font-weight:600;color:#16a34a">✔ ${ativosTrabalho} ativos</span>
+            <span style="font-size:11px;font-weight:600;color:#2563eb">☀ ${emFerias} férias</span>
+          </div>
         </div>
         <div class="rel-kpi">
           <div class="rel-kpi-label">Em Experiência</div>
@@ -572,10 +578,10 @@ async function carregar() {
           <div class="rel-kpi-label">Nota Média</div>
           <div class="rel-kpi-val" style="color:${notaMedia===null?'#94a3b8':notaMedia>=7?'#006636':notaMedia>=5?'#D97706':'#DC2626'}">${notaMedia!==null?notaMedia.toFixed(1):'—'}</div>
         </div>
-        <div class="rel-kpi">
-          <div class="rel-kpi-label">Turnover (ano)</div>
-          <div class="rel-kpi-val" style="color:${parseFloat(turnover)>10?'#DC2626':'#006636'}">${turnover}%</div>
-          <div class="rel-kpi-sub">${demAno} demissão(ões)</div>
+        <div class="rel-kpi" style="background:linear-gradient(135deg,#ef4444,#dc2626);border-radius:8px;padding:10px 12px">
+          <div class="rel-kpi-label" style="color:#fca5a5">Turnover (ano)</div>
+          <div class="rel-kpi-val" style="color:#fff">${turnover}%</div>
+          <div class="rel-kpi-sub" style="color:#fca5a5">${demAno} demissão(ões) em ${ano}</div>
         </div>
       </div>
       ${(() => {
