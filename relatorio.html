@@ -1295,7 +1295,7 @@ window.salvarSnapDia = async (equipId, date, status) => {
     const { error: insErr } = await supabase.from('equipamentos_snapshot').insert({
       semana: date, equipamento_id: equipId,
       equipamento_nome: eq.nome, equipamento_frota: eq.frota || '',
-      status, observacao: ''
+      status
     });
     if (insErr) {
       console.error('Erro ao inserir:', insErr);
