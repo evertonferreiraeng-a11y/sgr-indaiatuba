@@ -771,11 +771,12 @@ document.getElementById('btn-salvar-oc').addEventListener('click', async () => {
     toast('Ocorrência registrada!');
   }
   // Salva presença junto com a ocorrência
-  await supabase.from('presenca_diaria').upsert(
+  const { error: presErr } = await supabase.from('presenca_diaria').upsert(
     [{ colaborador_id: fd.colaborador_id, data: fd.data, presente, observacao: fd.descricao||null }],
     { onConflict: 'colaborador_id,data' }
   );
-  presencaMap[fd.colaborador_id] = { colaborador_id: fd.colaborador_id, data: fd.data, presente, observacao: fd.descricao||null };
+  if (presErr) { toast('Erro ao salvar presença: ' + presErr.message, 'error'); }
+  else { presencaMap[fd.colaborador_id] = { colaborador_id: fd.colaborador_id, data: fd.data, presente, observacao: fd.descricao||null }; }
   fecharModal('modal-oc');
   await recarregarTudo();
 });
