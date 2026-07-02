@@ -258,7 +258,6 @@ async function carregar() {
   // Snapshot semana passada — carregado separadamente para não travar se tabela não existir
   window._snapMapRel = {};
   window._equipsRel  = equipamentos;
-  window._equPctAtual = equPct;
   const snapMap = window._snapMapRel;
   try {
     const { data: snapAnt } = await supabase
@@ -326,6 +325,7 @@ async function carregar() {
   const equRestricao= equipamentos.filter(e=>e.status==='restricao').length;
   const equAtivos   = equOperando + equRestricao;
   const equPct      = equTotal ? Math.round((equAtivos/equTotal)*100) : 0;
+  window._equPctAtual = equPct;
 
   // ── RH ──────────────────────────────────────────────────────────────────
   const hoje = new Date().toISOString().split('T')[0];
