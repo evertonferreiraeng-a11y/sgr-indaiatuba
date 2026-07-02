@@ -1272,13 +1272,13 @@ window.editarSnapDia = (equipId, date, el) => {
     <button onclick="salvarSnapDia('${equipId}','${date}','')" style="display:block;width:100%;text-align:left;padding:5px 12px;border:none;border-radius:6px;background:none;font-size:11px;color:#94a3b8;cursor:pointer" onmouseover="this.style.background='#f8fafc'" onmouseout="this.style.background='none'">— Limpar registro</button>`;
   document.body.appendChild(popup);
   const rect = el.getBoundingClientRect();
-  const top = rect.bottom + 4 + window.scrollY;
-  const left = Math.min(rect.left + window.scrollX, window.innerWidth - 170);
-  popup.style.top = top + 'px';
+  const top  = rect.bottom + 4;
+  const left = Math.min(rect.left, window.innerWidth - 170);
+  popup.style.top  = top + 'px';
   popup.style.left = left + 'px';
   setTimeout(() => document.addEventListener('click', function h(e) {
     if (!popup.contains(e.target)) { popup.remove(); document.removeEventListener('click', h); }
-  }), 50);
+  }, { once: true }), 100);
 };
 
 window.salvarSnapDia = async (equipId, date, status) => {
