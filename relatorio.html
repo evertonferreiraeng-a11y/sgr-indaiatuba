@@ -148,6 +148,10 @@
       <input type="month" id="rel-mes" style="width:150px" />
       <button id="rel-btn-mes" style="padding:6px 12px;border-radius:6px;border:1px solid #D1D5DB;background:#fff;cursor:pointer;font-size:12px">Mês</button>
       <button id="rel-btn-ano" style="padding:6px 12px;border-radius:6px;border:1px solid #D1D5DB;background:#fff;cursor:pointer;font-size:12px">Ano</button>
+      <span style="font-size:13px;color:var(--text-muted);margin-left:8px">Balanço:</span>
+      <button class="rel-cat-btn" id="rel-cat-todos"     style="padding:6px 12px;border-radius:20px;border:1px solid #D1D5DB;background:var(--primary);color:#fff;cursor:pointer;font-size:12px;font-weight:600">Todos</button>
+      <button class="rel-cat-btn" id="rel-cat-reciclavel" style="padding:6px 12px;border-radius:20px;border:1px solid #D1D5DB;background:#fff;color:#374151;cursor:pointer;font-size:12px">♻ Recicláveis</button>
+      <button class="rel-cat-btn" id="rel-cat-nao"        style="padding:6px 12px;border-radius:20px;border:1px solid #D1D5DB;background:#fff;color:#374151;cursor:pointer;font-size:12px">🚫 Não Recicláveis</button>
       <button class="btn-pdf" id="btn-gerar-pdf" onclick="window.print()">
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 01-2-2v-5a2 2 0 012-2v5a2 2 0 01-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>
         Imprimir / PDF
@@ -165,7 +169,7 @@
 </div>
 
 <script type="module">
-import { supabase, initPage, mesAtual, anoAtual, moeda, ton, dataBR } from './js/config.js';
+import { supabase, initPage, mesAtual, anoAtual, moeda, ton, dataBR } from './js/config.js?v=2';
 
 const MESES = ['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
 const CRITERIOS = ['relacionamento','responsabilidade','cooperacao','conhecimento_trabalho','interesse','atitude_profissional','produtividade'];
@@ -229,7 +233,7 @@ async function carregar() {
   const ano = inicio.slice(0, 4);
 
   const [ents, vends, mats, equipamentos, colaboradores, avaliacoes, ocorrencias, producoes, metas, vendsAno, cargosAll] = await Promise.all([
-    fetchAll('entradas', 'peso_liquido, peso_liquido_descontos, tipo_movimentacao, data', [['gte','data',inicio],['lte','data',fim]]),
+    fetchAll('entradas', 'peso_liquido, peso_liquido_descontos, tipo_movimentacao, tipo_material, data', [['gte','data',inicio],['lte','data',fim]]),
     fetchAll('vendas', 'peso_kg, valor_total, data, clientes(nome)', [['gte','data',inicio],['lte','data',fim]]),
     fetchAll('materiais', 'nome, estoque_kg, valor_unitario, no_estoque', [['eq','no_estoque',true]]),
     fetchAll('equipamentos', 'nome, frota, status, capacidade_pct, descricao, funcao', []),
@@ -243,8 +247,20 @@ async function carregar() {
   ]);
 
   // ── Balanço ──────────────────────────────────────────────────────────────
-  const recebido = ents.filter(r=>r.tipo_movimentacao!=='saida').reduce((s,r)=>s+parseFloat(r.peso_liquido_descontos||r.peso_liquido||0),0);
-  const rejeito  = ents.filter(r=>r.tipo_movimentacao==='saida').reduce((s,r)=>s+parseFloat(r.peso_liquido||r.peso_liquido_descontos||0),0);
+  function matchCatRel(tipoMat) {
+    if (window._relCatFiltro === 'reciclavel') {
+      const n = (tipoMat||'').normalize('NFD').replace(/[̀-ͯ]/g,'').toLowerCase();
+      return !n.includes('nao') && n.includes('recicl');
+    }
+    if (window._relCatFiltro === 'nao') {
+      const n = (tipoMat||'').normalize('NFD').replace(/[̀-ͯ]/g,'').toLowerCase();
+      return n.includes('nao');
+    }
+    return true;
+  }
+  const entsFilt = ents.filter(r => matchCatRel(r.tipo_material));
+  const recebido = entsFilt.filter(r=>r.tipo_movimentacao!=='saida').reduce((s,r)=>s+parseFloat(r.peso_liquido_descontos||r.peso_liquido||0),0);
+  const rejeito  = entsFilt.filter(r=>r.tipo_movimentacao==='saida').reduce((s,r)=>s+parseFloat(r.peso_liquido||r.peso_liquido_descontos||0),0);
   const expedido = vends.reduce((s,r)=>s+(r.peso_kg||0),0);
   const estoque  = mats.reduce((s,r)=>s+parseFloat(r.estoque_kg||0),0);
   const passivo  = Math.max(0, recebido - expedido - rejeito - estoque);
@@ -706,6 +722,21 @@ document.getElementById('rel-btn-ano').addEventListener('click', () => setModo('
 document.getElementById('rel-mes').addEventListener('change', () => { modoAtual='mes'; carregar(); });
 document.getElementById('rel-ano').addEventListener('change', () => carregar());
 
+// ── Filtro categoria balanço ──────────────────────────────────────────────────
+window._relCatFiltro = 'todos';
+document.querySelectorAll('.rel-cat-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    window._relCatFiltro = btn.id === 'rel-cat-todos' ? 'todos'
+                         : btn.id === 'rel-cat-reciclavel' ? 'reciclavel' : 'nao';
+    document.querySelectorAll('.rel-cat-btn').forEach(b => {
+      const ativo = b === btn;
+      b.style.background = ativo ? 'var(--primary)' : '#fff';
+      b.style.color      = ativo ? '#fff' : '#374151';
+    });
+    carregar();
+  });
+});
+
 setModo('mes');
 </script>
 
@@ -948,3 +979,4 @@ async function gerarPPTX() {
 </script>
 </body>
 </html>
+
