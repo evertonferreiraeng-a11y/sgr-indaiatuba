@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="pt-BR">
 <head>
   <meta charset="UTF-8" />
@@ -94,33 +94,12 @@
             <option value="demitido">Demitidos</option>
           </select>
         </div>
+        <div class="form-group">
+          <label>📅 Data das Presenças</label>
+          <input type="date" id="presenca-data" />
+        </div>
         <div class="form-group" style="justify-content:flex-end"><label>&nbsp;</label>
           <button class="btn btn-primary" id="btn-filtrar-colab">Filtrar</button>
-        </div>
-      </div>
-
-      <!-- Presenças do Dia -->
-      <div style="margin-bottom:24px">
-        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;flex-wrap:wrap;gap:8px">
-          <div>
-            <span style="font-size:11px;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:.5px">Presenças do Dia</span>
-            <input type="date" id="presenca-data" style="margin-left:12px;border:1px solid #e2e8f0;border-radius:6px;padding:4px 8px;font-size:13px" />
-          </div>
-          <button class="btn btn-primary" id="btn-salvar-presencas" style="padding:6px 16px;font-size:13px">💾 Salvar Presenças</button>
-        </div>
-        <div style="background:#fff;border:1px solid #e2e8f0;border-radius:10px;overflow:hidden">
-          <table style="width:100%;border-collapse:collapse;font-size:13px">
-            <thead>
-              <tr style="background:#f8fafc;border-bottom:2px solid #e2e8f0">
-                <th style="padding:8px 14px;text-align:left;font-weight:700;color:#374151;font-size:11px;text-transform:uppercase">Colaborador</th>
-                <th style="padding:8px 14px;text-align:center;font-weight:700;color:#374151;font-size:11px;text-transform:uppercase;width:140px">Presença</th>
-                <th style="padding:8px 14px;text-align:left;font-weight:700;color:#374151;font-size:11px;text-transform:uppercase">Observação</th>
-              </tr>
-            </thead>
-            <tbody id="tbody-presencas">
-              <tr><td colspan="3" style="padding:20px;text-align:center;color:#94a3b8">Carregando…</td></tr>
-            </tbody>
-          </table>
         </div>
       </div>
 
@@ -315,11 +294,11 @@
 
 <div id="toast-container"></div>
 <script type="module">
-import { initPage, supabase, dataBR, toast, abrirModal, fecharModal } from './js/config.js';
+import { initPage, supabase, dataBR, toast, abrirModal, fecharModal } from './js/config.js?v=2';
 
 await initPage();
 
-let perfil, colabData = [], cargoData = [], avalData = [], ocData = [];
+let perfil, colabData = [], cargoData = [], avalData = [], ocData = [], presencaMap = {};
 
 const CRITERIOS       = ['relacionamento','responsabilidade','cooperacao','conhecimento_trabalho','interesse','atitude_profissional','produtividade'];
 const CRITERIOS_LABEL = ['Relac.','Resp.','Coop.','Conhec.','Inter.','Atitude','Produt.'];
@@ -351,15 +330,19 @@ async function init() {
 
 async function recarregarTudo() {
   try {
+    const dataPresenca = document.getElementById('presenca-data').value;
     const r1 = await supabase.from('cargos').select('*').order('nome');
     const r2 = await supabase.from('colaboradores').select('*').order('nome');
     const r3 = await supabase.from('colaborador_avaliacoes').select('*').order('data_avaliacao', { ascending: false });
     const r4 = await supabase.from('ocorrencias').select('*').order('data', { ascending: false });
+    const r5 = await supabase.from('presenca_diaria').select('*').eq('data', dataPresenca);
 
     cargoData = r1.data || [];
     colabData = r2.data || [];
     avalData  = r3.data || [];
     ocData    = r4.data || [];
+    presencaMap = {};
+    (r5.data || []).forEach(p => { presencaMap[p.colaborador_id] = p; });
 
     if (r2.error) console.error('colaboradores:', r2.error.message);
     if (r4.error) console.warn('ocorrencias:', r4.error?.message);
@@ -570,6 +553,25 @@ function cardHTML(c, isAdm, hoje, iniMes, fimMes) {
         <div class="colab-stat" style="background:#eff6ff"><div class="val" style="color:#2563eb">${notaAtual!==null&&!isNaN(notaAtual)?notaAtual.toFixed(1):'—'}</div><div class="lbl" style="color:#2563eb">Nota Atual</div></div>
       </div>
       <div class="recomendacao ${rec.cls}">${rec.icon} ${rec.texto}</div>
+      <!-- Presença do dia -->
+      ${!c.demissao ? (() => {
+        const reg = presencaMap[c.id];
+        const presente = reg ? reg.presente : true;
+        const obs = (reg?.observacao || '').replace(/"/g,'&quot;');
+        return `<div style="display:flex;align-items:center;gap:8px;padding:8px 10px;background:#f8fafc;border-radius:8px;border:1px solid #e2e8f0">
+          <span style="font-size:11px;font-weight:700;color:#64748b;white-space:nowrap">📅 PRESENÇA DO DIA</span>
+          <select class="presenca-card-sel" data-colab-id="${c.id}"
+            style="border:1px solid #e2e8f0;border-radius:6px;padding:3px 8px;font-size:12px;font-weight:700;color:${presente?'#16a34a':'#dc2626'};background:#fff;cursor:pointer"
+            onchange="salvarPresencaCard('${c.id}',this)">
+            <option value="true"  ${presente  ?'selected':''}>✔ Presente</option>
+            <option value="false" ${!presente ?'selected':''}>✖ Falta</option>
+          </select>
+          <input type="text" class="presenca-card-obs" data-colab-id="${c.id}"
+            value="${obs}" placeholder="Observação…"
+            style="flex:1;border:1px solid #e2e8f0;border-radius:6px;padding:3px 8px;font-size:12px;min-width:0"
+            onblur="salvarPresencaCardObs('${c.id}',this)" />
+        </div>`;
+      })() : ''}
     </div>
     <button class="toggle-btn" onclick="toggleCard(this)">▼ Ver avaliações e ocorrências</button>
     <div class="colab-detail">
@@ -775,69 +777,36 @@ document.querySelectorAll('.modal-backdrop').forEach(m => m.addEventListener('cl
 
 await init();
 
-// ── Presenças do Dia ──────────────────────────────────────────────────────────
+// ── Presenças inline nos cards ────────────────────────────────────────────────
 const presencaDataEl = document.getElementById('presenca-data');
 presencaDataEl.value = new Date().toISOString().split('T')[0];
+presencaDataEl.addEventListener('change', recarregarTudo);
 
-async function carregarPresencas() {
+window.salvarPresencaCard = async (colabId, sel) => {
+  sel.style.color = sel.value === 'true' ? '#16a34a' : '#dc2626';
   const data = presencaDataEl.value;
-  const ativos = colabData.filter(c => !c.demissao);
-  const { data: registros } = await supabase.from('presenca_diaria').select('*').eq('data', data);
-  const mapa = {};
-  (registros||[]).forEach(r => { mapa[r.colaborador_id] = r; });
+  const obsEl = document.querySelector(`.presenca-card-obs[data-colab-id="${colabId}"]`);
+  const obs   = obsEl?.value.trim() || null;
+  const { error } = await supabase.from('presenca_diaria').upsert(
+    [{ colaborador_id: colabId, data, presente: sel.value === 'true', observacao: obs }],
+    { onConflict: 'colaborador_id,data' }
+  );
+  if (error) { toast('Erro ao salvar presença', 'error'); return; }
+  presencaMap[colabId] = { colaborador_id: colabId, data, presente: sel.value === 'true', observacao: obs };
+  toast('Presença salva!');
+};
 
-  const tbody = document.getElementById('tbody-presencas');
-  if (!ativos.length) {
-    tbody.innerHTML = '<tr><td colspan="3" style="padding:20px;text-align:center;color:#94a3b8">Nenhum colaborador ativo.</td></tr>';
-    return;
-  }
-  tbody.innerHTML = ativos.map(c => {
-    const reg = mapa[c.id];
-    const presente = reg ? reg.presente : true;
-    const obs = reg?.observacao || '';
-    return `<tr style="border-bottom:1px solid #f1f5f9" data-colab-id="${c.id}">
-      <td style="padding:8px 14px;font-weight:600;color:#1e293b">
-        <div style="display:flex;align-items:center;gap:8px">
-          <div style="width:30px;height:30px;border-radius:50%;background:#2563eb;color:#fff;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:13px;flex-shrink:0">${c.nome.charAt(0)}</div>
-          ${c.nome}
-        </div>
-      </td>
-      <td style="padding:8px 14px;text-align:center">
-        <select class="presenca-sel" style="border:1px solid #e2e8f0;border-radius:6px;padding:4px 8px;font-size:13px;font-weight:600;color:${presente?'#16a34a':'#dc2626'}">
-          <option value="true"  ${presente  ? 'selected' : ''}>✔ Presente</option>
-          <option value="false" ${!presente ? 'selected' : ''}>✖ Falta</option>
-        </select>
-      </td>
-      <td style="padding:8px 14px">
-        <input type="text" class="presenca-obs" value="${obs}" placeholder="Observação…"
-          style="width:100%;border:1px solid #e2e8f0;border-radius:6px;padding:4px 8px;font-size:13px" />
-      </td>
-    </tr>`;
-  }).join('');
-
-  // Cor dinâmica do select
-  tbody.querySelectorAll('.presenca-sel').forEach(sel => {
-    sel.addEventListener('change', () => {
-      sel.style.color = sel.value === 'true' ? '#16a34a' : '#dc2626';
-    });
-  });
-}
-
-document.getElementById('btn-salvar-presencas').addEventListener('click', async () => {
+window.salvarPresencaCardObs = async (colabId, input) => {
   const data = presencaDataEl.value;
-  const rows = [...document.querySelectorAll('#tbody-presencas tr[data-colab-id]')];
-  const upserts = rows.map(tr => ({
-    colaborador_id: tr.dataset.colabId,
-    data,
-    presente: tr.querySelector('.presenca-sel').value === 'true',
-    observacao: tr.querySelector('.presenca-obs').value.trim() || null,
-  }));
-  const { error } = await supabase.from('presenca_diaria').upsert(upserts, { onConflict: 'colaborador_id,data' });
-  if (error) { toast('Erro ao salvar: ' + error.message, 'error'); return; }
-  toast('Presenças salvas!');
-});
-
-presencaDataEl.addEventListener('change', carregarPresencas);
+  const selEl = document.querySelector(`.presenca-card-sel[data-colab-id="${colabId}"]`);
+  const presente = selEl ? selEl.value === 'true' : true;
+  const { error } = await supabase.from('presenca_diaria').upsert(
+    [{ colaborador_id: colabId, data, presente, observacao: input.value.trim() || null }],
+    { onConflict: 'colaborador_id,data' }
+  );
+  if (error) { toast('Erro ao salvar observação', 'error'); return; }
+  presencaMap[colabId] = { colaborador_id: colabId, data, presente, observacao: input.value.trim() || null };
+};
 
 // ── Balanço de Vagas ─────────────────────────────────────────────────────────
 function renderBalancoVagas() {
@@ -922,7 +891,7 @@ document.getElementById('btn-salvar-cargo').addEventListener('click', async () =
 document.querySelectorAll('[data-close="modal-cargo"]').forEach(b => b.addEventListener('click', () => fecharModal('modal-cargo')));
 
 renderBalancoVagas();
-await carregarPresencas();
 </script>
 </body>
 </html>
+
