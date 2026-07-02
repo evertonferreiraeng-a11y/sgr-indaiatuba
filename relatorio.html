@@ -895,7 +895,7 @@ async function carregar() {
             counts.restricao ? `<span style="background:#fef3c7;color:#92400e;padding:2px 7px;border-radius:20px;font-size:10px;font-weight:700">${pRes}% Rest</span>` : '',
             counts.parado    ? `<span style="background:#fee2e2;color:#991b1b;padding:2px 7px;border-radius:20px;font-size:10px;font-weight:700">${pPar}% Par</span>` : '',
           ].filter(Boolean).join('');
-          return `<div style="display:flex;height:22px;border-radius:4px;overflow:hidden;gap:2px">${segHtml}</div>
+          return `<div style="display:flex;height:8px;border-radius:4px;overflow:hidden;gap:2px">${segHtml}</div>
                   <div style="display:flex;gap:4px;margin-top:4px;flex-wrap:wrap">${pills}</div>`;
         };
 
