@@ -287,6 +287,8 @@ window.setTurno = t => {
   turno = t;
   document.getElementById('btn-manha').classList.toggle('active', t === 'manha');
   document.getElementById('btn-tarde').classList.toggle('active', t === 'tarde');
+  renderEquipamentos();
+  renderRH();
   renderComparativo();
 };
 
