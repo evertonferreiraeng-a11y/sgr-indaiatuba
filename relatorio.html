@@ -274,26 +274,21 @@ async function carregar() {
     }
   } catch (_) { /* tabela ainda não criada */ }
 
-  // Carrega histórico de snapshots para gráfico de disponibilidade por período
-  window._equipHistMap   = {};
-  window._equipHistDates = [];
+  // Carrega histórico dos últimos 7 dias para o gráfico de disponibilidade
+  window._equipHistMap = {};
   try {
-    const dias = (window._equipHistPeriodo || 8) * 7;
     const limite = new Date();
-    limite.setDate(limite.getDate() - dias);
+    limite.setDate(limite.getDate() - 6);
     const limiteStr = limite.toISOString().split('T')[0];
     const { data: histData } = await supabase
       .from('equipamentos_snapshot')
       .select('semana, equipamento_id, status')
       .gte('semana', limiteStr)
       .order('semana', { ascending: true });
-    const datesSet = new Set();
     (histData || []).forEach(s => {
-      datesSet.add(s.semana);
       if (!window._equipHistMap[s.equipamento_id]) window._equipHistMap[s.equipamento_id] = {};
       window._equipHistMap[s.equipamento_id][s.semana] = s.status;
     });
-    window._equipHistDates = [...datesSet].sort();
   } catch (_) {}
 
   // ── Balanço ──────────────────────────────────────────────────────────────
@@ -871,52 +866,43 @@ async function carregar() {
           </div>`;
         }
 
-        // Gráfico de disponibilidade horizontal por equipamento
-        const hp = window._equipHistPeriodo || 8;
-        const histDates = window._equipHistDates || [];
-        const histMap   = window._equipHistMap   || {};
+        // Gráfico de disponibilidade — últimos 7 dias, clicável para edição
+        const histMap = window._equipHistMap || {};
 
         const timelineBar = (equipId) => {
           const hist = histMap[equipId] || {};
-          if (!histDates.length) return '<span style="color:#94a3b8;font-size:11px">Sem histórico</span>';
+          const today = new Date();
+          const days = [];
+          for (let i = 6; i >= 0; i--) {
+            const d = new Date(today); d.setDate(today.getDate() - i);
+            days.push(d.toISOString().split('T')[0]);
+          }
           const counts = { operando:0, restricao:0, parado:0 };
-          const segments = histDates.map(d => {
-            const s = hist[d] || null;
+          const dNames = ['Dom','Seg','Ter','Qua','Qui','Sex','Sáb'];
+          const segHtml = days.map(date => {
+            const s = hist[date] || null;
             if (s && counts[s] !== undefined) counts[s]++;
-            return { d, s };
-          });
-          const known = counts.operando + counts.restricao + counts.parado;
-          if (!known) return '<span style="color:#94a3b8;font-size:11px">Sem registros no período</span>';
-          const total = histDates.length;
+            const [a,m,dia] = date.split('-');
+            const dow = new Date(date + 'T12:00:00').getDay();
+            const label = s==='operando'?'Operando':s==='restricao'?'Restrição':s==='parado'?'Parado':'clique para registrar';
+            const title = `${dNames[dow]} ${dia}/${m} — ${label}`;
+            const cor = s==='operando'?'#10b981':s==='restricao'?'#f59e0b':s==='parado'?'#ef4444':'#e2e8f0';
+            return `<div onclick="editarSnapDia('${equipId}','${date}',this)" title="${title}"
+              style="flex:1;background:${cor};cursor:pointer;border-radius:2px;transition:filter .1s"
+              onmouseover="this.style.filter='brightness(.85)'" onmouseout="this.style.filter=''"></div>`;
+          }).join('');
+          const total = 7;
           const pOp  = Math.round(counts.operando  / total * 100);
           const pRes = Math.round(counts.restricao / total * 100);
           const pPar = Math.round(counts.parado    / total * 100);
-          const segHtml = segments.map(({d,s}) => {
-            const [a,m,dia] = d.split('-');
-            const title = `${dia}/${m}/${a} — ${s==='operando'?'Operando':s==='restricao'?'Restrição':s==='parado'?'Parado':'sem registro'}`;
-            const cor = s==='operando'?'#10b981':s==='restricao'?'#f59e0b':s==='parado'?'#ef4444':'#e2e8f0';
-            return `<div title="${title}" style="flex:1;background:${cor};min-width:3px"></div>`;
-          }).join('');
           const pills = [
             counts.operando  ? `<span style="background:#d1fae5;color:#065f46;padding:2px 7px;border-radius:20px;font-size:10px;font-weight:700">${pOp}% Op</span>` : '',
             counts.restricao ? `<span style="background:#fef3c7;color:#92400e;padding:2px 7px;border-radius:20px;font-size:10px;font-weight:700">${pRes}% Rest</span>` : '',
             counts.parado    ? `<span style="background:#fee2e2;color:#991b1b;padding:2px 7px;border-radius:20px;font-size:10px;font-weight:700">${pPar}% Par</span>` : '',
           ].filter(Boolean).join('');
-          return `<div style="display:flex;height:16px;border-radius:4px;overflow:hidden;gap:1px">${segHtml}</div>
+          return `<div style="display:flex;height:22px;border-radius:4px;overflow:hidden;gap:2px">${segHtml}</div>
                   <div style="display:flex;gap:4px;margin-top:4px;flex-wrap:wrap">${pills}</div>`;
         };
-
-        const periodoSel = `
-          <div class="no-print" style="display:flex;align-items:center;gap:8px;margin-bottom:14px">
-            <span style="font-size:11px;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:.04em">Período histórico:</span>
-            <select onchange="window._equipHistPeriodo=+this.value;carregar()" style="font-size:11px;padding:4px 10px;border-radius:6px;border:1px solid #e2e8f0;background:#fff;color:#334155;cursor:pointer">
-              <option value="4"  ${hp===4 ?'selected':''}>Últimas 4 semanas</option>
-              <option value="8"  ${hp===8 ?'selected':''}>Últimas 8 semanas</option>
-              <option value="12" ${hp===12?'selected':''}>Últimas 12 semanas</option>
-              <option value="24" ${hp===24?'selected':''}>Últimos 6 meses</option>
-            </select>
-            <span style="font-size:10px;color:#94a3b8">${histDates.length} registros encontrados</span>
-          </div>`;
 
         // Changed rows (with colored left border)
         const changedRows = changed.map(e => {
@@ -970,7 +956,7 @@ async function carregar() {
             </tbody>
           </table>`;
 
-        return resumoHtml + periodoSel + tableHtml;
+        return resumoHtml + tableHtml;
       })()}
     </div>
 
@@ -1266,6 +1252,52 @@ window.salvarSnapshotEquip = async () => {
     return;
   }
   btn.textContent = '📸 Registrar estado atual'; btn.disabled = false;
+};
+
+// ── Editar status de um dia específico no gráfico de disponibilidade ─────────
+window.editarSnapDia = (equipId, date, el) => {
+  document.querySelectorAll('.snap-day-popup').forEach(p => p.remove());
+  const [a, m, d] = date.split('-');
+  const dNames = ['Dom','Seg','Ter','Qua','Qui','Sex','Sáb'];
+  const dow = new Date(date + 'T12:00:00').getDay();
+  const popup = document.createElement('div');
+  popup.className = 'snap-day-popup';
+  popup.style.cssText = 'position:fixed;z-index:9999;background:#fff;border:1px solid #e2e8f0;border-radius:10px;box-shadow:0 6px 20px rgba(0,0,0,.15);padding:8px;min-width:160px';
+  popup.innerHTML = `
+    <div style="font-size:10px;font-weight:800;color:#94a3b8;text-transform:uppercase;letter-spacing:.06em;padding:4px 8px 8px">${dNames[dow]} ${d}/${m}/${a}</div>
+    <button onclick="salvarSnapDia('${equipId}','${date}','operando')" style="display:block;width:100%;text-align:left;padding:7px 12px;border:none;border-radius:6px;background:none;font-size:12px;font-weight:600;color:#065f46;cursor:pointer" onmouseover="this.style.background='#d1fae5'" onmouseout="this.style.background='none'">✅ Operando</button>
+    <button onclick="salvarSnapDia('${equipId}','${date}','restricao')" style="display:block;width:100%;text-align:left;padding:7px 12px;border:none;border-radius:6px;background:none;font-size:12px;font-weight:600;color:#92400e;cursor:pointer" onmouseover="this.style.background='#fef3c7'" onmouseout="this.style.background='none'">⚠️ Restrição</button>
+    <button onclick="salvarSnapDia('${equipId}','${date}','parado')" style="display:block;width:100%;text-align:left;padding:7px 12px;border:none;border-radius:6px;background:none;font-size:12px;font-weight:600;color:#991b1b;cursor:pointer" onmouseover="this.style.background='#fee2e2'" onmouseout="this.style.background='none'">❌ Parado</button>
+    <hr style="margin:6px 0;border:none;border-top:1px solid #f1f5f9">
+    <button onclick="salvarSnapDia('${equipId}','${date}','')" style="display:block;width:100%;text-align:left;padding:5px 12px;border:none;border-radius:6px;background:none;font-size:11px;color:#94a3b8;cursor:pointer" onmouseover="this.style.background='#f8fafc'" onmouseout="this.style.background='none'">— Limpar registro</button>`;
+  document.body.appendChild(popup);
+  const rect = el.getBoundingClientRect();
+  const top = rect.bottom + 4 + window.scrollY;
+  const left = Math.min(rect.left + window.scrollX, window.innerWidth - 170);
+  popup.style.top = top + 'px';
+  popup.style.left = left + 'px';
+  setTimeout(() => document.addEventListener('click', function h(e) {
+    if (!popup.contains(e.target)) { popup.remove(); document.removeEventListener('click', h); }
+  }), 50);
+};
+
+window.salvarSnapDia = async (equipId, date, status) => {
+  document.querySelectorAll('.snap-day-popup').forEach(p => p.remove());
+  const eq = (window._equipsRel || []).find(e => e.id === equipId);
+  if (!eq) return;
+  try {
+    if (status) {
+      await supabase.from('equipamentos_snapshot').upsert({
+        semana: date, equipamento_id: equipId,
+        equipamento_nome: eq.nome, equipamento_frota: eq.frota || '',
+        status, observacao: ''
+      }, { onConflict: 'semana,equipamento_id' });
+    } else {
+      await supabase.from('equipamentos_snapshot').delete()
+        .eq('semana', date).eq('equipamento_id', equipId);
+    }
+  } catch (e) { console.error(e); }
+  await carregar();
 };
 
 // ── Filtro categoria balanço ──────────────────────────────────────────────────
