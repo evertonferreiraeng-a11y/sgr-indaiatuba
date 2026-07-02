@@ -808,14 +808,13 @@ async function carregar() {
                   style="font-size:11px;padding:3px 8px;border:1px dashed #cbd5e1;border-radius:6px;color:#475569;outline:none;width:100%;box-sizing:border-box" />
               </div>
             </td>
-            <td style="text-align:center"><span style="background:${bgVar};color:${corVar};padding:2px 10px;border-radius:20px;font-size:11px;font-weight:800">${melhorou?'▲ Melhorou':'▼ Piorou'}</span></td>
             <td style="text-align:center">${badge(e.status)}</td>
           </tr>`;
         }).join('');
 
         // Stable rows (separator row + compact rows)
         const stableSep = stable.length ? `
-          <tr><td colspan="5" style="background:#f8fafc;border-top:2px solid #e2e8f0;padding:8px 12px">
+          <tr><td colspan="4" style="background:#f8fafc;border-top:2px solid #e2e8f0;padding:8px 12px">
             <span style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:#94a3b8">Sem alteração — ${stable.length} equipamento${stable.length>1?'s':''}</span>
           </td></tr>` : '';
 
@@ -833,13 +832,12 @@ async function carregar() {
                 ${obs ? `<span style="font-size:11px;color:#94a3b8;padding-left:2px">${obs}</span>` : ''}
               </div>
             </td>
-            <td style="text-align:center"><span style="color:#94a3b8;font-size:12px">${hasSnap?'= Igual':'—'}</span></td>
             <td style="text-align:center">${badge(e.status)}</td>
           </tr>`;
         }).join('');
 
         const noChangeBanner = changed.length===0 ? `
-          <tr><td colspan="5" style="background:#f0fdf4;border-left:3px solid #16a34a;padding:12px 16px;color:#166534;font-size:13px;font-weight:600">
+          <tr><td colspan="4" style="background:#f0fdf4;border-left:3px solid #16a34a;padding:12px 16px;color:#166534;font-size:13px;font-weight:600">
             ✅ Nenhuma alteração de status esta semana
           </td></tr>` : '';
 
@@ -850,7 +848,6 @@ async function carregar() {
                 <th>Equipamento</th>
                 <th>Nº Frota</th>
                 <th>Semana Passada</th>
-                <th style="text-align:center">Variação</th>
                 <th style="text-align:center">Situação Atual</th>
               </tr>
             </thead>
@@ -1086,24 +1083,8 @@ window.salvarSnapStatus = async (equipId, frota, nome, sel) => {
   }
   atualizarKpiEquip();
 
-  // Atualiza badge de variação na mesma linha
-  const row = sel.closest('tr');
-  if (row) {
-    const equStatus = row.querySelector('td:nth-child(4) span')?.textContent || '';
-    const atualStatus = equStatus.includes('Operando') ? 'operando' : equStatus.includes('Restrição') ? 'restricao' : equStatus.includes('Parado') ? 'parado' : '';
-    const varTd = row.querySelector('td:nth-child(6)');
-    if (varTd && atualStatus && status) {
-      if (atualStatus === status) {
-        varTd.innerHTML = '<span style="color:#94a3b8;font-size:12px">= Igual</span>';
-        row.style.background = '';
-      } else {
-        const melhorou = atualStatus === 'operando' || (atualStatus === 'restricao' && status === 'parado');
-        const cor = melhorou ? '#006636' : '#DC2626';
-        varTd.innerHTML = `<span style="background:${melhorou?'#d1fae5':'#fee2e2'};color:${cor};padding:2px 8px;border-radius:10px;font-size:11px;font-weight:700">${melhorou?'▲ Melhorou':'▼ Piorou'}</span>`;
-        row.style.background = '#fffbeb';
-      }
-    }
-  }
+  // Re-renderiza seção de equipamentos com nova classificação
+  carregar();
 };
 
 // ── Salvar observação da semana passada ──────────────────────────────────────
