@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="pt-BR">
 <head>
   <meta charset="UTF-8" />
@@ -240,7 +240,7 @@
 
 <div id="toast-container"></div>
 <script type="module">
-import { initPage, supabase, peso, ton, dataBR, toast, abrirModal, fecharModal, mesAtual, anoAtual } from './js/config.js';
+import { initPage, supabase, peso, ton, dataBR, toast, abrirModal, fecharModal, mesAtual, anoAtual } from './js/config.js?v=2';
 
 await initPage();
 
@@ -594,9 +594,9 @@ async function calcularMediaHistorica() {
 
   // Busca dados históricos paginados
   const PAGE = 1000;
+  const tipoMatMedia = document.getElementById('f-tipo-mat').value;
   let page = 0, histRows = [], done = false;
   while (!done) {
-    const tipoMatMedia = document.getElementById('f-tipo-mat').value;
     let q = supabase.from('entradas')
       .select('data, peso_liquido, fornecedores(nome)')
       .eq('tipo_movimentacao', 'entrada')
@@ -1016,3 +1016,4 @@ await init();
 </script>
 </body>
 </html>
+
