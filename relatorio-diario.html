@@ -360,12 +360,7 @@ function renderEquipamentos() {
       <td style="color:#64748b">${e.frota||'—'}</td>
       <td style="color:#64748b;font-size:12px">${e.funcao||'—'}</td>
       <td><span class="status-btn ${st.cls}">${st.icon} ${st.label}</span></td>
-      <td>
-        <input type="text" value="${(e.observacao_dia||'').replace(/"/g,'&quot;')}"
-          placeholder="Sem observações"
-          style="width:100%;border:1px solid #e2e8f0;border-radius:6px;padding:4px 8px;font-size:12px"
-          onblur="salvarObsEquip('${e.id}', this.value)" />
-      </td>
+      <td style="font-size:13px;color:${e.observacao?'#374151':'#94a3b8'}">${e.observacao||'Sem observações'}</td>
     </tr>`;
   }).join('');
 }
