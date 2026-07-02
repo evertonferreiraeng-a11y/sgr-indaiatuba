@@ -241,6 +241,13 @@
               <option value="outro">Outro</option>
             </select>
           </div>
+          <div class="form-group">
+            <label>Presença no dia</label>
+            <select name="presenca_no_dia" id="sel-presenca-oc" style="font-weight:600">
+              <option value="true">✔ Presente</option>
+              <option value="false">✖ Falta</option>
+            </select>
+          </div>
           <div class="form-group full">
             <label style="display:flex;align-items:center;gap:10px;cursor:pointer;font-weight:600">
               <input type="checkbox" name="conta_como_falta" id="chk-conta-falta" style="width:16px;height:16px;accent-color:#dc2626" />
@@ -735,11 +742,29 @@ window.novaOcPara = colabId => {
   document.getElementById('modal-oc-title').textContent = 'Nova Ocorrência';
   document.getElementById('form-oc').reset();
   document.getElementById('chk-conta-falta').checked = false;
+  document.getElementById('sel-presenca-oc').value = 'true';
   document.querySelector('#form-oc [name="id"]').value = '';
-  document.querySelector('#form-oc [name="data"]').value = new Date().toISOString().split('T')[0];
+  document.querySelector('#form-oc [name="data"]').value = presencaDataEl.value;
   document.querySelector('#form-oc [name="colaborador_id"]').value = colabId;
   abrirModal('modal-oc');
 };
+
+// Auto-preenche presença ao mudar tipo
+document.querySelector('#form-oc [name="tipo"]').addEventListener('change', e => {
+  const tipo = e.target.value;
+  const selP = document.getElementById('sel-presenca-oc');
+  const chkF = document.getElementById('chk-conta-falta');
+  if (tipo === 'falta') {
+    selP.value = 'false';
+    chkF.checked = true;
+  } else if (tipo === 'atestado') {
+    selP.value = 'false';
+    chkF.checked = false;
+  } else {
+    selP.value = 'true';
+    chkF.checked = false;
+  }
+});
 
 window.excluirOc = async id => {
   if (!confirm('Excluir esta ocorrência?')) return;
@@ -753,6 +778,7 @@ document.getElementById('btn-salvar-oc').addEventListener('click', async () => {
   const f = document.getElementById('form-oc');
   if (!f.checkValidity()) { f.reportValidity(); return; }
   const fd = Object.fromEntries(new FormData(f));
+  const presente = document.getElementById('sel-presenca-oc').value === 'true';
   const payload = { colaborador_id: fd.colaborador_id, tipo: fd.tipo, data: fd.data, descricao: fd.descricao||null, conta_como_falta: document.getElementById('chk-conta-falta').checked };
   if (fd.id) {
     const { error } = await supabase.from('ocorrencias').update(payload).eq('id', fd.id);
@@ -762,9 +788,13 @@ document.getElementById('btn-salvar-oc').addEventListener('click', async () => {
     const { error } = await supabase.from('ocorrencias').insert(payload);
     if (error) { toast('Erro: '+error.message,'error'); return; }
     toast('Ocorrência registrada!');
-    if ((fd.tipo === 'falta'||fd.tipo === 'atestado') && fd.data === new Date().toISOString().split('T')[0])
-      await supabase.from('equipe_diaria').delete().eq('colaborador_id', fd.colaborador_id).eq('data', fd.data);
   }
+  // Salva presença junto com a ocorrência
+  await supabase.from('presenca_diaria').upsert(
+    [{ colaborador_id: fd.colaborador_id, data: fd.data, presente, observacao: fd.descricao||null }],
+    { onConflict: 'colaborador_id,data' }
+  );
+  presencaMap[fd.colaborador_id] = { colaborador_id: fd.colaborador_id, data: fd.data, presente, observacao: fd.descricao||null };
   fecharModal('modal-oc');
   await recarregarTudo();
 });
