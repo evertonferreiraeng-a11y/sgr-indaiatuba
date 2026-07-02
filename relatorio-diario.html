@@ -1,0 +1,402 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Relatório Diário — SGR Indaiatuba</title>
+  <link rel="stylesheet" href="css/style.css" />
+  <style>
+    .rd-section { background:#fff; border:1px solid #e2e8f0; border-radius:10px; margin-bottom:20px; overflow:hidden; }
+    .rd-section-header { background:#f8fafc; border-bottom:2px solid #e2e8f0; padding:12px 18px; display:flex; align-items:center; justify-content:space-between; }
+    .rd-section-title { font-size:14px; font-weight:700; color:#1e293b; }
+    .rd-table { width:100%; border-collapse:collapse; font-size:13px; }
+    .rd-table th { padding:8px 14px; text-align:left; font-weight:700; color:#64748b; font-size:11px; text-transform:uppercase; letter-spacing:.4px; background:#f8fafc; border-bottom:1px solid #e2e8f0; }
+    .rd-table td { padding:10px 14px; border-bottom:1px solid #f1f5f9; color:#374151; }
+    .rd-table tr:last-child td { border-bottom:none; }
+    .status-badge { display:inline-block; padding:2px 10px; border-radius:10px; font-size:12px; font-weight:600; }
+    .badge-present { background:#d1fae5; color:#065f46; }
+    .badge-absent  { background:#fee2e2; color:#991b1b; }
+    .badge-op   { background:#d1fae5; color:#065f46; }
+    .badge-rest { background:#fef3c7; color:#92400e; }
+    .badge-inop { background:#fee2e2; color:#991b1b; }
+    .turno-btn { padding:6px 18px; border:1px solid #e2e8f0; background:#f8fafc; border-radius:6px; font-size:13px; font-weight:600; cursor:pointer; color:#374151; }
+    .turno-btn.active { background:#006636; color:#fff; border-color:#006636; }
+    .oc-add-row { display:flex; gap:8px; padding:12px 14px; border-top:1px solid #f1f5f9; }
+    .email-preview { background:#f8fafc; border:1px solid #e2e8f0; border-radius:8px; padding:16px; font-size:13px; white-space:pre-wrap; font-family:monospace; max-height:320px; overflow-y:auto; display:none; }
+    @media print {
+      .sidebar, .sidebar-toggle, .mobile-menu-btn, .sidebar-overlay, .no-print { display:none !important; }
+      .main-content { margin:0 !important; padding:16px !important; }
+      .rd-section { break-inside:avoid; }
+    }
+  </style>
+</head>
+<body>
+<div class="app-layout">
+  <div id="sidebar-root"></div>
+  <div class="main-content">
+
+    <div class="page-header no-print">
+      <div><h2>Relatório Diário de Operação</h2><p>Acompanhamento da unidade — manhã e tarde</p></div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap">
+        <button class="btn btn-outline no-print" id="btn-email">✉ Copiar para E-mail</button>
+        <button class="btn btn-outline no-print" onclick="window.print()">🖨 Imprimir</button>
+        <button class="btn btn-primary no-print" id="btn-gerar">↻ Atualizar</button>
+      </div>
+    </div>
+
+    <div class="page-body">
+
+      <!-- Cabeçalho do relatório -->
+      <div class="rd-section">
+        <div style="padding:16px 18px">
+          <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:16px;align-items:flex-end">
+            <div class="form-group" style="margin:0">
+              <label>Data</label>
+              <input type="date" id="rd-data" style="font-size:14px" />
+            </div>
+            <div class="form-group" style="margin:0">
+              <label>Turno</label>
+              <div style="display:flex;gap:6px;margin-top:4px">
+                <button class="turno-btn active" id="btn-manha" onclick="setTurno('manha')">🌅 Manhã</button>
+                <button class="turno-btn" id="btn-tarde" onclick="setTurno('tarde')">🌇 Tarde</button>
+              </div>
+            </div>
+            <div class="form-group" style="margin:0">
+              <label>Responsável pelo relatório</label>
+              <input type="text" id="rd-responsavel" placeholder="Nome do responsável" />
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 1. Equipamentos -->
+      <div class="rd-section" id="sec-equipamentos">
+        <div class="rd-section-header">
+          <span class="rd-section-title">🔧 Disponibilidade de Equipamentos</span>
+          <span id="equip-resumo" style="font-size:12px;color:#64748b"></span>
+        </div>
+        <table class="rd-table">
+          <thead>
+            <tr>
+              <th>Equipamento</th>
+              <th>Tipo</th>
+              <th>Status</th>
+              <th>Observação do Dia</th>
+            </tr>
+          </thead>
+          <tbody id="tbody-equip">
+            <tr><td colspan="4" style="padding:20px;text-align:center;color:#94a3b8">Carregando…</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- 2. RH — Presenças -->
+      <div class="rd-section" id="sec-rh">
+        <div class="rd-section-header">
+          <span class="rd-section-title">👥 Recursos Humanos — Presenças</span>
+          <span id="rh-resumo" style="font-size:12px;color:#64748b"></span>
+        </div>
+        <table class="rd-table">
+          <thead>
+            <tr>
+              <th>Colaborador</th>
+              <th>Cargo</th>
+              <th>Presença</th>
+              <th>Observação</th>
+              <th>Ocorrências do Dia</th>
+            </tr>
+          </thead>
+          <tbody id="tbody-rh">
+            <tr><td colspan="5" style="padding:20px;text-align:center;color:#94a3b8">Carregando…</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- 3. Ocorrências do Dia -->
+      <div class="rd-section">
+        <div class="rd-section-header">
+          <span class="rd-section-title">📋 Ocorrências do Dia</span>
+          <span style="font-size:12px;color:#64748b">Incidentes, manutenções, aplicações, etc.</span>
+        </div>
+        <table class="rd-table" id="tbl-oc-dia">
+          <thead>
+            <tr>
+              <th style="width:130px">Tipo</th>
+              <th>Descrição</th>
+              <th class="no-print" style="width:40px"></th>
+            </tr>
+          </thead>
+          <tbody id="tbody-oc-dia">
+            <tr><td colspan="3" style="padding:16px;text-align:center;color:#94a3b8">Nenhuma ocorrência registrada.</td></tr>
+          </tbody>
+        </table>
+        <div class="oc-add-row no-print">
+          <select id="oc-tipo" style="border:1px solid #e2e8f0;border-radius:6px;padding:6px 10px;font-size:13px;min-width:150px">
+            <option value="Geral">Geral</option>
+            <option value="Segurança">Segurança</option>
+            <option value="Acidente">Acidente</option>
+            <option value="Manutenção">Manutenção</option>
+            <option value="Dedetização">Dedetização</option>
+            <option value="Ambiental">Ambiental</option>
+            <option value="Qualidade">Qualidade</option>
+          </select>
+          <input type="text" id="oc-desc" placeholder="Descreva a ocorrência…" style="flex:1;border:1px solid #e2e8f0;border-radius:6px;padding:6px 10px;font-size:13px" />
+          <button class="btn btn-primary" id="btn-add-oc" style="white-space:nowrap">+ Adicionar</button>
+        </div>
+      </div>
+
+      <!-- Preview E-mail -->
+      <div id="email-preview-wrap" style="display:none;margin-bottom:20px">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
+          <span style="font-size:13px;font-weight:600;color:#374151">📋 Texto para copiar e colar no e-mail</span>
+          <button class="btn btn-primary btn-sm no-print" id="btn-copiar">📋 Copiar texto</button>
+        </div>
+        <div class="email-preview" id="email-preview"></div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<div id="toast-container"></div>
+<script type="module">
+import { initPage, supabase, dataBR, toast } from './js/config.js';
+
+await initPage();
+
+let turno = 'manha';
+let ocDia = []; // ocorrências manuais do dia
+let equipData = [], colabData = [], cargoData = [], presencaData = [], ocRhData = [];
+
+// ── Setup inicial ─────────────────────────────────────────────────────────────
+const rdData = document.getElementById('rd-data');
+rdData.value = new Date().toISOString().split('T')[0];
+rdData.addEventListener('change', carregar);
+
+window.setTurno = t => {
+  turno = t;
+  document.getElementById('btn-manha').classList.toggle('active', t === 'manha');
+  document.getElementById('btn-tarde').classList.toggle('active', t === 'tarde');
+};
+
+// ── Carregar dados ────────────────────────────────────────────────────────────
+async function carregar() {
+  const data = rdData.value;
+
+  const [r1, r2, r3, r4, r5] = await Promise.all([
+    supabase.from('equipamentos').select('*').order('nome'),
+    supabase.from('colaboradores').select('*').order('nome'),
+    supabase.from('cargos').select('*'),
+    supabase.from('presenca_diaria').select('*').eq('data', data),
+    supabase.from('ocorrencias').select('*').eq('data', data),
+  ]);
+
+  equipData    = r1.data || [];
+  colabData    = r2.data || [];
+  cargoData    = r3.data || [];
+  presencaData = r4.data || [];
+  ocRhData     = r5.data || [];
+
+  renderEquipamentos();
+  renderRH();
+}
+
+// ── Equipamentos ──────────────────────────────────────────────────────────────
+function renderEquipamentos() {
+  const tbody = document.getElementById('tbody-equip');
+  const STATUS = {
+    operando:    { label:'Operando',    cls:'badge-op'   },
+    restricao:   { label:'Restrição',   cls:'badge-rest' },
+    manutencao:  { label:'Manutenção',  cls:'badge-inop' },
+    inoperante:  { label:'Inoperante',  cls:'badge-inop' },
+  };
+  const ativos = equipData.filter(e => e.status !== 'baixado');
+  const op = ativos.filter(e => e.status === 'operando').length;
+  document.getElementById('equip-resumo').textContent =
+    `${op} / ${ativos.length} operando`;
+
+  if (!ativos.length) {
+    tbody.innerHTML = '<tr><td colspan="4" style="padding:20px;text-align:center;color:#94a3b8">Nenhum equipamento cadastrado.</td></tr>';
+    return;
+  }
+  tbody.innerHTML = ativos.map(e => {
+    const s = STATUS[e.status] || { label: e.status, cls:'' };
+    return `<tr>
+      <td style="font-weight:600">${e.nome}</td>
+      <td style="color:#64748b">${e.tipo||'—'}</td>
+      <td><span class="status-badge ${s.cls}">${s.label}</span></td>
+      <td>
+        <input type="text" class="equip-obs" data-id="${e.id}"
+          value="${(e.observacao_dia||'').replace(/"/g,'&quot;')}"
+          placeholder="Sem observações"
+          style="width:100%;border:1px solid #e2e8f0;border-radius:6px;padding:4px 8px;font-size:12px"
+          onblur="salvarObsEquip('${e.id}', this.value)" />
+      </td>
+    </tr>`;
+  }).join('');
+}
+
+window.salvarObsEquip = async (id, obs) => {
+  await supabase.from('equipamentos').update({ observacao_dia: obs||null }).eq('id', id);
+  const eq = equipData.find(e => e.id === id);
+  if (eq) eq.observacao_dia = obs;
+};
+
+// ── RH ────────────────────────────────────────────────────────────────────────
+function renderRH() {
+  const tbody = document.getElementById('tbody-rh');
+  const ativos = colabData.filter(c => !c.demissao);
+  const presMap = {};
+  presencaData.forEach(p => { presMap[p.colaborador_id] = p; });
+
+  const presentes = ativos.filter(c => presMap[c.id]?.presente !== false).length;
+  document.getElementById('rh-resumo').textContent =
+    `${presentes} / ${ativos.length} presentes`;
+
+  if (!ativos.length) {
+    tbody.innerHTML = '<tr><td colspan="5" style="padding:20px;text-align:center;color:#94a3b8">Nenhum colaborador ativo.</td></tr>';
+    return;
+  }
+  tbody.innerHTML = ativos.map(c => {
+    const p     = presMap[c.id];
+    const pres  = p ? p.presente : true;
+    const cargo = cargoData.find(x => x.id === c.cargo_id)?.nome || c.cargo || '—';
+    const ocs   = ocRhData.filter(o => o.colaborador_id === c.id);
+    const ocsHtml = ocs.length
+      ? ocs.map(o => `<div style="font-size:12px;color:#374151;margin-bottom:2px">
+          <span style="background:#f1f5f9;padding:1px 6px;border-radius:8px;font-size:11px;font-weight:600">${o.tipo}</span>
+          ${o.descricao||''}
+        </div>`).join('')
+      : '<span style="color:#94a3b8;font-size:12px">—</span>';
+    return `<tr>
+      <td style="font-weight:600">${c.nome}</td>
+      <td style="color:#64748b;font-size:12px">${cargo}</td>
+      <td><span class="status-badge ${pres ? 'badge-present' : 'badge-absent'}">${pres ? '✔ Presente' : '✖ Falta'}</span></td>
+      <td style="color:#64748b;font-size:12px">${p?.observacao||'—'}</td>
+      <td>${ocsHtml}</td>
+    </tr>`;
+  }).join('');
+}
+
+// ── Ocorrências do Dia ────────────────────────────────────────────────────────
+function renderOcDia() {
+  const tbody = document.getElementById('tbody-oc-dia');
+  if (!ocDia.length) {
+    tbody.innerHTML = '<tr><td colspan="3" style="padding:16px;text-align:center;color:#94a3b8">Nenhuma ocorrência registrada.</td></tr>';
+    return;
+  }
+  const TIPO_COR = {
+    Acidente: 'background:#fee2e2;color:#991b1b',
+    Segurança: 'background:#fef3c7;color:#92400e',
+    Dedetização: 'background:#ede9fe;color:#5b21b6',
+    Manutenção: 'background:#dbeafe;color:#1e40af',
+    Ambiental: 'background:#d1fae5;color:#065f46',
+    default: 'background:#f1f5f9;color:#475569',
+  };
+  tbody.innerHTML = ocDia.map((o, i) => {
+    const cor = TIPO_COR[o.tipo] || TIPO_COR.default;
+    return `<tr>
+      <td><span class="status-badge" style="${cor}">${o.tipo}</span></td>
+      <td>${o.desc}</td>
+      <td class="no-print"><button onclick="removerOc(${i})" style="background:none;border:none;cursor:pointer;color:#dc2626;font-size:16px">🗑</button></td>
+    </tr>`;
+  }).join('');
+}
+
+document.getElementById('btn-add-oc').addEventListener('click', () => {
+  const desc = document.getElementById('oc-desc').value.trim();
+  const tipo = document.getElementById('oc-tipo').value;
+  if (!desc) { toast('Descreva a ocorrência', 'error'); return; }
+  ocDia.push({ tipo, desc });
+  document.getElementById('oc-desc').value = '';
+  renderOcDia();
+});
+
+window.removerOc = i => {
+  ocDia.splice(i, 1);
+  renderOcDia();
+};
+
+// ── Gerar texto para e-mail ───────────────────────────────────────────────────
+document.getElementById('btn-email').addEventListener('click', () => {
+  const data     = rdData.value;
+  const [y,m,d]  = data.split('-');
+  const dataFmt  = `${d}/${m}/${y}`;
+  const turnoStr = turno === 'manha' ? 'Manhã' : 'Tarde';
+  const resp     = document.getElementById('rd-responsavel').value || '—';
+  const ativos   = colabData.filter(c => !c.demissao);
+  const presMap  = {};
+  presencaData.forEach(p => { presMap[p.colaborador_id] = p; });
+
+  const sepLinha = '─'.repeat(50);
+
+  let txt = `RELATÓRIO DIÁRIO DE OPERAÇÃO — UVR INDAIATUBA\n`;
+  txt += `Data: ${dataFmt}  |  Turno: ${turnoStr}  |  Responsável: ${resp}\n`;
+  txt += `${sepLinha}\n\n`;
+
+  // Equipamentos
+  txt += `🔧 EQUIPAMENTOS\n`;
+  const equAtivos = equipData.filter(e => e.status !== 'baixado');
+  const op = equAtivos.filter(e => e.status === 'operando').length;
+  txt += `Disponibilidade: ${op}/${equAtivos.length} operando\n\n`;
+  equAtivos.forEach(e => {
+    const STATUS = { operando:'Operando', restricao:'Restrição', manutencao:'Manutenção', inoperante:'Inoperante' };
+    txt += `  • ${e.nome} (${e.tipo||'—'}): ${STATUS[e.status]||e.status}`;
+    if (e.observacao_dia) txt += ` — ${e.observacao_dia}`;
+    txt += '\n';
+  });
+
+  txt += `\n${sepLinha}\n\n`;
+
+  // RH
+  const presentes = ativos.filter(c => presMap[c.id]?.presente !== false).length;
+  txt += `👥 RECURSOS HUMANOS\n`;
+  txt += `Presença: ${presentes}/${ativos.length} colaboradores presentes\n\n`;
+  ativos.forEach(c => {
+    const p     = presMap[c.id];
+    const pres  = p ? p.presente : true;
+    const cargo = cargoData.find(x => x.id === c.cargo_id)?.nome || c.cargo || '';
+    txt += `  ${pres ? '✔' : '✖'} ${c.nome}${cargo ? ` (${cargo})` : ''}`;
+    if (p?.observacao) txt += ` — ${p.observacao}`;
+    txt += '\n';
+    const ocs = ocRhData.filter(o => o.colaborador_id === c.id);
+    ocs.forEach(o => { txt += `      ↳ [${o.tipo}] ${o.descricao||''}\n`; });
+  });
+
+  txt += `\n${sepLinha}\n\n`;
+
+  // Ocorrências
+  txt += `📋 OCORRÊNCIAS DO DIA\n`;
+  if (!ocDia.length) {
+    txt += `  Nenhuma ocorrência registrada.\n`;
+  } else {
+    ocDia.forEach(o => { txt += `  • [${o.tipo}] ${o.desc}\n`; });
+  }
+
+  txt += `\n${sepLinha}\n`;
+  txt += `Relatório gerado pelo Sistema SGR Indaiatuba`;
+
+  const wrap = document.getElementById('email-preview-wrap');
+  const prev = document.getElementById('email-preview');
+  prev.textContent = txt;
+  prev.style.display = 'block';
+  wrap.style.display = 'block';
+  wrap.scrollIntoView({ behavior:'smooth' });
+});
+
+document.getElementById('btn-copiar').addEventListener('click', () => {
+  const txt = document.getElementById('email-preview').textContent;
+  navigator.clipboard.writeText(txt).then(() => toast('Texto copiado!')).catch(() => {
+    const ta = document.createElement('textarea');
+    ta.value = txt; document.body.appendChild(ta); ta.select();
+    document.execCommand('copy'); ta.remove(); toast('Texto copiado!');
+  });
+});
+
+document.getElementById('btn-gerar').addEventListener('click', carregar);
+
+renderOcDia();
+await carregar();
+</script>
+</body>
+</html>
