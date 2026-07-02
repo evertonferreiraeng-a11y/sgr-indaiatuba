@@ -472,6 +472,7 @@ async function carregar() {
             <th style="text-align:right">Previsto</th>
             <th style="text-align:right">Ton Vendidas</th>
             <th style="text-align:right">Atingimento</th>
+            <th style="text-align:right">Variação</th>
             <th style="text-align:right">Ticket Médio</th>
           </tr>
         </thead>
@@ -484,12 +485,22 @@ async function carregar() {
               const cor   = fatPrev[i]>0 ? (fatReal[i]>=fatPrev[i]?'#006636':'#DC2626') : '#374151';
               const tk    = fatKg[i]>0 ? moeda(fatReal[i]/(fatKg[i]/1000)) : '—';
               const rowBg = i===mesAtualIdx ? 'background:#dcfce7' : '';
+              // Variação mês a mês
+              const ant = i > 0 ? fatReal[i-1] : null;
+              let varCell = '<td style="text-align:right;color:#94a3b8">—</td>';
+              if (ant !== null && ant > 0 && fatReal[i] > 0) {
+                const varPct = ((fatReal[i] - ant) / ant * 100).toFixed(1);
+                const sinal  = varPct > 0 ? '▲' : '▼';
+                const corVar = varPct > 0 ? '#006636' : '#DC2626';
+                varCell = `<td style="text-align:right;color:${corVar};font-weight:600">${sinal} ${Math.abs(varPct)}%</td>`;
+              }
               return `<tr style="${rowBg}">
                 <td>${i===mesAtualIdx?`<strong>${m}</strong>`:m}</td>
                 <td style="text-align:right">${fatReal[i]>0?moeda(fatReal[i]):'—'}</td>
                 <td style="text-align:right">${fatPrev[i]>0?moeda(fatPrev[i]):'—'}</td>
                 <td style="text-align:right">${fatKg[i]>0?ton(fatKg[i]):'—'}</td>
                 <td style="text-align:right;color:${cor};font-weight:600">${ating}</td>
+                ${varCell}
                 <td style="text-align:right">${tk}</td>
               </tr>`;
             });
@@ -500,6 +511,7 @@ async function carregar() {
               <td style="text-align:right">${totP>0?moeda(totP):'—'}</td>
               <td style="text-align:right">${totKg>0?ton(totKg):'—'}</td>
               <td style="text-align:right">${atingG}</td>
+              <td style="text-align:right">—</td>
               <td style="text-align:right">${totKg>0?moeda(totR/(totKg/1000)):'—'}</td>
             </tr>`);
             return rows.join('');
