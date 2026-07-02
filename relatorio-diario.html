@@ -5,6 +5,8 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Relatório Diário — SGR Indaiatuba</title>
   <link rel="stylesheet" href="css/style.css" />
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
   <style>
     .rd-section { background:#fff; border:1px solid #e2e8f0; border-radius:10px; margin-bottom:20px; overflow:hidden; }
     .rd-section-header { background:#f8fafc; border-bottom:2px solid #e2e8f0; padding:12px 18px; display:flex; align-items:center; justify-content:space-between; }
@@ -793,16 +795,77 @@ if (_btnCopiar) _btnCopiar.addEventListener('click', () => {
 
 document.getElementById('btn-gerar').addEventListener('click', carregar);
 
-// ── Imprimir PDF ──────────────────────────────────────────────────────────────
-document.getElementById('btn-imprimir').addEventListener('click', () => {
-  const data    = rdData.value;
-  const [y,m,d] = data.split('-');
+// ── Gerar PDF (html2canvas + jsPDF) ──────────────────────────────────────────
+async function gerarPDF() {
+  const data     = rdData.value;
+  const [y,m,d]  = data.split('-');
   const turnoStr = turno === 'manha' ? 'Manhã' : 'Tarde';
-  const resp    = document.getElementById('rd-responsavel').value || '—';
+  const resp     = document.getElementById('rd-responsavel').value || '—';
+
+  // Preenche cabeçalho
   document.getElementById('pdf-data-turno').textContent  = `Data: ${d}/${m}/${y}  |  Turno: ${turnoStr}`;
   document.getElementById('pdf-responsavel').textContent = `Responsável: ${resp}`;
-  window.print();
-});
+
+  // Mostra cabeçalho PDF e esconde botões
+  const pdfHeader = document.querySelector('.pdf-header');
+  const noPrint   = document.querySelectorAll('.no-print');
+  pdfHeader.style.display = 'block';
+  noPrint.forEach(el => el.style.visibility = 'hidden');
+
+  try {
+    const { jsPDF } = window.jspdf;
+    const conteudo  = document.querySelector('.main-content');
+
+    const canvas = await html2canvas(conteudo, {
+      scale: 2,
+      useCORS: true,
+      logging: false,
+      backgroundColor: '#ffffff',
+    });
+
+    const imgData  = canvas.toDataURL('image/jpeg', 0.92);
+    const pdf      = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
+    const pageW    = pdf.internal.pageSize.getWidth();
+    const pageH    = pdf.internal.pageSize.getHeight();
+    const margin   = 10;
+    const usableW  = pageW - margin * 2;
+    const imgH     = (canvas.height * usableW) / canvas.width;
+
+    let posY = margin;
+    let restante = imgH;
+
+    // Fatia a imagem em páginas A4
+    const totalPages = Math.ceil(imgH / (pageH - margin * 2));
+    for (let p = 0; p < totalPages; p++) {
+      if (p > 0) pdf.addPage();
+      const sliceH  = pageH - margin * 2;
+      const srcY    = p * (canvas.height / totalPages);
+      const srcH    = canvas.height / totalPages;
+
+      // Recorta slice da imagem original
+      const slice   = document.createElement('canvas');
+      slice.width   = canvas.width;
+      slice.height  = srcH;
+      slice.getContext('2d').drawImage(canvas, 0, srcY, canvas.width, srcH, 0, 0, canvas.width, srcH);
+
+      pdf.addImage(slice.toDataURL('image/jpeg', 0.92), 'JPEG', margin, margin, usableW, sliceH);
+    }
+
+    const nomeArq = `Relatorio-Diario-${d}-${m}-${y}-${turnoStr}.pdf`;
+    pdf.save(nomeArq);
+    toast('PDF gerado e baixado!');
+    return nomeArq;
+  } catch (err) {
+    console.error(err);
+    toast('Erro ao gerar PDF: ' + err.message, 'error');
+    return null;
+  } finally {
+    pdfHeader.style.display = 'none';
+    noPrint.forEach(el => el.style.visibility = '');
+  }
+}
+
+document.getElementById('btn-imprimir').addEventListener('click', gerarPDF);
 
 // ── Gestão de E-mails ─────────────────────────────────────────────────────────
 const EMAIL_KEY = 'sgr-emails-salvos';
@@ -862,31 +925,32 @@ document.getElementById('btn-abrir-email').addEventListener('click', () => {
   document.getElementById('modal-email').classList.add('open');
 });
 
-document.getElementById('btn-pdf-email').addEventListener('click', () => {
-  const data    = rdData.value;
-  const [y,m,d] = data.split('-');
-  const turnoStr = turno === 'manha' ? 'Manhã' : 'Tarde';
-  const resp    = document.getElementById('rd-responsavel').value || '—';
-  document.getElementById('pdf-data-turno').textContent  = `Data: ${d}/${m}/${y}  |  Turno: ${turnoStr}`;
-  document.getElementById('pdf-responsavel').textContent = `Responsável: ${resp}`;
+document.getElementById('btn-pdf-email').addEventListener('click', async () => {
   fecharModalEmail();
-  setTimeout(() => window.print(), 200);
+  await gerarPDF();
 });
 
-document.getElementById('btn-enviar-email').addEventListener('click', () => {
+document.getElementById('btn-enviar-email').addEventListener('click', async () => {
   const selecionados = [...document.querySelectorAll('.email-chk:checked')]
     .map(chk => getEmails()[parseInt(chk.dataset.idx)]?.email)
     .filter(Boolean);
 
   if (!selecionados.length) { toast('Selecione ao menos um destinatário', 'error'); return; }
 
-  const data    = rdData.value;
-  const [y,m,d] = data.split('-');
+  fecharModalEmail();
+
+  // Gera e baixa o PDF automaticamente
+  toast('Gerando PDF para anexar…');
+  const nomeArq = await gerarPDF();
+
+  // Abre o cliente de e-mail
+  const data     = rdData.value;
+  const [y,m,d]  = data.split('-');
   const turnoStr = turno === 'manha' ? 'Manhã' : 'Tarde';
-  const ativos  = equipData.filter(e => e.status !== 'baixado');
-  const op      = ativos.filter(e => e.status === 'operando').length;
-  const colabs  = colabData.filter(c => !c.demissao);
-  const presMap = {};
+  const ativos   = equipData.filter(e => e.status !== 'baixado');
+  const op       = ativos.filter(e => e.status === 'operando').length;
+  const colabs   = colabData.filter(c => !c.demissao);
+  const presMap  = {};
   presencaData.forEach(p => { presMap[p.colaborador_id] = p; });
   const presentes = colabs.filter(c => presMap[c.id]?.presente !== false).length;
 
@@ -899,11 +963,13 @@ document.getElementById('btn-enviar-email').addEventListener('click', () => {
     `Operando: ${op}/${ativos.length}\n\n` +
     `👥 RH\n` +
     `Presença: ${presentes}/${colabs.length} (${colabs.length ? Math.round(presentes/colabs.length*100) : 0}%)\n\n` +
-    `(Anexe o PDF gerado pelo botão "Gerar PDF")`
+    `⚠️ O PDF foi baixado automaticamente (${nomeArq || 'Relatorio-Diario.pdf'}).\n` +
+    `Anexe o arquivo ao e-mail antes de enviar.`
   );
 
-  window.location.href = `mailto:${selecionados.join(',')}?subject=${assunto}&body=${corpo}`;
-  fecharModalEmail();
+  setTimeout(() => {
+    window.location.href = `mailto:${selecionados.join(',')}?subject=${assunto}&body=${corpo}`;
+  }, 800);
 });
 
 document.getElementById('modal-email').addEventListener('click', e => {
