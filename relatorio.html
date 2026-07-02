@@ -727,180 +727,145 @@ async function carregar() {
       })()}
 
       ${(() => {
-        const statusMap = {
-          operando:  { label:'✅ Operando',  cor:'#065f46', bg:'#d1fae5' },
-          restricao: { label:'⚠️ Restrição', cor:'#92400e', bg:'#fef3c7' },
-          parado:    { label:'❌ Parado',     cor:'#991b1b', bg:'#fee2e2' },
+        const SM = {
+          operando:  { label:'Operando',   cor:'#065f46', bg:'#d1fae5', icon:'✅' },
+          restricao: { label:'Restrição',  cor:'#92400e', bg:'#fef3c7', icon:'⚠️' },
+          parado:    { label:'Parado',     cor:'#991b1b', bg:'#fee2e2', icon:'❌' },
+        };
+        const badge = s => {
+          const m = SM[s]; if (!m) return `<span style="color:#94a3b8">—</span>`;
+          return `<span style="display:inline-flex;align-items:center;gap:4px;background:${m.bg};color:${m.cor};padding:3px 12px;border-radius:20px;font-size:12px;font-weight:700;white-space:nowrap">${m.icon} ${m.label}</span>`;
         };
         const sorted = [...equipamentos].sort((a,b)=>a.nome.localeCompare(b.nome));
 
-        // Classify each equipment
-        const changed = [], unchanged = [], noData = [];
+        // Classify
+        const changed = [], stable = [];
         sorted.forEach(e => {
-          const snap = snapMap[e.id] || null;
-          const ant  = snap?.status || null;
-          if (!ant) { noData.push(e); return; }
-          if (ant !== e.status) changed.push(e);
-          else unchanged.push(e);
+          const ant = snapMap[e.id]?.status || null;
+          if (ant && ant !== e.status) changed.push(e);
+          else stable.push(e);
         });
 
-        // Executive summary
-        const snapVals2   = Object.values(snapMap);
-        const snapTotal2  = snapVals2.length;
-        const snapOp2     = snapVals2.filter(s=>s?.status==='operando').length;
-        const snapRes2    = snapVals2.filter(s=>s?.status==='restricao').length;
-        const snapPct2    = snapTotal2 ? Math.round((snapOp2+snapRes2)/snapTotal2*100) : null;
-        const delta2      = snapPct2 !== null ? equPct - snapPct2 : null;
+        // Executive summary vars
+        const snapVals2 = Object.values(snapMap);
+        const snapTotal2 = snapVals2.length;
+        const snapPct2 = snapTotal2 ? Math.round(snapVals2.filter(s=>s?.status==='operando'||s?.status==='restricao').length/snapTotal2*100) : null;
+        const delta2 = snapPct2 !== null ? equPct - snapPct2 : null;
+        const retornaram = changed.filter(e => { const a=snapMap[e.id]?.status; return e.status==='operando'||(e.status==='restricao'&&a==='parado'); });
+        const pioraram   = changed.filter(e => { const a=snapMap[e.id]?.status; return !(e.status==='operando'||(e.status==='restricao'&&a==='parado')); });
 
-        const retornaram = changed.filter(e => {
-          const ant = snapMap[e.id]?.status;
-          return e.status==='operando' || (e.status==='restricao' && ant==='parado');
-        });
-        const pioraram = changed.filter(e => {
-          const ant = snapMap[e.id]?.status;
-          return !(e.status==='operando' || (e.status==='restricao' && ant==='parado'));
-        });
-
+        // Executive summary block
         let resumoHtml = '';
         if (snapPct2 !== null) {
-          const sinalDelta = delta2 > 0 ? `▲ +${delta2}%` : delta2 < 0 ? `▼ ${delta2}%` : '= Igual';
-          const corDelta   = delta2 > 0 ? '#006636' : delta2 < 0 ? '#DC2626' : '#64748b';
+          const corD = delta2>0?'#006636':delta2<0?'#DC2626':'#64748b';
+          const sinalD = delta2>0?`▲ +${delta2}%`:delta2<0?`▼ ${delta2}%`:'= Estável';
           const partes = [];
-          if (retornaram.length) partes.push(`<strong style="color:#006636">${retornaram.length} equipamento${retornaram.length>1?'s':''} retornou${retornaram.length>1?'ram':''} à operação</strong>`);
+          if (retornaram.length) partes.push(`<strong style="color:#006636">${retornaram.length} retornou${retornaram.length>1?'ram':''} à operação</strong>`);
           if (pioraram.length)   partes.push(`<strong style="color:#DC2626">${pioraram.length} entrou${pioraram.length>1?'ram':''} em manutenção</strong>`);
-          if (!partes.length)    partes.push('<strong style="color:#64748b">nenhuma alteração de status</strong>');
-          const fraseMudancas = partes.join(' e ');
+          if (!partes.length)    partes.push('<strong style="color:#475569">sem alterações de status</strong>');
           resumoHtml = `
-          <div style="background:#f8fafc;border-left:4px solid ${corDelta};border-radius:6px;padding:14px 18px;margin-bottom:18px;line-height:1.7">
-            <div style="font-size:13px;font-weight:700;color:#1e293b;margin-bottom:4px">Resumo da semana</div>
-            <div style="font-size:13px;color:#334155">Esta semana: ${fraseMudancas}.</div>
-            <div style="font-size:13px;color:#334155">Disponibilidade: <span style="font-weight:700">${snapPct2}%</span> (semana passada) → <span style="font-weight:700;color:${equPct>=80?'#006636':equPct>=50?'#D97706':'#DC2626'}">${equPct}%</span> (esta semana) <span style="font-weight:700;color:${corDelta}">${sinalDelta}</span>.</div>
+          <div style="display:grid;grid-template-columns:1fr auto;align-items:center;background:#f8fafc;border:1px solid #e2e8f0;border-left:4px solid ${corD};border-radius:8px;padding:16px 20px;margin-bottom:20px">
+            <div>
+              <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.6px;color:#94a3b8;margin-bottom:6px">Resumo Semanal</div>
+              <div style="font-size:14px;color:#1e293b;line-height:1.6">Esta semana: ${partes.join(' e ')}.</div>
+              <div style="font-size:13px;color:#64748b;margin-top:4px">Disponibilidade passou de <strong>${snapPct2}%</strong> para <strong style="color:${equPct>=80?'#006636':equPct>=50?'#D97706':'#DC2626'}">${equPct}%</strong>.</div>
+            </div>
+            <div style="text-align:right;padding-left:24px;border-left:1px solid #e2e8f0">
+              <div style="font-size:11px;color:#94a3b8;margin-bottom:2px">Variação</div>
+              <div style="font-size:28px;font-weight:800;color:${corD};letter-spacing:-1px">${sinalD}</div>
+            </div>
           </div>`;
         }
 
-        // Row renderer for changed equipment
-        const rowChanged = e => {
-          const snap  = snapMap[e.id] || {};
-          const ant   = snap.status || null;
-          const obs   = snap.obs || '';
-          const st    = statusMap[e.status] || { label:e.status||'—', cor:'#374151', bg:'#f1f5f9' };
-          const stAnt = ant ? (statusMap[ant] || { label:ant, cor:'#374151', bg:'#f1f5f9' }) : null;
-          const melhorou = e.status==='operando' || (e.status==='restricao' && ant==='parado');
-          const corVar = melhorou ? '#006636' : '#DC2626';
-          const selStyle = `font-size:12px;padding:3px 8px;border-radius:8px;border:1px solid #e2e8f0;cursor:pointer;font-weight:600;`;
-          const snapCor  = ant==='operando'?'background:#d1fae5;color:#065f46':ant==='restricao'?'background:#fef3c7;color:#92400e':ant==='parado'?'background:#fee2e2;color:#991b1b':'background:#f1f5f9;color:#94a3b8';
-          return `<tr style="background:${melhorou?'#f0fdf4':'#fff5f5'}">
-            <td style="font-weight:700">${e.nome}</td>
-            <td style="color:#64748b;font-size:13px">${e.frota||'—'}</td>
-            <td style="text-align:center">${stAnt?`<span style="background:${stAnt.bg};color:${stAnt.cor};padding:2px 10px;border-radius:10px;font-size:12px;font-weight:600">${stAnt.label}</span>`:'—'}</td>
-            <td style="text-align:center;font-size:18px">→</td>
-            <td style="text-align:center"><span style="background:${st.bg};color:${st.cor};padding:2px 10px;border-radius:10px;font-size:12px;font-weight:600">${st.label}</span></td>
-            <td style="text-align:center"><span style="background:${melhorou?'#d1fae5':'#fee2e2'};color:${corVar};padding:2px 10px;border-radius:10px;font-size:11px;font-weight:700">${melhorou?'▲ Melhorou':'▼ Piorou'}</span></td>
+        // Single unified table
+        const selOpts = (ant) => `
+          <option value="" ${!ant?'selected':''}>— selecione —</option>
+          <option value="operando"  ${ant==='operando' ?'selected':''}>✅ Operando</option>
+          <option value="restricao" ${ant==='restricao'?'selected':''}>⚠️ Restrição</option>
+          <option value="parado"    ${ant==='parado'   ?'selected':''}>❌ Parado</option>`;
+
+        const selStyle = (ant) => {
+          const c = ant==='operando'?'background:#d1fae5;color:#065f46':ant==='restricao'?'background:#fef3c7;color:#92400e':ant==='parado'?'background:#fee2e2;color:#991b1b':'background:#f1f5f9;color:#94a3b8';
+          return `font-size:12px;padding:4px 8px;border-radius:8px;border:1px solid #e2e8f0;cursor:pointer;font-weight:600;${c}`;
+        };
+
+        // Changed rows (with colored left border)
+        const changedRows = changed.map(e => {
+          const snap = snapMap[e.id]||{};
+          const ant  = snap.status||null;
+          const obs  = snap.obs||'';
+          const melhorou = e.status==='operando'||(e.status==='restricao'&&ant==='parado');
+          const corVar = melhorou?'#006636':'#DC2626';
+          const bgVar  = melhorou?'#d1fae5':'#fee2e2';
+          return `<tr style="background:${melhorou?'#f0fdf4':'#fff7f7'}">
+            <td style="border-left:3px solid ${corVar};padding-left:10px;font-weight:700;color:#0f172a">${e.nome}</td>
+            <td style="color:#64748b;font-size:12px">${e.frota||'—'}</td>
+            <td style="text-align:center">${badge(ant)}</td>
+            <td style="text-align:center"><span style="background:${bgVar};color:${corVar};padding:2px 10px;border-radius:20px;font-size:11px;font-weight:800">${melhorou?'▲ Melhorou':'▼ Piorou'}</span></td>
+            <td style="text-align:center">${badge(e.status)}</td>
             <td>
-              <div style="display:flex;flex-direction:column;gap:4px">
-                <select onchange="salvarSnapStatus('${e.id}','${e.frota||''}','${e.nome}',this)" style="${selStyle}${snapCor}">
-                  <option value="" ${!ant?'selected':''}>— sem dados —</option>
-                  <option value="operando"  ${ant==='operando' ?'selected':''}>✅ Operando</option>
-                  <option value="restricao" ${ant==='restricao'?'selected':''}>⚠️ Restrição</option>
-                  <option value="parado"    ${ant==='parado'   ?'selected':''}>❌ Parado</option>
-                </select>
-                <input type="text" value="${obs.replace(/"/g,'&quot;')}"
-                  placeholder="Contexto semana passada…"
+              <div style="display:flex;flex-direction:column;gap:5px">
+                <select onchange="salvarSnapStatus('${e.id}','${e.frota||''}','${e.nome}',this)" style="${selStyle(ant)}">${selOpts(ant)}</select>
+                <input type="text" value="${obs.replace(/"/g,'&quot;')}" placeholder="Observação semana passada…"
                   oninput="salvarSnapObs('${e.id}',this.value)"
-                  style="width:160px;font-size:11px;padding:3px 6px;border:1px dashed #cbd5e1;border-radius:4px;color:#475569;outline:none" />
+                  style="font-size:11px;padding:3px 8px;border:1px dashed #cbd5e1;border-radius:6px;color:#475569;outline:none;width:100%;box-sizing:border-box" />
               </div>
             </td>
           </tr>`;
-        };
+        }).join('');
 
-        // Row renderer for unchanged equipment (compact)
-        const rowUnchanged = e => {
-          const snap = snapMap[e.id] || {};
-          const ant  = snap.status || null;
-          const obs  = snap.obs || '';
-          const st   = statusMap[e.status] || { label:e.status||'—', cor:'#374151', bg:'#f1f5f9' };
-          const selStyle = `font-size:12px;padding:3px 8px;border-radius:8px;border:1px solid #e2e8f0;cursor:pointer;font-weight:600;`;
-          const snapCor  = ant==='operando'?'background:#d1fae5;color:#065f46':ant==='restricao'?'background:#fef3c7;color:#92400e':ant==='parado'?'background:#fee2e2;color:#991b1b':'background:#f1f5f9;color:#94a3b8';
-          return `<tr style="opacity:0.7">
-            <td style="font-weight:600;color:#64748b">${e.nome}</td>
-            <td style="color:#94a3b8;font-size:13px">${e.frota||'—'}</td>
-            <td style="text-align:center" colspan="2"><span style="color:#94a3b8;font-size:12px">= Igual</span></td>
-            <td style="text-align:center"><span style="background:${st.bg};color:${st.cor};padding:2px 10px;border-radius:10px;font-size:12px;font-weight:600">${st.label}</span></td>
-            <td></td>
+        // Stable rows (separator row + compact rows)
+        const stableSep = stable.length ? `
+          <tr><td colspan="6" style="background:#f8fafc;border-top:2px solid #e2e8f0;padding:8px 12px">
+            <span style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:#94a3b8">Sem alteração — ${stable.length} equipamento${stable.length>1?'s':''}</span>
+          </td></tr>` : '';
+
+        const stableRows = stable.map(e => {
+          const snap = snapMap[e.id]||{};
+          const ant  = snap.status||null;
+          const obs  = snap.obs||'';
+          const hasSnap = !!ant;
+          return `<tr>
+            <td style="border-left:3px solid #e2e8f0;padding-left:10px;color:#334155;font-weight:600">${e.nome}</td>
+            <td style="color:#94a3b8;font-size:12px">${e.frota||'—'}</td>
+            <td style="text-align:center">${hasSnap ? badge(ant) : '<span style="color:#cbd5e1;font-size:12px">—</span>'}</td>
+            <td style="text-align:center"><span style="color:#94a3b8;font-size:12px">${hasSnap?'= Igual':'sem dados'}</span></td>
+            <td style="text-align:center">${badge(e.status)}</td>
             <td>
-              <div style="display:flex;flex-direction:column;gap:4px">
-                <select onchange="salvarSnapStatus('${e.id}','${e.frota||''}','${e.nome}',this)" style="${selStyle}${snapCor}">
-                  <option value="" ${!ant?'selected':''}>— sem dados —</option>
-                  <option value="operando"  ${ant==='operando' ?'selected':''}>✅ Operando</option>
-                  <option value="restricao" ${ant==='restricao'?'selected':''}>⚠️ Restrição</option>
-                  <option value="parado"    ${ant==='parado'   ?'selected':''}>❌ Parado</option>
-                </select>
-                ${obs ? `<span style="font-size:11px;color:#94a3b8">${obs}</span>` : ''}
+              <div style="display:flex;flex-direction:column;gap:5px">
+                <select onchange="salvarSnapStatus('${e.id}','${e.frota||''}','${e.nome}',this)" style="${selStyle(ant)}">${selOpts(ant)}</select>
+                ${obs ? `<span style="font-size:11px;color:#94a3b8;padding-left:2px">${obs}</span>` : ''}
               </div>
             </td>
           </tr>`;
-        };
+        }).join('');
 
-        // Row renderer for equipment with no snapshot data
-        const rowNoData = e => {
-          const st = statusMap[e.status] || { label:e.status||'—', cor:'#374151', bg:'#f1f5f9' };
-          const selStyle = `font-size:12px;padding:3px 8px;border-radius:8px;border:1px solid #e2e8f0;cursor:pointer;font-weight:600;background:#f1f5f9;color:#94a3b8`;
-          return `<tr style="opacity:0.55">
-            <td style="font-weight:600;color:#94a3b8">${e.nome}</td>
-            <td style="color:#cbd5e1;font-size:13px">${e.frota||'—'}</td>
-            <td colspan="2" style="text-align:center;color:#cbd5e1;font-size:11px">sem dados anteriores</td>
-            <td style="text-align:center"><span style="background:${st.bg};color:${st.cor};padding:2px 10px;border-radius:10px;font-size:12px;font-weight:600">${st.label}</span></td>
-            <td></td>
-            <td>
-              <select onchange="salvarSnapStatus('${e.id}','${e.frota||''}','${e.nome}',this)" style="${selStyle}">
-                <option value="" selected>— sem dados —</option>
-                <option value="operando">✅ Operando</option>
-                <option value="restricao">⚠️ Restrição</option>
-                <option value="parado">❌ Parado</option>
-              </select>
-            </td>
-          </tr>`;
-        };
+        const noChangeBanner = changed.length===0 ? `
+          <tr><td colspan="6" style="background:#f0fdf4;border-left:3px solid #16a34a;padding:12px 16px;color:#166534;font-size:13px;font-weight:600">
+            ✅ Nenhuma alteração de status esta semana
+          </td></tr>` : '';
 
-        const hasChanges = changed.length > 0;
-        const changedSection = hasChanges ? `
-          <div style="font-size:11px;font-weight:700;text-transform:uppercase;color:#64748b;letter-spacing:.5px;margin-bottom:6px">
-            Alterações desta semana <span style="background:#fee2e2;color:#991b1b;border-radius:10px;padding:1px 8px;margin-left:4px">${changed.length}</span>
-          </div>
-          <table class="rel-table" style="margin-bottom:18px">
-            <thead><tr>
-              <th>Equipamento</th><th>Nº Frota</th>
-              <th style="text-align:center">Semana Passada</th>
-              <th style="text-align:center"></th>
-              <th style="text-align:center">Situação Atual</th>
-              <th style="text-align:center">Variação</th>
-              <th>Contexto semana passada</th>
-            </tr></thead>
-            <tbody>${changed.map(rowChanged).join('')}</tbody>
-          </table>` : `
-          <div style="background:#f0fdf4;border-radius:6px;padding:12px 16px;margin-bottom:18px;color:#166534;font-size:13px;font-weight:600">
-            ✅ Nenhuma alteração de status esta semana.
-          </div>`;
-
-        const unchangedSection = (unchanged.length + noData.length) > 0 ? `
-          <div style="font-size:11px;font-weight:700;text-transform:uppercase;color:#94a3b8;letter-spacing:.5px;margin-bottom:6px">
-            Sem alteração <span style="background:#f1f5f9;color:#64748b;border-radius:10px;padding:1px 8px;margin-left:4px">${unchanged.length + noData.length}</span>
-          </div>
-          <table class="rel-table">
-            <thead><tr>
-              <th>Equipamento</th><th>Nº Frota</th>
-              <th colspan="2" style="text-align:center">Semana Passada</th>
-              <th style="text-align:center">Situação Atual</th>
-              <th></th>
-              <th>Contexto semana passada</th>
-            </tr></thead>
+        const tableHtml = `
+          <table class="rel-table" style="border-collapse:separate;border-spacing:0">
+            <thead>
+              <tr>
+                <th>Equipamento</th>
+                <th>Nº Frota</th>
+                <th style="text-align:center">Semana Passada</th>
+                <th style="text-align:center">Variação</th>
+                <th style="text-align:center">Situação Atual</th>
+                <th>Editar semana passada</th>
+              </tr>
+            </thead>
             <tbody>
-              ${unchanged.map(rowUnchanged).join('')}
-              ${noData.map(rowNoData).join('')}
+              ${noChangeBanner}
+              ${changedRows}
+              ${stableSep}
+              ${stableRows}
             </tbody>
-          </table>` : '';
+          </table>`;
 
-        return resumoHtml + changedSection + unchangedSection;
+        return resumoHtml + tableHtml;
       })()}
     </div>
 
