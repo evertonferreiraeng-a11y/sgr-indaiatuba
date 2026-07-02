@@ -709,8 +709,9 @@ document.getElementById('btn-add-oc').addEventListener('click', () => {
 
 window.removerOc = i => { ocDia.splice(i, 1); renderOcDia(); };
 
-// ── E-mail ────────────────────────────────────────────────────────────────────
-document.getElementById('btn-email').addEventListener('click', () => {
+// ── E-mail legado (preview de texto) ─────────────────────────────────────────
+const _btnEmailLegado = document.getElementById('btn-email');
+if (_btnEmailLegado) _btnEmailLegado.addEventListener('click', () => {
   const data    = rdData.value;
   const [y,m,d] = data.split('-');
   const dataFmt = `${d}/${m}/${y}`;
@@ -780,7 +781,8 @@ document.getElementById('btn-email').addEventListener('click', () => {
   wrap.scrollIntoView({ behavior:'smooth' });
 });
 
-document.getElementById('btn-copiar').addEventListener('click', () => {
+const _btnCopiar = document.getElementById('btn-copiar');
+if (_btnCopiar) _btnCopiar.addEventListener('click', () => {
   const txt = document.getElementById('email-preview').textContent;
   navigator.clipboard.writeText(txt).then(() => toast('Texto copiado!')).catch(() => {
     const ta = document.createElement('textarea');
