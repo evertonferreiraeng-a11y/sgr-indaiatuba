@@ -520,6 +520,102 @@ async function carregar() {
       </table>
     </div>
 
+    <!-- Projeção Anual -->
+    <div class="card rel-section" style="margin-top:16px">
+      <div class="rel-section-title">Projeção até Dezembro — Baseada no Ritmo Atual</div>
+      ${(() => {
+        // Meses com dados reais
+        const mesesComDados = fatReal.filter(v => v > 0);
+        const mediaMensal   = mesesComDados.length > 0 ? mesesComDados.reduce((a,b)=>a+b,0) / mesesComDados.length : 0;
+        const mediaKg       = fatKg.filter(v=>v>0).length > 0 ? fatKg.filter(v=>v>0).reduce((a,b)=>a+b,0) / fatKg.filter(v=>v>0).length : 0;
+
+        // Projeção: realizado + média nos meses restantes
+        let projFat = 0, projKg = 0, projPrev = 0;
+        const projRows = MESES.map((m, i) => {
+          const real    = fatReal[i];
+          const prev    = fatPrev[i];
+          projPrev     += prev;
+          let cellFat, cellKg, tipo;
+          if (real > 0) {
+            cellFat = real; cellKg = fatKg[i]; tipo = 'real';
+          } else if (i <= mesAtualIdx) {
+            cellFat = 0; cellKg = 0; tipo = 'sem';
+          } else {
+            cellFat = mediaMensal; cellKg = mediaKg; tipo = 'proj';
+          }
+          projFat += cellFat; projKg += cellKg;
+          const ating = prev > 0 && cellFat > 0 ? (cellFat/prev*100).toFixed(1)+'%' : '—';
+          const corAt = tipo==='real' ? (cellFat>=prev?'#006636':'#DC2626') : '#94a3b8';
+          const bg    = tipo==='proj' ? 'background:#fffbeb' : i===mesAtualIdx ? 'background:#dcfce7' : '';
+          const label = tipo==='proj' ? `<span style="font-size:10px;color:#d97706;font-weight:600">projeção</span>` : '';
+          const fatFmt = cellFat > 0 ? moeda(cellFat) : '—';
+          const kgFmt  = cellKg > 0 ? ton(cellKg) : '—';
+          const tk     = cellKg > 0 ? moeda(cellFat/(cellKg/1000)) : '—';
+          return `<tr style="${bg}">
+            <td>${i===mesAtualIdx?`<strong>${m}</strong>`:m} ${label}</td>
+            <td style="text-align:right;color:${tipo==='proj'?'#d97706':'inherit'}">${fatFmt}</td>
+            <td style="text-align:right">${prev>0?moeda(prev):'—'}</td>
+            <td style="text-align:right;color:${tipo==='proj'?'#d97706':'inherit'}">${kgFmt}</td>
+            <td style="text-align:right;color:${corAt};font-weight:600">${ating}</td>
+            <td style="text-align:right">${tk}</td>
+          </tr>`;
+        });
+
+        const atingProj = projPrev > 0 ? (projFat/projPrev*100).toFixed(1)+'%' : '—';
+        const corProj   = projFat >= projPrev ? '#006636' : '#DC2626';
+        projRows.push(`<tr style="background:#FEF3C7;font-weight:700">
+          <td>PROJEÇÃO TOTAL</td>
+          <td style="text-align:right;color:#d97706">${moeda(projFat)}</td>
+          <td style="text-align:right">${projPrev>0?moeda(projPrev):'—'}</td>
+          <td style="text-align:right;color:#d97706">${projKg>0?ton(projKg):'—'}</td>
+          <td style="text-align:right;color:${corProj}">${atingProj}</td>
+          <td style="text-align:right">${projKg>0?moeda(projFat/(projKg/1000)):'—'}</td>
+        </tr>`);
+
+        return `
+        <div style="display:flex;gap:16px;flex-wrap:wrap;margin-bottom:16px">
+          <div class="rel-kpi">
+            <div class="rel-kpi-label">📈 Projeção Anual</div>
+            <div class="rel-kpi-val" style="color:#d97706">${moeda(projFat)}</div>
+            <div class="rel-kpi-sub">baseada em ${mesesComDados.length} mês(es) realizado(s)</div>
+          </div>
+          <div class="rel-kpi">
+            <div class="rel-kpi-label">🎯 Meta Anual</div>
+            <div class="rel-kpi-val">${moeda(projPrev)}</div>
+            <div class="rel-kpi-sub">soma das metas mensais</div>
+          </div>
+          <div class="rel-kpi">
+            <div class="rel-kpi-label">📊 Média Mensal Real</div>
+            <div class="rel-kpi-val" style="font-size:18px">${moeda(mediaMensal)}</div>
+            <div class="rel-kpi-sub">base da projeção</div>
+          </div>
+          <div class="rel-kpi">
+            <div class="rel-kpi-label">⚡ Atingimento Projetado</div>
+            <div class="rel-kpi-val" style="color:${projFat>=projPrev?'#006636':'#DC2626'};font-size:20px">${atingProj}</div>
+            <div class="rel-kpi-sub">projeção vs meta anual</div>
+          </div>
+        </div>
+        <div style="overflow-x:auto">
+          <table style="font-size:12px;width:100%">
+            <thead>
+              <tr style="background:#f8fafc">
+                <th>Mês</th>
+                <th style="text-align:right">Faturamento</th>
+                <th style="text-align:right">Previsto</th>
+                <th style="text-align:right">Ton</th>
+                <th style="text-align:right">Atingimento</th>
+                <th style="text-align:right">Ticket Médio</th>
+              </tr>
+            </thead>
+            <tbody>${projRows.join('')}</tbody>
+          </table>
+        </div>
+        <div style="margin-top:10px;font-size:11px;color:#94a3b8">
+          🟡 Meses em amarelo = projeção calculada com base na média dos meses já realizados.
+        </div>`;
+      })()}
+    </div>
+
     <!-- 3. Produção & Estoque -->
     <div class="card rel-section">
       <div class="rel-section-title">Estoque</div>
