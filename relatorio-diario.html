@@ -217,7 +217,7 @@
               <th>Colaborador</th>
               <th>Cargo</th>
               <th>Presença</th>
-              <th>Ocorrências do Dia</th>
+              <th>Observação</th>
             </tr>
           </thead>
           <tbody id="tbody-rh">
@@ -431,24 +431,24 @@ function renderRH() {
       : '<span style="color:#94a3b8;font-size:12px">—</span>';
     const obsAtual = (presencaData.find(p => p.colaborador_id === c.id)?.observacao || '').replace(/"/g,'&quot;');
     const presCell = turno === 'tarde'
-      ? `<div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap">
-           <select id="sel-pres-${c.id}"
-             onchange="atualizarCorPresenca(this);salvarPresencaRD('${c.id}', this.value)"
-             style="border:1px solid #e2e8f0;border-radius:20px;padding:3px 10px;font-size:12px;font-weight:700;cursor:pointer;
-                    background:${pres?'#d1fae5':'#fee2e2'};color:${pres?'#065f46':'#991b1b'}">
-             <option value="true"  ${pres ?'selected':''}>✔ Presente</option>
-             <option value="false" ${!pres?'selected':''}>✖ Falta</option>
-           </select>
-           <input type="text" id="obs-pres-${c.id}" value="${obsAtual}" placeholder="Observação…"
-             style="border:1px solid #e2e8f0;border-radius:6px;padding:3px 8px;font-size:12px;width:180px"
-             onblur="salvarObsPresencaRD('${c.id}', this.value)" />
-         </div>`
+      ? `<select id="sel-pres-${c.id}"
+           onchange="atualizarCorPresenca(this);salvarPresencaRD('${c.id}', this.value)"
+           style="border:1px solid #e2e8f0;border-radius:20px;padding:3px 10px;font-size:12px;font-weight:700;cursor:pointer;
+                  background:${pres?'#d1fae5':'#fee2e2'};color:${pres?'#065f46':'#991b1b'}">
+           <option value="true"  ${pres ?'selected':''}>✔ Presente</option>
+           <option value="false" ${!pres?'selected':''}>✖ Falta</option>
+         </select>`
       : `<span class="status-badge ${pres ? 'badge-present' : 'badge-absent'}">${pres ? '✔ Presente' : '✖ Falta'}</span>`;
+    const obsCell = turno === 'tarde'
+      ? `<input type="text" id="obs-pres-${c.id}" value="${obsAtual}" placeholder="Observação…"
+           style="width:100%;border:1px solid #e2e8f0;border-radius:6px;padding:4px 8px;font-size:12px"
+           onblur="salvarObsPresencaRD('${c.id}', this.value)" />`
+      : `<span style="color:#64748b;font-size:12px">${obsAtual || '—'}</span>`;
     return `<tr>
       <td style="font-weight:600">${c.nome}</td>
       <td style="color:#64748b;font-size:12px">${cargo}</td>
       <td>${presCell}</td>
-      <td>${ocsHtml}</td>
+      <td>${obsCell}</td>
     </tr>`;
   }).join('');
 }
