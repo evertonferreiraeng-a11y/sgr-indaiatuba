@@ -971,14 +971,6 @@ async function carregar() {
           <div style="font-size:22px;font-weight:900;color:${parseFloat(turnover)<=5?'#15803d':parseFloat(turnover)<=10?'#d97706':'#dc2626'};letter-spacing:-.5px">${turnover}%</div>
           <div style="font-size:10px;color:#94a3b8;margin-top:4px">${demAno} saída(s) em ${ano}</div>
         </div>
-        <div class="rel-kpi">
-          <div class="rel-kpi-label">Atestados / Faltas</div>
-          <div class="rel-kpi-val">${atestados + faltas}</div>
-          <div style="margin-top:5px;display:flex;flex-direction:column;gap:2px">
-            <span style="font-size:11px;color:#94a3b8">${atestados} atestado(s)</span>
-            <span style="font-size:11px;color:#94a3b8">${faltas} falta(s)</span>
-          </div>
-        </div>
       </div>
       ${(() => {
         // Balanço de vagas por cargo — parte de todos os cargos cadastrados
