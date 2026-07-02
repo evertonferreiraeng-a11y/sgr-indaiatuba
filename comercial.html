@@ -107,8 +107,19 @@
 
       <!-- Filtros tabela -->
       <div class="card mb-16" style="padding:16px">
-        <div class="filters-row">
-          <div class="form-group"><label>Período</label><input type="month" id="f-mes" /></div>
+        <div class="filters-row" style="flex-wrap:wrap;gap:10px">
+          <div class="form-group">
+            <label>Tipo de Período</label>
+            <select id="f-tipo-periodo" style="min-width:130px">
+              <option value="mes">Mês</option>
+              <option value="personalizado">Personalizado</option>
+            </select>
+          </div>
+          <div class="form-group" id="grp-mes"><label>Mês</label><input type="month" id="f-mes" /></div>
+          <div id="grp-custom" style="display:none;gap:8px;align-items:flex-end;flex-wrap:wrap">
+            <div class="form-group"><label>De</label><input type="date" id="f-de" /></div>
+            <div class="form-group"><label>Até</label><input type="date" id="f-ate" /></div>
+          </div>
           <div class="form-group"><label>Cliente</label><select id="f-cliente"><option value="">Todos</option></select></div>
           <div class="form-group"><label>Material</label><select id="f-mat"><option value="">Todos</option></select></div>
           <div class="form-group" style="justify-content:flex-end"><label>&nbsp;</label>
@@ -187,7 +198,7 @@
 
 <div id="toast-container"></div>
 <script type="module">
-import { initPage, supabase, moeda, peso, ton, dataBR, toast, abrirModal, fecharModal, mesAtual, anoAtual } from './js/config.js';
+import { initPage, supabase, moeda, peso, ton, dataBR, toast, abrirModal, fecharModal, mesAtual, anoAtual } from './js/config.js?v=2';
 
 
 await initPage();
@@ -242,11 +253,25 @@ function periodoRange(mes) {
   return { ini:`${y}-${m}-01`, fim:new Date(+y,+m,0).toISOString().split('T')[0] };
 }
 
+document.getElementById('f-tipo-periodo').addEventListener('change', function() {
+  const custom = this.value === 'personalizado';
+  document.getElementById('grp-mes').style.display    = custom ? 'none' : '';
+  document.getElementById('grp-custom').style.display = custom ? 'flex' : 'none';
+});
+
 async function carregar() {
-  const mes  = document.getElementById('f-mes').value;
+  const tipo = document.getElementById('f-tipo-periodo').value;
+  let ini, fim;
+  if (tipo === 'personalizado') {
+    ini = document.getElementById('f-de').value;
+    fim = document.getElementById('f-ate').value;
+    if (!ini || !fim) { alert('Selecione o período De e Até.'); return; }
+  } else {
+    const mes = document.getElementById('f-mes').value;
+    ({ ini, fim } = periodoRange(mes));
+  }
   const cli  = document.getElementById('f-cliente').value;
   const mat  = document.getElementById('f-mat').value;
-  const { ini, fim } = periodoRange(mes);
 
   let q = supabase.from('vendas')
     .select('*, clientes(nome), materiais(nome), codigo_material, unidade, desconto, ordem_venda, nf')
@@ -740,3 +765,4 @@ await init();
 </script>
 </body>
 </html>
+
