@@ -241,7 +241,7 @@ async function carregar() {
   const semanaPass  = new Date(semanaAtual); semanaPass.setDate(semanaAtual.getDate() - 7);
   const semanaPassStr = semanaPass.toISOString().split('T')[0];
 
-  const [ents, vends, mats, equipamentos, colaboradores, avaliacoes, ocorrencias, producoes, metas, vendsAno, cargosAll, snapAnt] = await Promise.all([
+  const [ents, vends, mats, equipamentos, colaboradores, avaliacoes, ocorrencias, producoes, metas, vendsAno, cargosAll] = await Promise.all([
     fetchAll('entradas', 'peso_liquido, peso_liquido_descontos, tipo_movimentacao, tipo_material, data', [['gte','data',inicio],['lte','data',fim]]),
     fetchAll('vendas', 'peso_kg, valor_total, data, clientes(nome)', [['gte','data',inicio],['lte','data',fim]]),
     fetchAll('materiais', 'nome, estoque_kg, valor_unitario, no_estoque', [['eq','no_estoque',true]]),
@@ -253,12 +253,17 @@ async function carregar() {
     fetchAll('metas', 'periodo, valor_meta', [['eq','indicador','faturamento'],['gte','periodo',`${ano}-01`],['lte','periodo',`${ano}-12`]]),
     fetchAll('vendas', 'peso_kg, valor_total, data', [['gte','data',`${ano}-01-01`],['lte','data',`${ano}-12-31`]]),
     fetchAll('cargos', 'nome, vagas', []),
-    supabase.from('equipamentos_snapshot').select('equipamento_id, equipamento_nome, equipamento_frota, status').eq('semana', semanaPassStr).then(r => r.data || []),
   ]);
 
-  // Mapa snapshot semana passada: equipamento_id → status
+  // Snapshot semana passada — carregado separadamente para não travar se tabela não existir
   const snapMap = {};
-  (snapAnt || []).forEach(s => { snapMap[s.equipamento_id] = s.status; });
+  try {
+    const { data: snapAnt } = await supabase
+      .from('equipamentos_snapshot')
+      .select('equipamento_id, status')
+      .eq('semana', semanaPassStr);
+    (snapAnt || []).forEach(s => { snapMap[s.equipamento_id] = s.status; });
+  } catch (_) { /* tabela ainda não criada */ }
 
   // ── Balanço ──────────────────────────────────────────────────────────────
   function matchCatRel(tipoMat) {
