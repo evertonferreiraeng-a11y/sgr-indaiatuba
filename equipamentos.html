@@ -93,6 +93,7 @@
                 <th>Função</th>
                 <th>Capacidade</th>
                 <th>Status</th>
+                <th>Observações</th>
                 <th></th>
               </tr>
             </thead>
@@ -121,6 +122,7 @@
           <div class="form-group full"><label>Descrição</label><input type="text" name="descricao" placeholder="Marca, modelo, nº série…" /></div>
           <div class="form-group"><label>Função</label><input type="text" name="funcao" /></div>
           <div class="form-group"><label>Capacidade</label><input type="text" name="capacidade" /></div>
+          <div class="form-group full"><label>Observações</label><textarea name="observacao" rows="2" style="width:100%;resize:vertical" placeholder="Observações gerais sobre o equipamento…"></textarea></div>
           <div class="form-group"><label>Status *</label>
             <select name="status" required id="sel-status-eq" onchange="toggleCapPct(this.value)">
               <option value="operando">✅ Operando</option>
@@ -145,7 +147,7 @@
 
 <div id="toast-container"></div>
 <script type="module">
-import { initPage, supabase, toast, abrirModal, fecharModal } from './js/config.js';
+import { initPage, supabase, toast, abrirModal, fecharModal } from './js/config.js?v=2';
 
 await initPage();
 
@@ -224,6 +226,7 @@ function renderTabela() {
         <span class="status-btn ${st.cls}">${stLabel}</span>
         ${isAdmin ? `<button class="btn-icon" style="margin-left:4px" onclick="editarEq('${e.id}')">⚙️</button>` : ''}
       </td>
+      <td style="max-width:240px;font-size:13px;color:#475569">${e.observacao || '<span style="color:#94a3b8">—</span>'}</td>
       <td>
         ${isAdmin ? `
           <button class="btn-icon" onclick="editarEq('${e.id}')">✏️</button>
@@ -268,7 +271,7 @@ window.editarEq = id => {
   set('id', e.id); set('nome', e.nome); set('frota', e.frota);
   set('descricao', e.descricao); set('funcao', e.funcao);
   set('capacidade', e.capacidade); set('status', e.status);
-  set('capacidade_pct', e.capacidade_pct);
+  set('capacidade_pct', e.capacidade_pct); set('observacao', e.observacao);
   toggleCapPct(e.status);
   abrirModal('modal-eq');
 };
@@ -293,6 +296,7 @@ document.getElementById('btn-salvar-eq').addEventListener('click', async () => {
     capacidade:     fd.capacidade     || null,
     status:         fd.status,
     capacidade_pct: fd.status === 'restricao' ? (parseFloat(fd.capacidade_pct) || null) : null,
+    observacao: fd.observacao || null,
   };
   if (fd.id) {
     const { error } = await supabase.from('equipamentos').update(payload).eq('id', fd.id);
@@ -314,3 +318,4 @@ await init();
 </script>
 </body>
 </html>
+
