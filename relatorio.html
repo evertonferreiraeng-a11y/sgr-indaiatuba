@@ -152,6 +152,9 @@
       <button class="rel-cat-btn" id="rel-cat-todos"     style="padding:6px 12px;border-radius:20px;border:1px solid #D1D5DB;background:var(--primary);color:#fff;cursor:pointer;font-size:12px;font-weight:600">Todos</button>
       <button class="rel-cat-btn" id="rel-cat-reciclavel" style="padding:6px 12px;border-radius:20px;border:1px solid #D1D5DB;background:#fff;color:#374151;cursor:pointer;font-size:12px">♻ Recicláveis</button>
       <button class="rel-cat-btn" id="rel-cat-nao"        style="padding:6px 12px;border-radius:20px;border:1px solid #D1D5DB;background:#fff;color:#374151;cursor:pointer;font-size:12px">🚫 Não Recicláveis</button>
+      <button class="btn-pdf" id="btn-salvar-snap" style="background:#0369a1" onclick="salvarSnapshotEquip()">
+        💾 Salvar snapshot da semana
+      </button>
       <button class="btn-pdf" id="btn-gerar-pdf" onclick="window.print()">
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 01-2-2v-5a2 2 0 012-2v5a2 2 0 01-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>
         Imprimir / PDF
@@ -232,11 +235,17 @@ async function carregar() {
 
   const ano = inicio.slice(0, 4);
 
-  const [ents, vends, mats, equipamentos, colaboradores, avaliacoes, ocorrencias, producoes, metas, vendsAno, cargosAll] = await Promise.all([
+  // Calcula semana passada (segunda-feira de 7 dias atrás)
+  const hoje       = new Date();
+  const semanaAtual = new Date(hoje); semanaAtual.setDate(hoje.getDate() - hoje.getDay() + 1);
+  const semanaPass  = new Date(semanaAtual); semanaPass.setDate(semanaAtual.getDate() - 7);
+  const semanaPassStr = semanaPass.toISOString().split('T')[0];
+
+  const [ents, vends, mats, equipamentos, colaboradores, avaliacoes, ocorrencias, producoes, metas, vendsAno, cargosAll, snapAnt] = await Promise.all([
     fetchAll('entradas', 'peso_liquido, peso_liquido_descontos, tipo_movimentacao, tipo_material, data', [['gte','data',inicio],['lte','data',fim]]),
     fetchAll('vendas', 'peso_kg, valor_total, data, clientes(nome)', [['gte','data',inicio],['lte','data',fim]]),
     fetchAll('materiais', 'nome, estoque_kg, valor_unitario, no_estoque', [['eq','no_estoque',true]]),
-    fetchAll('equipamentos', 'nome, frota, status, capacidade_pct, descricao, funcao', []),
+    fetchAll('equipamentos', 'id, nome, frota, status, capacidade_pct, descricao, funcao', []),
     fetchAll('colaboradores', '*, cargos(nome, vagas)', []),
     fetchAll('colaborador_avaliacoes', '*', []),
     fetchAll('ocorrencias', 'tipo, data, colaborador_id', [['gte','data',inicio],['lte','data',fim]]),
@@ -244,7 +253,12 @@ async function carregar() {
     fetchAll('metas', 'periodo, valor_meta', [['eq','indicador','faturamento'],['gte','periodo',`${ano}-01`],['lte','periodo',`${ano}-12`]]),
     fetchAll('vendas', 'peso_kg, valor_total, data', [['gte','data',`${ano}-01-01`],['lte','data',`${ano}-12-31`]]),
     fetchAll('cargos', 'nome, vagas', []),
+    supabase.from('equipamentos_snapshot').select('equipamento_id, equipamento_nome, equipamento_frota, status').eq('semana', semanaPassStr).then(r => r.data || []),
   ]);
+
+  // Mapa snapshot semana passada: equipamento_id → status
+  const snapMap = {};
+  (snapAnt || []).forEach(s => { snapMap[s.equipamento_id] = s.status; });
 
   // ── Balanço ──────────────────────────────────────────────────────────────
   function matchCatRel(tipoMat) {
@@ -660,21 +674,40 @@ async function carregar() {
       </div>
       <table class="rel-table">
         <thead>
-          <tr><th>Equipamento</th><th>Nº Frota</th><th>Função</th><th style="text-align:center">Status</th><th>Observação</th></tr>
+          <tr><th>Equipamento</th><th>Nº Frota</th><th>Função</th><th style="text-align:center">Status Atual</th><th style="text-align:center">Semana Passada</th><th style="text-align:center">Variação</th><th>Observação</th></tr>
         </thead>
         <tbody>
           ${equipamentos.sort((a,b)=>a.nome.localeCompare(b.nome)).map(e => {
             const statusMap = {
-              operando:  { label:'✅ Operando',    cor:'#065f46', bg:'#d1fae5' },
+              operando:  { label:'✅ Operando',   cor:'#065f46', bg:'#d1fae5' },
               restricao: { label:'⚠️ Restrição',  cor:'#92400e', bg:'#fef3c7' },
               parado:    { label:'❌ Parado',      cor:'#991b1b', bg:'#fee2e2' },
             };
-            const st = statusMap[e.status] || { label:e.status||'—', cor:'#374151', bg:'#f1f5f9' };
-            return `<tr>
+            const st  = statusMap[e.status] || { label:e.status||'—', cor:'#374151', bg:'#f1f5f9' };
+            const ant = snapMap[e.id];
+            const stAnt = ant ? (statusMap[ant] || { label:ant, cor:'#374151', bg:'#f1f5f9' }) : null;
+
+            let varCell = '<td style="text-align:center;color:#94a3b8;font-size:12px">—</td>';
+            if (ant && ant !== e.status) {
+              // Houve mudança
+              const melhorou = e.status === 'operando' || (e.status === 'restricao' && ant === 'parado');
+              const cor = melhorou ? '#006636' : '#DC2626';
+              const seta = melhorou ? '▲' : '▼';
+              const txt  = melhorou ? 'Melhorou' : 'Piorou';
+              varCell = `<td style="text-align:center"><span style="background:${melhorou?'#d1fae5':'#fee2e2'};color:${cor};padding:2px 8px;border-radius:10px;font-size:11px;font-weight:700">${seta} ${txt}</span></td>`;
+            } else if (ant && ant === e.status) {
+              varCell = `<td style="text-align:center"><span style="color:#94a3b8;font-size:12px">= Igual</span></td>`;
+            } else if (!ant) {
+              varCell = `<td style="text-align:center;color:#94a3b8;font-size:11px">sem dados</td>`;
+            }
+
+            return `<tr${ant && ant !== e.status ? ' style="background:#fffbeb"' : ''}>
               <td style="font-weight:600">${e.nome}</td>
               <td style="color:#64748b;font-size:13px">${e.frota||'—'}</td>
               <td style="color:#475569">${e.funcao||'—'}</td>
               <td style="text-align:center"><span style="background:${st.bg};color:${st.cor};padding:2px 10px;border-radius:10px;font-size:12px;font-weight:600;white-space:nowrap">${st.label}</span></td>
+              <td style="text-align:center">${stAnt ? `<span style="background:${stAnt.bg};color:${stAnt.cor};padding:2px 10px;border-radius:10px;font-size:12px;font-weight:600;white-space:nowrap">${stAnt.label}</span>` : '<span style="color:#94a3b8;font-size:12px">—</span>'}</td>
+              ${varCell}
               <td><div contenteditable="true" style="min-width:160px;border:1px dashed #cbd5e1;border-radius:4px;padding:3px 7px;font-size:12px;color:#374151;outline:none" placeholder="Digite uma observação…"></div></td>
             </tr>`;
           }).join('')}
@@ -829,6 +862,45 @@ document.getElementById('rel-btn-mes').addEventListener('click', () => setModo('
 document.getElementById('rel-btn-ano').addEventListener('click', () => setModo('ano'));
 document.getElementById('rel-mes').addEventListener('change', () => { modoAtual='mes'; carregar(); });
 document.getElementById('rel-ano').addEventListener('change', () => carregar());
+
+// ── Snapshot semanal equipamentos ────────────────────────────────────────────
+window.salvarSnapshotEquip = async () => {
+  const btn = document.getElementById('btn-salvar-snap');
+  btn.textContent = 'Salvando…'; btn.disabled = true;
+
+  // Semana atual (segunda-feira)
+  const hoje = new Date();
+  const seg  = new Date(hoje); seg.setDate(hoje.getDate() - hoje.getDay() + 1);
+  const semana = seg.toISOString().split('T')[0];
+
+  const { data: equips } = await supabase.from('equipamentos').select('id, nome, frota, status');
+  if (!equips?.length) { btn.textContent = '💾 Salvar snapshot da semana'; btn.disabled = false; return; }
+
+  // Remove snapshot existente desta semana e insere novo
+  await supabase.from('equipamentos_snapshot').delete().eq('semana', semana);
+  const rows = equips.map(e => ({
+    semana,
+    equipamento_id:    e.id,
+    equipamento_nome:  e.nome,
+    equipamento_frota: e.frota || null,
+    status: e.status,
+  }));
+  const { error } = await supabase.from('equipamentos_snapshot').insert(rows);
+
+  if (error) {
+    alert('Erro ao salvar: ' + error.message);
+  } else {
+    btn.style.background = '#15803d';
+    btn.textContent = '✅ Snapshot salvo!';
+    setTimeout(() => {
+      btn.textContent = '💾 Salvar snapshot da semana';
+      btn.style.background = '#0369a1';
+      btn.disabled = false;
+    }, 2500);
+    return;
+  }
+  btn.textContent = '💾 Salvar snapshot da semana'; btn.disabled = false;
+};
 
 // ── Filtro categoria balanço ──────────────────────────────────────────────────
 window._relCatFiltro = 'todos';
