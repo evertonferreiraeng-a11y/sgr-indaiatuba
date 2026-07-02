@@ -91,7 +91,15 @@
 
       <!-- ── BALANÇO DE MASSA ── -->
       <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;margin-bottom:8px">
-        <div class="dash-section-title" style="margin-bottom:0">Balanço de Massa / Taxa de Reciclagem</div>
+        <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+          <div class="dash-section-title" style="margin-bottom:0">Balanço de Massa / Taxa de Reciclagem</div>
+          <div style="display:flex;gap:4px;align-items:center">
+            <span style="font-size:11px;color:var(--text-muted)">Tipo:</span>
+            <button id="bal-cat-todos"    class="bal-cat-btn active" style="font-size:11px;padding:3px 9px;border-radius:20px;border:1px solid #D1D5DB;background:var(--primary);color:#fff;cursor:pointer">Todos</button>
+            <button id="bal-cat-reciclavel" class="bal-cat-btn"     style="font-size:11px;padding:3px 9px;border-radius:20px;border:1px solid #D1D5DB;background:#fff;color:#374151;cursor:pointer">♻ Recicláveis</button>
+            <button id="bal-cat-nao"        class="bal-cat-btn"     style="font-size:11px;padding:3px 9px;border-radius:20px;border:1px solid #D1D5DB;background:#fff;color:#374151;cursor:pointer">🚫 Não Recicláveis</button>
+          </div>
+        </div>
         <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap">
           <span style="font-size:12px;color:var(--text-muted)">Período:</span>
           <button class="btn btn-sm" id="bal-btn-mes" style="font-size:12px;background:var(--primary);color:#fff;border:none;border-radius:6px;padding:4px 10px;cursor:pointer">Mês atual</button>
@@ -219,7 +227,7 @@
 
 <div id="toast-container"></div>
 <script type="module">
-import { initPage, supabase, moeda, peso, ton, mesAtual, anoAtual, toast, abrirModal, fecharModal } from './js/config.js';
+import { initPage, supabase, moeda, peso, ton, mesAtual, anoAtual, toast, abrirModal, fecharModal } from './js/config.js?v=2';
 
 
 await initPage();
@@ -250,6 +258,20 @@ document.getElementById('filtro-ano').addEventListener('change', () => {
   carregarDados();
 });
 document.getElementById('fat-ano').addEventListener('change', carregarFatPrevisto);
+
+// ── Filtro categoria Balanço ─────────────────────────────────────────────────
+document.querySelectorAll('.bal-cat-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    _balancoCatFiltro = btn.id === 'bal-cat-todos' ? 'todos'
+                      : btn.id === 'bal-cat-reciclavel' ? 'reciclavel' : 'nao';
+    document.querySelectorAll('.bal-cat-btn').forEach(b => {
+      const ativo = b === btn;
+      b.style.background = ativo ? 'var(--primary)' : '#fff';
+      b.style.color       = ativo ? '#fff' : '#374151';
+    });
+    if (_balancoInicio && _balancoFim) carregarBalanco(_balancoInicio, _balancoFim);
+  });
+});
 
 // ── Filtro Balanço de Massa ──────────────────────────────────────────────────
 const balBtns = {
@@ -403,19 +425,36 @@ async function fetchAllPaginated(table, selectFields, filters) {
   return all;
 }
 
+let _balancoCatFiltro = 'todos'; // 'todos' | 'reciclavel' | 'nao'
+let _balancoInicio = '', _balancoFim = '';
+
 async function carregarBalanco(inicio, fim) {
-  const periodo = inicio.slice(0, 7);
+  _balancoInicio = inicio;
+  _balancoFim    = fim;
+  const periodo  = inicio.slice(0, 7);
+
   const [ents, vends, mats] = await Promise.all([
-    fetchAllPaginated('entradas', 'peso_liquido, peso_liquido_descontos, tipo_movimentacao', [['gte','data',inicio],['lte','data',fim]]),
-    fetchAllPaginated('vendas', 'peso_kg', [['gte','data',inicio],['lte','data',fim]]),
-    fetchAllPaginated('materiais', 'estoque_kg', [['eq','no_estoque',true]]),
+    fetchAllPaginated('entradas', 'peso_liquido, peso_liquido_descontos, tipo_movimentacao, materiais(categoria)', [['gte','data',inicio],['lte','data',fim]]),
+    fetchAllPaginated('vendas',   'peso_kg, materiais(categoria)', [['gte','data',inicio],['lte','data',fim]]),
+    fetchAllPaginated('materiais','estoque_kg, categoria', [['eq','no_estoque',true]]),
   ]);
 
-  const recebido = ents.filter(r=>r.tipo_movimentacao!=='saida').reduce((s,r)=>s+parseFloat(r.peso_liquido_descontos||r.peso_liquido||0),0);
-  const rejeito  = ents.filter(r=>r.tipo_movimentacao==='saida').reduce((s,r)=>s+parseFloat(r.peso_liquido||r.peso_liquido_descontos||0),0);
-  const expedido = vends.reduce((s,r)=>s+(r.peso_kg||0),0);
-  const estoque  = mats.reduce((s,r)=>s+parseFloat(r.estoque_kg||0),0);
-  const passivo  = parseFloat(localStorage.getItem('balanco-passivo-' + periodo) || 0);
+  // Aplica filtro de categoria
+  function matchCat(cat) {
+    if (_balancoCatFiltro === 'todos') return true;
+    if (_balancoCatFiltro === 'reciclavel') return cat === 'reciclavel';
+    if (_balancoCatFiltro === 'nao') return cat !== 'reciclavel';
+    return true;
+  }
+
+  const entsFilt  = ents.filter(r => matchCat(r.materiais?.categoria));
+  const vendsFilt = vends.filter(r => matchCat(r.materiais?.categoria));
+  const matsFilt  = mats.filter(r => matchCat(r.categoria));
+
+  const recebido = entsFilt.filter(r=>r.tipo_movimentacao!=='saida').reduce((s,r)=>s+parseFloat(r.peso_liquido_descontos||r.peso_liquido||0),0);
+  const rejeito  = entsFilt.filter(r=>r.tipo_movimentacao==='saida').reduce((s,r)=>s+parseFloat(r.peso_liquido||r.peso_liquido_descontos||0),0);
+  const expedido = vendsFilt.reduce((s,r)=>s+(r.peso_kg||0),0);
+  const estoque  = matsFilt.reduce((s,r)=>s+parseFloat(r.estoque_kg||0),0);
 
   _balancoBase = { recebido, expedido, rejeito, estoque };
   renderBalanco({ recebido, expedido, rejeito, estoque, periodo });
@@ -677,3 +716,4 @@ carregarDados();
 </script>
 </body>
 </html>
+
