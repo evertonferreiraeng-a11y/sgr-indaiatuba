@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="pt-BR">
 <head>
   <meta charset="UTF-8" />
@@ -6,26 +6,38 @@
   <title>RH — SGR Indaiatuba</title>
   <link rel="stylesheet" href="css/style.css" />
   <style>
-    .colab-card { background:#fff; border:1px solid #e2e8f0; border-radius:10px; overflow:hidden; }
-    .colab-summary { padding:16px; display:flex; flex-direction:column; gap:10px; }
-    .colab-header  { display:flex; align-items:flex-start; gap:12px; }
-    .colab-avatar  { width:42px; height:42px; border-radius:50%; background:#2563eb; color:#fff; display:flex; align-items:center; justify-content:center; font-weight:700; font-size:16px; flex-shrink:0; }
-    .colab-info    { flex:1; min-width:0; }
-    .colab-info h4 { margin:0 0 2px; font-size:15px; font-weight:600; }
-    .colab-info p  { margin:0; font-size:12px; color:#64748b; }
-    .colab-actions { display:flex; gap:4px; flex-shrink:0; }
-    .colab-stats   { display:grid; grid-template-columns:repeat(4,1fr); gap:8px; }
-    .colab-stat    { background:#f8fafc; border-radius:6px; padding:8px 10px; text-align:center; }
-    .colab-stat .val { font-size:17px; font-weight:700; }
-    .colab-stat .lbl { font-size:11px; color:#64748b; }
-    .recomendacao  { display:flex; align-items:center; gap:8px; padding:8px 12px; border-radius:8px; font-size:13px; font-weight:600; }
-    .rec-ok  { background:#d1fae5; color:#065f46; }
-    .rec-no  { background:#fee2e2; color:#991b1b; }
-    .rec-att { background:#fef3c7; color:#92400e; }
-    .rec-nd  { background:#f1f5f9; color:#64748b; }
+    .colab-card { background:#fff; border:1px solid #e2e8f0; border-radius:12px; overflow:hidden; box-shadow:0 1px 3px rgba(0,0,0,.04); transition:box-shadow .15s; }
+    .colab-card:hover { box-shadow:0 4px 12px rgba(0,0,0,.08); }
+    .colab-summary { padding:0; display:flex; flex-direction:column; }
 
-    .toggle-btn { width:100%; background:#f8fafc; border:none; border-top:1px solid #e2e8f0; padding:8px 16px; font-size:12px; font-weight:600; color:#64748b; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:6px; transition:background .15s; }
-    .toggle-btn:hover { background:#f1f5f9; }
+    /* Topo colorido por status */
+    .colab-top { padding:14px 16px 12px; display:flex; align-items:flex-start; gap:12px; border-bottom:1px solid #f1f5f9; }
+    .colab-avatar  { width:44px; height:44px; border-radius:50%; color:#fff; display:flex; align-items:center; justify-content:center; font-weight:800; font-size:17px; flex-shrink:0; }
+    .colab-info    { flex:1; min-width:0; }
+    .colab-info h4 { margin:0 0 1px; font-size:14px; font-weight:700; color:#0f172a; line-height:1.3; }
+    .colab-info .sub { font-size:11px; color:#64748b; margin:0; line-height:1.4; }
+    .colab-actions { display:flex; gap:2px; flex-shrink:0; opacity:.5; transition:opacity .15s; }
+    .colab-card:hover .colab-actions { opacity:1; }
+
+    /* Stats */
+    .colab-stats   { display:grid; grid-template-columns:repeat(3,1fr); }
+    .colab-stat    { padding:10px 8px; text-align:center; border-right:1px solid #f1f5f9; }
+    .colab-stat:last-child { border-right:none; }
+    .colab-stat .val { font-size:20px; font-weight:800; line-height:1; }
+    .colab-stat .lbl { font-size:10px; color:#94a3b8; margin-top:2px; font-weight:600; text-transform:uppercase; letter-spacing:.3px; }
+
+    /* Recomendação */
+    .recomendacao  { display:flex; align-items:center; gap:8px; padding:8px 14px; font-size:12px; font-weight:700; letter-spacing:.1px; border-top:1px solid #f1f5f9; }
+    .rec-ok  { background:#f0fdf4; color:#166534; }
+    .rec-no  { background:#fff1f2; color:#9f1239; }
+    .rec-att { background:#fffbeb; color:#92400e; }
+    .rec-nd  { background:#f8fafc; color:#64748b; }
+
+    /* Badge exp */
+    .exp-badge { display:inline-flex; align-items:center; gap:4px; padding:2px 7px; border-radius:6px; font-size:10px; font-weight:700; margin-top:3px; }
+
+    .toggle-btn { width:100%; background:#f8fafc; border:none; border-top:1px solid #e2e8f0; padding:7px 16px; font-size:11px; font-weight:700; color:#94a3b8; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:5px; transition:background .15s; text-transform:uppercase; letter-spacing:.4px; }
+    .toggle-btn:hover { background:#f1f5f9; color:#475569; }
 
     .colab-detail { display:none; border-top:2px solid #e2e8f0; }
     .colab-detail.open { display:block; }
@@ -540,28 +552,43 @@ function cardHTML(c, isAdm, hoje, iniMes, fimMes) {
     </div>
   `).join('') : '<p style="font-size:13px;color:#94a3b8;margin:0">Nenhuma ocorrência registrada.</p>';
 
+  // Cores do avatar por situação
+  const avatarBg = c.demissao ? '#94a3b8' : notaAtual === null ? '#64748b' : notaAtual >= 7 ? '#16a34a' : notaAtual >= 5 ? '#d97706' : '#dc2626';
+  const notaStr  = notaAtual !== null && !isNaN(notaAtual) ? notaAtual.toFixed(1) : '—';
+  const notaCor  = notaAtual === null ? '#94a3b8' : notaAtual >= 7 ? '#16a34a' : notaAtual >= 5 ? '#d97706' : '#dc2626';
+
   return `<div class="colab-card">
     <div class="colab-summary">
-      <div class="colab-header">
-        <div class="colab-avatar">${c.nome.charAt(0).toUpperCase()}</div>
+      <div class="colab-top">
+        <div class="colab-avatar" style="background:${avatarBg}">${c.nome.charAt(0).toUpperCase()}</div>
         <div class="colab-info">
           <h4>${c.nome}</h4>
-          <p>${cargoNome}${c.chapa ? ` · Chapa ${c.chapa}` : ''}</p>
-          <p style="margin-top:3px">Admissão: ${dataBR(c.data_admissao)||'—'} ${expTag}</p>
+          <p class="sub">${cargoNome}${c.chapa ? ` · Chapa ${c.chapa}` : ''}</p>
+          <p class="sub">Admissão: ${dataBR(c.data_admissao)||'—'}</p>
+          ${expTag ? `<div style="margin-top:4px">${expTag}</div>` : ''}
         </div>
         ${isAdm ? `<div class="colab-actions">
           <button class="btn-icon" onclick="editarColab('${c.id}')">✏️</button>
           <button class="btn-icon danger" onclick="excluirColab('${c.id}')">🗑️</button>
         </div>` : ''}
       </div>
-      <div class="colab-stats" style="grid-template-columns:repeat(3,1fr)">
-        <div class="colab-stat"><div class="val${faltasC>0?' text-red':''}">${faltasC}</div><div class="lbl">Faltas Injust.</div></div>
-        <div class="colab-stat"><div class="val">${atestC}</div><div class="lbl">Atestados</div></div>
-        <div class="colab-stat" style="background:#eff6ff"><div class="val" style="color:#2563eb">${notaAtual!==null&&!isNaN(notaAtual)?notaAtual.toFixed(1):'—'}</div><div class="lbl" style="color:#2563eb">Nota Atual</div></div>
+      <div class="colab-stats">
+        <div class="colab-stat">
+          <div class="val" style="color:${faltasC>0?'#dc2626':'#0f172a'}">${faltasC}</div>
+          <div class="lbl">Faltas</div>
+        </div>
+        <div class="colab-stat">
+          <div class="val" style="color:${atestC>0?'#d97706':'#0f172a'}">${atestC}</div>
+          <div class="lbl">Atestados</div>
+        </div>
+        <div class="colab-stat" style="background:#f8faff">
+          <div class="val" style="color:${notaCor}">${notaStr}</div>
+          <div class="lbl" style="color:#6366f1">Nota</div>
+        </div>
       </div>
       <div class="recomendacao ${rec.cls}">${rec.icon} ${rec.texto}</div>
     </div>
-    <button class="toggle-btn" onclick="toggleCard(this)">▼ Ver avaliações e ocorrências</button>
+    <button class="toggle-btn" onclick="toggleCard(this)">▼ detalhes</button>
     <div class="colab-detail">
       <div class="detail-section">
         <div class="detail-header">
