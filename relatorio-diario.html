@@ -348,6 +348,7 @@ function renderEquipamentos() {
     tbody.innerHTML = '<tr><td colspan="5" style="padding:20px;text-align:center;color:#94a3b8">Nenhum equipamento cadastrado.</td></tr>';
     return;
   }
+  const isTarde = turno === 'tarde';
   tbody.innerHTML = ativos.map(e => {
     const stMap = {
       operando:  { cls:'status-operando',  icon:'✅', label:'Operando' },
@@ -355,11 +356,21 @@ function renderEquipamentos() {
       parado:    { cls:'status-parado',    icon:'❌', label:'Parado' },
     };
     const st = stMap[e.status] || { cls:'', icon:'', label: e.status };
+    const statusCell = isTarde
+      ? `<select onchange="salvarStatusEquip('${e.id}', this.value)"
+           style="border:1px solid #e2e8f0;border-radius:20px;padding:4px 10px;font-size:12px;font-weight:700;cursor:pointer;
+                  background:${e.status==='operando'?'#d1fae5':e.status==='restricao'?'#fef3c7':'#fee2e2'};
+                  color:${e.status==='operando'?'#065f46':e.status==='restricao'?'#92400e':'#991b1b'}">
+           <option value="operando"  ${e.status==='operando' ?'selected':''}>✅ Operando</option>
+           <option value="restricao" ${e.status==='restricao'?'selected':''}>⚠️ Com Restrição</option>
+           <option value="parado"    ${e.status==='parado'   ?'selected':''}>❌ Parado</option>
+         </select>`
+      : `<span class="status-btn ${st.cls}">${st.icon} ${st.label}</span>`;
     return `<tr>
       <td style="font-weight:600">${e.nome}</td>
       <td style="color:#64748b">${e.frota||'—'}</td>
       <td style="color:#64748b;font-size:12px">${e.funcao||'—'}</td>
-      <td><span class="status-btn ${st.cls}">${st.icon} ${st.label}</span></td>
+      <td>${statusCell}</td>
       <td>
         <input type="text"
           value="${(e.observacao_dia||'').replace(/"/g,'&quot;')}"
@@ -375,6 +386,15 @@ window.salvarObsEquip = async (id, obs) => {
   await supabase.from('equipamentos').update({ observacao_dia: obs||null }).eq('id', id);
   const eq = equipData.find(e => e.id === id);
   if (eq) eq.observacao_dia = obs;
+};
+
+window.salvarStatusEquip = async (id, novoStatus) => {
+  const { error } = await supabase.from('equipamentos').update({ status: novoStatus }).eq('id', id);
+  if (error) { toast('Erro ao salvar status', 'error'); return; }
+  const eq = equipData.find(e => e.id === id);
+  if (eq) eq.status = novoStatus;
+  renderEquipamentos();
+  renderComparativo();
 };
 
 // ── RH ────────────────────────────────────────────────────────────────────────
@@ -412,14 +432,37 @@ function renderRH() {
           ${o.descricao||''}
         </div>`).join('')
       : '<span style="color:#94a3b8;font-size:12px">—</span>';
+    const presCell = turno === 'tarde'
+      ? `<select onchange="salvarPresencaRD('${c.id}', this.value)"
+           style="border:1px solid #e2e8f0;border-radius:20px;padding:3px 10px;font-size:12px;font-weight:700;cursor:pointer;
+                  background:${pres?'#d1fae5':'#fee2e2'};color:${pres?'#065f46':'#991b1b'}">
+           <option value="true"  ${pres ?'selected':''}>✔ Presente</option>
+           <option value="false" ${!pres?'selected':''}>✖ Falta</option>
+         </select>`
+      : `<span class="status-badge ${pres ? 'badge-present' : 'badge-absent'}">${pres ? '✔ Presente' : '✖ Falta'}</span>`;
     return `<tr>
       <td style="font-weight:600">${c.nome}</td>
       <td style="color:#64748b;font-size:12px">${cargo}</td>
-      <td><span class="status-badge ${pres ? 'badge-present' : 'badge-absent'}">${pres ? '✔ Presente' : '✖ Falta'}</span></td>
+      <td>${presCell}</td>
       <td>${ocsHtml}</td>
     </tr>`;
   }).join('');
 }
+
+window.salvarPresencaRD = async (colabId, val) => {
+  const data = rdData.value;
+  const presente = val === 'true';
+  const { error } = await supabase.from('presenca_diaria').upsert(
+    [{ colaborador_id: colabId, data, presente }],
+    { onConflict: 'colaborador_id,data' }
+  );
+  if (error) { toast('Erro ao salvar presença', 'error'); return; }
+  const reg = presencaData.find(p => p.colaborador_id === colabId);
+  if (reg) reg.presente = presente;
+  else presencaData.push({ colaborador_id: colabId, data, presente });
+  renderRH();
+  renderComparativo();
+};
 
 // ── Comparativo manhã × tarde ─────────────────────────────────────────────────
 function snaphotManha() {
