@@ -274,6 +274,28 @@ async function carregar() {
     }
   } catch (_) { /* tabela ainda não criada */ }
 
+  // Carrega histórico de snapshots para gráfico de disponibilidade por período
+  window._equipHistMap   = {};
+  window._equipHistDates = [];
+  try {
+    const dias = (window._equipHistPeriodo || 8) * 7;
+    const limite = new Date();
+    limite.setDate(limite.getDate() - dias);
+    const limiteStr = limite.toISOString().split('T')[0];
+    const { data: histData } = await supabase
+      .from('equipamentos_snapshot')
+      .select('semana, equipamento_id, status')
+      .gte('semana', limiteStr)
+      .order('semana', { ascending: true });
+    const datesSet = new Set();
+    (histData || []).forEach(s => {
+      datesSet.add(s.semana);
+      if (!window._equipHistMap[s.equipamento_id]) window._equipHistMap[s.equipamento_id] = {};
+      window._equipHistMap[s.equipamento_id][s.semana] = s.status;
+    });
+    window._equipHistDates = [...datesSet].sort();
+  } catch (_) {}
+
   // ── Balanço ──────────────────────────────────────────────────────────────
   function matchCatRel(tipoMat) {
     const norm = t => (t||'').normalize('NFD').replace(/[̀-ͯ]/g,'').toLowerCase();
@@ -849,37 +871,63 @@ async function carregar() {
           </div>`;
         }
 
-        // Single unified table
-        const selOpts = (ant) => `
-          <option value="" ${!ant?'selected':''}>— selecione —</option>
-          <option value="operando"  ${ant==='operando' ?'selected':''}>✅ Operando</option>
-          <option value="restricao" ${ant==='restricao'?'selected':''}>⚠️ Restrição</option>
-          <option value="parado"    ${ant==='parado'   ?'selected':''}>❌ Parado</option>`;
+        // Gráfico de disponibilidade horizontal por equipamento
+        const hp = window._equipHistPeriodo || 8;
+        const histDates = window._equipHistDates || [];
+        const histMap   = window._equipHistMap   || {};
 
-        const selStyle = (ant) => {
-          const c = ant==='operando'?'background:#d1fae5;color:#065f46':ant==='restricao'?'background:#fef3c7;color:#92400e':ant==='parado'?'background:#fee2e2;color:#991b1b':'background:#f1f5f9;color:#94a3b8';
-          return `font-size:12px;padding:4px 8px;border-radius:8px;border:1px solid #e2e8f0;cursor:pointer;font-weight:600;${c}`;
+        const timelineBar = (equipId) => {
+          const hist = histMap[equipId] || {};
+          if (!histDates.length) return '<span style="color:#94a3b8;font-size:11px">Sem histórico</span>';
+          const counts = { operando:0, restricao:0, parado:0 };
+          const segments = histDates.map(d => {
+            const s = hist[d] || null;
+            if (s && counts[s] !== undefined) counts[s]++;
+            return { d, s };
+          });
+          const known = counts.operando + counts.restricao + counts.parado;
+          if (!known) return '<span style="color:#94a3b8;font-size:11px">Sem registros no período</span>';
+          const total = histDates.length;
+          const pOp  = Math.round(counts.operando  / total * 100);
+          const pRes = Math.round(counts.restricao / total * 100);
+          const pPar = Math.round(counts.parado    / total * 100);
+          const segHtml = segments.map(({d,s}) => {
+            const [a,m,dia] = d.split('-');
+            const title = `${dia}/${m}/${a} — ${s==='operando'?'Operando':s==='restricao'?'Restrição':s==='parado'?'Parado':'sem registro'}`;
+            const cor = s==='operando'?'#10b981':s==='restricao'?'#f59e0b':s==='parado'?'#ef4444':'#e2e8f0';
+            return `<div title="${title}" style="flex:1;background:${cor};min-width:3px"></div>`;
+          }).join('');
+          const pills = [
+            counts.operando  ? `<span style="background:#d1fae5;color:#065f46;padding:2px 7px;border-radius:20px;font-size:10px;font-weight:700">${pOp}% Op</span>` : '',
+            counts.restricao ? `<span style="background:#fef3c7;color:#92400e;padding:2px 7px;border-radius:20px;font-size:10px;font-weight:700">${pRes}% Rest</span>` : '',
+            counts.parado    ? `<span style="background:#fee2e2;color:#991b1b;padding:2px 7px;border-radius:20px;font-size:10px;font-weight:700">${pPar}% Par</span>` : '',
+          ].filter(Boolean).join('');
+          return `<div style="display:flex;height:16px;border-radius:4px;overflow:hidden;gap:1px">${segHtml}</div>
+                  <div style="display:flex;gap:4px;margin-top:4px;flex-wrap:wrap">${pills}</div>`;
         };
+
+        const periodoSel = `
+          <div class="no-print" style="display:flex;align-items:center;gap:8px;margin-bottom:14px">
+            <span style="font-size:11px;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:.04em">Período histórico:</span>
+            <select onchange="window._equipHistPeriodo=+this.value;carregar()" style="font-size:11px;padding:4px 10px;border-radius:6px;border:1px solid #e2e8f0;background:#fff;color:#334155;cursor:pointer">
+              <option value="4"  ${hp===4 ?'selected':''}>Últimas 4 semanas</option>
+              <option value="8"  ${hp===8 ?'selected':''}>Últimas 8 semanas</option>
+              <option value="12" ${hp===12?'selected':''}>Últimas 12 semanas</option>
+              <option value="24" ${hp===24?'selected':''}>Últimos 6 meses</option>
+            </select>
+            <span style="font-size:10px;color:#94a3b8">${histDates.length} registros encontrados</span>
+          </div>`;
 
         // Changed rows (with colored left border)
         const changedRows = changed.map(e => {
           const snap = snapMap[e.id]||{};
           const ant  = snap.status||null;
-          const obs  = snap.obs||'';
           const melhorou = e.status==='operando'||(e.status==='restricao'&&ant==='parado');
           const corVar = melhorou?'#006636':'#DC2626';
-          const bgVar  = melhorou?'#d1fae5':'#fee2e2';
           return `<tr style="background:${melhorou?'#f0fdf4':'#fff7f7'}">
             <td style="border-left:3px solid ${corVar};padding-left:10px;font-weight:700;color:#0f172a">${e.nome}</td>
             <td style="color:#64748b;font-size:12px">${e.frota||'—'}</td>
-            <td>
-              <div style="display:flex;flex-direction:column;gap:5px">
-                <select onchange="salvarSnapStatus('${e.id}','${e.frota||''}','${e.nome}',this)" style="${selStyle(ant)}">${selOpts(ant)}</select>
-                <input type="text" value="${obs.replace(/"/g,'&quot;')}" placeholder="Observação semana passada…"
-                  oninput="salvarSnapObs('${e.id}',this.value)"
-                  style="font-size:11px;padding:3px 8px;border:1px dashed #cbd5e1;border-radius:6px;color:#475569;outline:none;width:100%;box-sizing:border-box" />
-              </div>
-            </td>
+            <td>${timelineBar(e.id)}</td>
             <td style="text-align:center">${badge(e.status)}</td>
           </tr>`;
         }).join('');
@@ -891,19 +939,10 @@ async function carregar() {
           </td></tr>` : '';
 
         const stableRows = stable.map(e => {
-          const snap = snapMap[e.id]||{};
-          const ant  = snap.status||null;
-          const obs  = snap.obs||'';
-          const hasSnap = !!ant;
           return `<tr>
             <td style="border-left:3px solid #e2e8f0;padding-left:10px;color:#334155;font-weight:600">${e.nome}</td>
             <td style="color:#94a3b8;font-size:12px">${e.frota||'—'}</td>
-            <td>
-              <div style="display:flex;flex-direction:column;gap:5px">
-                <select onchange="salvarSnapStatus('${e.id}','${e.frota||''}','${e.nome}',this)" style="${selStyle(ant)}">${selOpts(ant)}</select>
-                ${obs ? `<span style="font-size:11px;color:#94a3b8;padding-left:2px">${obs}</span>` : ''}
-              </div>
-            </td>
+            <td>${timelineBar(e.id)}</td>
             <td style="text-align:center">${badge(e.status)}</td>
           </tr>`;
         }).join('');
@@ -919,7 +958,7 @@ async function carregar() {
               <tr>
                 <th>Equipamento</th>
                 <th>Nº Frota</th>
-                <th>Semana Passada</th>
+                <th>Disponibilidade no Período</th>
                 <th style="text-align:center">Situação Atual</th>
               </tr>
             </thead>
@@ -931,7 +970,7 @@ async function carregar() {
             </tbody>
           </table>`;
 
-        return resumoHtml + tableHtml;
+        return resumoHtml + periodoSel + tableHtml;
       })()}
     </div>
 
