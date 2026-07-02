@@ -7,131 +7,114 @@
   <link rel="stylesheet" href="css/style.css" />
   <script src="https://cdn.jsdelivr.net/npm/pptxgenjs@3/dist/pptxgen.bundle.js"></script>
   <style>
-    /* ── Identidade visual do modelo de apresentação ── */
-    :root {
-      --primary: #006636;
-      --primary-light: #5EC5BF;
-      --success: #006636;
+    :root { --primary: #006636; --primary-light: #5EC5BF; }
+
+    /* ── Controles ── */
+    .rel-controls { display:flex; gap:8px; align-items:center; flex-wrap:wrap; }
+
+    /* ── Seções ── */
+    .rel-section { margin-bottom:20px; }
+
+    /* ── Cabeçalho de seção ── */
+    .sec-hd {
+      display:flex; align-items:center; gap:10px;
+      margin-bottom:18px; padding-bottom:12px; border-bottom:1px solid #f1f5f9;
+    }
+    .sec-dot { width:10px; height:10px; border-radius:50%; flex-shrink:0; }
+    .sec-title { font-size:12px; font-weight:800; text-transform:uppercase; letter-spacing:.1em; color:#0f172a; }
+    .sec-line { flex:1; height:1px; background:#f1f5f9; }
+    .sec-badge {
+      font-size:11px; font-weight:700; padding:3px 12px; border-radius:20px; white-space:nowrap;
     }
 
-    /* ── Tela ── */
-    .rel-header {
-      display: flex; align-items: center; justify-content: space-between;
-      flex-wrap: wrap; gap: 12px; margin-bottom: 24px;
-    }
-    .rel-controls {
-      display: flex; gap: 8px; align-items: center; flex-wrap: wrap;
-    }
-    .rel-section { margin-bottom: 28px; }
-    .rel-section-title {
-      font-size: 12px; font-weight: 800; text-transform: uppercase;
-      letter-spacing: .1em; color: #ffffff;
-      background: #006636;
-      padding: 7px 14px;
-      border-radius: 6px;
-      margin-bottom: 16px;
-      border-left: 5px solid #5EC5BF;
-    }
-    .rel-kpi-grid {
-      display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 12px;
-    }
+    /* ── KPI cards ── */
     .rel-kpi {
-      background: #fff; border: 1px solid #e2e8f0; border-radius: 10px;
-      padding: 14px 16px;
+      background:#fff; border:1px solid #e2e8f0; border-radius:10px; padding:14px 16px;
     }
-    .rel-kpi-label { font-size: 10px; font-weight: 700; text-transform: uppercase; color: #64748b; margin-bottom: 4px; }
-    .rel-kpi-val   { font-size: 22px; font-weight: 800; color: var(--primary); }
-    .rel-kpi-sub   { font-size: 11px; color: #94a3b8; margin-top: 2px; }
+    .rel-kpi-label { font-size:10px; font-weight:700; text-transform:uppercase; color:#64748b; margin-bottom:4px; letter-spacing:.04em; }
+    .rel-kpi-val   { font-size:22px; font-weight:900; color:#0f172a; line-height:1; letter-spacing:-.5px; }
+    .rel-kpi-sub   { font-size:11px; color:#94a3b8; margin-top:4px; }
+    .rel-kpi-grid  { display:grid; grid-template-columns:repeat(auto-fill,minmax(140px,1fr)); gap:10px; }
 
-    .rel-table { width: 100%; border-collapse: collapse; font-size: 13px; }
-    .rel-table th { background: #f1f5f9; font-weight: 700; padding: 7px 10px; text-align: left; border-bottom: 2px solid #e2e8f0; }
-    .rel-table td { padding: 6px 10px; border-bottom: 1px solid #f1f5f9; }
-    .rel-table tr:last-child td { border-bottom: none; }
+    /* KPI executivo (top strip) */
+    .exec-kpi {
+      background:#fff; border:1px solid #e2e8f0; border-radius:12px;
+      padding:16px; position:relative; overflow:hidden;
+    }
+    .exec-kpi::before {
+      content:''; position:absolute; top:0; left:0; right:0; height:3px;
+      background:var(--strip,#006636);
+    }
+    .exec-kpi-label { font-size:10px; font-weight:700; text-transform:uppercase; color:#94a3b8; margin-bottom:8px; letter-spacing:.06em; }
+    .exec-kpi-val   { font-size:22px; font-weight:900; color:#0f172a; line-height:1; letter-spacing:-.5px; }
+    .exec-kpi-sub   { font-size:11px; color:#94a3b8; margin-top:6px; }
 
-    .balanco-bar-wrap { background:#F3F4F6; border-radius:8px; height:22px; display:flex; overflow:hidden; margin-bottom:8px; }
+    /* ── Tabelas ── */
+    .rel-table { width:100%; border-collapse:collapse; font-size:13px; }
+    .rel-table th {
+      background:#f8fafc; font-weight:700; font-size:11px; text-transform:uppercase;
+      letter-spacing:.04em; color:#64748b; padding:9px 10px;
+      text-align:left; border-bottom:2px solid #e2e8f0;
+    }
+    .rel-table td { padding:7px 10px; border-bottom:1px solid #f8fafc; color:#334155; }
+    .rel-table tbody tr:hover { background:#f8fafc; }
+    .rel-table tr:last-child td { border-bottom:none; }
+
+    /* ── Balanço bar ── */
+    .balanco-bar-wrap { background:#F3F4F6; border-radius:8px; height:20px; display:flex; overflow:hidden; }
     .balanco-bar-seg  { height:100%; display:flex; align-items:center; justify-content:center; font-size:10px; font-weight:700; color:#fff; overflow:hidden; white-space:nowrap; }
-    .balanco-legenda  { display:flex; flex-wrap:wrap; gap:10px; font-size:11px; }
-    .balanco-legenda span { display:flex; align-items:center; gap:4px; }
+    .balanco-legenda  { display:flex; flex-wrap:wrap; gap:12px; font-size:11px; margin-top:6px; }
+    .balanco-legenda span { display:flex; align-items:center; gap:5px; }
     .balanco-legenda i { width:10px; height:10px; border-radius:2px; display:inline-block; }
 
+    /* ── Botões ── */
     .btn-pdf {
-      background: #DC2626; color: #fff; border: none; border-radius: 8px;
-      padding: 10px 20px; font-size: 14px; font-weight: 700; cursor: pointer;
-      display: flex; align-items: center; gap: 8px;
+      background:#DC2626; color:#fff; border:none; border-radius:8px;
+      padding:9px 18px; font-size:13px; font-weight:700; cursor:pointer;
+      display:flex; align-items:center; gap:7px; white-space:nowrap;
     }
-    .btn-pdf:hover { background: #b91c1c; }
+    .btn-pdf:hover { filter:brightness(1.1); }
 
-    .nota-badge {
-      display: inline-block; padding: 2px 10px; border-radius: 12px; font-weight: 700; font-size: 13px;
-    }
-    .nota-verde  { background: #d1fae5; color: #065f46; }
-    .nota-amarelo{ background: #fef3c7; color: #92400e; }
-    .nota-vermelho{ background: #fee2e2; color: #991b1b; }
+    /* ── Notas ── */
+    .nota-badge { display:inline-block; padding:2px 10px; border-radius:12px; font-weight:700; font-size:12px; }
+    .nota-verde   { background:#d1fae5; color:#065f46; }
+    .nota-amarelo { background:#fef3c7; color:#92400e; }
+    .nota-vermelho{ background:#fee2e2; color:#991b1b; }
 
     /* ── Impressão ── */
     @media print {
-      @page { size: A4 landscape; margin: 12mm 14mm; }
-
-      .sidebar, .sidebar-overlay, .sidebar-toggle, .mobile-menu-btn,
-      .rel-controls, .btn-pdf { display: none !important; }
-
-      body { background: #fff !important; font-size: 11px !important; }
-      .main-content { margin-left: 0 !important; padding: 0 !important; }
-
-      /* Cabeçalho da página */
-      .page-header { margin-bottom: 10px !important; padding-bottom: 6px !important; border-bottom: 2px solid #006636; }
-      .page-header h2 { font-size: 15px !important; margin: 0; }
-      .page-header p  { font-size: 11px !important; margin: 0; }
-
-      /* Cards e seções */
-      .card { box-shadow: none !important; border: 1px solid #d1d5db !important; margin-bottom: 10px !important; padding: 10px 12px !important; }
-      .rel-section { break-inside: avoid; page-break-inside: avoid; margin-bottom: 10px !important; }
-      .rel-section-title { font-size: 10px !important; padding-bottom: 3px !important; margin-bottom: 8px !important; }
-      .print-break { page-break-before: always; }
-
-      /* KPI grid compacto */
-      .rel-kpi-grid { grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)) !important; gap: 6px !important; margin-bottom: 8px !important; }
-      .rel-kpi { padding: 8px 10px !important; border-radius: 6px !important; }
-      .rel-kpi-val { font-size: 16px !important; }
-      .rel-kpi-label { font-size: 9px !important; }
-      .rel-kpi-sub { font-size: 9px !important; }
-
-      /* Tabelas */
-      .rel-table { font-size: 10px !important; }
-      .rel-table th { padding: 5px 7px !important; font-size: 9px !important; background: #f1f5f9 !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-      .rel-table td { padding: 4px 7px !important; }
-
-      /* Badges de nota e status — forçar cores */
-      .nota-badge, [style*="border-radius"][style*="background"] {
-        -webkit-print-color-adjust: exact !important;
-        print-color-adjust: exact !important;
-      }
-      .nota-verde   { background: #d1fae5 !important; color: #065f46 !important; }
-      .nota-amarelo { background: #fef3c7 !important; color: #92400e !important; }
-      .nota-vermelho{ background: #fee2e2 !important; color: #991b1b !important; }
-
-      /* Barra do balanço */
-      .balanco-bar-wrap, .balanco-bar-seg {
-        -webkit-print-color-adjust: exact !important;
-        print-color-adjust: exact !important;
-      }
-
-      /* Linha verde do mês atual na tabela */
-      tr[style*="dcfce7"] {
-        background: #dcfce7 !important;
-        -webkit-print-color-adjust: exact !important;
-        print-color-adjust: exact !important;
-      }
-
-      /* Linha de total */
-      tr[style*="EBF5EE"] {
-        background: #EBF5EE !important;
-        -webkit-print-color-adjust: exact !important;
-        print-color-adjust: exact !important;
-      }
-
-      /* Gauge canvas */
-      canvas { max-width: 180px !important; max-height: 100px !important; }
+      @page { size: A4 landscape; margin: 10mm 12mm; }
+      .sidebar,.sidebar-overlay,.sidebar-toggle,.mobile-menu-btn,.rel-controls,.btn-pdf { display:none !important; }
+      body { background:#fff !important; font-size:10px !important; }
+      .main-content { margin-left:0 !important; padding:0 !important; }
+      .page-header { margin-bottom:8px !important; padding-bottom:5px !important; border-bottom:2px solid #006636; }
+      .page-header h2 { font-size:14px !important; margin:0; }
+      .page-header p  { font-size:10px !important; margin:0; }
+      .card { box-shadow:none !important; border:1px solid #d1d5db !important; margin-bottom:8px !important; padding:8px 10px !important; }
+      .rel-section { break-inside:avoid; page-break-inside:avoid; margin-bottom:8px !important; }
+      .print-break { page-break-before:always; }
+      .rel-kpi-grid { gap:5px !important; margin-bottom:6px !important; }
+      .rel-kpi { padding:7px 9px !important; }
+      .rel-kpi-val { font-size:16px !important; }
+      .rel-kpi-label { font-size:9px !important; }
+      .rel-kpi-sub { font-size:9px !important; }
+      .exec-kpi { padding:7px 9px !important; }
+      .exec-kpi-val { font-size:15px !important; }
+      .exec-kpi-label { font-size:8px !important; }
+      .rel-table { font-size:9px !important; }
+      .rel-table th { padding:4px 6px !important; font-size:8px !important; background:#f1f5f9 !important; -webkit-print-color-adjust:exact; print-color-adjust:exact; }
+      .rel-table td { padding:3px 6px !important; }
+      .nota-badge,[style*="border-radius"][style*="background"] { -webkit-print-color-adjust:exact !important; print-color-adjust:exact !important; }
+      .nota-verde   { background:#d1fae5 !important; color:#065f46 !important; }
+      .nota-amarelo { background:#fef3c7 !important; color:#92400e !important; }
+      .nota-vermelho{ background:#fee2e2 !important; color:#991b1b !important; }
+      .balanco-bar-wrap,.balanco-bar-seg { -webkit-print-color-adjust:exact !important; print-color-adjust:exact !important; }
+      [style*="f0fdf4"] { background:#f0fdf4 !important; -webkit-print-color-adjust:exact !important; print-color-adjust:exact !important; }
+      [style*="fffbeb"] { background:#fffbeb !important; -webkit-print-color-adjust:exact !important; print-color-adjust:exact !important; }
+      [style*="fef9c3"] { background:#fef9c3 !important; -webkit-print-color-adjust:exact !important; print-color-adjust:exact !important; }
+      [style*="f1f5f9"] { background:#f1f5f9 !important; -webkit-print-color-adjust:exact !important; print-color-adjust:exact !important; }
+      canvas { max-width:160px !important; max-height:90px !important; }
+      .sec-hd { margin-bottom:10px !important; padding-bottom:6px !important; }
     }
   </style>
 </head>
@@ -413,101 +396,145 @@ async function carregar() {
   // ── Render ───────────────────────────────────────────────────────────────
   document.getElementById('rel-body').innerHTML = `
 
-    <!-- Capa -->
-    <div class="rel-section" style="background:#006636;border-radius:12px;padding:32px 36px;margin-bottom:24px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:16px">
-      <div>
-        <div style="font-size:11px;font-weight:700;text-transform:uppercase;color:#5EC5BF;letter-spacing:.1em;margin-bottom:6px">SGR Indaiatuba — UVRR Indaiatuba</div>
-        <div style="font-size:30px;font-weight:900;color:#ffffff;margin:4px 0;letter-spacing:-.5px">Comitê de Gestão</div>
-        <div style="font-size:16px;color:#5EC5BF;font-weight:600;margin-top:4px">${label}</div>
-      </div>
-      <div style="text-align:right">
-        <div style="font-size:12px;color:#5EC5BF;margin-bottom:4px">Gerado em ${new Date().toLocaleDateString('pt-BR')}</div>
-        <div style="display:flex;align-items:center;gap:8px;justify-content:flex-end;margin-top:8px">
-          <div style="width:36px;height:4px;background:#5EC5BF;border-radius:2px"></div>
-          <div style="width:24px;height:4px;background:rgba(255,255,255,0.3);border-radius:2px"></div>
-          <div style="width:12px;height:4px;background:rgba(255,255,255,0.15);border-radius:2px"></div>
-        </div>
-      </div>
-    </div>
-
-    <!-- 1. Balanço de Massa -->
-    <div class="card rel-section">
-      <div class="rel-section-title">Balanço de Massa</div>
-      <div style="display:grid;grid-template-columns:2fr 1fr;gap:16px;margin-bottom:12px">
-        <!-- Coluna esquerda: cards + barra + legenda -->
+    <!-- ══ CAPA ══ -->
+    <div class="rel-section" style="background:linear-gradient(135deg,#004d28 0%,#006636 55%,#0a7a40 100%);border-radius:16px;padding:36px 44px;margin-bottom:16px;position:relative;overflow:hidden">
+      <div style="position:absolute;top:-50px;right:-50px;width:220px;height:220px;border-radius:50%;background:rgba(94,197,191,0.07)"></div>
+      <div style="position:absolute;bottom:-60px;right:120px;width:160px;height:160px;border-radius:50%;background:rgba(255,255,255,0.04)"></div>
+      <div style="position:relative;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:16px">
         <div>
-          <div style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:14px">
-            <div class="rel-kpi" style="flex:1;min-width:100px">
-              <div class="rel-kpi-label">⬇ Recebido</div>
-              <div class="rel-kpi-val">${ton(recebido)}</div>
-              <div class="rel-kpi-sub">base do balanço</div>
-            </div>
-            <div class="rel-kpi" style="flex:1;min-width:100px">
-              <div class="rel-kpi-label" style="color:#006636">Expedido</div>
-              <div class="rel-kpi-val" style="color:#006636">${ton(expedido)}</div>
-              <div class="rel-kpi-sub" style="color:#006636">${pct(expedido)}% do recebido</div>
-            </div>
-            <div class="rel-kpi" style="flex:1;min-width:100px">
-              <div class="rel-kpi-label" style="color:#DC2626">Rejeito</div>
-              <div class="rel-kpi-val" style="color:#DC2626">${ton(rejeito)}</div>
-              <div class="rel-kpi-sub" style="color:#DC2626">${pct(rejeito)}% do recebido</div>
-            </div>
-            <div class="rel-kpi" style="flex:1;min-width:100px">
-              <div class="rel-kpi-label" style="color:#3B82F6">Estoque</div>
-              <div class="rel-kpi-val" style="color:#3B82F6">${ton(estoque)}</div>
-              <div class="rel-kpi-sub" style="color:#3B82F6">${pct(estoque)}% do recebido</div>
-            </div>
-            <div class="rel-kpi" style="flex:1;min-width:100px">
-              <div class="rel-kpi-label" style="color:#F59E0B">Passivo</div>
-              <div class="rel-kpi-val" style="color:#F59E0B">${ton(passivo)}</div>
-              <div class="rel-kpi-sub" style="color:#F59E0B">${pct(passivo)}% do recebido</div>
-            </div>
-          </div>
-          <div class="balanco-bar-wrap" style="margin-bottom:8px">
-            ${segs.map(s=>`<div class="balanco-bar-seg" style="width:${pct(s.val)}%;background:${s.cor}" title="${s.label}: ${pct(s.val)}%">${parseFloat(pct(s.val))>5?pct(s.val)+'%':''}</div>`).join('')}
-          </div>
-          <div class="balanco-legenda" style="margin-bottom:10px">
-            ${[...segs,{label:'Estoque',val:estoque,cor:'#3B82F6'}].map(s=>`<span><i style="background:${s.cor}"></i>${s.label} ${pct(s.val)}%</span>`).join('')}
-          </div>
-          <div style="background:#D1FAE5;border:1px solid #6EE7B7;border-radius:8px;padding:8px 12px;font-size:12px;color:#065f46">
-            ✅ Balanço fechado — Passivo de ${ton(passivo)} (${pct(passivo)}% do recebido) em processamento ou aguardando destinação.
-          </div>
+          <div style="font-size:10px;font-weight:700;text-transform:uppercase;color:#5EC5BF;letter-spacing:.18em;margin-bottom:10px">SGR Indaiatuba — UVR Indaiatuba</div>
+          <div style="font-size:32px;font-weight:900;color:#ffffff;letter-spacing:-.8px;line-height:1.1">Comitê de Gestão</div>
+          <div style="font-size:17px;color:rgba(255,255,255,0.8);font-weight:500;margin-top:8px">${label}</div>
         </div>
-        <!-- Coluna direita: gauge -->
-        <div style="text-align:center;display:flex;flex-direction:column;align-items:center;justify-content:center">
-          <div style="font-size:12px;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:.04em;margin-bottom:4px">Taxa de Reciclagem</div>
-          <canvas id="gauge-rel" width="220" height="120"></canvas>
-          <div id="gauge-rel-val" style="font-size:28px;font-weight:900;margin-top:-20px"></div>
-          <div style="font-size:11px;color:#94a3b8;margin-top:4px">(Expedido + Estoque) / Recebido</div>
+        <div style="text-align:right">
+          <div style="font-size:11px;color:rgba(255,255,255,0.5);margin-bottom:4px">Relatório Confidencial</div>
+          <div style="font-size:13px;color:#5EC5BF;font-weight:600">${new Date().toLocaleDateString('pt-BR',{weekday:'long',day:'2-digit',month:'long',year:'numeric'})}</div>
         </div>
       </div>
     </div>
 
-    <!-- 2. Comercial / Faturamento -->
+    <!-- ══ PAINEL EXECUTIVO ══ -->
+    ${(() => {
+      const mi    = new Date().getMonth();
+      const atMes = fatPrev[mi] > 0 ? fatReal[mi] / fatPrev[mi] * 100 : null;
+      const metaMes = fatPrev[mi] || 0;
+      const cA = atMes === null ? '#94a3b8' : atMes >= 100 ? '#006636' : atMes >= 80 ? '#D97706' : '#DC2626';
+      const cT = taxa >= 70 ? '#006636' : taxa >= 50 ? '#D97706' : '#DC2626';
+      const cE = equPct >= 80 ? '#006636' : equPct >= 60 ? '#D97706' : '#DC2626';
+      const kpis = [
+        { label:'Faturamento',      val:moeda(faturamento),       sub:label,                            strip:'#006636' },
+        { label:'Meta do Mês',      val:metaMes>0?moeda(metaMes):'—', sub:'objetivo mensal',           strip:'#64748b' },
+        { label:'Atingimento',      val:atMes!==null?atMes.toFixed(1)+'%':'—',
+          sub:atMes===null?'sem meta':atMes>=100?'✅ Meta atingida':atMes>=80?'⚠️ Próximo da meta':'❌ Abaixo da meta',
+          strip:cA, valCor:cA },
+        { label:'Volume Recebido',  val:ton(recebido),            sub:'no período',                     strip:'#3B82F6' },
+        { label:'Taxa Reciclagem',  val:taxa.toFixed(1)+'%',
+          sub:taxa>=70?'✅ Meta ambiental OK':taxa>=50?'⚠️ Atenção':'❌ Abaixo do esperado',
+          strip:cT, valCor:cT },
+        { label:'Disponib. Frota',  val:equPct+'%',
+          sub:equAtivos+' de '+equTotal+' equipamentos',
+          strip:cE, valCor:cE },
+      ];
+      return `
+      <div style="margin-bottom:16px">
+        <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:#94a3b8;margin-bottom:10px;padding-left:2px">Visão Geral</div>
+        <div style="display:grid;grid-template-columns:repeat(6,1fr);gap:8px">
+          ${kpis.map(k=>`
+          <div class="exec-kpi" style="--strip:${k.strip}">
+            <div class="exec-kpi-label">${k.label}</div>
+            <div class="exec-kpi-val" style="color:${k.valCor||'#0f172a'}">${k.val}</div>
+            <div class="exec-kpi-sub">${k.sub}</div>
+          </div>`).join('')}
+        </div>
+      </div>`;
+    })()}
+
+    <!-- ══ 1. BALANÇO DE MASSA ══ -->
     <div class="card rel-section">
-      <div class="rel-section-title">Comercial</div>
-      <div class="rel-kpi-grid" style="margin-bottom:16px">
-        <div class="rel-kpi">
-          <div class="rel-kpi-label">Faturamento</div>
-          <div class="rel-kpi-val" style="font-size:18px">${moeda(faturamento)}</div>
+      ${(() => {
+        const cT=taxa>=70?'#16a34a':taxa>=50?'#d97706':'#dc2626';
+        const bgT=taxa>=70?'#dcfce7':taxa>=50?'#fef9c3':'#fee2e2';
+        return `<div class="sec-hd">
+          <div class="sec-dot" style="background:${cT}"></div>
+          <div class="sec-title">Balanço de Massa</div>
+          <div class="sec-line"></div>
+          <span class="sec-badge" style="color:${cT};background:${bgT}">Taxa Reciclagem: ${taxa.toFixed(1)}%</span>
+        </div>`;
+      })()}
+      <div style="display:grid;grid-template-columns:2fr 1fr;gap:20px">
+        <div>
+          <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:8px;margin-bottom:14px">
+            ${[
+              {label:'Recebido',val:recebido,cor:'#334155',bg:'#f8fafc',desc:'entrada total'},
+              {label:'Expedido',val:expedido,cor:'#006636',bg:'#f0fdf4',desc:pct(expedido)+'% do receb.'},
+              {label:'Rejeito', val:rejeito, cor:'#DC2626',bg:'#fff5f5',desc:pct(rejeito)+'% do receb.'},
+              {label:'Estoque', val:estoque, cor:'#2563eb',bg:'#eff6ff',desc:pct(estoque)+'% do receb.'},
+              {label:'Passivo', val:passivo, cor:'#D97706',bg:'#fffbeb',desc:pct(passivo)+'% do receb.'},
+            ].map(k=>`<div style="background:${k.bg};border-radius:10px;padding:12px 8px;text-align:center">
+              <div style="font-size:9px;font-weight:700;text-transform:uppercase;color:${k.cor};margin-bottom:4px;letter-spacing:.04em">${k.label}</div>
+              <div style="font-size:18px;font-weight:900;color:${k.cor};letter-spacing:-.3px">${ton(k.val)}</div>
+              <div style="font-size:10px;color:#94a3b8;margin-top:2px">${k.desc}</div>
+            </div>`).join('')}
+          </div>
+          <div class="balanco-bar-wrap" style="height:18px;margin-bottom:8px">
+            ${segs.map(s=>`<div class="balanco-bar-seg" style="width:${pct(s.val)}%;background:${s.cor}">${parseFloat(pct(s.val))>6?pct(s.val)+'%':''}</div>`).join('')}
+          </div>
+          <div class="balanco-legenda">
+            ${segs.map(s=>`<span><i style="background:${s.cor}"></i>${s.label} ${pct(s.val)}%</span>`).join('')}
+          </div>
+          <div style="margin-top:12px;background:${taxa>=70?'#f0fdf4':taxa>=50?'#fefce8':'#fff5f5'};border:1px solid ${taxa>=70?'#86efac':taxa>=50?'#fde047':'#fca5a5'};border-radius:8px;padding:10px 14px;font-size:12px;color:${taxa>=70?'#166534':taxa>=50?'#713f12':'#991b1b'}">
+            ${taxa>=70?'✅':'⚠️'} Taxa de reciclagem de <strong>${taxa.toFixed(1)}%</strong>. Volume em passivo: <strong>${ton(passivo)}</strong> (${pct(passivo)}% do recebido) aguardando destinação.
+          </div>
+        </div>
+        <div style="display:flex;flex-direction:column;align-items:center;justify-content:center">
+          <div style="font-size:11px;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:.05em;margin-bottom:4px">Taxa de Reciclagem</div>
+          <canvas id="gauge-rel" width="220" height="120"></canvas>
+          <div id="gauge-rel-val" style="font-size:32px;font-weight:900;margin-top:-18px;letter-spacing:-1px"></div>
+          <div style="font-size:10px;color:#94a3b8;margin-top:4px;text-align:center">(Expedido + Estoque) / Recebido</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══ 2. COMERCIAL ══ -->
+    <div class="card rel-section">
+      ${(() => {
+        const mi=new Date().getMonth();
+        const atM=fatPrev[mi]>0?fatReal[mi]/fatPrev[mi]*100:null;
+        const cA=atM===null?'#94a3b8':atM>=100?'#16a34a':atM>=80?'#d97706':'#dc2626';
+        const bgA=atM===null?'#f1f5f9':atM>=100?'#dcfce7':atM>=80?'#fef9c3':'#fee2e2';
+        const lA=atM===null?'sem meta':atM>=100?'✅ Meta atingida':atM>=80?'⚠️ Próximo da meta':'❌ Abaixo da meta';
+        return `<div class="sec-hd">
+          <div class="sec-dot" style="background:${cA}"></div>
+          <div class="sec-title">Comercial</div>
+          <div class="sec-line"></div>
+          <span class="sec-badge" style="color:${cA};background:${bgA}">${atM!==null?'Atingimento: '+atM.toFixed(1)+'%':lA}</span>
+        </div>`;
+      })()}
+      <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:10px;margin-bottom:18px">
+        <div style="background:#f0fdf4;border-radius:10px;border:1px solid #86efac;padding:14px">
+          <div style="font-size:10px;font-weight:700;text-transform:uppercase;color:#166534;margin-bottom:5px">Faturamento</div>
+          <div style="font-size:19px;font-weight:900;color:#15803d;letter-spacing:-.5px">${moeda(faturamento)}</div>
+          <div style="font-size:10px;color:#4ade80;margin-top:4px">${label}</div>
         </div>
         <div class="rel-kpi">
           <div class="rel-kpi-label">Volume Vendido</div>
           <div class="rel-kpi-val">${ton(expedido)}</div>
+          <div class="rel-kpi-sub">no período</div>
         </div>
         <div class="rel-kpi">
-          <div class="rel-kpi-label">Ticket Médio</div>
-          <div class="rel-kpi-val" style="font-size:18px">${moeda(ticketMedio)}<span style="font-size:11px">/ton</span></div>
+          <div class="rel-kpi-label">Preço Médio</div>
+          <div class="rel-kpi-val" style="font-size:18px">${moeda(ticketMedio)}<span style="font-size:10px;color:#94a3b8">/ton</span></div>
+          <div class="rel-kpi-sub">ticket médio</div>
         </div>
-        <div class="rel-kpi">
-          <div class="rel-kpi-label">Valor em Estoque</div>
-          <div class="rel-kpi-val" style="font-size:18px;color:#3B82F6">${moeda(valorEstoque)}</div>
-          <div class="rel-kpi-sub">${ton(estoque)} em estoque</div>
+        <div style="background:#eff6ff;border-radius:10px;border:1px solid #bfdbfe;padding:14px">
+          <div style="font-size:10px;font-weight:700;text-transform:uppercase;color:#1d4ed8;margin-bottom:5px">Valor em Estoque</div>
+          <div style="font-size:19px;font-weight:900;color:#1d4ed8;letter-spacing:-.5px">${moeda(valorEstoque)}</div>
+          <div style="font-size:10px;color:#93c5fd;margin-top:4px">${ton(estoque)} armazenado</div>
         </div>
-        <div class="rel-kpi" style="border:2px solid #006636;background:#f0fdf4">
-          <div class="rel-kpi-label" style="color:#006636">Faturamento + Estoque</div>
-          <div class="rel-kpi-val" style="font-size:18px;color:#006636">${moeda(totalPotencial)}</div>
-          <div class="rel-kpi-sub" style="color:#4ade80">Realizado + valor em estoque</div>
+        <div style="background:#fff;border-radius:10px;border:2px solid #006636;padding:14px">
+          <div style="font-size:10px;font-weight:700;text-transform:uppercase;color:#006636;margin-bottom:5px">Potencial Total</div>
+          <div style="font-size:19px;font-weight:900;color:#006636;letter-spacing:-.5px">${moeda(totalPotencial)}</div>
+          <div style="font-size:10px;color:#94a3b8;margin-top:4px">realizado + estoque</div>
         </div>
       </div>
       <table class="rel-table" style="margin-top:8px">
@@ -530,7 +557,7 @@ async function carregar() {
               const ating = fatPrev[i]>0 ? (fatReal[i]/fatPrev[i]*100).toFixed(1)+'%' : '—';
               const cor   = fatPrev[i]>0 ? (fatReal[i]>=fatPrev[i]?'#006636':'#DC2626') : '#374151';
               const tk    = fatKg[i]>0 ? moeda(fatReal[i]/(fatKg[i]/1000)) : '—';
-              const rowBg = i===mesAtualIdx ? 'background:#dcfce7' : '';
+              const rowBg = i===mesAtualIdx ? 'background:#f0fdf4' : '';
               // Variação mês a mês
               const ant = i > 0 ? fatReal[i-1] : null;
               let varCell = '<td style="text-align:right;color:#94a3b8">—</td>';
@@ -551,7 +578,7 @@ async function carregar() {
               </tr>`;
             });
             const atingG = totP>0?(totR/totP*100).toFixed(1)+'%':'—';
-            rows.push(`<tr style="background:#EBF5EE;font-weight:700">
+            rows.push(`<tr style="background:#f1f5f9;font-weight:700">
               <td>TOTAL</td>
               <td style="text-align:right">${moeda(totR)}</td>
               <td style="text-align:right">${totP>0?moeda(totP):'—'}</td>
@@ -566,9 +593,14 @@ async function carregar() {
       </table>
     </div>
 
-    <!-- Projeção Anual -->
-    <div class="card rel-section" style="margin-top:16px">
-      <div class="rel-section-title">Projeção até Dezembro — Baseada no Ritmo Atual</div>
+    <!-- ══ 3. PROJEÇÃO ANUAL ══ -->
+    <div class="card rel-section">
+      <div class="sec-hd">
+        <div class="sec-dot" style="background:#d97706"></div>
+        <div class="sec-title">Projeção até Dezembro</div>
+        <div class="sec-line"></div>
+        <span style="font-size:11px;color:#94a3b8">Baseada no ritmo atual</span>
+      </div>
       ${(() => {
         // Meses com dados reais
         const mesesComDados = fatReal.filter(v => v > 0);
@@ -619,76 +651,92 @@ async function carregar() {
         </tr>`);
 
         return `
-        <div style="display:flex;gap:16px;flex-wrap:wrap;margin-bottom:16px">
-          <div class="rel-kpi">
-            <div class="rel-kpi-label">📈 Projeção Anual</div>
-            <div class="rel-kpi-val" style="color:#d97706">${moeda(projFat)}</div>
-            <div class="rel-kpi-sub">baseada em ${mesesComDados.length} mês(es) realizado(s)</div>
+        <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:16px">
+          <div style="background:#fffbeb;border-radius:10px;border:1px solid #fde68a;padding:14px">
+            <div style="font-size:10px;font-weight:700;text-transform:uppercase;color:#d97706;margin-bottom:5px">Projeção Anual</div>
+            <div style="font-size:19px;font-weight:900;color:#d97706;letter-spacing:-.5px">${moeda(projFat)}</div>
+            <div style="font-size:10px;color:#94a3b8;margin-top:4px">${mesesComDados.length} meses realizados</div>
           </div>
           <div class="rel-kpi">
-            <div class="rel-kpi-label">🎯 Meta Anual</div>
-            <div class="rel-kpi-val">${moeda(projPrev)}</div>
-            <div class="rel-kpi-sub">soma das metas mensais</div>
+            <div class="rel-kpi-label">Meta Anual</div>
+            <div class="rel-kpi-val" style="font-size:19px">${projPrev>0?moeda(projPrev):'—'}</div>
+            <div class="rel-kpi-sub">soma das metas</div>
           </div>
           <div class="rel-kpi">
-            <div class="rel-kpi-label">📊 Média Mensal Real</div>
-            <div class="rel-kpi-val" style="font-size:18px">${moeda(mediaMensal)}</div>
+            <div class="rel-kpi-label">Média Mensal Real</div>
+            <div class="rel-kpi-val" style="font-size:19px">${moeda(mediaMensal)}</div>
             <div class="rel-kpi-sub">base da projeção</div>
           </div>
-          <div class="rel-kpi">
-            <div class="rel-kpi-label">⚡ Atingimento Projetado</div>
-            <div class="rel-kpi-val" style="color:${projFat>=projPrev?'#006636':'#DC2626'};font-size:20px">${atingProj}</div>
-            <div class="rel-kpi-sub">projeção vs meta anual</div>
+          <div style="background:${projFat>=projPrev?'#f0fdf4':'#fff5f5'};border-radius:10px;border:1px solid ${projFat>=projPrev?'#86efac':'#fca5a5'};padding:14px">
+            <div style="font-size:10px;font-weight:700;text-transform:uppercase;color:${projFat>=projPrev?'#166534':'#991b1b'};margin-bottom:5px">Atingimento Projetado</div>
+            <div style="font-size:19px;font-weight:900;color:${corProj};letter-spacing:-.5px">${atingProj}</div>
+            <div style="font-size:10px;color:#94a3b8;margin-top:4px">vs meta anual</div>
           </div>
         </div>
-        <div style="overflow-x:auto">
-          <table style="font-size:12px;width:100%">
-            <thead>
-              <tr style="background:#f8fafc">
-                <th>Mês</th>
-                <th style="text-align:right">Faturamento</th>
-                <th style="text-align:right">Previsto</th>
-                <th style="text-align:right">Ton</th>
-                <th style="text-align:right">Atingimento</th>
-                <th style="text-align:right">Ticket Médio</th>
-              </tr>
-            </thead>
-            <tbody>${projRows.join('')}</tbody>
-          </table>
-        </div>
+        <table class="rel-table">
+          <thead>
+            <tr>
+              <th>Mês</th>
+              <th style="text-align:right">Faturamento</th>
+              <th style="text-align:right">Meta</th>
+              <th style="text-align:right">Volume</th>
+              <th style="text-align:right">Atingimento</th>
+              <th style="text-align:right">Ticket Médio</th>
+            </tr>
+          </thead>
+          <tbody>${projRows.join('')}</tbody>
+        </table>
         <div style="margin-top:10px;font-size:11px;color:#94a3b8">
-          🟡 Meses em amarelo = projeção calculada com base na média dos meses já realizados.
+          🟡 Linhas em amarelo = projeção baseada na média dos meses realizados.
         </div>`;
       })()}
     </div>
 
-    <!-- 3. Produção & Estoque -->
+    <!-- ══ 4. ESTOQUE ══ -->
+    ${matsEstoque.length ? `
     <div class="card rel-section">
-      <div class="rel-section-title">Estoque</div>
-      <div class="rel-kpi-grid" style="margin-bottom:${matsEstoque.length?'16px':'0'}">
-        <div class="rel-kpi">
-          <div class="rel-kpi-label">Estoque Total</div>
-          <div class="rel-kpi-val">${ton(estoque)}</div>
-          <div class="rel-kpi-sub">${matsEstoque.length} material(ais)</div>
-        </div>
+      <div class="sec-hd">
+        <div class="sec-dot" style="background:#2563eb"></div>
+        <div class="sec-title">Estoque</div>
+        <div class="sec-line"></div>
+        <span class="sec-badge" style="color:#1d4ed8;background:#eff6ff">${ton(estoque)} · ${moeda(valorEstoque)}</span>
       </div>
-      ${matsEstoque.length ? `
-      <div style="font-size:11px;font-weight:700;text-transform:uppercase;color:#94a3b8;margin-bottom:8px">Composição do estoque</div>
       <table class="rel-table">
-        <thead><tr><th>Material</th><th style="text-align:right">Estoque</th><th style="text-align:right">% do total</th></tr></thead>
+        <thead><tr>
+          <th>Material</th>
+          <th style="text-align:right">Qtd.</th>
+          <th style="text-align:right">% do total</th>
+          <th style="text-align:right">Valor estimado</th>
+          <th style="min-width:100px">Distribuição</th>
+        </tr></thead>
         <tbody>
-          ${matsEstoque.map(m=>`<tr>
-            <td>${m.nome}</td>
-            <td style="text-align:right">${ton(m.estoque_kg)}</td>
-            <td style="text-align:right">${estoque>0?((m.estoque_kg/estoque)*100).toFixed(1):0}%</td>
-          </tr>`).join('')}
+          ${matsEstoque.map(m=>{
+            const pctM=estoque>0?(m.estoque_kg/estoque*100):0;
+            const valM=parseFloat(m.estoque_kg||0)*parseFloat(m.valor_unitario||0);
+            return `<tr>
+              <td style="font-weight:600">${m.nome}</td>
+              <td style="text-align:right">${ton(m.estoque_kg)}</td>
+              <td style="text-align:right">${pctM.toFixed(1)}%</td>
+              <td style="text-align:right">${valM>0?moeda(valM):'—'}</td>
+              <td><div style="background:#e2e8f0;border-radius:4px;height:7px;overflow:hidden"><div style="background:#2563eb;height:100%;width:${pctM}%;border-radius:4px"></div></div></td>
+            </tr>`;
+          }).join('')}
         </tbody>
-      </table>` : ''}
-    </div>
+      </table>
+    </div>` : ''}
 
-    <!-- 4. Equipamentos -->
+    <!-- ══ 5. EQUIPAMENTOS ══ -->
     <div class="card rel-section">
-      <div class="rel-section-title">Equipamentos</div>
+      ${(() => {
+        const cE=equPct>=80?'#16a34a':equPct>=60?'#d97706':'#dc2626';
+        const bgE=equPct>=80?'#dcfce7':equPct>=60?'#fef9c3':'#fee2e2';
+        return `<div class="sec-hd">
+          <div class="sec-dot" style="background:${cE}"></div>
+          <div class="sec-title">Equipamentos</div>
+          <div class="sec-line"></div>
+          <span class="sec-badge" style="color:${cE};background:${bgE}">Disponibilidade: ${equPct}%</span>
+        </div>`;
+      })()}
 
       ${(() => {
         // KPIs semana passada baseados no snapMap
@@ -887,30 +935,49 @@ async function carregar() {
       })()}
     </div>
 
-    <!-- 5. Recursos Humanos -->
+    <!-- ══ 6. RECURSOS HUMANOS ══ -->
     <div class="card rel-section">
-      <div class="rel-section-title">Recursos Humanos</div>
-      <div class="rel-kpi-grid" style="margin-bottom:16px">
+      ${(() => {
+        const cRH = parseFloat(turnover)<=5&&notaMedia!==null&&notaMedia>=7 ? '#16a34a' : parseFloat(turnover)<=10 ? '#d97706' : '#dc2626';
+        const bgRH = parseFloat(turnover)<=5&&notaMedia!==null&&notaMedia>=7 ? '#dcfce7' : parseFloat(turnover)<=10 ? '#fef9c3' : '#fee2e2';
+        return `<div class="sec-hd">
+          <div class="sec-dot" style="background:${cRH}"></div>
+          <div class="sec-title">Recursos Humanos</div>
+          <div class="sec-line"></div>
+          <span class="sec-badge" style="color:${cRH};background:${bgRH}">${ativos.length} colaboradores · Turnover ${turnover}%</span>
+        </div>`;
+      })()}
+      <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:10px;margin-bottom:18px">
         <div class="rel-kpi">
-          <div class="rel-kpi-label">Colaboradores</div>
+          <div class="rel-kpi-label">Quadro Ativo</div>
           <div class="rel-kpi-val">${ativos.length}</div>
-          <div style="display:flex;gap:8px;margin-top:4px;flex-wrap:wrap">
-            <span style="font-size:11px;font-weight:600;color:#16a34a">✔ ${ativosTrabalho} ativos</span>
-            <span style="font-size:11px;font-weight:600;color:#2563eb">☀ ${emFerias} férias</span>
+          <div style="margin-top:5px;display:flex;flex-direction:column;gap:2px">
+            <span style="font-size:11px;color:#16a34a;font-weight:600">✔ ${ativosTrabalho} em atividade</span>
+            <span style="font-size:11px;color:#2563eb;font-weight:600">☀ ${emFerias} em férias</span>
           </div>
         </div>
         <div class="rel-kpi">
           <div class="rel-kpi-label">Em Experiência</div>
           <div class="rel-kpi-val">${emExp.length}</div>
+          <div class="rel-kpi-sub">período de avaliação</div>
         </div>
         <div class="rel-kpi">
-          <div class="rel-kpi-label">Nota Média</div>
+          <div class="rel-kpi-label">Nota Média Equipe</div>
           <div class="rel-kpi-val" style="color:${notaMedia===null?'#94a3b8':notaMedia>=7?'#006636':notaMedia>=5?'#D97706':'#DC2626'}">${notaMedia!==null?notaMedia.toFixed(1):'—'}</div>
+          <div class="rel-kpi-sub">${notaMedia===null?'sem avaliações':notaMedia>=7?'✅ Desempenho bom':notaMedia>=5?'⚠️ Em observação':'❌ Atenção necessária'}</div>
         </div>
-        <div class="rel-kpi" style="background:linear-gradient(135deg,#ef4444,#dc2626);border-radius:8px;padding:10px 12px">
-          <div class="rel-kpi-label" style="color:#fca5a5">Turnover (ano)</div>
-          <div class="rel-kpi-val" style="color:#fff">${turnover}%</div>
-          <div class="rel-kpi-sub" style="color:#fca5a5">${demAno} demissão(ões) em ${ano}</div>
+        <div style="background:${parseFloat(turnover)<=5?'#f0fdf4':parseFloat(turnover)<=10?'#fffbeb':'#fff5f5'};border-radius:10px;border:1px solid ${parseFloat(turnover)<=5?'#86efac':parseFloat(turnover)<=10?'#fde68a':'#fca5a5'};padding:14px">
+          <div style="font-size:10px;font-weight:700;text-transform:uppercase;color:${parseFloat(turnover)<=5?'#166534':parseFloat(turnover)<=10?'#92400e':'#991b1b'};margin-bottom:5px">Turnover (ano)</div>
+          <div style="font-size:22px;font-weight:900;color:${parseFloat(turnover)<=5?'#15803d':parseFloat(turnover)<=10?'#d97706':'#dc2626'};letter-spacing:-.5px">${turnover}%</div>
+          <div style="font-size:10px;color:#94a3b8;margin-top:4px">${demAno} saída(s) em ${ano}</div>
+        </div>
+        <div class="rel-kpi">
+          <div class="rel-kpi-label">Atestados / Faltas</div>
+          <div class="rel-kpi-val">${atestados + faltas}</div>
+          <div style="margin-top:5px;display:flex;flex-direction:column;gap:2px">
+            <span style="font-size:11px;color:#94a3b8">${atestados} atestado(s)</span>
+            <span style="font-size:11px;color:#94a3b8">${faltas} falta(s)</span>
+          </div>
         </div>
       </div>
       ${(() => {
