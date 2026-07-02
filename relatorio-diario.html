@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="pt-BR">
 <head>
   <meta charset="UTF-8" />
@@ -11,22 +11,56 @@
     .rd-section-title { font-size:14px; font-weight:700; color:#1e293b; }
     .rd-table { width:100%; border-collapse:collapse; font-size:13px; }
     .rd-table th { padding:8px 14px; text-align:left; font-weight:700; color:#64748b; font-size:11px; text-transform:uppercase; letter-spacing:.4px; background:#f8fafc; border-bottom:1px solid #e2e8f0; }
-    .rd-table td { padding:10px 14px; border-bottom:1px solid #f1f5f9; color:#374151; }
+    .rd-table td { padding:10px 14px; border-bottom:1px solid #f1f5f9; color:#374151; vertical-align:middle; }
     .rd-table tr:last-child td { border-bottom:none; }
     .status-badge { display:inline-block; padding:2px 10px; border-radius:10px; font-size:12px; font-weight:600; }
     .badge-present { background:#d1fae5; color:#065f46; }
     .badge-absent  { background:#fee2e2; color:#991b1b; }
-    .badge-op   { background:#d1fae5; color:#065f46; }
-    .badge-rest { background:#fef3c7; color:#92400e; }
-    .badge-inop { background:#fee2e2; color:#991b1b; }
-    .turno-btn { padding:6px 18px; border:1px solid #e2e8f0; background:#f8fafc; border-radius:6px; font-size:13px; font-weight:600; cursor:pointer; color:#374151; }
-    .turno-btn.active { background:#006636; color:#fff; border-color:#006636; }
-    .oc-add-row { display:flex; gap:8px; padding:12px 14px; border-top:1px solid #f1f5f9; }
-    .email-preview { background:#f8fafc; border:1px solid #e2e8f0; border-radius:8px; padding:16px; font-size:13px; white-space:pre-wrap; font-family:monospace; max-height:320px; overflow-y:auto; display:none; }
+
+    /* Equipamentos — igual equipamentos.html */
+    .status-btn { display:inline-flex;align-items:center;gap:6px;padding:4px 12px;border-radius:20px;font-size:12px;font-weight:700;border:2px solid transparent; }
+    .status-operando  { background:#d1fae5;color:#065f46;border-color:#6ee7b7; }
+    .status-restricao { background:#fef3c7;color:#92400e;border-color:#fcd34d; }
+    .status-parado    { background:#fee2e2;color:#991b1b;border-color:#fca5a5; }
+    .kpi-eq { border-left:4px solid; }
+    .kpi-eq-op  { border-color:#10b981; }
+    .kpi-eq-res { border-color:#f59e0b; }
+    .kpi-eq-par { border-color:#ef4444; }
+    .util-bar  { height:10px;border-radius:5px;background:#e2e8f0;overflow:hidden;margin-top:6px; }
+    .util-fill { height:100%;border-radius:5px;transition:width .4s; }
+    .dot { width:10px;height:10px;border-radius:50%;display:inline-block;flex-shrink:0; }
+    .dot-op  { background:#10b981; }
+    .dot-res { background:#f59e0b; }
+    .dot-par { background:#ef4444; }
+
+    /* RH KPI bar */
+    .rh-pct-bar { height:8px;border-radius:4px;background:#e2e8f0;overflow:hidden;margin-top:4px;width:100%; }
+    .rh-pct-fill { height:100%;border-radius:4px;background:#10b981;transition:width .4s; }
+
+    /* Turno */
+    .turno-btn { padding:6px 18px;border:1px solid #e2e8f0;background:#f8fafc;border-radius:6px;font-size:13px;font-weight:600;cursor:pointer;color:#374151; }
+    .turno-btn.active { background:#006636;color:#fff;border-color:#006636; }
+
+    /* Ocorrências */
+    .oc-add-row { display:flex;gap:8px;padding:12px 14px;border-top:1px solid #f1f5f9; }
+
+    /* Comparativo */
+    .comp-section { background:#fff;border:2px solid #006636;border-radius:10px;margin-bottom:20px;overflow:hidden; }
+    .comp-header { background:#006636;color:#fff;padding:12px 18px;font-size:14px;font-weight:700; }
+    .comp-table { width:100%;border-collapse:collapse;font-size:13px; }
+    .comp-table th { padding:8px 14px;text-align:left;font-weight:700;color:#64748b;font-size:11px;text-transform:uppercase;background:#f8fafc;border-bottom:1px solid #e2e8f0; }
+    .comp-table td { padding:9px 14px;border-bottom:1px solid #f1f5f9; }
+    .comp-table tr:last-child td { border-bottom:none; }
+    .delta-pos { color:#059669;font-weight:600; }
+    .delta-neg { color:#dc2626;font-weight:600; }
+    .delta-neu { color:#64748b; }
+
+    .email-preview { background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;padding:16px;font-size:13px;white-space:pre-wrap;font-family:monospace;max-height:320px;overflow-y:auto; }
+
     @media print {
-      .sidebar, .sidebar-toggle, .mobile-menu-btn, .sidebar-overlay, .no-print { display:none !important; }
-      .main-content { margin:0 !important; padding:16px !important; }
-      .rd-section { break-inside:avoid; }
+      .sidebar,.sidebar-toggle,.mobile-menu-btn,.sidebar-overlay,.no-print { display:none !important; }
+      .main-content { margin:0 !important;padding:16px !important; }
+      .rd-section,.comp-section { break-inside:avoid; }
     }
   </style>
 </head>
@@ -46,7 +80,7 @@
 
     <div class="page-body">
 
-      <!-- Cabeçalho do relatório -->
+      <!-- Cabeçalho -->
       <div class="rd-section">
         <div style="padding:16px 18px">
           <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:16px;align-items:flex-end">
@@ -69,34 +103,115 @@
         </div>
       </div>
 
-      <!-- 1. Equipamentos -->
-      <div class="rd-section" id="sec-equipamentos">
+      <!-- Comparativo manhã × tarde (só aparece no turno tarde se houver dado manhã) -->
+      <div id="sec-comparativo" style="display:none">
+        <div class="comp-section">
+          <div class="comp-header">🔄 Comparativo Manhã × Tarde</div>
+          <div style="padding:14px 18px">
+            <table class="comp-table" id="tbl-comp">
+              <thead><tr><th>Indicador</th><th>🌅 Manhã</th><th>🌇 Tarde</th><th>Variação</th></tr></thead>
+              <tbody id="tbody-comp"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- 1. Equipamentos — KPIs -->
+      <div class="rd-section">
         <div class="rd-section-header">
           <span class="rd-section-title">🔧 Disponibilidade de Equipamentos</span>
-          <span id="equip-resumo" style="font-size:12px;color:#64748b"></span>
+          <span id="taxa-label-rd" style="font-size:13px;font-weight:700;color:#10b981"></span>
         </div>
+        <div style="padding:14px 18px">
+          <!-- KPI cards -->
+          <div class="kpi-grid" style="grid-template-columns:repeat(4,1fr);margin-bottom:14px">
+            <div class="kpi-card">
+              <div class="kpi-label">Total</div>
+              <div class="kpi-value" id="rd-kpi-total">—</div>
+              <div class="kpi-sub">equipamentos</div>
+            </div>
+            <div class="kpi-card kpi-eq kpi-eq-op">
+              <div class="kpi-label">✅ Operando</div>
+              <div class="kpi-value" id="rd-kpi-op">—</div>
+              <div class="kpi-sub" id="rd-kpi-op-pct">—</div>
+            </div>
+            <div class="kpi-card kpi-eq kpi-eq-res">
+              <div class="kpi-label">⚠️ Restrição</div>
+              <div class="kpi-value" id="rd-kpi-res">—</div>
+              <div class="kpi-sub" id="rd-kpi-res-pct">—</div>
+            </div>
+            <div class="kpi-card kpi-eq kpi-eq-par">
+              <div class="kpi-label">❌ Parado</div>
+              <div class="kpi-value" id="rd-kpi-par">—</div>
+              <div class="kpi-sub" id="rd-kpi-par-pct">—</div>
+            </div>
+          </div>
+          <!-- Barra de utilização -->
+          <div style="margin-bottom:14px">
+            <div style="display:flex;justify-content:space-between;font-size:13px;color:#374151;margin-bottom:4px">
+              <span style="font-weight:600">Taxa de utilização</span>
+            </div>
+            <div class="util-bar">
+              <div class="util-fill" id="rd-fill-op"  style="background:#10b981;float:left;width:0%"></div>
+              <div class="util-fill" id="rd-fill-res" style="background:#f59e0b;float:left;width:0%"></div>
+            </div>
+            <div style="display:flex;gap:16px;margin-top:6px;font-size:12px;color:#64748b">
+              <span><span class="dot dot-op"></span> Operando</span>
+              <span><span class="dot dot-res"></span> Com restrição</span>
+              <span><span class="dot dot-par"></span> Parado</span>
+            </div>
+          </div>
+        </div>
+        <!-- Tabela de equipamentos -->
         <table class="rd-table">
           <thead>
             <tr>
               <th>Equipamento</th>
-              <th>Tipo</th>
+              <th>Nº / Frota</th>
+              <th>Função</th>
               <th>Status</th>
               <th>Observação do Dia</th>
             </tr>
           </thead>
           <tbody id="tbody-equip">
-            <tr><td colspan="4" style="padding:20px;text-align:center;color:#94a3b8">Carregando…</td></tr>
+            <tr><td colspan="5" style="padding:20px;text-align:center;color:#94a3b8">Carregando…</td></tr>
           </tbody>
         </table>
       </div>
 
       <!-- 2. RH — Presenças -->
-      <div class="rd-section" id="sec-rh">
+      <div class="rd-section">
         <div class="rd-section-header">
           <span class="rd-section-title">👥 Recursos Humanos — Presenças</span>
           <span id="rh-resumo" style="font-size:12px;color:#64748b"></span>
         </div>
-        <table class="rd-table">
+        <!-- KPI presença -->
+        <div style="padding:14px 18px 0">
+          <div style="display:flex;align-items:center;gap:16px;flex-wrap:wrap;margin-bottom:4px">
+            <div style="flex:1;min-width:200px">
+              <div style="display:flex;justify-content:space-between;font-size:13px;margin-bottom:2px">
+                <span style="font-weight:600;color:#374151">Presença do dia</span>
+                <span id="rh-pct-label" style="font-weight:700;color:#10b981">—%</span>
+              </div>
+              <div class="rh-pct-bar"><div class="rh-pct-fill" id="rh-pct-fill" style="width:0%"></div></div>
+            </div>
+            <div style="display:flex;gap:12px">
+              <div style="text-align:center">
+                <div style="font-size:22px;font-weight:700;color:#059669" id="rh-presentes-n">—</div>
+                <div style="font-size:11px;color:#64748b">presentes</div>
+              </div>
+              <div style="text-align:center">
+                <div style="font-size:22px;font-weight:700;color:#dc2626" id="rh-faltas-n">—</div>
+                <div style="font-size:11px;color:#64748b">faltas</div>
+              </div>
+              <div style="text-align:center">
+                <div style="font-size:22px;font-weight:700;color:#374151" id="rh-total-n">—</div>
+                <div style="font-size:11px;color:#64748b">total</div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <table class="rd-table" style="margin-top:10px">
           <thead>
             <tr>
               <th>Colaborador</th>
@@ -118,13 +233,9 @@
           <span class="rd-section-title">📋 Ocorrências do Dia</span>
           <span style="font-size:12px;color:#64748b">Incidentes, manutenções, aplicações, etc.</span>
         </div>
-        <table class="rd-table" id="tbl-oc-dia">
+        <table class="rd-table">
           <thead>
-            <tr>
-              <th style="width:130px">Tipo</th>
-              <th>Descrição</th>
-              <th class="no-print" style="width:40px"></th>
-            </tr>
+            <tr><th style="width:130px">Tipo</th><th>Descrição</th><th class="no-print" style="width:40px"></th></tr>
           </thead>
           <tbody id="tbody-oc-dia">
             <tr><td colspan="3" style="padding:16px;text-align:center;color:#94a3b8">Nenhuma ocorrência registrada.</td></tr>
@@ -165,10 +276,10 @@ import { initPage, supabase, dataBR, toast } from './js/config.js?v=2';
 await initPage();
 
 let turno = 'manha';
-let ocDia = []; // ocorrências manuais do dia
+let ocDia = [];
 let equipData = [], colabData = [], cargoData = [], presencaData = [], ocRhData = [];
 
-// ── Setup inicial ─────────────────────────────────────────────────────────────
+// ── Setup ─────────────────────────────────────────────────────────────────────
 const rdData = document.getElementById('rd-data');
 rdData.value = new Date().toISOString().split('T')[0];
 rdData.addEventListener('change', carregar);
@@ -177,12 +288,12 @@ window.setTurno = t => {
   turno = t;
   document.getElementById('btn-manha').classList.toggle('active', t === 'manha');
   document.getElementById('btn-tarde').classList.toggle('active', t === 'tarde');
+  renderComparativo();
 };
 
-// ── Carregar dados ────────────────────────────────────────────────────────────
+// ── Carregar ──────────────────────────────────────────────────────────────────
 async function carregar() {
   const data = rdData.value;
-
   const [r1, r2, r3, r4, r5] = await Promise.all([
     supabase.from('equipamentos').select('*').order('nome'),
     supabase.from('colaboradores').select('*').order('nome'),
@@ -190,7 +301,6 @@ async function carregar() {
     supabase.from('presenca_diaria').select('*').eq('data', data),
     supabase.from('ocorrencias').select('*').eq('data', data),
   ]);
-
   equipData    = r1.data || [];
   colabData    = r2.data || [];
   cargoData    = r3.data || [];
@@ -199,35 +309,60 @@ async function carregar() {
 
   renderEquipamentos();
   renderRH();
+  renderComparativo();
 }
 
 // ── Equipamentos ──────────────────────────────────────────────────────────────
 function renderEquipamentos() {
-  const tbody = document.getElementById('tbody-equip');
-  const STATUS = {
-    operando:    { label:'Operando',    cls:'badge-op'   },
-    restricao:   { label:'Restrição',   cls:'badge-rest' },
-    manutencao:  { label:'Manutenção',  cls:'badge-inop' },
-    inoperante:  { label:'Inoperante',  cls:'badge-inop' },
-  };
   const ativos = equipData.filter(e => e.status !== 'baixado');
-  const op = ativos.filter(e => e.status === 'operando').length;
-  document.getElementById('equip-resumo').textContent =
-    `${op} / ${ativos.length} operando`;
+  const total  = ativos.length;
+  const op     = ativos.filter(e => e.status === 'operando').length;
+  const res    = ativos.filter(e => e.status === 'restricao').length;
+  const par    = ativos.filter(e => e.status === 'parado').length;
+  const pct    = v => total ? (v / total * 100).toFixed(0) + '%' : '0%';
 
+  // KPI cards
+  document.getElementById('rd-kpi-total').textContent   = total;
+  document.getElementById('rd-kpi-op').textContent      = op;
+  document.getElementById('rd-kpi-res').textContent     = res;
+  document.getElementById('rd-kpi-par').textContent     = par;
+  document.getElementById('rd-kpi-op-pct').textContent  = pct(op)  + ' do equipamento';
+  document.getElementById('rd-kpi-res-pct').textContent = pct(res) + ' do equipamento';
+  document.getElementById('rd-kpi-par-pct').textContent = pct(par) + ' do equipamento';
+
+  // Barra de utilização (mesma lógica de equipamentos.html)
+  const somaUtil = ativos.reduce((s, e) => {
+    if (e.status === 'operando')  return s + 100;
+    if (e.status === 'restricao') return s + (parseFloat(e.capacidade_pct) || 50);
+    return s;
+  }, 0);
+  const taxaUtil = total ? (somaUtil / total).toFixed(0) : 0;
+  const taxaEl = document.getElementById('taxa-label-rd');
+  taxaEl.textContent = taxaUtil + '% utilizados';
+  taxaEl.style.color = taxaUtil >= 80 ? '#10b981' : taxaUtil >= 50 ? '#f59e0b' : '#ef4444';
+  document.getElementById('rd-fill-op').style.width  = pct(op);
+  document.getElementById('rd-fill-res').style.width = pct(res);
+
+  // Tabela
+  const tbody = document.getElementById('tbody-equip');
   if (!ativos.length) {
-    tbody.innerHTML = '<tr><td colspan="4" style="padding:20px;text-align:center;color:#94a3b8">Nenhum equipamento cadastrado.</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="5" style="padding:20px;text-align:center;color:#94a3b8">Nenhum equipamento cadastrado.</td></tr>';
     return;
   }
   tbody.innerHTML = ativos.map(e => {
-    const s = STATUS[e.status] || { label: e.status, cls:'' };
+    const stMap = {
+      operando:  { cls:'status-operando',  icon:'✅', label:'Operando' },
+      restricao: { cls:'status-restricao', icon:'⚠️', label: e.capacidade_pct ? `Com Restrição (${e.capacidade_pct}%)` : 'Com Restrição' },
+      parado:    { cls:'status-parado',    icon:'❌', label:'Parado' },
+    };
+    const st = stMap[e.status] || { cls:'', icon:'', label: e.status };
     return `<tr>
       <td style="font-weight:600">${e.nome}</td>
-      <td style="color:#64748b">${e.tipo||'—'}</td>
-      <td><span class="status-badge ${s.cls}">${s.label}</span></td>
+      <td style="color:#64748b">${e.frota||'—'}</td>
+      <td style="color:#64748b;font-size:12px">${e.funcao||'—'}</td>
+      <td><span class="status-btn ${st.cls}">${st.icon} ${st.label}</span></td>
       <td>
-        <input type="text" class="equip-obs" data-id="${e.id}"
-          value="${(e.observacao_dia||'').replace(/"/g,'&quot;')}"
+        <input type="text" value="${(e.observacao_dia||'').replace(/"/g,'&quot;')}"
           placeholder="Sem observações"
           style="width:100%;border:1px solid #e2e8f0;border-radius:6px;padding:4px 8px;font-size:12px"
           onblur="salvarObsEquip('${e.id}', this.value)" />
@@ -244,15 +379,24 @@ window.salvarObsEquip = async (id, obs) => {
 
 // ── RH ────────────────────────────────────────────────────────────────────────
 function renderRH() {
-  const tbody = document.getElementById('tbody-rh');
   const ativos = colabData.filter(c => !c.demissao);
   const presMap = {};
   presencaData.forEach(p => { presMap[p.colaborador_id] = p; });
 
   const presentes = ativos.filter(c => presMap[c.id]?.presente !== false).length;
-  document.getElementById('rh-resumo').textContent =
-    `${presentes} / ${ativos.length} presentes`;
+  const faltas    = ativos.length - presentes;
+  const pct       = ativos.length ? Math.round(presentes / ativos.length * 100) : 0;
 
+  document.getElementById('rh-resumo').textContent    = `${presentes} / ${ativos.length} presentes`;
+  document.getElementById('rh-presentes-n').textContent = presentes;
+  document.getElementById('rh-faltas-n').textContent    = faltas;
+  document.getElementById('rh-total-n').textContent     = ativos.length;
+  document.getElementById('rh-pct-label').textContent   = pct + '%';
+  document.getElementById('rh-pct-label').style.color   = pct >= 90 ? '#10b981' : pct >= 70 ? '#f59e0b' : '#ef4444';
+  document.getElementById('rh-pct-fill').style.width    = pct + '%';
+  document.getElementById('rh-pct-fill').style.background = pct >= 90 ? '#10b981' : pct >= 70 ? '#f59e0b' : '#ef4444';
+
+  const tbody = document.getElementById('tbody-rh');
   if (!ativos.length) {
     tbody.innerHTML = '<tr><td colspan="5" style="padding:20px;text-align:center;color:#94a3b8">Nenhum colaborador ativo.</td></tr>';
     return;
@@ -263,7 +407,7 @@ function renderRH() {
     const cargo = cargoData.find(x => x.id === c.cargo_id)?.nome || c.cargo || '—';
     const ocs   = ocRhData.filter(o => o.colaborador_id === c.id);
     const ocsHtml = ocs.length
-      ? ocs.map(o => `<div style="font-size:12px;color:#374151;margin-bottom:2px">
+      ? ocs.map(o => `<div style="font-size:12px;margin-bottom:2px">
           <span style="background:#f1f5f9;padding:1px 6px;border-radius:8px;font-size:11px;font-weight:600">${o.tipo}</span>
           ${o.descricao||''}
         </div>`).join('')
@@ -278,6 +422,96 @@ function renderRH() {
   }).join('');
 }
 
+// ── Comparativo manhã × tarde ─────────────────────────────────────────────────
+function snaphotManha() {
+  // Salva snapshot do turno manhã no localStorage
+  const data = rdData.value;
+  const ativos = equipData.filter(e => e.status !== 'baixado');
+  const total  = ativos.length;
+  const op     = ativos.filter(e => e.status === 'operando').length;
+  const res    = ativos.filter(e => e.status === 'restricao').length;
+  const par    = ativos.filter(e => e.status === 'parado').length;
+  const somaUtil = ativos.reduce((s, e) => {
+    if (e.status === 'operando')  return s + 100;
+    if (e.status === 'restricao') return s + (parseFloat(e.capacidade_pct) || 50);
+    return s;
+  }, 0);
+  const taxa = total ? Math.round(somaUtil / total) : 0;
+
+  const colaborAtivos = colabData.filter(c => !c.demissao);
+  const presMap = {};
+  presencaData.forEach(p => { presMap[p.colaborador_id] = p; });
+  const presentes = colaborAtivos.filter(c => presMap[c.id]?.presente !== false).length;
+
+  const snapshot = { op, res, par, total, taxa, presentes, totalColab: colaborAtivos.length };
+  localStorage.setItem(`relatorio-manha-${data}`, JSON.stringify(snapshot));
+}
+
+function renderComparativo() {
+  const sec = document.getElementById('sec-comparativo');
+  if (turno !== 'tarde') { sec.style.display = 'none'; return; }
+
+  const data     = rdData.value;
+  const snapStr  = localStorage.getItem(`relatorio-manha-${data}`);
+  if (!snapStr) { sec.style.display = 'none'; return; }
+
+  const m = JSON.parse(snapStr); // manhã
+
+  // Tarde: calcular agora
+  const ativos = equipData.filter(e => e.status !== 'baixado');
+  const total  = ativos.length;
+  const op     = ativos.filter(e => e.status === 'operando').length;
+  const res    = ativos.filter(e => e.status === 'restricao').length;
+  const par    = ativos.filter(e => e.status === 'parado').length;
+  const somaUtil = ativos.reduce((s, e) => {
+    if (e.status === 'operando')  return s + 100;
+    if (e.status === 'restricao') return s + (parseFloat(e.capacidade_pct) || 50);
+    return s;
+  }, 0);
+  const taxa = total ? Math.round(somaUtil / total) : 0;
+  const colaborAtivos = colabData.filter(c => !c.demissao);
+  const presMap = {};
+  presencaData.forEach(p => { presMap[p.colaborador_id] = p; });
+  const presentes = colaborAtivos.filter(c => presMap[c.id]?.presente !== false).length;
+
+  const t = { op, res, par, total, taxa, presentes, totalColab: colaborAtivos.length };
+
+  const delta = (vm, vt, unidade = '', inverter = false) => {
+    const d = vt - vm;
+    if (d === 0) return `<span class="delta-neu">= sem alteração</span>`;
+    const bom = inverter ? d < 0 : d > 0;
+    const cls = bom ? 'delta-pos' : 'delta-neg';
+    const sinal = d > 0 ? '+' : '';
+    return `<span class="${cls}">${sinal}${d}${unidade}</span>`;
+  };
+
+  const pctColab = n => t.totalColab ? Math.round(n / t.totalColab * 100) + '%' : '—';
+  const pctColabM = n => m.totalColab ? Math.round(n / m.totalColab * 100) + '%' : '—';
+  const pctEqT = n => t.total ? Math.round(n / t.total * 100) + '%' : '—';
+  const pctEqM = n => m.total ? Math.round(n / m.total * 100) + '%' : '—';
+
+  const rows = [
+    ['✅ Equip. Operando',   `${m.op} (${pctEqM(m.op)})`,   `${t.op} (${pctEqT(t.op)})`,   delta(m.op, t.op)],
+    ['⚠️ Equip. Restrição',  `${m.res} (${pctEqM(m.res)})`, `${t.res} (${pctEqT(t.res)})`, delta(m.res, t.res, '', true)],
+    ['❌ Equip. Parado',     `${m.par} (${pctEqM(m.par)})`, `${t.par} (${pctEqT(t.par)})`, delta(m.par, t.par, '', true)],
+    ['⚡ Taxa de Utilização', `${m.taxa}%`,                   `${t.taxa}%`,                   delta(m.taxa, t.taxa, '%')],
+    ['👥 Presença RH',       `${m.presentes}/${m.totalColab} (${pctColabM(m.presentes)})`, `${t.presentes}/${t.totalColab} (${pctColab(t.presentes)})`, delta(m.presentes, t.presentes)],
+  ];
+
+  document.getElementById('tbody-comp').innerHTML = rows.map(([ind, vm, vt, dlt]) =>
+    `<tr><td style="font-weight:600">${ind}</td><td>${vm}</td><td>${vt}</td><td>${dlt}</td></tr>`
+  ).join('');
+
+  sec.style.display = 'block';
+}
+
+// Salvar snapshot manhã ao clicar em "Tarde"
+const origSetTurno = window.setTurno;
+window.setTurno = t => {
+  if (t === 'tarde' && turno === 'manha') snaphotManha();
+  origSetTurno(t);
+};
+
 // ── Ocorrências do Dia ────────────────────────────────────────────────────────
 function renderOcDia() {
   const tbody = document.getElementById('tbody-oc-dia');
@@ -286,15 +520,14 @@ function renderOcDia() {
     return;
   }
   const TIPO_COR = {
-    Acidente: 'background:#fee2e2;color:#991b1b',
-    Segurança: 'background:#fef3c7;color:#92400e',
+    Acidente:    'background:#fee2e2;color:#991b1b',
+    Segurança:   'background:#fef3c7;color:#92400e',
     Dedetização: 'background:#ede9fe;color:#5b21b6',
-    Manutenção: 'background:#dbeafe;color:#1e40af',
-    Ambiental: 'background:#d1fae5;color:#065f46',
-    default: 'background:#f1f5f9;color:#475569',
+    Manutenção:  'background:#dbeafe;color:#1e40af',
+    Ambiental:   'background:#d1fae5;color:#065f46',
   };
   tbody.innerHTML = ocDia.map((o, i) => {
-    const cor = TIPO_COR[o.tipo] || TIPO_COR.default;
+    const cor = TIPO_COR[o.tipo] || 'background:#f1f5f9;color:#475569';
     return `<tr>
       <td><span class="status-badge" style="${cor}">${o.tipo}</span></td>
       <td>${o.desc}</td>
@@ -312,74 +545,75 @@ document.getElementById('btn-add-oc').addEventListener('click', () => {
   renderOcDia();
 });
 
-window.removerOc = i => {
-  ocDia.splice(i, 1);
-  renderOcDia();
-};
+window.removerOc = i => { ocDia.splice(i, 1); renderOcDia(); };
 
-// ── Gerar texto para e-mail ───────────────────────────────────────────────────
+// ── E-mail ────────────────────────────────────────────────────────────────────
 document.getElementById('btn-email').addEventListener('click', () => {
-  const data     = rdData.value;
-  const [y,m,d]  = data.split('-');
-  const dataFmt  = `${d}/${m}/${y}`;
+  const data    = rdData.value;
+  const [y,m,d] = data.split('-');
+  const dataFmt = `${d}/${m}/${y}`;
   const turnoStr = turno === 'manha' ? 'Manhã' : 'Tarde';
-  const resp     = document.getElementById('rd-responsavel').value || '—';
-  const ativos   = colabData.filter(c => !c.demissao);
-  const presMap  = {};
-  presencaData.forEach(p => { presMap[p.colaborador_id] = p; });
+  const resp    = document.getElementById('rd-responsavel').value || '—';
+  const sep     = '─'.repeat(50);
 
-  const sepLinha = '─'.repeat(50);
+  const ativos  = equipData.filter(e => e.status !== 'baixado');
+  const op      = ativos.filter(e => e.status === 'operando').length;
+  const somaUtil = ativos.reduce((s, e) => {
+    if (e.status === 'operando')  return s + 100;
+    if (e.status === 'restricao') return s + (parseFloat(e.capacidade_pct) || 50);
+    return s;
+  }, 0);
+  const taxa = ativos.length ? Math.round(somaUtil / ativos.length) : 0;
+
+  const colaborAtivos = colabData.filter(c => !c.demissao);
+  const presMap = {};
+  presencaData.forEach(p => { presMap[p.colaborador_id] = p; });
+  const presentes = colaborAtivos.filter(c => presMap[c.id]?.presente !== false).length;
 
   let txt = `RELATÓRIO DIÁRIO DE OPERAÇÃO — UVR INDAIATUBA\n`;
-  txt += `Data: ${dataFmt}  |  Turno: ${turnoStr}  |  Responsável: ${resp}\n`;
-  txt += `${sepLinha}\n\n`;
+  txt += `Data: ${dataFmt}  |  Turno: ${turnoStr}  |  Responsável: ${resp}\n${sep}\n\n`;
 
-  // Equipamentos
   txt += `🔧 EQUIPAMENTOS\n`;
-  const equAtivos = equipData.filter(e => e.status !== 'baixado');
-  const op = equAtivos.filter(e => e.status === 'operando').length;
-  txt += `Disponibilidade: ${op}/${equAtivos.length} operando\n\n`;
-  equAtivos.forEach(e => {
-    const STATUS = { operando:'Operando', restricao:'Restrição', manutencao:'Manutenção', inoperante:'Inoperante' };
-    txt += `  • ${e.nome} (${e.tipo||'—'}): ${STATUS[e.status]||e.status}`;
+  txt += `Operando: ${op}/${ativos.length}  |  Taxa de utilização: ${taxa}%\n\n`;
+  ativos.forEach(e => {
+    const stLabel = { operando:'Operando ✅', restricao:`Restrição ⚠️${e.capacidade_pct?` (${e.capacidade_pct}%)`:''}`, parado:'Parado ❌' };
+    txt += `  • ${e.nome}${e.frota?` [${e.frota}]`:''}: ${stLabel[e.status]||e.status}`;
     if (e.observacao_dia) txt += ` — ${e.observacao_dia}`;
     txt += '\n';
   });
 
-  txt += `\n${sepLinha}\n\n`;
-
-  // RH
-  const presentes = ativos.filter(c => presMap[c.id]?.presente !== false).length;
-  txt += `👥 RECURSOS HUMANOS\n`;
-  txt += `Presença: ${presentes}/${ativos.length} colaboradores presentes\n\n`;
-  ativos.forEach(c => {
+  txt += `\n${sep}\n\n👥 RECURSOS HUMANOS\n`;
+  txt += `Presença: ${presentes}/${colaborAtivos.length} (${colaborAtivos.length?Math.round(presentes/colaborAtivos.length*100):0}%)\n\n`;
+  colaborAtivos.forEach(c => {
     const p     = presMap[c.id];
     const pres  = p ? p.presente : true;
     const cargo = cargoData.find(x => x.id === c.cargo_id)?.nome || c.cargo || '';
-    txt += `  ${pres ? '✔' : '✖'} ${c.nome}${cargo ? ` (${cargo})` : ''}`;
+    txt += `  ${pres ? '✔' : '✖'} ${c.nome}${cargo?` (${cargo})`:''}`;
     if (p?.observacao) txt += ` — ${p.observacao}`;
     txt += '\n';
-    const ocs = ocRhData.filter(o => o.colaborador_id === c.id);
-    ocs.forEach(o => { txt += `      ↳ [${o.tipo}] ${o.descricao||''}\n`; });
+    ocRhData.filter(o => o.colaborador_id === c.id).forEach(o => { txt += `      ↳ [${o.tipo}] ${o.descricao||''}\n`; });
   });
 
-  txt += `\n${sepLinha}\n\n`;
-
-  // Ocorrências
-  txt += `📋 OCORRÊNCIAS DO DIA\n`;
-  if (!ocDia.length) {
-    txt += `  Nenhuma ocorrência registrada.\n`;
-  } else {
-    ocDia.forEach(o => { txt += `  • [${o.tipo}] ${o.desc}\n`; });
+  // Comparativo no e-mail (turno tarde)
+  if (turno === 'tarde') {
+    const snapStr = localStorage.getItem(`relatorio-manha-${data}`);
+    if (snapStr) {
+      const mn = JSON.parse(snapStr);
+      txt += `\n${sep}\n\n🔄 COMPARATIVO MANHÃ × TARDE\n`;
+      txt += `Taxa equipamentos:  Manhã ${mn.taxa}%  →  Tarde ${taxa}%  (${taxa >= mn.taxa ? '+' : ''}${taxa - mn.taxa}%)\n`;
+      txt += `Presença RH:        Manhã ${mn.presentes}/${mn.totalColab}  →  Tarde ${presentes}/${colaborAtivos.length}\n`;
+      txt += `Equip. operando:    Manhã ${mn.op}  →  Tarde ${op}\n`;
+    }
   }
 
-  txt += `\n${sepLinha}\n`;
-  txt += `Relatório gerado pelo Sistema SGR Indaiatuba`;
+  txt += `\n${sep}\n\n📋 OCORRÊNCIAS DO DIA\n`;
+  if (!ocDia.length) { txt += `  Nenhuma ocorrência registrada.\n`; }
+  else ocDia.forEach(o => { txt += `  • [${o.tipo}] ${o.desc}\n`; });
+
+  txt += `\n${sep}\nRelatório gerado pelo Sistema SGR Indaiatuba`;
 
   const wrap = document.getElementById('email-preview-wrap');
-  const prev = document.getElementById('email-preview');
-  prev.textContent = txt;
-  prev.style.display = 'block';
+  document.getElementById('email-preview').textContent = txt;
   wrap.style.display = 'block';
   wrap.scrollIntoView({ behavior:'smooth' });
 });
@@ -394,10 +628,8 @@ document.getElementById('btn-copiar').addEventListener('click', () => {
 });
 
 document.getElementById('btn-gerar').addEventListener('click', carregar);
-
 renderOcDia();
 await carregar();
 </script>
 </body>
 </html>
-
