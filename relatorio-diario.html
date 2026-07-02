@@ -217,7 +217,6 @@
               <th>Colaborador</th>
               <th>Cargo</th>
               <th>Presença</th>
-              <th>Observação</th>
               <th>Ocorrências do Dia</th>
             </tr>
           </thead>
@@ -416,7 +415,6 @@ function renderRH() {
       <td style="font-weight:600">${c.nome}</td>
       <td style="color:#64748b;font-size:12px">${cargo}</td>
       <td><span class="status-badge ${pres ? 'badge-present' : 'badge-absent'}">${pres ? '✔ Presente' : '✖ Falta'}</span></td>
-      <td style="color:#64748b;font-size:12px">${p?.observacao||'—'}</td>
       <td>${ocsHtml}</td>
     </tr>`;
   }).join('');
