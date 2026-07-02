@@ -662,21 +662,67 @@ async function carregar() {
     <!-- 4. Equipamentos -->
     <div class="card rel-section">
       <div class="rel-section-title">Equipamentos</div>
-      <div class="rel-kpi-grid" style="margin-bottom:16px">
-        <div class="rel-kpi">
-          <div class="rel-kpi-label">Total</div>
-          <div class="rel-kpi-val">${equTotal}</div>
+
+      ${(() => {
+        // KPIs semana passada baseados no snapMap
+        const snapVals   = Object.values(snapMap);
+        const snapTotal  = snapVals.length;
+        const snapOp     = snapVals.filter(s=>s==='operando').length;
+        const snapRes    = snapVals.filter(s=>s==='restricao').length;
+        const snapAtivos = snapOp + snapRes;
+        const snapPct    = snapTotal ? Math.round(snapAtivos/snapTotal*100) : null;
+        const delta      = snapPct !== null ? equPct - snapPct : null;
+        const deltaStr   = delta !== null ? (delta>0?`▲ +${delta}%`:delta<0?`▼ ${delta}%`:'= Igual') : null;
+        const deltaCor   = delta > 0 ? '#006636' : delta < 0 ? '#DC2626' : '#94a3b8';
+
+        const corDisp = equPct>=80?'#006636':equPct>=50?'#D97706':'#DC2626';
+
+        // Barra de status
+        const pOp  = equTotal ? (equOperando/equTotal*100).toFixed(1) : 0;
+        const pRes = equTotal ? (equRestricao/equTotal*100).toFixed(1) : 0;
+        const pPar = equTotal ? ((equTotal-equAtivos)/equTotal*100).toFixed(1) : 0;
+
+        return `
+        <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:20px">
+          <div class="rel-kpi" style="border-left:4px solid #006636">
+            <div class="rel-kpi-label">Total de Equipamentos</div>
+            <div class="rel-kpi-val">${equTotal}</div>
+            <div class="rel-kpi-sub">${equAtivos} ativos · ${equTotal-equAtivos} parados</div>
+          </div>
+          <div class="rel-kpi" style="border-left:4px solid ${corDisp}">
+            <div class="rel-kpi-label">Disponibilidade Atual</div>
+            <div class="rel-kpi-val" style="color:${corDisp}">${equPct}%</div>
+            <div class="rel-kpi-sub">${equOperando} operando · ${equRestricao} c/ restrição</div>
+          </div>
+          <div class="rel-kpi" style="border-left:4px solid #64748b">
+            <div class="rel-kpi-label">Semana Passada</div>
+            <div class="rel-kpi-val" style="color:${snapPct!==null?(snapPct>=80?'#006636':snapPct>=50?'#D97706':'#DC2626'):'#94a3b8'}">${snapPct!==null?snapPct+'%':'—'}</div>
+            <div class="rel-kpi-sub">${snapAtivos||'—'} ativos de ${snapTotal||'—'}</div>
+          </div>
+          <div class="rel-kpi" style="border-left:4px solid ${deltaCor}">
+            <div class="rel-kpi-label">Evolução Semanal</div>
+            <div class="rel-kpi-val" style="color:${deltaCor}">${deltaStr||'—'}</div>
+            <div class="rel-kpi-sub">${delta!==null?(delta>0?'Frota melhorou esta semana':delta<0?'Frota piorou esta semana':'Sem alteração'):'Configure semana passada'}</div>
+          </div>
         </div>
-        <div class="rel-kpi">
-          <div class="rel-kpi-label">Ativos</div>
-          <div class="rel-kpi-val" style="color:#006636">${equAtivos}</div>
-          <div class="rel-kpi-sub">${equOperando} operando</div>
-        </div>
-        <div class="rel-kpi">
-          <div class="rel-kpi-label">Disponibilidade</div>
-          <div class="rel-kpi-val" style="color:${equPct>=80?'#006636':equPct>=50?'#D97706':'#DC2626'}">${equPct}%</div>
-        </div>
-      </div>
+        <div style="margin-bottom:16px">
+          <div style="display:flex;justify-content:space-between;font-size:11px;font-weight:600;color:#64748b;margin-bottom:5px">
+            <span>Composição da Frota</span>
+            <span>${equTotal} equipamentos</span>
+          </div>
+          <div style="display:flex;height:10px;border-radius:6px;overflow:hidden;gap:2px">
+            <div style="width:${pOp}%;background:#10b981;border-radius:4px" title="Operando ${pOp}%"></div>
+            <div style="width:${pRes}%;background:#f59e0b;border-radius:4px" title="Restrição ${pRes}%"></div>
+            <div style="width:${pPar}%;background:#ef4444;border-radius:4px" title="Parado ${pPar}%"></div>
+          </div>
+          <div style="display:flex;gap:16px;margin-top:6px;font-size:11px;color:#64748b">
+            <span><i style="display:inline-block;width:8px;height:8px;border-radius:50%;background:#10b981;margin-right:4px"></i>Operando ${pOp}%</span>
+            <span><i style="display:inline-block;width:8px;height:8px;border-radius:50%;background:#f59e0b;margin-right:4px"></i>Restrição ${pRes}%</span>
+            <span><i style="display:inline-block;width:8px;height:8px;border-radius:50%;background:#ef4444;margin-right:4px"></i>Parado ${pPar}%</span>
+          </div>
+        </div>`;
+      })()}
+
       <table class="rel-table">
         <thead>
           <tr><th>Equipamento</th><th>Nº Frota</th><th>Função</th><th style="text-align:center">Status Atual</th><th style="text-align:center">Semana Passada</th><th style="text-align:center">Variação</th><th>Observação</th></tr>
