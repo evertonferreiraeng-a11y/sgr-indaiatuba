@@ -267,13 +267,13 @@ async function carregar() {
 
   // ── Balanço ──────────────────────────────────────────────────────────────
   function matchCatRel(tipoMat) {
+    const norm = t => (t||'').normalize('NFD').replace(/[̀-ͯ]/g,'').toLowerCase();
     if (window._relCatFiltro === 'reciclavel') {
-      const n = (tipoMat||'').normalize('NFD').replace(/[̀-ͯ]/g,'').toLowerCase();
+      const n = norm(tipoMat);
       return !n.includes('nao') && n.includes('recicl');
     }
     if (window._relCatFiltro === 'nao') {
-      const n = (tipoMat||'').normalize('NFD').replace(/[̀-ͯ]/g,'').toLowerCase();
-      return n.includes('nao');
+      return norm(tipoMat).includes('nao');
     }
     return true;
   }
