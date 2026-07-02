@@ -153,8 +153,12 @@
       <button class="rel-cat-btn" id="rel-cat-reciclavel" style="padding:6px 12px;border-radius:20px;border:1px solid #D1D5DB;background:#fff;color:#374151;cursor:pointer;font-size:12px">♻ Recicláveis</button>
       <button class="rel-cat-btn" id="rel-cat-nao"        style="padding:6px 12px;border-radius:20px;border:1px solid #D1D5DB;background:#fff;color:#374151;cursor:pointer;font-size:12px">🚫 Não Recicláveis</button>
       <button class="btn-pdf" id="btn-salvar-snap" style="background:#0369a1" onclick="salvarSnapshotEquip()">
-        💾 Salvar snapshot da semana
+        📸 Registrar estado atual
       </button>
+      <select id="snap-ref-select" onchange="window._snapRefData=this.value;carregar()"
+        style="font-size:12px;padding:5px 10px;border-radius:8px;border:1px solid #D1D5DB;background:#fff;color:#374151;cursor:pointer;font-weight:600">
+        <option value="">— Comparar com… —</option>
+      </select>
       <button class="btn-pdf" id="btn-gerar-pdf" onclick="window.print()">
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 01-2-2v-5a2 2 0 012-2v5a2 2 0 01-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>
         Imprimir / PDF
@@ -235,12 +239,6 @@ async function carregar() {
 
   const ano = inicio.slice(0, 4);
 
-  // Calcula semana passada (segunda-feira de 7 dias atrás)
-  const _agora      = new Date();
-  const _semAtual   = new Date(_agora); _semAtual.setDate(_agora.getDate() - _agora.getDay() + 1);
-  const _semPass    = new Date(_semAtual); _semPass.setDate(_semAtual.getDate() - 7);
-  const semanaPassStr = _semPass.toISOString().split('T')[0];
-
   const [ents, vends, mats, equipamentos, colaboradores, avaliacoes, ocorrencias, producoes, metas, vendsAno, cargosAll] = await Promise.all([
     fetchAll('entradas', 'peso_liquido, peso_liquido_descontos, tipo_movimentacao, tipo_material, data', [['gte','data',inicio],['lte','data',fim]]),
     fetchAll('vendas', 'peso_kg, valor_total, data, clientes(nome)', [['gte','data',inicio],['lte','data',fim]]),
@@ -255,16 +253,42 @@ async function carregar() {
     fetchAll('cargos', 'nome, vagas', []),
   ]);
 
-  // Snapshot semana passada — carregado separadamente para não travar se tabela não existir
+  // Snapshot de referência — carregado separadamente para não travar se tabela não existir
   window._snapMapRel = {};
   window._equipsRel  = equipamentos;
   const snapMap = window._snapMapRel;
   try {
-    const { data: snapAnt } = await supabase
+    // Busca datas disponíveis e popula o select
+    const { data: snapDatas } = await supabase
       .from('equipamentos_snapshot')
-      .select('equipamento_id, status, observacao')
-      .eq('semana', semanaPassStr);
-    (snapAnt || []).forEach(s => { snapMap[s.equipamento_id] = { status: s.status, obs: s.observacao||'' }; });
+      .select('semana')
+      .order('semana', { ascending: false });
+    const datasDisp = [...new Set((snapDatas||[]).map(s=>s.semana))];
+
+    const sel = document.getElementById('snap-ref-select');
+    if (sel) {
+      const prev = window._snapRefData;
+      sel.innerHTML = '<option value="">— Comparar com… —</option>';
+      datasDisp.forEach(d => {
+        const [a,m,dia] = d.split('-');
+        const label = `${dia}/${m}/${a}`;
+        sel.innerHTML += `<option value="${d}" ${d===prev?'selected':''}>${label}</option>`;
+      });
+      // Se não havia seleção, usa a data mais recente
+      if (!window._snapRefData && datasDisp.length) {
+        window._snapRefData = datasDisp[0];
+        sel.value = datasDisp[0];
+      }
+    }
+
+    // Carrega snapshot da data de referência
+    if (window._snapRefData) {
+      const { data: snapAnt } = await supabase
+        .from('equipamentos_snapshot')
+        .select('equipamento_id, status, observacao')
+        .eq('semana', window._snapRefData);
+      (snapAnt || []).forEach(s => { snapMap[s.equipamento_id] = { status: s.status, obs: s.observacao||'' }; });
+    }
   } catch (_) { /* tabela ainda não criada */ }
 
   // ── Balanço ──────────────────────────────────────────────────────────────
@@ -1044,10 +1068,7 @@ function atualizarKpiEquip() {
 // ── Salvar status da semana passada inline ───────────────────────────────────
 window.salvarSnapStatus = async (equipId, frota, nome, sel) => {
   const status = sel.value;
-  const _ag = new Date();
-  const _sem = new Date(_ag); _sem.setDate(_ag.getDate() - _ag.getDay() + 1);
-  const _sp  = new Date(_sem); _sp.setDate(_sem.getDate() - 7);
-  const semana = _sp.toISOString().split('T')[0];
+  const semana = window._snapRefData || new Date().toISOString().split('T')[0];
 
   // Cores do select conforme status
   const cores = {
@@ -1095,7 +1116,7 @@ window.salvarSnapObs = (equipId, obs) => {
     const _ag = new Date();
     const _sem = new Date(_ag); _sem.setDate(_ag.getDate() - _ag.getDay() + 1);
     const _sp  = new Date(_sem); _sp.setDate(_sem.getDate() - 7);
-    const semana = _sp.toISOString().split('T')[0];
+    const semana = window._snapRefData || new Date().toISOString().split('T')[0];
 
     // Atualiza no banco (só se já existe registro)
     await supabase.from('equipamentos_snapshot')
@@ -1114,15 +1135,13 @@ window.salvarSnapshotEquip = async () => {
   const btn = document.getElementById('btn-salvar-snap');
   btn.textContent = 'Salvando…'; btn.disabled = true;
 
-  // Semana atual (segunda-feira)
-  const hoje = new Date();
-  const seg  = new Date(hoje); seg.setDate(hoje.getDate() - hoje.getDay() + 1);
-  const semana = seg.toISOString().split('T')[0];
+  // Data de hoje como referência
+  const semana = new Date().toISOString().split('T')[0];
 
   const { data: equips } = await supabase.from('equipamentos').select('id, nome, frota, status');
-  if (!equips?.length) { btn.textContent = '💾 Salvar snapshot da semana'; btn.disabled = false; return; }
+  if (!equips?.length) { btn.textContent = '📸 Registrar estado atual'; btn.disabled = false; return; }
 
-  // Remove snapshot existente desta semana e insere novo
+  // Remove snapshot existente desta data e insere novo
   await supabase.from('equipamentos_snapshot').delete().eq('semana', semana);
   const rows = equips.map(e => ({
     semana,
@@ -1137,15 +1156,18 @@ window.salvarSnapshotEquip = async () => {
     alert('Erro ao salvar: ' + error.message);
   } else {
     btn.style.background = '#15803d';
-    btn.textContent = '✅ Snapshot salvo!';
+    btn.textContent = '✅ Registrado!';
+    // Define a data recém-salva como referência e recarrega
+    window._snapRefData = semana;
+    await carregar();
     setTimeout(() => {
-      btn.textContent = '💾 Salvar snapshot da semana';
+      btn.textContent = '📸 Registrar estado atual';
       btn.style.background = '#0369a1';
       btn.disabled = false;
-    }, 2500);
+    }, 2000);
     return;
   }
-  btn.textContent = '💾 Salvar snapshot da semana'; btn.disabled = false;
+  btn.textContent = '📸 Registrar estado atual'; btn.disabled = false;
 };
 
 // ── Filtro categoria balanço ──────────────────────────────────────────────────
