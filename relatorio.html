@@ -236,10 +236,10 @@ async function carregar() {
   const ano = inicio.slice(0, 4);
 
   // Calcula semana passada (segunda-feira de 7 dias atrás)
-  const hoje       = new Date();
-  const semanaAtual = new Date(hoje); semanaAtual.setDate(hoje.getDate() - hoje.getDay() + 1);
-  const semanaPass  = new Date(semanaAtual); semanaPass.setDate(semanaAtual.getDate() - 7);
-  const semanaPassStr = semanaPass.toISOString().split('T')[0];
+  const _agora      = new Date();
+  const _semAtual   = new Date(_agora); _semAtual.setDate(_agora.getDate() - _agora.getDay() + 1);
+  const _semPass    = new Date(_semAtual); _semPass.setDate(_semAtual.getDate() - 7);
+  const semanaPassStr = _semPass.toISOString().split('T')[0];
 
   const [ents, vends, mats, equipamentos, colaboradores, avaliacoes, ocorrencias, producoes, metas, vendsAno, cargosAll] = await Promise.all([
     fetchAll('entradas', 'peso_liquido, peso_liquido_descontos, tipo_movimentacao, tipo_material, data', [['gte','data',inicio],['lte','data',fim]]),
