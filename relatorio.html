@@ -1285,18 +1285,24 @@ window.salvarSnapDia = async (equipId, date, status) => {
   document.querySelectorAll('.snap-day-popup').forEach(p => p.remove());
   const eq = (window._equipsRel || []).find(e => e.id === equipId);
   if (!eq) return;
-  try {
-    if (status) {
-      await supabase.from('equipamentos_snapshot').upsert({
-        semana: date, equipamento_id: equipId,
-        equipamento_nome: eq.nome, equipamento_frota: eq.frota || '',
-        status, observacao: ''
-      }, { onConflict: 'semana,equipamento_id' });
-    } else {
-      await supabase.from('equipamentos_snapshot').delete()
-        .eq('semana', date).eq('equipamento_id', equipId);
+
+  // Sempre remove o registro existente antes (evita conflito de PK)
+  const { error: delErr } = await supabase.from('equipamentos_snapshot').delete()
+    .eq('semana', date).eq('equipamento_id', equipId);
+  if (delErr) { console.error('Erro ao deletar:', delErr); }
+
+  if (status) {
+    const { error: insErr } = await supabase.from('equipamentos_snapshot').insert({
+      semana: date, equipamento_id: equipId,
+      equipamento_nome: eq.nome, equipamento_frota: eq.frota || '',
+      status, observacao: ''
+    });
+    if (insErr) {
+      console.error('Erro ao inserir:', insErr);
+      alert('Erro ao salvar: ' + insErr.message);
+      return;
     }
-  } catch (e) { console.error(e); }
+  }
   await carregar();
 };
 
