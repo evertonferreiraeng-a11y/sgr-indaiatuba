@@ -429,13 +429,20 @@ function renderRH() {
     const ocsHtml = ocs.length
       ? ocs.filter(o => o.descricao).map(o => `<div style="font-size:12px;color:#374151;margin-bottom:2px">${o.descricao}</div>`).join('') || '<span style="color:#94a3b8;font-size:12px">—</span>'
       : '<span style="color:#94a3b8;font-size:12px">—</span>';
+    const obsAtual = (presencaData.find(p => p.colaborador_id === c.id)?.observacao || '').replace(/"/g,'&quot;');
     const presCell = turno === 'tarde'
-      ? `<select onchange="salvarPresencaRD('${c.id}', this.value)"
-           style="border:1px solid #e2e8f0;border-radius:20px;padding:3px 10px;font-size:12px;font-weight:700;cursor:pointer;
-                  background:${pres?'#d1fae5':'#fee2e2'};color:${pres?'#065f46':'#991b1b'}">
-           <option value="true"  ${pres ?'selected':''}>✔ Presente</option>
-           <option value="false" ${!pres?'selected':''}>✖ Falta</option>
-         </select>`
+      ? `<div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap">
+           <select id="sel-pres-${c.id}"
+             onchange="atualizarCorPresenca(this);salvarPresencaRD('${c.id}', this.value)"
+             style="border:1px solid #e2e8f0;border-radius:20px;padding:3px 10px;font-size:12px;font-weight:700;cursor:pointer;
+                    background:${pres?'#d1fae5':'#fee2e2'};color:${pres?'#065f46':'#991b1b'}">
+             <option value="true"  ${pres ?'selected':''}>✔ Presente</option>
+             <option value="false" ${!pres?'selected':''}>✖ Falta</option>
+           </select>
+           <input type="text" id="obs-pres-${c.id}" value="${obsAtual}" placeholder="Observação…"
+             style="border:1px solid #e2e8f0;border-radius:6px;padding:3px 8px;font-size:12px;width:180px"
+             onblur="salvarObsPresencaRD('${c.id}', this.value)" />
+         </div>`
       : `<span class="status-badge ${pres ? 'badge-present' : 'badge-absent'}">${pres ? '✔ Presente' : '✖ Falta'}</span>`;
     return `<tr>
       <td style="font-weight:600">${c.nome}</td>
@@ -446,19 +453,38 @@ function renderRH() {
   }).join('');
 }
 
+window.atualizarCorPresenca = sel => {
+  const presente = sel.value === 'true';
+  sel.style.background = presente ? '#d1fae5' : '#fee2e2';
+  sel.style.color      = presente ? '#065f46' : '#991b1b';
+};
+
 window.salvarPresencaRD = async (colabId, val) => {
   const data = rdData.value;
   const presente = val === 'true';
+  const obsEl = document.getElementById(`obs-pres-${colabId}`);
+  const observacao = obsEl?.value.trim() || null;
   const { error } = await supabase.from('presenca_diaria').upsert(
-    [{ colaborador_id: colabId, data, presente }],
+    [{ colaborador_id: colabId, data, presente, observacao }],
     { onConflict: 'colaborador_id,data' }
   );
   if (error) { toast('Erro ao salvar presença', 'error'); return; }
   const reg = presencaData.find(p => p.colaborador_id === colabId);
-  if (reg) reg.presente = presente;
-  else presencaData.push({ colaborador_id: colabId, data, presente });
-  renderRH();
+  if (reg) { reg.presente = presente; reg.observacao = observacao; }
+  else presencaData.push({ colaborador_id: colabId, data, presente, observacao });
   renderComparativo();
+};
+
+window.salvarObsPresencaRD = async (colabId, obs) => {
+  const data = rdData.value;
+  const selEl = document.getElementById(`sel-pres-${colabId}`);
+  const presente = selEl ? selEl.value === 'true' : true;
+  await supabase.from('presenca_diaria').upsert(
+    [{ colaborador_id: colabId, data, presente, observacao: obs||null }],
+    { onConflict: 'colaborador_id,data' }
+  );
+  const reg = presencaData.find(p => p.colaborador_id === colabId);
+  if (reg) reg.observacao = obs||null;
 };
 
 // ── Comparativo manhã × tarde ─────────────────────────────────────────────────
