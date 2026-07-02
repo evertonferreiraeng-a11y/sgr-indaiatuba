@@ -560,25 +560,6 @@ function cardHTML(c, isAdm, hoje, iniMes, fimMes) {
         <div class="colab-stat" style="background:#eff6ff"><div class="val" style="color:#2563eb">${notaAtual!==null&&!isNaN(notaAtual)?notaAtual.toFixed(1):'—'}</div><div class="lbl" style="color:#2563eb">Nota Atual</div></div>
       </div>
       <div class="recomendacao ${rec.cls}">${rec.icon} ${rec.texto}</div>
-      <!-- Presença do dia -->
-      ${!c.demissao ? (() => {
-        const reg = presencaMap[c.id];
-        const presente = reg ? reg.presente : true;
-        const obs = (reg?.observacao || '').replace(/"/g,'&quot;');
-        return `<div style="display:flex;align-items:center;gap:8px;padding:8px 10px;background:#f8fafc;border-radius:8px;border:1px solid #e2e8f0">
-          <span style="font-size:11px;font-weight:700;color:#64748b;white-space:nowrap">📅 PRESENÇA DO DIA</span>
-          <select class="presenca-card-sel" data-colab-id="${c.id}"
-            style="border:1px solid #e2e8f0;border-radius:6px;padding:3px 8px;font-size:12px;font-weight:700;color:${presente?'#16a34a':'#dc2626'};background:#fff;cursor:pointer"
-            onchange="salvarPresencaCard('${c.id}',this)">
-            <option value="true"  ${presente  ?'selected':''}>✔ Presente</option>
-            <option value="false" ${!presente ?'selected':''}>✖ Falta</option>
-          </select>
-          <input type="text" class="presenca-card-obs" data-colab-id="${c.id}"
-            value="${obs}" placeholder="Observação…"
-            style="flex:1;border:1px solid #e2e8f0;border-radius:6px;padding:3px 8px;font-size:12px;min-width:0"
-            onblur="salvarPresencaCardObs('${c.id}',this)" />
-        </div>`;
-      })() : ''}
     </div>
     <button class="toggle-btn" onclick="toggleCard(this)">▼ Ver avaliações e ocorrências</button>
     <div class="colab-detail">
