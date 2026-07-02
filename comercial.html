@@ -128,6 +128,29 @@
         </div>
       </div>
 
+      <!-- Tabela Faturamento por Produto -->
+      <div class="table-card mb-16">
+        <div class="table-card-header">
+          <h3>Faturamento por Produto</h3>
+          <span id="fat-prod-total" class="text-muted" style="font-size:12px"></span>
+        </div>
+        <div class="table-scroll">
+          <table style="font-size:12px">
+            <thead>
+              <tr>
+                <th>Produto</th>
+                <th class="text-right">Volume (ton)</th>
+                <th class="text-right">% Volume</th>
+                <th class="text-right">Faturamento</th>
+                <th class="text-right">% Faturamento</th>
+                <th class="text-right">Preço Médio/ton</th>
+              </tr>
+            </thead>
+            <tbody id="tb-fat-prod"></tbody>
+          </table>
+        </div>
+      </div>
+
       <!-- Tabela -->
       <div class="table-card">
         <div class="table-card-header">
@@ -285,6 +308,7 @@ async function carregar() {
   vendaData = data || [];
   renderKPIs();
   renderTabela();
+  renderFatProduto();
 }
 
 async function renderKPIs() {
@@ -311,6 +335,69 @@ async function renderKPIs() {
   document.getElementById('kpi-acum-val').textContent    = moeda(acumVal);
   document.getElementById('kpi-acum-vol').textContent    = ton(acumVol);
   document.getElementById('kpi-acum-ticket').textContent = acumVol > 0 ? moeda(acumVal/(acumVol/1000)) : '—';
+}
+
+function renderFatProduto() {
+  const tb = document.getElementById('tb-fat-prod');
+  if (!vendaData.length) {
+    tb.innerHTML = '<tr><td colspan="6" class="table-empty">Nenhuma venda encontrada</td></tr>';
+    document.getElementById('fat-prod-total').textContent = '';
+    return;
+  }
+
+  // Agrupa por material
+  const map = {};
+  vendaData.forEach(r => {
+    const nome = r.materiais?.nome || r.codigo_material || 'Sem material';
+    if (!map[nome]) map[nome] = { vol: 0, fat: 0 };
+    map[nome].vol += parseFloat(r.peso_kg || 0);
+    map[nome].fat += parseFloat(r.valor_total || 0);
+  });
+
+  const totalVol = Object.values(map).reduce((s, v) => s + v.vol, 0);
+  const totalFat = Object.values(map).reduce((s, v) => s + v.fat, 0);
+
+  const linhas = Object.entries(map)
+    .sort((a, b) => b[1].fat - a[1].fat);
+
+  tb.innerHTML = linhas.map(([nome, v]) => {
+    const pctVol = totalVol > 0 ? (v.vol / totalVol * 100).toFixed(1) : '0.0';
+    const pctFat = totalFat > 0 ? (v.fat / totalFat * 100).toFixed(1) : '0.0';
+    const precoMedio = v.vol > 0 ? moeda(v.fat / (v.vol / 1000)) : '—';
+    const barWidth = parseFloat(pctFat);
+    return `<tr>
+      <td><strong>${nome}</strong></td>
+      <td class="text-right">${ton(v.vol)}</td>
+      <td class="text-right">
+        <div style="display:flex;align-items:center;gap:6px;justify-content:flex-end">
+          <div style="width:60px;height:6px;background:#e2e8f0;border-radius:3px;overflow:hidden">
+            <div style="width:${barWidth}%;height:100%;background:#10b981;border-radius:3px"></div>
+          </div>
+          <span>${pctVol}%</span>
+        </div>
+      </td>
+      <td class="text-right">${moeda(v.fat)}</td>
+      <td class="text-right">
+        <div style="display:flex;align-items:center;gap:6px;justify-content:flex-end">
+          <div style="width:60px;height:6px;background:#e2e8f0;border-radius:3px;overflow:hidden">
+            <div style="width:${barWidth}%;height:100%;background:#3b82f6;border-radius:3px"></div>
+          </div>
+          <span>${pctFat}%</span>
+        </div>
+      </td>
+      <td class="text-right">${precoMedio}</td>
+    </tr>`;
+  }).join('') + `
+    <tr style="background:#f8fafc;font-weight:700;border-top:2px solid #e2e8f0">
+      <td>TOTAL</td>
+      <td class="text-right">${ton(totalVol)}</td>
+      <td class="text-right">100%</td>
+      <td class="text-right">${moeda(totalFat)}</td>
+      <td class="text-right">100%</td>
+      <td class="text-right">${totalVol > 0 ? moeda(totalFat / (totalVol / 1000)) : '—'}</td>
+    </tr>`;
+
+  document.getElementById('fat-prod-total').textContent = `${linhas.length} produtos`;
 }
 
 function renderTabela() {
