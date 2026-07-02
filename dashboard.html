@@ -442,9 +442,11 @@ async function carregarBalanco(inicio, fim) {
   // Aplica filtro pelo campo tipo_material das entradas
   function matchCat(tipoMat) {
     if (_balancoCatFiltro === 'todos') return true;
-    const t = (tipoMat || '').toLowerCase();
-    if (_balancoCatFiltro === 'reciclavel') return t.includes('reciclável') || t.includes('reciclaveis') || t.includes('reciclavel');
-    if (_balancoCatFiltro === 'nao') return t.includes('não') || t.includes('nao');
+    // Normaliza removendo acentos para comparação segura
+    const norm = (tipoMat || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
+    const ehNao = norm.includes('nao');
+    if (_balancoCatFiltro === 'nao') return ehNao;
+    if (_balancoCatFiltro === 'reciclavel') return !ehNao && norm.includes('recicl');
     return true;
   }
 
