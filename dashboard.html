@@ -408,6 +408,10 @@ function renderBalanco({ recebido, expedido, rejeito, estoque, periodo }) {
     <div class="balanco-fechamento" style="background:#D1FAE5;border:1px solid #6EE7B7">
       ✅ Balanço fechado — Passivo de ${ton(passivo)} (${pct(passivo)}% do recebido) em processamento ou aguardando destinação.
     </div>`;
+
+  // Atualiza o gauge com os dados filtrados
+  const taxa = recebido > 0 ? Math.min(((expedido + estoque) / recebido) * 100, 100) : 0;
+  atualizarGauge(taxa);
 }
 
 async function fetchAllPaginated(table, selectFields, filters) {
