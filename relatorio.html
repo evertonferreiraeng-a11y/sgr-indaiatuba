@@ -256,7 +256,10 @@ async function carregar() {
   ]);
 
   // Snapshot semana passada — carregado separadamente para não travar se tabela não existir
-  const snapMap = {};
+  window._snapMapRel = {};
+  window._equipsRel  = equipamentos;
+  window._equPctAtual = equPct;
+  const snapMap = window._snapMapRel;
   try {
     const { data: snapAnt } = await supabase
       .from('equipamentos_snapshot')
@@ -696,13 +699,13 @@ async function carregar() {
           </div>
           <div class="rel-kpi" style="border-left:4px solid #64748b">
             <div class="rel-kpi-label">Semana Passada</div>
-            <div class="rel-kpi-val" style="color:${snapPct!==null?(snapPct>=80?'#006636':snapPct>=50?'#D97706':'#DC2626'):'#94a3b8'}">${snapPct!==null?snapPct+'%':'—'}</div>
-            <div class="rel-kpi-sub">${snapAtivos||'—'} ativos de ${snapTotal||'—'}</div>
+            <div class="rel-kpi-val" id="kpi-snap-pct" style="color:${snapPct!==null?(snapPct>=80?'#006636':snapPct>=50?'#D97706':'#DC2626'):'#94a3b8'}">${snapPct!==null?snapPct+'%':'—'}</div>
+            <div class="rel-kpi-sub" id="kpi-snap-sub">${snapAtivos||'—'} ativos de ${snapTotal||'—'}</div>
           </div>
-          <div class="rel-kpi" style="border-left:4px solid ${deltaCor}">
+          <div class="rel-kpi" style="border-left:4px solid ${deltaCor}" id="kpi-evolucao-card">
             <div class="rel-kpi-label">Evolução Semanal</div>
-            <div class="rel-kpi-val" style="color:${deltaCor}">${deltaStr||'—'}</div>
-            <div class="rel-kpi-sub">${delta!==null?(delta>0?'Frota melhorou esta semana':delta<0?'Frota piorou esta semana':'Sem alteração'):'Configure semana passada'}</div>
+            <div class="rel-kpi-val" id="kpi-delta-val" style="color:${deltaCor}">${deltaStr||'—'}</div>
+            <div class="rel-kpi-sub" id="kpi-delta-sub">${delta!==null?(delta>0?'Frota melhorou esta semana':delta<0?'Frota piorou esta semana':'Sem alteração'):'Configure semana passada'}</div>
           </div>
         </div>
         <div style="margin-bottom:16px">
@@ -922,6 +925,36 @@ document.getElementById('rel-btn-ano').addEventListener('click', () => setModo('
 document.getElementById('rel-mes').addEventListener('change', () => { modoAtual='mes'; carregar(); });
 document.getElementById('rel-ano').addEventListener('change', () => carregar());
 
+// ── Atualiza KPIs de equipamentos com base no snapMap atual ──────────────────
+function atualizarKpiEquip() {
+  const snap   = window._snapMapRel || {};
+  const equips = window._equipsRel  || [];
+  const equPct = window._equPctAtual || 0;
+
+  const snapVals   = Object.values(snap);
+  const snapTotal  = snapVals.length;
+  const snapOp     = snapVals.filter(s=>s==='operando').length;
+  const snapRes    = snapVals.filter(s=>s==='restricao').length;
+  const snapAtivos = snapOp + snapRes;
+  const snapPct    = snapTotal ? Math.round(snapAtivos/snapTotal*100) : null;
+  const delta      = snapPct !== null ? equPct - snapPct : null;
+  const deltaStr   = delta !== null ? (delta>0?`▲ +${delta}%`:delta<0?`▼ ${delta}%`:'= Igual') : '—';
+  const deltaCor   = delta > 0 ? '#006636' : delta < 0 ? '#DC2626' : '#94a3b8';
+  const snapCor    = snapPct!==null ? (snapPct>=80?'#006636':snapPct>=50?'#D97706':'#DC2626') : '#94a3b8';
+
+  const elPct  = document.getElementById('kpi-snap-pct');
+  const elSub  = document.getElementById('kpi-snap-sub');
+  const elDVal = document.getElementById('kpi-delta-val');
+  const elDSub = document.getElementById('kpi-delta-sub');
+  const elCard = document.getElementById('kpi-evolucao-card');
+
+  if (elPct)  { elPct.textContent = snapPct !== null ? snapPct+'%' : '—'; elPct.style.color = snapCor; }
+  if (elSub)  { elSub.textContent = `${snapAtivos||'—'} ativos de ${snapTotal||'—'}`; }
+  if (elDVal) { elDVal.textContent = deltaStr; elDVal.style.color = deltaCor; }
+  if (elDSub) { elDSub.textContent = delta!==null?(delta>0?'Frota melhorou esta semana':delta<0?'Frota piorou esta semana':'Sem alteração'):'Configure semana passada'; }
+  if (elCard) { elCard.style.borderLeftColor = deltaCor; }
+}
+
 // ── Salvar status da semana passada inline ───────────────────────────────────
 window.salvarSnapStatus = async (equipId, frota, nome, sel) => {
   const status = sel.value;
@@ -951,10 +984,17 @@ window.salvarSnapStatus = async (equipId, frota, nome, sel) => {
   );
 
   if (error) {
-    // Se conflito por falta de constraint, tenta delete+insert
     await supabase.from('equipamentos_snapshot').delete().eq('semana', semana).eq('equipamento_id', equipId);
     await supabase.from('equipamentos_snapshot').insert({ semana, equipamento_id: equipId, equipamento_nome: nome, equipamento_frota: frota || null, status });
   }
+
+  // Atualiza snapMap global e KPIs
+  if (status) {
+    window._snapMapRel[equipId] = status;
+  } else {
+    delete window._snapMapRel[equipId];
+  }
+  atualizarKpiEquip();
 
   // Atualiza badge de variação na mesma linha
   const row = sel.closest('tr');
