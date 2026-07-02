@@ -57,10 +57,69 @@
 
     .email-preview { background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;padding:16px;font-size:13px;white-space:pre-wrap;font-family:monospace;max-height:320px;overflow-y:auto; }
 
+    /* ── Email modal ── */
+    .email-modal-backdrop { position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:1000;display:none;align-items:center;justify-content:center; }
+    .email-modal-backdrop.open { display:flex; }
+    .email-modal { background:#fff;border-radius:12px;padding:24px;width:460px;max-width:95vw;box-shadow:0 20px 60px rgba(0,0,0,.2); }
+    .email-modal h3 { margin:0 0 16px;font-size:16px;font-weight:700;color:#0f172a; }
+    .email-item { display:flex;align-items:center;gap:10px;padding:8px 10px;border:1px solid #e2e8f0;border-radius:8px;margin-bottom:6px; }
+    .email-item input[type=checkbox] { width:16px;height:16px;accent-color:#006636;flex-shrink:0; }
+    .email-item .email-info { flex:1;min-width:0; }
+    .email-item .email-nome { font-size:13px;font-weight:600;color:#0f172a; }
+    .email-item .email-addr { font-size:12px;color:#64748b; }
+    .email-add-row { display:flex;gap:8px;margin-top:12px;padding-top:12px;border-top:1px solid #e2e8f0; }
+
+    /* ── Print / PDF ── */
     @media print {
-      .sidebar,.sidebar-toggle,.mobile-menu-btn,.sidebar-overlay,.no-print { display:none !important; }
-      .main-content { margin:0 !important;padding:16px !important; }
-      .rd-section,.comp-section { break-inside:avoid; }
+      @page { size: A4 portrait; margin: 12mm 14mm; }
+      .sidebar,.sidebar-toggle,.mobile-menu-btn,.sidebar-overlay,.no-print,
+      .page-header,button,select,input { display:none !important; }
+      body { background:#fff !important; font-size:11px !important; -webkit-print-color-adjust:exact !important; print-color-adjust:exact !important; }
+      .main-content { margin:0 !important; padding:0 !important; }
+
+      /* Cabeçalho do PDF */
+      .pdf-header { display:block !important; }
+
+      /* Seções */
+      .rd-section,.comp-section { border:1px solid #d1d5db !important; border-radius:6px !important; margin-bottom:10px !important; break-inside:avoid; box-shadow:none !important; }
+      .rd-section-header,.comp-header { padding:7px 12px !important; }
+      .rd-section-title { font-size:11px !important; }
+      .comp-header { font-size:11px !important; padding:7px 12px !important; }
+
+      /* KPI cards */
+      .kpi-grid { gap:6px !important; margin-bottom:8px !important; }
+      .kpi-card { padding:8px 10px !important; border-radius:6px !important; box-shadow:none !important; border:1px solid #d1d5db !important; }
+      .kpi-value { font-size:18px !important; }
+      .kpi-label { font-size:9px !important; }
+      .kpi-sub   { font-size:9px !important; }
+
+      /* Tabelas */
+      .rd-table { font-size:10px !important; }
+      .rd-table th { padding:5px 8px !important; font-size:9px !important; background:#f1f5f9 !important; }
+      .rd-table td { padding:5px 8px !important; }
+      .comp-table { font-size:10px !important; }
+      .comp-table th { padding:5px 8px !important; font-size:9px !important; }
+      .comp-table td { padding:5px 8px !important; }
+
+      /* Badges e cores */
+      .status-btn,.status-badge,.badge-present,.badge-absent,
+      .kpi-eq-op,.kpi-eq-res,.kpi-eq-par,.util-fill {
+        -webkit-print-color-adjust:exact !important; print-color-adjust:exact !important;
+      }
+      .status-operando  { background:#d1fae5 !important;color:#065f46 !important; }
+      .status-restricao { background:#fef3c7 !important;color:#92400e !important; }
+      .status-parado    { background:#fee2e2 !important;color:#991b1b !important; }
+      .badge-present    { background:#d1fae5 !important;color:#065f46 !important; }
+      .badge-absent     { background:#fee2e2 !important;color:#991b1b !important; }
+
+      /* Barra utilização */
+      .util-bar,.util-fill,.rh-pct-bar,.rh-pct-fill {
+        -webkit-print-color-adjust:exact !important; print-color-adjust:exact !important;
+      }
+
+      /* Seção de comparativo */
+      .comp-section { border:2px solid #006636 !important; }
+      .comp-header  { background:#006636 !important;color:#fff !important; }
     }
   </style>
 </head>
@@ -69,11 +128,25 @@
   <div id="sidebar-root"></div>
   <div class="main-content">
 
+    <!-- Cabeçalho visível só no PDF -->
+    <div class="pdf-header" style="display:none;margin-bottom:16px;padding-bottom:10px;border-bottom:3px solid #006636">
+      <div style="display:flex;align-items:center;justify-content:space-between">
+        <div>
+          <div style="font-size:18px;font-weight:800;color:#006636">SGR Indaiatuba — UVRR</div>
+          <div style="font-size:13px;font-weight:700;color:#374151;margin-top:2px">Relatório Diário de Operação</div>
+        </div>
+        <div style="text-align:right;font-size:11px;color:#64748b">
+          <div id="pdf-data-turno"></div>
+          <div id="pdf-responsavel"></div>
+        </div>
+      </div>
+    </div>
+
     <div class="page-header no-print">
       <div><h2>Relatório Diário de Operação</h2><p>Acompanhamento da unidade — manhã e tarde</p></div>
       <div style="display:flex;gap:8px;flex-wrap:wrap">
-        <button class="btn btn-outline no-print" id="btn-email">✉ Copiar para E-mail</button>
-        <button class="btn btn-outline no-print" onclick="window.print()">🖨 Imprimir</button>
+        <button class="btn btn-outline no-print" id="btn-abrir-email">📧 Enviar por E-mail</button>
+        <button class="btn btn-outline no-print" id="btn-imprimir">🖨 Gerar PDF</button>
         <button class="btn btn-primary no-print" id="btn-gerar">↻ Atualizar</button>
       </div>
     </div>
@@ -264,6 +337,28 @@
         <div class="email-preview" id="email-preview"></div>
       </div>
 
+    </div>
+  </div>
+</div>
+
+<!-- Modal: Gerenciar E-mails -->
+<div class="email-modal-backdrop" id="modal-email">
+  <div class="email-modal">
+    <h3>📧 Enviar Relatório por E-mail</h3>
+    <p style="font-size:12px;color:#64748b;margin:-8px 0 14px">Selecione os destinatários e clique em Enviar.</p>
+
+    <div id="lista-emails" style="max-height:240px;overflow-y:auto;margin-bottom:4px"></div>
+
+    <div class="email-add-row">
+      <input type="text" id="novo-email-nome" placeholder="Nome" style="flex:1;border:1px solid #e2e8f0;border-radius:6px;padding:6px 10px;font-size:13px" />
+      <input type="email" id="novo-email-addr" placeholder="email@exemplo.com" style="flex:2;border:1px solid #e2e8f0;border-radius:6px;padding:6px 10px;font-size:13px" />
+      <button class="btn btn-outline" id="btn-add-email" style="white-space:nowrap;padding:6px 12px">+ Adicionar</button>
+    </div>
+
+    <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:16px;padding-top:14px;border-top:1px solid #e2e8f0">
+      <button class="btn btn-outline" onclick="fecharModalEmail()">Cancelar</button>
+      <button class="btn btn-outline" id="btn-pdf-email" style="gap:6px">🖨 Gerar PDF primeiro</button>
+      <button class="btn btn-primary" id="btn-enviar-email">📧 Abrir E-mail</button>
     </div>
   </div>
 </div>
@@ -695,6 +790,124 @@ document.getElementById('btn-copiar').addEventListener('click', () => {
 });
 
 document.getElementById('btn-gerar').addEventListener('click', carregar);
+
+// ── Imprimir PDF ──────────────────────────────────────────────────────────────
+document.getElementById('btn-imprimir').addEventListener('click', () => {
+  const data    = rdData.value;
+  const [y,m,d] = data.split('-');
+  const turnoStr = turno === 'manha' ? 'Manhã' : 'Tarde';
+  const resp    = document.getElementById('rd-responsavel').value || '—';
+  document.getElementById('pdf-data-turno').textContent  = `Data: ${d}/${m}/${y}  |  Turno: ${turnoStr}`;
+  document.getElementById('pdf-responsavel').textContent = `Responsável: ${resp}`;
+  window.print();
+});
+
+// ── Gestão de E-mails ─────────────────────────────────────────────────────────
+const EMAIL_KEY = 'sgr-emails-salvos';
+
+function getEmails() {
+  try { return JSON.parse(localStorage.getItem(EMAIL_KEY) || '[]'); } catch { return []; }
+}
+function saveEmails(list) {
+  localStorage.setItem(EMAIL_KEY, JSON.stringify(list));
+}
+
+function renderListaEmails() {
+  const emails = getEmails();
+  const el = document.getElementById('lista-emails');
+  if (!emails.length) {
+    el.innerHTML = '<p style="font-size:13px;color:#94a3b8;text-align:center;padding:12px">Nenhum e-mail cadastrado. Adicione abaixo.</p>';
+    return;
+  }
+  el.innerHTML = emails.map((e, i) => `
+    <div class="email-item">
+      <input type="checkbox" class="email-chk" data-idx="${i}" checked />
+      <div class="email-info">
+        <div class="email-nome">${e.nome}</div>
+        <div class="email-addr">${e.email}</div>
+      </div>
+      <button onclick="removerEmail(${i})" style="background:none;border:none;cursor:pointer;color:#dc2626;font-size:16px;padding:0 4px">🗑</button>
+    </div>
+  `).join('');
+}
+
+window.removerEmail = i => {
+  const list = getEmails();
+  list.splice(i, 1);
+  saveEmails(list);
+  renderListaEmails();
+};
+
+document.getElementById('btn-add-email').addEventListener('click', () => {
+  const nome  = document.getElementById('novo-email-nome').value.trim();
+  const email = document.getElementById('novo-email-addr').value.trim();
+  if (!email || !email.includes('@')) { toast('Informe um e-mail válido', 'error'); return; }
+  const list = getEmails();
+  list.push({ nome: nome || email, email });
+  saveEmails(list);
+  document.getElementById('novo-email-nome').value = '';
+  document.getElementById('novo-email-addr').value = '';
+  renderListaEmails();
+  toast('E-mail adicionado!');
+});
+
+window.fecharModalEmail = () => {
+  document.getElementById('modal-email').classList.remove('open');
+};
+
+document.getElementById('btn-abrir-email').addEventListener('click', () => {
+  renderListaEmails();
+  document.getElementById('modal-email').classList.add('open');
+});
+
+document.getElementById('btn-pdf-email').addEventListener('click', () => {
+  const data    = rdData.value;
+  const [y,m,d] = data.split('-');
+  const turnoStr = turno === 'manha' ? 'Manhã' : 'Tarde';
+  const resp    = document.getElementById('rd-responsavel').value || '—';
+  document.getElementById('pdf-data-turno').textContent  = `Data: ${d}/${m}/${y}  |  Turno: ${turnoStr}`;
+  document.getElementById('pdf-responsavel').textContent = `Responsável: ${resp}`;
+  fecharModalEmail();
+  setTimeout(() => window.print(), 200);
+});
+
+document.getElementById('btn-enviar-email').addEventListener('click', () => {
+  const selecionados = [...document.querySelectorAll('.email-chk:checked')]
+    .map(chk => getEmails()[parseInt(chk.dataset.idx)]?.email)
+    .filter(Boolean);
+
+  if (!selecionados.length) { toast('Selecione ao menos um destinatário', 'error'); return; }
+
+  const data    = rdData.value;
+  const [y,m,d] = data.split('-');
+  const turnoStr = turno === 'manha' ? 'Manhã' : 'Tarde';
+  const ativos  = equipData.filter(e => e.status !== 'baixado');
+  const op      = ativos.filter(e => e.status === 'operando').length;
+  const colabs  = colabData.filter(c => !c.demissao);
+  const presMap = {};
+  presencaData.forEach(p => { presMap[p.colaborador_id] = p; });
+  const presentes = colabs.filter(c => presMap[c.id]?.presente !== false).length;
+
+  const assunto = encodeURIComponent(`Relatório Diário de Operação — ${d}/${m}/${y} (${turnoStr})`);
+  const corpo   = encodeURIComponent(
+    `Relatório Diário de Operação — UVR Indaiatuba\n` +
+    `Data: ${d}/${m}/${y}  |  Turno: ${turnoStr}\n` +
+    `Responsável: ${document.getElementById('rd-responsavel').value || '—'}\n\n` +
+    `🔧 EQUIPAMENTOS\n` +
+    `Operando: ${op}/${ativos.length}\n\n` +
+    `👥 RH\n` +
+    `Presença: ${presentes}/${colabs.length} (${colabs.length ? Math.round(presentes/colabs.length*100) : 0}%)\n\n` +
+    `(Anexe o PDF gerado pelo botão "Gerar PDF")`
+  );
+
+  window.location.href = `mailto:${selecionados.join(',')}?subject=${assunto}&body=${corpo}`;
+  fecharModalEmail();
+});
+
+document.getElementById('modal-email').addEventListener('click', e => {
+  if (e.target === document.getElementById('modal-email')) fecharModalEmail();
+});
+
 renderOcDia();
 await carregar();
 </script>
