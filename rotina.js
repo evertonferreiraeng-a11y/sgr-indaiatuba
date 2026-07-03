@@ -23,6 +23,17 @@ function currentPage() { return location.pathname.split('/').pop() || 'index.htm
 
 // ── Entry point ───────────────────────────────────────────────────────────────
 export function initRotina() {
+  // Expõe função global para o botão da sidebar
+  window._abrirRotina = () => {
+    // Limpa estado do dia e reabre seleção
+    localStorage.removeItem(KEY);
+    document.getElementById('rotina-overlay')?.remove();
+    document.getElementById('rotina-bar')?.remove();
+    bloquearNav(false);
+    document.body.style.overflow = '';
+    showSelecao();
+  };
+
   const state = getState();
 
   if (!state) {
