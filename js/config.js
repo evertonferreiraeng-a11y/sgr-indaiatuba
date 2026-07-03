@@ -124,8 +124,11 @@ export function sidebarHTML() {
     <div class="sidebar-overlay" id="sidebar-overlay"></div>
     <aside class="sidebar">
       <div class="sidebar-logo">
-        <h1>SGR Indaiatuba</h1>
-        <span>UVRR Indaiatuba</span>
+        <div class="sidebar-logo-icon">♻</div>
+        <div>
+          <h1>SGR Indaiatuba</h1>
+          <span>UVRR Indaiatuba</span>
+        </div>
       </div>
       <nav class="sidebar-nav">
         <a href="dashboard.html">
