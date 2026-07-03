@@ -186,6 +186,10 @@ export function sidebarHTML() {
         </a>
       </nav>
       <div class="sidebar-footer">
+        <button class="btn-rotina" id="btn-rotina" onclick="window._abrirRotina && window._abrirRotina()">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/></svg>
+          Iniciar Rotina Diária
+        </button>
         <div class="user-info" id="user-info">
           <strong>Carregando…</strong>
         </div>
@@ -208,7 +212,7 @@ export async function initPage() {
   document.getElementById('btn-logout')?.addEventListener('click', logout);
   initSidebarToggle();
   try {
-    const { initRotina } = await import('./rotina.js?v=' + Date.now());
+    const { initRotina } = await import('./rotina.js');
     initRotina();
   } catch (e) { console.error('Erro ao carregar rotina.js:', e); }
 }
