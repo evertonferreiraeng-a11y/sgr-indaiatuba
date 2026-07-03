@@ -1,4 +1,5 @@
 import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm';
+import { initRotina } from './rotina.js';
 
 const SUPABASE_URL  = 'https://skcfiorztsqzraulqmuj.supabase.co';
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNrY2Zpb3J6dHNxenJhdWxxbXVqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODIxNDg2OTgsImV4cCI6MjA5NzcyNDY5OH0.UEzcpwVnnXOb4qV1oZRVkT5VHVIXVGnkKZH2f_gatWw';
@@ -207,6 +208,7 @@ export async function initPage() {
   initMobileMenu();
   document.getElementById('btn-logout')?.addEventListener('click', logout);
   initSidebarToggle();
+  initRotina();
 }
 
 function initSidebarToggle() {
