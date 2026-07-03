@@ -530,6 +530,110 @@ textarea { resize: vertical; min-height: 80px; }
 }
 
 /* ──────────────────────────────────────────
+   ROTINA DIÁRIA
+────────────────────────────────────────── */
+#rotina-overlay {
+  position: fixed; inset: 0; z-index: 9998;
+  background: linear-gradient(135deg, #0d1b12 0%, #1a3a24 100%);
+  display: flex; align-items: center; justify-content: center;
+  padding: 20px; overflow-y: auto;
+}
+.rotina-card {
+  background: #fff; border-radius: 20px;
+  width: 100%; max-width: 620px;
+  overflow: hidden;
+  box-shadow: 0 32px 64px rgba(0,0,0,.4);
+  animation: rotinaIn .3s cubic-bezier(.4,0,.2,1);
+}
+@keyframes rotinaIn {
+  from { opacity:0; transform:translateY(20px) scale(.97); }
+  to   { opacity:1; transform:none; }
+}
+.rotina-card-hd {
+  background: linear-gradient(135deg, #006636 0%, #00824a 100%);
+  padding: 36px 40px 28px; color: #fff;
+}
+.rotina-hd-success { background: linear-gradient(135deg, #059669 0%, #10b981 100%); }
+.rotina-wave { font-size: 36px; margin-bottom: 10px; }
+.rotina-saudacao { font-size: 24px; font-weight: 800; letter-spacing: -.02em; }
+.rotina-sub { font-size: 14px; opacity: .75; margin-top: 6px; line-height: 1.5; }
+.rotina-card-body { padding: 28px 40px 32px; }
+.rotina-section-label {
+  font-size: 10px; font-weight: 800; text-transform: uppercase;
+  letter-spacing: .1em; color: #94a3b8; margin-bottom: 14px;
+}
+.rotina-grid {
+  display: grid; grid-template-columns: 1fr 1fr; gap: 8px;
+  margin-bottom: 24px;
+}
+.rotina-mod-item {
+  display: flex; align-items: center; gap: 10px;
+  padding: 12px 14px; border: 1.5px solid #e2e8f0;
+  border-radius: 10px; cursor: pointer;
+  transition: border-color .15s, background .15s;
+  user-select: none;
+}
+.rotina-mod-item:hover { border-color: #a7f3d0; background: #f0fdf4; }
+.rotina-mod-item.selected { border-color: #006636; background: #f0fdf4; }
+.rotina-cb { width: 16px; height: 16px; accent-color: #006636; flex-shrink: 0; cursor: pointer; }
+.rotina-mod-icon { font-size: 20px; flex-shrink: 0; }
+.rotina-mod-label { font-size: 13px; font-weight: 600; color: #1e293b; }
+.rotina-mod-desc  { font-size: 11px; color: #94a3b8; margin-top: 1px; }
+.rotina-footer { display: flex; justify-content: space-between; align-items: center; }
+.rotina-btn-pular {
+  background: none; border: none; color: #94a3b8;
+  font-size: 13px; cursor: pointer; font-family: inherit;
+  transition: color .15s;
+}
+.rotina-btn-pular:hover { color: #64748b; }
+.rotina-btn-iniciar {
+  display: inline-flex; align-items: center; gap: 6px;
+  background: #006636; color: #fff; border: none;
+  border-radius: 10px; padding: 12px 28px;
+  font-size: 14px; font-weight: 700; cursor: pointer;
+  font-family: inherit; transition: background .15s;
+}
+.rotina-btn-iniciar:hover:not(:disabled) { background: #005229; }
+.rotina-btn-iniciar:disabled { opacity: .45; cursor: not-allowed; }
+
+/* Barra de progresso */
+#rotina-bar {
+  position: fixed; top: 0; left: 0; right: 0; z-index: 9997;
+  height: 52px; background: #0d1b12; color: #fff;
+  display: flex; align-items: center; gap: 16px;
+  padding: 0 20px; box-shadow: 0 2px 16px rgba(0,0,0,.35);
+}
+.rotina-bar-brand { display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
+.rotina-bar-brand span:first-child { font-size: 18px; }
+.rotina-bar-label {
+  font-size: 11px; font-weight: 800; text-transform: uppercase;
+  letter-spacing: .08em; color: rgba(255,255,255,.45);
+}
+.rotina-bar-sep { width: 1px; height: 20px; background: rgba(255,255,255,.1); flex-shrink: 0; }
+.rotina-steps { display: flex; align-items: center; gap: 6px; flex: 1; overflow-x: auto; scrollbar-width: none; }
+.rotina-steps::-webkit-scrollbar { display: none; }
+.rotina-step { font-size: 12px; white-space: nowrap; }
+.rotina-step.step-done    { color: #10b981; font-weight: 600; }
+.rotina-step.step-current { color: #fff;    font-weight: 700; }
+.rotina-step.step-pending { color: rgba(255,255,255,.28); }
+.rotina-step-sep { color: rgba(255,255,255,.15); font-size: 12px; }
+.rotina-bar-actions { display: flex; align-items: center; gap: 12px; flex-shrink: 0; }
+.rotina-bar-count { font-size: 11px; color: rgba(255,255,255,.4); }
+.rotina-btn-avancar {
+  background: #006636; color: #fff; border: none;
+  border-radius: 8px; padding: 8px 18px;
+  font-size: 13px; font-weight: 700; cursor: pointer;
+  font-family: inherit; white-space: nowrap; transition: background .15s;
+}
+.rotina-btn-avancar:hover { background: #005229; }
+
+/* Bloqueio de navegação durante rotina */
+.rotina-ativa .sidebar-nav a { pointer-events: none; opacity: .25; }
+.rotina-ativa .sidebar-nav a.active { opacity: 1; }
+.rotina-ativa .page-header { top: 52px; }
+.rotina-ativa .main-content { padding-top: 52px; }
+
+/* ──────────────────────────────────────────
    UTILS
 ────────────────────────────────────────── */
 .text-right  { text-align: right; }
