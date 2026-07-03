@@ -1,0 +1,536 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Tarefas — SGR Indaiatuba</title>
+  <link rel="stylesheet" href="css/style.css" />
+  <style>
+    /* ── KPI bar ── */
+    .tar-kpis { display:grid; grid-template-columns:repeat(5,1fr); gap:12px; margin-bottom:24px; }
+    .tar-kpi  { background:#fff; border:1px solid #e2e8f0; border-radius:12px; padding:16px 18px; position:relative; overflow:hidden; }
+    .tar-kpi::before { content:''; position:absolute; top:0; left:0; right:0; height:3px; background:var(--strip,#006636); }
+    .tar-kpi-label { font-size:10px; font-weight:800; text-transform:uppercase; letter-spacing:.07em; color:#94a3b8; margin-bottom:6px; }
+    .tar-kpi-val   { font-size:28px; font-weight:900; color:#0f172a; letter-spacing:-1px; line-height:1; }
+    .tar-kpi-sub   { font-size:11px; color:#94a3b8; margin-top:4px; }
+
+    /* ── Toolbar ── */
+    .tar-toolbar { display:flex; align-items:center; gap:10px; margin-bottom:20px; flex-wrap:wrap; }
+    .tar-search  { flex:1; min-width:200px; position:relative; }
+    .tar-search input { width:100%; padding:8px 12px 8px 36px; border:1px solid #e2e8f0; border-radius:8px; font-size:13px; outline:none; box-sizing:border-box; background:#fff; }
+    .tar-search input:focus { border-color:#006636; box-shadow:0 0 0 3px #d1fae5; }
+    .tar-search-icon { position:absolute; left:11px; top:50%; transform:translateY(-50%); color:#94a3b8; pointer-events:none; }
+    .tar-filter { padding:8px 12px; border:1px solid #e2e8f0; border-radius:8px; font-size:12px; background:#fff; color:#334155; cursor:pointer; outline:none; }
+    .tar-filter:focus { border-color:#006636; }
+    .btn-nova-tarefa { display:flex; align-items:center; gap:6px; background:#006636; color:#fff; border:none; border-radius:8px; padding:9px 18px; font-size:13px; font-weight:700; cursor:pointer; white-space:nowrap; transition:background .15s; }
+    .btn-nova-tarefa:hover { background:#005229; }
+
+    /* ── Kanban ── */
+    .kanban { display:grid; grid-template-columns:repeat(4,1fr); gap:14px; align-items:start; }
+    .kanban-col { background:#f8fafc; border:1px solid #e2e8f0; border-radius:12px; padding:14px; min-height:400px; }
+    .kanban-col-hd { display:flex; align-items:center; gap:8px; margin-bottom:14px; }
+    .kanban-col-dot { width:10px; height:10px; border-radius:50%; flex-shrink:0; }
+    .kanban-col-title { font-size:12px; font-weight:800; text-transform:uppercase; letter-spacing:.07em; color:#334155; flex:1; }
+    .kanban-col-count { font-size:11px; font-weight:700; background:#e2e8f0; color:#64748b; border-radius:20px; padding:2px 8px; }
+    .kanban-col.drag-over { background:#eff6ff; border-color:#93c5fd; }
+
+    /* ── Task card ── */
+    .task-card { background:#fff; border:1px solid #e2e8f0; border-radius:10px; padding:14px; margin-bottom:10px; cursor:grab; transition:box-shadow .15s, transform .1s; user-select:none; }
+    .task-card:hover { box-shadow:0 4px 14px rgba(0,0,0,.09); }
+    .task-card.dragging { opacity:.4; transform:scale(.97); }
+    .task-card-top { display:flex; align-items:flex-start; gap:8px; margin-bottom:8px; }
+    .task-card-title { font-size:13px; font-weight:700; color:#0f172a; flex:1; line-height:1.4; }
+    .task-card-menu  { background:none; border:none; cursor:pointer; color:#94a3b8; font-size:18px; line-height:1; padding:0 2px; flex-shrink:0; }
+    .task-card-menu:hover { color:#334155; }
+    .task-desc { font-size:12px; color:#64748b; margin-bottom:10px; line-height:1.5; }
+    .task-tags { display:flex; gap:6px; flex-wrap:wrap; margin-bottom:10px; }
+    .task-tag  { font-size:10px; font-weight:700; padding:2px 8px; border-radius:20px; }
+    .task-footer { display:flex; align-items:center; gap:8px; }
+    .task-resp { display:flex; align-items:center; gap:5px; font-size:11px; color:#64748b; flex:1; }
+    .task-resp-avatar { width:22px; height:22px; border-radius:50%; background:#006636; color:#fff; font-size:9px; font-weight:800; display:flex; align-items:center; justify-content:center; flex-shrink:0; }
+    .task-date { font-size:11px; font-weight:600; padding:3px 8px; border-radius:20px; }
+    .task-date.ok       { background:#f0fdf4; color:#16a34a; }
+    .task-date.urgente  { background:#fff7ed; color:#c2410c; }
+    .task-date.vencida  { background:#fee2e2; color:#991b1b; }
+    .task-date.sem-data { color:#94a3b8; font-size:10px; }
+
+    /* Prioridade badges */
+    .pri-alta  { background:#fee2e2; color:#991b1b; }
+    .pri-media { background:#fef3c7; color:#92400e; }
+    .pri-baixa { background:#f0fdf4; color:#166534; }
+
+    /* Categoria badge */
+    .cat-tag { background:#eff6ff; color:#1d4ed8; }
+
+    /* ── Modal ── */
+    .modal-overlay { position:fixed; inset:0; background:rgba(15,23,42,.45); backdrop-filter:blur(3px); z-index:1000; display:none; align-items:center; justify-content:center; padding:16px; }
+    .modal-overlay.open { display:flex; }
+    .modal { background:#fff; border-radius:16px; width:100%; max-width:540px; box-shadow:0 20px 60px rgba(0,0,0,.2); overflow:hidden; }
+    .modal-hd { padding:22px 26px 16px; border-bottom:1px solid #f1f5f9; display:flex; align-items:center; gap:10px; }
+    .modal-hd-icon { width:36px; height:36px; border-radius:10px; background:#d1fae5; display:flex; align-items:center; justify-content:center; font-size:16px; flex-shrink:0; }
+    .modal-hd-title { font-size:16px; font-weight:800; color:#0f172a; flex:1; }
+    .modal-close { background:none; border:none; font-size:22px; color:#94a3b8; cursor:pointer; line-height:1; padding:0; }
+    .modal-close:hover { color:#334155; }
+    .modal-body { padding:22px 26px; display:flex; flex-direction:column; gap:16px; max-height:70vh; overflow-y:auto; }
+    .field-group { display:flex; flex-direction:column; gap:5px; }
+    .field-group label { font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:.05em; color:#64748b; }
+    .field-group input, .field-group textarea, .field-group select { padding:9px 12px; border:1px solid #e2e8f0; border-radius:8px; font-size:13px; color:#1e293b; outline:none; background:#fff; font-family:inherit; }
+    .field-group input:focus, .field-group textarea:focus, .field-group select:focus { border-color:#006636; box-shadow:0 0 0 3px #d1fae5; }
+    .field-group textarea { resize:vertical; min-height:80px; }
+    .field-row { display:grid; grid-template-columns:1fr 1fr; gap:12px; }
+    .modal-ft { padding:16px 26px; border-top:1px solid #f1f5f9; display:flex; justify-content:flex-end; gap:10px; }
+    .btn-cancel { padding:9px 20px; border:1px solid #e2e8f0; border-radius:8px; background:#fff; color:#64748b; font-size:13px; font-weight:600; cursor:pointer; }
+    .btn-cancel:hover { background:#f8fafc; }
+    .btn-save   { padding:9px 24px; border:none; border-radius:8px; background:#006636; color:#fff; font-size:13px; font-weight:700; cursor:pointer; }
+    .btn-save:hover { background:#005229; }
+    .btn-delete { padding:9px 16px; border:1px solid #fee2e2; border-radius:8px; background:#fff; color:#dc2626; font-size:13px; font-weight:600; cursor:pointer; margin-right:auto; }
+    .btn-delete:hover { background:#fee2e2; }
+
+    /* Context menu */
+    .ctx-menu { position:fixed; z-index:2000; background:#fff; border:1px solid #e2e8f0; border-radius:10px; box-shadow:0 8px 24px rgba(0,0,0,.15); padding:6px; min-width:160px; }
+    .ctx-item { display:block; width:100%; text-align:left; padding:8px 14px; border:none; background:none; font-size:12px; font-weight:600; color:#334155; cursor:pointer; border-radius:6px; }
+    .ctx-item:hover { background:#f1f5f9; }
+    .ctx-item.danger { color:#dc2626; }
+    .ctx-item.danger:hover { background:#fee2e2; }
+    .ctx-sep { height:1px; background:#f1f5f9; margin:4px 0; }
+
+    /* Empty state */
+    .kanban-empty { text-align:center; padding:32px 16px; color:#94a3b8; font-size:12px; }
+    .kanban-empty svg { width:40px; height:40px; margin-bottom:10px; opacity:.4; }
+
+    @media(max-width:900px) {
+      .kanban { grid-template-columns:1fr 1fr; }
+      .tar-kpis { grid-template-columns:repeat(3,1fr); }
+    }
+    @media(max-width:600px) {
+      .kanban { grid-template-columns:1fr; }
+      .tar-kpis { grid-template-columns:1fr 1fr; }
+    }
+  </style>
+</head>
+<body>
+<div class="app-layout">
+  <div id="sidebar-root"></div>
+  <div class="main-content">
+    <div class="page-header">
+      <div>
+        <h2>Tarefas</h2>
+        <p id="tar-subtitle">Acompanhamento de atividades</p>
+      </div>
+      <button class="btn-nova-tarefa" onclick="abrirModal()">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+        Nova Tarefa
+      </button>
+    </div>
+
+    <div class="page-body">
+
+      <!-- KPI bar -->
+      <div class="tar-kpis" id="tar-kpis"></div>
+
+      <!-- Toolbar -->
+      <div class="tar-toolbar">
+        <div class="tar-search">
+          <svg class="tar-search-icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+          <input type="text" id="tar-search" placeholder="Buscar tarefa…" oninput="renderKanban()" />
+        </div>
+        <select class="tar-filter" id="fil-prioridade" onchange="renderKanban()">
+          <option value="">Todas as prioridades</option>
+          <option value="alta">🔴 Alta</option>
+          <option value="media">🟡 Média</option>
+          <option value="baixa">🟢 Baixa</option>
+        </select>
+        <select class="tar-filter" id="fil-categoria" onchange="renderKanban()">
+          <option value="">Todas as categorias</option>
+        </select>
+        <select class="tar-filter" id="fil-responsavel" onchange="renderKanban()">
+          <option value="">Todos os responsáveis</option>
+        </select>
+      </div>
+
+      <!-- Kanban board -->
+      <div class="kanban" id="kanban-board"></div>
+
+    </div>
+  </div>
+</div>
+
+<!-- ── Modal criar/editar ── -->
+<div class="modal-overlay" id="modal-overlay">
+  <div class="modal">
+    <div class="modal-hd">
+      <div class="modal-hd-icon">✅</div>
+      <div class="modal-hd-title" id="modal-title">Nova Tarefa</div>
+      <button class="modal-close" onclick="fecharModal()">×</button>
+    </div>
+    <div class="modal-body">
+      <div class="field-group">
+        <label>Título *</label>
+        <input type="text" id="f-titulo" placeholder="Descreva a tarefa…" />
+      </div>
+      <div class="field-group">
+        <label>Descrição</label>
+        <textarea id="f-descricao" placeholder="Detalhes adicionais (opcional)…"></textarea>
+      </div>
+      <div class="field-row">
+        <div class="field-group">
+          <label>Prioridade</label>
+          <select id="f-prioridade">
+            <option value="baixa">🟢 Baixa</option>
+            <option value="media" selected>🟡 Média</option>
+            <option value="alta">🔴 Alta</option>
+          </select>
+        </div>
+        <div class="field-group">
+          <label>Status</label>
+          <select id="f-status">
+            <option value="pendente">⬜ A Fazer</option>
+            <option value="em_andamento">🔵 Em Andamento</option>
+            <option value="concluida">✅ Concluída</option>
+            <option value="cancelada">❌ Cancelada</option>
+          </select>
+        </div>
+      </div>
+      <div class="field-row">
+        <div class="field-group">
+          <label>Categoria</label>
+          <input type="text" id="f-categoria" placeholder="Ex: Manutenção, RH, Comercial…" list="lista-categorias" />
+          <datalist id="lista-categorias">
+            <option value="Operacional"></option><option value="Manutenção"></option>
+            <option value="Administrativo"></option><option value="Comercial"></option>
+            <option value="RH"></option><option value="Financeiro"></option>
+            <option value="Segurança"></option><option value="Qualidade"></option>
+          </datalist>
+        </div>
+        <div class="field-group">
+          <label>Responsável</label>
+          <input type="text" id="f-responsavel" placeholder="Nome do responsável…" />
+        </div>
+      </div>
+      <div class="field-group">
+        <label>Data de Vencimento</label>
+        <input type="date" id="f-vencimento" />
+      </div>
+    </div>
+    <div class="modal-ft">
+      <button class="btn-delete" id="btn-delete" onclick="deletarTarefa()" style="display:none">Excluir</button>
+      <button class="btn-cancel" onclick="fecharModal()">Cancelar</button>
+      <button class="btn-save"   onclick="salvarTarefa()">Salvar Tarefa</button>
+    </div>
+  </div>
+</div>
+
+<!-- ── Context menu ── -->
+<div class="ctx-menu" id="ctx-menu" style="display:none"></div>
+
+<script type="module">
+import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm';
+import { SUPABASE_URL, SUPABASE_KEY, initSidebar } from './js/config.js';
+
+const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
+initSidebar();
+
+let tarefas   = [];
+let editingId = null;
+
+const COLS = [
+  { key:'pendente',     label:'A Fazer',      dot:'#94a3b8', strip:'#94a3b8' },
+  { key:'em_andamento', label:'Em Andamento',  dot:'#3b82f6', strip:'#3b82f6' },
+  { key:'concluida',    label:'Concluída',     dot:'#10b981', strip:'#10b981' },
+  { key:'cancelada',    label:'Cancelada',     dot:'#f43f5e', strip:'#f43f5e' },
+];
+
+const PRI = {
+  alta:  { label:'Alta',  cls:'pri-alta'  },
+  media: { label:'Média', cls:'pri-media' },
+  baixa: { label:'Baixa', cls:'pri-baixa' },
+};
+
+// ── Carregar ──────────────────────────────────────────────────────────────────
+async function carregar() {
+  const { data, error } = await supabase
+    .from('tarefas')
+    .select('*')
+    .order('criado_em', { ascending: false });
+
+  if (error) { console.error(error); return; }
+  tarefas = data || [];
+  atualizarFiltros();
+  renderKpis();
+  renderKanban();
+}
+
+// ── KPIs ──────────────────────────────────────────────────────────────────────
+function renderKpis() {
+  const hoje = new Date().toISOString().split('T')[0];
+  const total      = tarefas.length;
+  const pendentes  = tarefas.filter(t => t.status === 'pendente').length;
+  const andamento  = tarefas.filter(t => t.status === 'em_andamento').length;
+  const concluidas = tarefas.filter(t => t.status === 'concluida').length;
+  const vencidas   = tarefas.filter(t =>
+    t.data_vencimento && t.data_vencimento < hoje &&
+    t.status !== 'concluida' && t.status !== 'cancelada'
+  ).length;
+
+  document.getElementById('tar-subtitle').textContent =
+    `${total} tarefa${total!==1?'s':''} · atualizado agora`;
+
+  document.getElementById('tar-kpis').innerHTML = `
+    <div class="tar-kpi" style="--strip:#006636">
+      <div class="tar-kpi-label">Total</div>
+      <div class="tar-kpi-val">${total}</div>
+      <div class="tar-kpi-sub">todas as tarefas</div>
+    </div>
+    <div class="tar-kpi" style="--strip:#94a3b8">
+      <div class="tar-kpi-label">A Fazer</div>
+      <div class="tar-kpi-val">${pendentes}</div>
+      <div class="tar-kpi-sub">aguardando início</div>
+    </div>
+    <div class="tar-kpi" style="--strip:#3b82f6">
+      <div class="tar-kpi-label">Em Andamento</div>
+      <div class="tar-kpi-val" style="color:#1d4ed8">${andamento}</div>
+      <div class="tar-kpi-sub">em execução agora</div>
+    </div>
+    <div class="tar-kpi" style="--strip:#10b981">
+      <div class="tar-kpi-label">Concluídas</div>
+      <div class="tar-kpi-val" style="color:#059669">${concluidas}</div>
+      <div class="tar-kpi-sub">${total?Math.round(concluidas/total*100):0}% do total</div>
+    </div>
+    <div class="tar-kpi" style="--strip:${vencidas?'#dc2626':'#94a3b8'}">
+      <div class="tar-kpi-label">Vencidas</div>
+      <div class="tar-kpi-val" style="color:${vencidas?'#dc2626':'#0f172a'}">${vencidas}</div>
+      <div class="tar-kpi-sub">${vencidas?'⚠️ requer atenção':'todas no prazo'}</div>
+    </div>`;
+}
+
+// ── Filtros dinâmicos ─────────────────────────────────────────────────────────
+function atualizarFiltros() {
+  const cats  = [...new Set(tarefas.map(t=>t.categoria).filter(Boolean))].sort();
+  const resps = [...new Set(tarefas.map(t=>t.responsavel).filter(Boolean))].sort();
+  const selCat  = document.getElementById('fil-categoria');
+  const selResp = document.getElementById('fil-responsavel');
+  const prevCat  = selCat.value;
+  const prevResp = selResp.value;
+  selCat.innerHTML  = '<option value="">Todas as categorias</option>'  + cats.map(c=>`<option value="${c}">${c}</option>`).join('');
+  selResp.innerHTML = '<option value="">Todos os responsáveis</option>' + resps.map(r=>`<option value="${r}">${r}</option>`).join('');
+  if (prevCat)  selCat.value  = prevCat;
+  if (prevResp) selResp.value = prevResp;
+}
+
+// ── Kanban ────────────────────────────────────────────────────────────────────
+window.renderKanban = function() {
+  const q    = (document.getElementById('tar-search').value || '').toLowerCase();
+  const pri  = document.getElementById('fil-prioridade').value;
+  const cat  = document.getElementById('fil-categoria').value;
+  const resp = document.getElementById('fil-responsavel').value;
+
+  const filtradas = tarefas.filter(t => {
+    if (q   && !t.titulo.toLowerCase().includes(q) && !(t.descricao||'').toLowerCase().includes(q)) return false;
+    if (pri  && t.prioridade !== pri)  return false;
+    if (cat  && t.categoria  !== cat)  return false;
+    if (resp && t.responsavel !== resp) return false;
+    return true;
+  });
+
+  const hoje = new Date().toISOString().split('T')[0];
+
+  const board = document.getElementById('kanban-board');
+  board.innerHTML = COLS.map(col => {
+    const cards = filtradas.filter(t => t.status === col.key);
+    const cardsHtml = cards.length === 0
+      ? `<div class="kanban-empty"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="9" y1="9" x2="15" y2="9"/><line x1="9" y1="13" x2="12" y2="13"/></svg><br>Sem tarefas</div>`
+      : cards.map(t => cardHtml(t, hoje)).join('');
+
+    return `
+      <div class="kanban-col" data-status="${col.key}"
+        ondragover="dragOver(event)" ondragleave="dragLeave(event)" ondrop="drop(event,'${col.key}')">
+        <div class="kanban-col-hd">
+          <div class="kanban-col-dot" style="background:${col.dot}"></div>
+          <div class="kanban-col-title">${col.label}</div>
+          <div class="kanban-col-count">${cards.length}</div>
+        </div>
+        ${cardsHtml}
+      </div>`;
+  }).join('');
+};
+
+function cardHtml(t, hoje) {
+  const pri = PRI[t.prioridade] || PRI.media;
+
+  let dateHtml = '';
+  if (t.data_vencimento) {
+    const venc = t.data_vencimento;
+    const [a,m,d] = venc.split('-');
+    const label = `${d}/${m}`;
+    const cls = venc < hoje ? 'vencida' : venc === hoje ? 'urgente' : 'ok';
+    const icon = venc < hoje ? '⚠️ ' : venc === hoje ? '🔔 ' : '';
+    dateHtml = `<span class="task-date ${cls}">${icon}${label}</span>`;
+  } else {
+    dateHtml = `<span class="task-date sem-data">Sem prazo</span>`;
+  }
+
+  const initials = (t.responsavel||'?').split(' ').map(w=>w[0]).slice(0,2).join('').toUpperCase();
+
+  return `
+    <div class="task-card" draggable="true" data-id="${t.id}"
+      ondragstart="dragStart(event,'${t.id}')" ondragend="dragEnd(event)">
+      <div class="task-card-top">
+        <div class="task-card-title">${escHtml(t.titulo)}</div>
+        <button class="task-card-menu" onclick="ctxMenu(event,'${t.id}')">⋯</button>
+      </div>
+      ${t.descricao ? `<div class="task-desc">${escHtml(t.descricao)}</div>` : ''}
+      <div class="task-tags">
+        <span class="task-tag ${pri.cls}">${pri.label}</span>
+        ${t.categoria ? `<span class="task-tag cat-tag">${escHtml(t.categoria)}</span>` : ''}
+      </div>
+      <div class="task-footer">
+        ${t.responsavel
+          ? `<div class="task-resp"><div class="task-resp-avatar">${initials}</div>${escHtml(t.responsavel)}</div>`
+          : `<div class="task-resp" style="color:#cbd5e1">Sem responsável</div>`}
+        ${dateHtml}
+      </div>
+    </div>`;
+}
+
+function escHtml(s) {
+  return (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+// ── Drag & Drop ───────────────────────────────────────────────────────────────
+let dragId = null;
+
+window.dragStart = (e, id) => {
+  dragId = id;
+  e.currentTarget.classList.add('dragging');
+  e.dataTransfer.effectAllowed = 'move';
+};
+window.dragEnd = (e) => {
+  e.currentTarget.classList.remove('dragging');
+  document.querySelectorAll('.kanban-col').forEach(c => c.classList.remove('drag-over'));
+};
+window.dragOver = (e) => {
+  e.preventDefault();
+  e.currentTarget.classList.add('drag-over');
+};
+window.dragLeave = (e) => {
+  e.currentTarget.classList.remove('drag-over');
+};
+window.drop = async (e, newStatus) => {
+  e.preventDefault();
+  e.currentTarget.classList.remove('drag-over');
+  if (!dragId) return;
+  const t = tarefas.find(x => x.id === dragId);
+  if (!t || t.status === newStatus) return;
+  t.status = newStatus;
+  renderKpis();
+  renderKanban();
+  await supabase.from('tarefas').update({ status: newStatus }).eq('id', dragId);
+  dragId = null;
+};
+
+// ── Context menu ──────────────────────────────────────────────────────────────
+window.ctxMenu = (e, id) => {
+  e.stopPropagation();
+  const menu = document.getElementById('ctx-menu');
+  menu.innerHTML = `
+    <button class="ctx-item" onclick="abrirModal('${id}');fecharCtx()">✏️ Editar</button>
+    <div class="ctx-sep"></div>
+    <button class="ctx-item" onclick="moverStatus('${id}','pendente');fecharCtx()">⬜ A Fazer</button>
+    <button class="ctx-item" onclick="moverStatus('${id}','em_andamento');fecharCtx()">🔵 Em Andamento</button>
+    <button class="ctx-item" onclick="moverStatus('${id}','concluida');fecharCtx()">✅ Concluída</button>
+    <button class="ctx-item" onclick="moverStatus('${id}','cancelada');fecharCtx()">❌ Cancelada</button>
+    <div class="ctx-sep"></div>
+    <button class="ctx-item danger" onclick="confirmarDelete('${id}');fecharCtx()">🗑️ Excluir</button>`;
+  menu.style.display = 'block';
+  const x = Math.min(e.clientX, window.innerWidth - 170);
+  const y = Math.min(e.clientY, window.innerHeight - 240);
+  menu.style.left = x + 'px';
+  menu.style.top  = y + 'px';
+  setTimeout(() => document.addEventListener('click', fecharCtx, { once:true }), 50);
+};
+window.fecharCtx = () => { document.getElementById('ctx-menu').style.display = 'none'; };
+
+window.moverStatus = async (id, status) => {
+  const t = tarefas.find(x => x.id === id);
+  if (!t) return;
+  t.status = status;
+  renderKpis(); renderKanban();
+  await supabase.from('tarefas').update({ status }).eq('id', id);
+};
+
+window.confirmarDelete = async (id) => {
+  if (!confirm('Excluir esta tarefa?')) return;
+  tarefas = tarefas.filter(t => t.id !== id);
+  renderKpis(); renderKanban();
+  await supabase.from('tarefas').delete().eq('id', id);
+};
+
+// ── Modal ─────────────────────────────────────────────────────────────────────
+window.abrirModal = (id) => {
+  editingId = id || null;
+  const t = id ? tarefas.find(x => x.id === id) : null;
+  document.getElementById('modal-title').textContent   = t ? 'Editar Tarefa' : 'Nova Tarefa';
+  document.getElementById('f-titulo').value            = t?.titulo       || '';
+  document.getElementById('f-descricao').value         = t?.descricao    || '';
+  document.getElementById('f-prioridade').value        = t?.prioridade   || 'media';
+  document.getElementById('f-status').value            = t?.status       || 'pendente';
+  document.getElementById('f-categoria').value         = t?.categoria    || '';
+  document.getElementById('f-responsavel').value       = t?.responsavel  || '';
+  document.getElementById('f-vencimento').value        = t?.data_vencimento || '';
+  document.getElementById('btn-delete').style.display  = t ? 'block' : 'none';
+  document.getElementById('modal-overlay').classList.add('open');
+  setTimeout(() => document.getElementById('f-titulo').focus(), 50);
+};
+
+window.fecharModal = () => {
+  document.getElementById('modal-overlay').classList.remove('open');
+  editingId = null;
+};
+
+window.salvarTarefa = async () => {
+  const titulo = document.getElementById('f-titulo').value.trim();
+  if (!titulo) { document.getElementById('f-titulo').focus(); return; }
+
+  const payload = {
+    titulo,
+    descricao:       document.getElementById('f-descricao').value.trim() || null,
+    prioridade:      document.getElementById('f-prioridade').value,
+    status:          document.getElementById('f-status').value,
+    categoria:       document.getElementById('f-categoria').value.trim() || null,
+    responsavel:     document.getElementById('f-responsavel').value.trim() || null,
+    data_vencimento: document.getElementById('f-vencimento').value || null,
+  };
+
+  if (editingId) {
+    const { error } = await supabase.from('tarefas').update(payload).eq('id', editingId);
+    if (error) { alert('Erro: ' + error.message); return; }
+  } else {
+    const { error } = await supabase.from('tarefas').insert(payload);
+    if (error) { alert('Erro: ' + error.message); return; }
+  }
+
+  fecharModal();
+  await carregar();
+};
+
+window.deletarTarefa = async () => {
+  if (!editingId || !confirm('Excluir esta tarefa?')) return;
+  await supabase.from('tarefas').delete().eq('id', editingId);
+  fecharModal();
+  await carregar();
+};
+
+// Fechar modal ao clicar fora
+document.getElementById('modal-overlay').addEventListener('click', e => {
+  if (e.target === e.currentTarget) fecharModal();
+});
+
+// Atalho Escape
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape') { fecharModal(); fecharCtx(); }
+});
+
+carregar();
+</script>
+</body>
+</html>
