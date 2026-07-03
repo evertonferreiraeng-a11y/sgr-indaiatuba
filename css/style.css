@@ -18,7 +18,7 @@
   --success:        #16803c;
   --success-light:  #f0fdf4;
   --sidebar-w:      252px;
-  --sidebar-bg:     #111827;
+  --sidebar-bg:     #0d1f14;
   --radius:         8px;
   --shadow-sm:      0 1px 2px rgba(0,0,0,.05), 0 1px 3px rgba(0,0,0,.04);
   --shadow:         0 2px 8px rgba(0,0,0,.08), 0 1px 3px rgba(0,0,0,.05);
@@ -185,8 +185,8 @@ body.sidebar-collapsed .main-content { margin-left: 0; padding-left: 48px; }
 }
 
 .page-header {
-  padding: 0 28px;
-  height: var(--header-h);
+  padding: 12px 28px;
+  min-height: var(--header-h);
   display: flex;
   align-items: center;
   justify-content: space-between;
