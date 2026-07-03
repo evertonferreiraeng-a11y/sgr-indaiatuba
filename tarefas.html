@@ -20,7 +20,7 @@
     .tar-search input { width:100%; padding:8px 12px 8px 36px; border:1px solid #e2e8f0; border-radius:8px; font-size:13px; outline:none; box-sizing:border-box; background:#fff; }
     .tar-search input:focus { border-color:#006636; box-shadow:0 0 0 3px #d1fae5; }
     .tar-search-icon { position:absolute; left:11px; top:50%; transform:translateY(-50%); color:#94a3b8; pointer-events:none; }
-    .tar-filter { padding:8px 12px; border:1px solid #e2e8f0; border-radius:8px; font-size:12px; background:#fff; color:#334155; cursor:pointer; outline:none; }
+    .tar-filter { padding:8px 12px; border:1px solid #e2e8f0; border-radius:8px; font-size:12px; background:#fff; color:#334155; cursor:pointer; outline:none; width:auto !important; flex-shrink:0; }
     .tar-filter:focus { border-color:#006636; }
     .btn-nova-tarefa { display:flex; align-items:center; gap:6px; background:#006636; color:#fff; border:none; border-radius:8px; padding:9px 18px; font-size:13px; font-weight:700; cursor:pointer; white-space:nowrap; transition:background .15s; }
     .btn-nova-tarefa:hover { background:#005229; }
@@ -117,7 +117,7 @@
         <h2>Tarefas</h2>
         <p id="tar-subtitle">Acompanhamento de atividades</p>
       </div>
-      <button class="btn-nova-tarefa" onclick="abrirModal()">
+      <button class="btn-nova-tarefa" onclick="abrirTarefa()">
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
         Nova Tarefa
       </button>
@@ -161,7 +161,7 @@
     <div class="modal-hd">
       <div class="modal-hd-icon">✅</div>
       <div class="modal-hd-title" id="modal-title">Nova Tarefa</div>
-      <button class="modal-close" onclick="fecharModal()">×</button>
+      <button class="modal-close" onclick="fecharTarefa()">×</button>
     </div>
     <div class="modal-body">
       <div class="field-group">
@@ -214,7 +214,7 @@
     </div>
     <div class="modal-ft">
       <button class="btn-delete" id="btn-delete" onclick="deletarTarefa()" style="display:none">Excluir</button>
-      <button class="btn-cancel" onclick="fecharModal()">Cancelar</button>
+      <button class="btn-cancel" onclick="fecharTarefa()">Cancelar</button>
       <button class="btn-save"   onclick="salvarTarefa()">Salvar Tarefa</button>
     </div>
   </div>
@@ -224,11 +224,9 @@
 <div class="ctx-menu" id="ctx-menu" style="display:none"></div>
 
 <script type="module">
-import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm';
-import { SUPABASE_URL, SUPABASE_KEY, initSidebar } from './js/config.js';
+import { supabase, initPage } from './js/config.js';
 
-const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
-initSidebar();
+await initPage();
 
 let tarefas   = [];
 let editingId = null;
@@ -433,7 +431,7 @@ window.ctxMenu = (e, id) => {
   e.stopPropagation();
   const menu = document.getElementById('ctx-menu');
   menu.innerHTML = `
-    <button class="ctx-item" onclick="abrirModal('${id}');fecharCtx()">✏️ Editar</button>
+    <button class="ctx-item" onclick="abrirTarefa('${id}');fecharCtx()">✏️ Editar</button>
     <div class="ctx-sep"></div>
     <button class="ctx-item" onclick="moverStatus('${id}','pendente');fecharCtx()">⬜ A Fazer</button>
     <button class="ctx-item" onclick="moverStatus('${id}','em_andamento');fecharCtx()">🔵 Em Andamento</button>
@@ -466,7 +464,7 @@ window.confirmarDelete = async (id) => {
 };
 
 // ── Modal ─────────────────────────────────────────────────────────────────────
-window.abrirModal = (id) => {
+window.abrirTarefa = (id) => {
   editingId = id || null;
   const t = id ? tarefas.find(x => x.id === id) : null;
   document.getElementById('modal-title').textContent   = t ? 'Editar Tarefa' : 'Nova Tarefa';
@@ -482,7 +480,7 @@ window.abrirModal = (id) => {
   setTimeout(() => document.getElementById('f-titulo').focus(), 50);
 };
 
-window.fecharModal = () => {
+window.fecharTarefa = () => {
   document.getElementById('modal-overlay').classList.remove('open');
   editingId = null;
 };
@@ -509,25 +507,25 @@ window.salvarTarefa = async () => {
     if (error) { alert('Erro: ' + error.message); return; }
   }
 
-  fecharModal();
+  fecharTarefa();
   await carregar();
 };
 
 window.deletarTarefa = async () => {
   if (!editingId || !confirm('Excluir esta tarefa?')) return;
   await supabase.from('tarefas').delete().eq('id', editingId);
-  fecharModal();
+  fecharTarefa();
   await carregar();
 };
 
 // Fechar modal ao clicar fora
 document.getElementById('modal-overlay').addEventListener('click', e => {
-  if (e.target === e.currentTarget) fecharModal();
+  if (e.target === e.currentTarget) fecharTarefa();
 });
 
 // Atalho Escape
 document.addEventListener('keydown', e => {
-  if (e.key === 'Escape') { fecharModal(); fecharCtx(); }
+  if (e.key === 'Escape') { fecharTarefa(); fecharCtx(); }
 });
 
 carregar();
