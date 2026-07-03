@@ -208,9 +208,9 @@ export async function initPage() {
   document.getElementById('btn-logout')?.addEventListener('click', logout);
   initSidebarToggle();
   try {
-    const { initRotina } = await import('./rotina.js');
+    const { initRotina } = await import('./rotina.js?v=' + Date.now());
     initRotina();
-  } catch (e) { console.warn('Rotina não carregada:', e); }
+  } catch (e) { console.error('Erro ao carregar rotina.js:', e); }
 }
 
 function initSidebarToggle() {
