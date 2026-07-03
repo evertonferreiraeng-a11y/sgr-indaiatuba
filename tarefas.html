@@ -98,6 +98,26 @@
     .kanban-empty { text-align:center; padding:32px 16px; color:#94a3b8; font-size:12px; }
     .kanban-empty svg { width:40px; height:40px; margin-bottom:10px; opacity:.4; }
 
+    /* ── Etapas ── */
+    .etapas-wrap { margin:10px 0; border-top:1px solid #f1f5f9; padding-top:10px; }
+    .etapas-progress { margin-bottom:8px; }
+    .etapas-progress-bar { height:4px; background:#e2e8f0; border-radius:2px; margin-top:4px; overflow:hidden; }
+    .etapas-progress-fill { height:100%; background:#10b981; border-radius:2px; transition:width .3s; }
+    .etapas-progress-label { font-size:10px; font-weight:700; color:#64748b; }
+    .etapa-item { display:flex; align-items:center; gap:7px; padding:4px 0; cursor:pointer; }
+    .etapa-item:hover .etapa-del { opacity:1; }
+    .etapa-cb { width:15px; height:15px; border:2px solid #cbd5e1; border-radius:4px; cursor:pointer; appearance:none; flex-shrink:0; background:#fff; transition:all .15s; }
+    .etapa-cb:checked { background:#10b981; border-color:#10b981; }
+    .etapa-cb:checked::after { content:'✓'; display:block; color:#fff; font-size:10px; font-weight:800; text-align:center; line-height:1.1; }
+    .etapa-label { font-size:12px; color:#334155; flex:1; line-height:1.4; transition:all .15s; }
+    .etapa-label.done { text-decoration:line-through; color:#94a3b8; }
+    .etapa-del { background:none; border:none; color:#fca5a5; cursor:pointer; font-size:14px; line-height:1; padding:0 2px; opacity:0; transition:opacity .15s; }
+    .etapa-del:hover { color:#dc2626; }
+    .etapa-add-wrap { display:flex; align-items:center; gap:6px; margin-top:6px; }
+    .etapa-add-input { flex:1; font-size:12px; padding:5px 8px; border:1px dashed #cbd5e1; border-radius:6px; outline:none; background:transparent; color:#334155; font-family:inherit; }
+    .etapa-add-input:focus { border-color:#006636; background:#fff; border-style:solid; }
+    .etapa-add-input::placeholder { color:#cbd5e1; }
+
     @media(max-width:900px) {
       .kanban { grid-template-columns:1fr 1fr; }
       .tar-kpis { grid-template-columns:repeat(3,1fr); }
@@ -246,13 +266,21 @@ const PRI = {
 
 // ── Carregar ──────────────────────────────────────────────────────────────────
 async function carregar() {
-  const { data, error } = await supabase
-    .from('tarefas')
-    .select('*')
-    .order('criado_em', { ascending: false });
+  const [{ data, error }, { data: etapasData }] = await Promise.all([
+    supabase.from('tarefas').select('*').order('criado_em', { ascending: false }),
+    supabase.from('tarefas_etapas').select('*').order('criado_em', { ascending: true }),
+  ]);
 
   if (error) { console.error(error); return; }
   tarefas = data || [];
+
+  // Indexar etapas por tarefa_id
+  window._etapasMap = {};
+  (etapasData || []).forEach(e => {
+    if (!window._etapasMap[e.tarefa_id]) window._etapasMap[e.tarefa_id] = [];
+    window._etapasMap[e.tarefa_id].push(e);
+  });
+
   atualizarFiltros();
   renderKpis();
   renderKanban();
@@ -368,6 +396,31 @@ function cardHtml(t, hoje) {
   }
 
   const initials = (t.responsavel||'?').split(' ').map(w=>w[0]).slice(0,2).join('').toUpperCase();
+  const etapas = (window._etapasMap || {})[t.id] || [];
+  const eDone  = etapas.filter(e => e.concluida).length;
+  const eTotal = etapas.length;
+  const ePct   = eTotal ? Math.round(eDone / eTotal * 100) : 0;
+
+  const etapasHtml = `
+    <div class="etapas-wrap" ondragstart="event.stopPropagation()" draggable="false">
+      ${eTotal > 0 ? `
+        <div class="etapas-progress">
+          <div class="etapas-progress-label">${eDone}/${eTotal} etapa${eTotal!==1?'s':''} · ${ePct}%</div>
+          <div class="etapas-progress-bar"><div class="etapas-progress-fill" style="width:${ePct}%"></div></div>
+        </div>` : ''}
+      ${etapas.map(e => `
+        <div class="etapa-item">
+          <input type="checkbox" class="etapa-cb" id="ecb-${e.id}" ${e.concluida?'checked':''}
+            onchange="toggleEtapa('${e.id}','${t.id}',this.checked)" onclick="event.stopPropagation()" />
+          <label for="ecb-${e.id}" class="etapa-label ${e.concluida?'done':''}" onclick="event.stopPropagation()">${escHtml(e.descricao)}</label>
+          <button class="etapa-del" onclick="event.stopPropagation();deletarEtapa('${e.id}','${t.id}')" title="Remover">×</button>
+        </div>`).join('')}
+      <div class="etapa-add-wrap">
+        <input class="etapa-add-input" placeholder="+ Adicionar etapa…"
+          onkeydown="if(event.key==='Enter'){event.preventDefault();adicionarEtapa('${t.id}',this)}"
+          onclick="event.stopPropagation()" ondragstart="event.stopPropagation()" />
+      </div>
+    </div>`;
 
   return `
     <div class="task-card" draggable="true" data-id="${t.id}"
@@ -377,7 +430,8 @@ function cardHtml(t, hoje) {
         <button class="task-card-menu" onclick="ctxMenu(event,'${t.id}')">⋯</button>
       </div>
       ${t.descricao ? `<div class="task-desc">${escHtml(t.descricao)}</div>` : ''}
-      <div class="task-tags">
+      ${etapasHtml}
+      <div class="task-tags" style="margin-top:10px">
         <span class="task-tag ${pri.cls}">${pri.label}</span>
         ${t.categoria ? `<span class="task-tag cat-tag">${escHtml(t.categoria)}</span>` : ''}
       </div>
@@ -389,6 +443,56 @@ function cardHtml(t, hoje) {
       </div>
     </div>`;
 }
+
+// ── Etapas ────────────────────────────────────────────────────────────────────
+window.toggleEtapa = async (etapaId, tarefaId, concluida) => {
+  // Atualiza mapa local imediatamente (sem re-render completo)
+  const etapas = (window._etapasMap || {})[tarefaId] || [];
+  const eta = etapas.find(e => e.id === etapaId);
+  if (eta) eta.concluida = concluida;
+
+  // Atualiza visual da label
+  const label = document.querySelector(`label[for="ecb-${etapaId}"]`);
+  if (label) label.className = `etapa-label ${concluida ? 'done' : ''}`;
+
+  // Atualiza barra de progresso do card
+  const eDone = etapas.filter(e => e.concluida).length;
+  const eTotal = etapas.length;
+  const ePct = eTotal ? Math.round(eDone / eTotal * 100) : 0;
+  const card = document.querySelector(`.task-card[data-id="${tarefaId}"]`);
+  if (card) {
+    const fill  = card.querySelector('.etapas-progress-fill');
+    const lbl   = card.querySelector('.etapas-progress-label');
+    if (fill) fill.style.width = ePct + '%';
+    if (lbl)  lbl.textContent = `${eDone}/${eTotal} etapa${eTotal!==1?'s':''} · ${ePct}%`;
+  }
+
+  await supabase.from('tarefas_etapas').update({ concluida }).eq('id', etapaId);
+};
+
+window.adicionarEtapa = async (tarefaId, input) => {
+  const descricao = input.value.trim();
+  if (!descricao) return;
+  input.value = '';
+  input.disabled = true;
+  const ordem = ((window._etapasMap || {})[tarefaId]?.length) || 0;
+  const { data, error } = await supabase.from('tarefas_etapas')
+    .insert({ tarefa_id: tarefaId, descricao, ordem })
+    .select().single();
+  input.disabled = false;
+  if (error) { alert('Erro: ' + error.message); return; }
+  if (!window._etapasMap) window._etapasMap = {};
+  if (!window._etapasMap[tarefaId]) window._etapasMap[tarefaId] = [];
+  window._etapasMap[tarefaId].push(data);
+  renderKanban();
+};
+
+window.deletarEtapa = async (etapaId, tarefaId) => {
+  if (!window._etapasMap?.[tarefaId]) return;
+  window._etapasMap[tarefaId] = window._etapasMap[tarefaId].filter(e => e.id !== etapaId);
+  renderKanban();
+  await supabase.from('tarefas_etapas').delete().eq('id', etapaId);
+};
 
 function escHtml(s) {
   return (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
