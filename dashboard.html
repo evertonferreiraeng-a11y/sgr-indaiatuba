@@ -67,11 +67,12 @@
     .gauge-lbl { font-size: 11px; color: var(--text-muted); margin-top: 4px; text-align: center; }
 
     /* ── Equipe ── */
+    #equipe-hoje-chips { display: flex; flex-wrap: nowrap; overflow-x: auto; gap: 6px; padding-bottom: 4px; }
     .equipe-chip {
-      display: inline-flex; flex-direction: column; align-items: flex-start;
+      display: inline-flex; flex-direction: column; align-items: flex-start; flex: 0 0 auto;
       background: var(--primary-bg); border: 1px solid var(--primary-border);
-      border-radius: 10px; padding: 5px 10px;
-      font-size: 12px; font-weight: 500; margin: 3px; vertical-align: top;
+      border-radius: 10px; padding: 5px 10px; white-space: nowrap;
+      font-size: 12px; font-weight: 500;
     }
     .equipe-chip .chip-sub { font-size: 10px; font-weight: 700; margin-top: 2px; }
 
