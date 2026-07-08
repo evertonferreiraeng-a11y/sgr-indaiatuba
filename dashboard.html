@@ -63,10 +63,8 @@
     .alerta-exp:last-child { margin-bottom: 0; }
 
     /* ── Gauge ── */
-    .gauge-wrap { position: relative; height: 160px; display: flex; align-items: flex-end; justify-content: center; }
-    .gauge-center { position: absolute; bottom: 12px; left: 50%; transform: translateX(-50%); text-align: center; }
-    .gauge-val { font-size: 30px; font-weight: 800; line-height: 1; }
-    .gauge-lbl { font-size: 11px; color: var(--text-muted); margin-top: 2px; }
+    .gauge-val { font-size: 32px; font-weight: 900; margin-top: -18px; letter-spacing: -1px; }
+    .gauge-lbl { font-size: 11px; color: var(--text-muted); margin-top: 4px; text-align: center; }
 
     /* ── Equipe ── */
     .equipe-chip {
@@ -162,13 +160,9 @@
           </div>
           <div style="display:flex;flex-direction:column;align-items:center;justify-content:center">
             <div style="font-size:11px;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:.05em;margin-bottom:4px">Taxa de Reciclagem</div>
-            <div class="gauge-wrap">
-              <canvas id="gauge-canvas" style="max-height:160px"></canvas>
-              <div class="gauge-center">
-                <div class="gauge-val" id="gauge-val" style="color:var(--primary)">—</div>
-                <div class="gauge-lbl">(Expedido + Estoque) / Recebido</div>
-              </div>
-            </div>
+            <canvas id="gauge-canvas" width="220" height="120"></canvas>
+            <div class="gauge-val" id="gauge-val">—</div>
+            <div class="gauge-lbl">(Expedido + Estoque) / Recebido</div>
           </div>
         </div>
       </div>
@@ -282,7 +276,7 @@ await initPage();
 
 const MESES      = ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
 const MESES_FULL = ['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
-let chartProd, chartFatPrev, gaugeChart;
+let chartProd, chartFatPrev;
 
 document.getElementById('capa-data').textContent =
   new Date().toLocaleDateString('pt-BR', { weekday:'long', day:'2-digit', month:'long', year:'numeric' });
@@ -616,18 +610,54 @@ async function carregarBalanco(inicio, fim) {
   renderBalanco({ recebido, expedido, rejeito, estoque });
 }
 
-/* ── Gauge ── */
+/* ── Gauge (velocímetro em canvas, igual ao Relatório de Comitê) ── */
 function atualizarGauge(taxa) {
+  const canvas = document.getElementById('gauge-canvas');
+  const ctx = canvas.getContext('2d');
+  const cx = 110, cy = 100, r = 80;
+  const startAngle = Math.PI;
+  const endAngle   = 2 * Math.PI;
   const cor = taxa >= 70 ? '#1a6b3c' : taxa >= 40 ? '#D97706' : '#D64545';
-  document.getElementById('gauge-val').textContent = taxa.toFixed(1)+'%';
-  document.getElementById('gauge-val').style.color = cor;
-  if (gaugeChart) gaugeChart.destroy();
-  gaugeChart = new Chart(document.getElementById('gauge-canvas'), {
-    type: 'doughnut',
-    data: { datasets: [{ data: [taxa, 100-taxa], backgroundColor: [cor, '#E5E7EB'], borderWidth: 0 }] },
-    options: { rotation: -90, circumference: 180, cutout: '72%', responsive: true, maintainAspectRatio: false,
-      plugins: { legend: { display: false }, tooltip: { enabled: false } } }
-  });
+  const valorAngle = startAngle + (taxa / 100) * Math.PI;
+
+  ctx.clearRect(0, 0, 220, 120);
+
+  // fundo cinza
+  ctx.beginPath();
+  ctx.arc(cx, cy, r, startAngle, endAngle);
+  ctx.lineWidth = 18;
+  ctx.strokeStyle = '#E5E7EB';
+  ctx.lineCap = 'round';
+  ctx.stroke();
+
+  // arco colorido
+  if (taxa > 0) {
+    ctx.beginPath();
+    ctx.arc(cx, cy, r, startAngle, valorAngle);
+    ctx.lineWidth = 18;
+    ctx.strokeStyle = cor;
+    ctx.lineCap = 'round';
+    ctx.stroke();
+  }
+
+  // agulha
+  ctx.beginPath();
+  ctx.moveTo(cx, cy);
+  ctx.lineTo(cx + (r - 22) * Math.cos(valorAngle), cy + (r - 22) * Math.sin(valorAngle));
+  ctx.lineWidth = 3;
+  ctx.strokeStyle = cor;
+  ctx.lineCap = 'round';
+  ctx.stroke();
+
+  // centro
+  ctx.beginPath();
+  ctx.arc(cx, cy, 6, 0, 2 * Math.PI);
+  ctx.fillStyle = cor;
+  ctx.fill();
+
+  const valEl = document.getElementById('gauge-val');
+  valEl.textContent = taxa.toFixed(1) + '%';
+  valEl.style.color = cor;
 }
 
 /* ── Equipamentos ── */
