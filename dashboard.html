@@ -713,7 +713,7 @@ async function carregarEquipeHoje() {
   function subInfo(c) {
     if (c.em_ferias) return { label:'Férias', cor:'#2563eb' };
     const tipo = ocMap[c.id];
-    if (tipo) return { label: OC_TIPO_LABEL[tipo] || tipo, cor: OC_TIPO_COR[tipo] || '#64748b' };
+    if (tipo && tipo !== 'outro') return { label: OC_TIPO_LABEL[tipo] || tipo, cor: OC_TIPO_COR[tipo] || '#64748b' };
     return null;
   }
   function chip(c, emoji, bgStyle) {
