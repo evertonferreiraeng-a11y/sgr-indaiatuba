@@ -571,7 +571,7 @@ async function carregarAlertasExp() {
   (colabs||[]).forEach(c => {
     [{ dias: 45, label: '1ª' }, { dias: 90, label: '2ª' }].forEach(({ dias, label }) => {
       const base = new Date(c.data_admissao + 'T00:00:00');
-      const venc = new Date(base); venc.setDate(venc.getDate() + dias);
+      const venc = new Date(base); venc.setDate(venc.getDate() + dias - 1);
       const diff = Math.ceil((venc - hoje) / 86400000);
       if (diff >= 0 && diff <= 10) {
         const critico = diff <= 3;
