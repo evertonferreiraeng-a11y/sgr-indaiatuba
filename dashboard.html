@@ -8,20 +8,67 @@
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4/dist/chart.umd.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2/dist/chartjs-plugin-datalabels.min.js"></script>
   <style>
-    .dash-section-title {
-      font-size: 13px; font-weight: 700; color: var(--primary);
-      text-transform: uppercase; letter-spacing: .06em;
-      margin: 24px 0 12px; border-left: 3px solid var(--primary); padding-left: 10px;
+    /* ── Seções (estilo Comitê de Gestão) ── */
+    .rel-section { margin-bottom: 20px; }
+    .sec-hd {
+      display:flex; align-items:center; gap:10px;
+      margin-bottom:16px; padding-bottom:12px; border-bottom:1px solid #f1f5f9;
     }
-    .kpi-kg { font-size: 22px; font-weight: 700; color: var(--primary); margin: 4px 0 2px; }
-    .kpi-pct .pct-val { font-size: 15px; font-weight: 700; }
-    .pct-green { color: var(--success); }
-    .pct-red   { color: var(--danger); }
-    .pct-yellow{ color: var(--warning); }
+    .sec-dot { width:10px; height:10px; border-radius:50%; flex-shrink:0; }
+    .sec-title { font-size:12px; font-weight:800; text-transform:uppercase; letter-spacing:.1em; color:#0f172a; }
+    .sec-line { flex:1; height:1px; background:#f1f5f9; }
+    .sec-badge { font-size:11px; font-weight:700; padding:3px 12px; border-radius:20px; white-space:nowrap; }
+
+    /* ── KPI cards (genéricos) ── */
+    .rel-kpi { background:#fff; border:1px solid #e2e8f0; border-radius:10px; padding:14px 16px; }
+    .rel-kpi-label { font-size:10px; font-weight:700; text-transform:uppercase; color:#64748b; margin-bottom:4px; letter-spacing:.04em; }
+    .rel-kpi-val   { font-size:22px; font-weight:900; color:#0f172a; line-height:1; letter-spacing:-.5px; }
+    .rel-kpi-sub   { font-size:11px; color:#94a3b8; margin-top:4px; }
+
+    /* ── KPI executivo (faixa do topo) ── */
+    .exec-kpi {
+      background:#fff; border:1px solid #e2e8f0; border-radius:12px;
+      padding:14px 16px; position:relative; overflow:hidden;
+    }
+    .exec-kpi::before {
+      content:''; position:absolute; top:0; left:0; right:0; height:3px;
+      background:var(--strip,#1a6b3c);
+    }
+    .exec-kpi-label { font-size:10px; font-weight:700; text-transform:uppercase; color:#94a3b8; margin-bottom:8px; letter-spacing:.06em; }
+    .exec-kpi-val   { font-size:21px; font-weight:900; color:#0f172a; line-height:1; letter-spacing:-.5px; }
+    .exec-kpi-sub   { font-size:11px; color:#94a3b8; margin-top:6px; }
+
+    /* ── Tabelas ── */
+    .fat-table { width:100%; border-collapse:collapse; font-size:12.5px; }
+    .fat-table th {
+      background:#f8fafc; font-weight:700; font-size:11px; text-transform:uppercase;
+      letter-spacing:.04em; color:#64748b; padding:9px 12px;
+      text-align:left; border-bottom:2px solid #e2e8f0;
+    }
+    .fat-table td { padding:7px 12px; border-bottom:1px solid #f8fafc; color:#334155; }
+    .fat-table tbody tr:hover { background:#f8fafc; }
+    .fat-table tr:last-child td { border-bottom:none; }
+    .fat-table td.num { text-align: right; font-weight: 600; }
+    .prev-cell { cursor:pointer; border-bottom:1px dashed #2563eb; }
+    .prev-cell:hover { background:#eff6ff; border-radius:3px; }
+    .prev-inline { width:110px; border:1px solid #2563eb; border-radius:4px; padding:2px 6px; font-size:12px; }
+
+    /* ── Alertas de experiência ── */
+    .alerta-exp {
+      background: #FFFBEB; border: 1px solid #FCD34D; border-radius: 8px;
+      padding: 10px 16px; margin-bottom: 8px; font-size: 13px;
+      display: flex; align-items: center; gap: 8px;
+    }
+    .alerta-exp.critico { background: var(--danger-light); border-color: #FECACA; }
+    .alerta-exp:last-child { margin-bottom: 0; }
+
+    /* ── Gauge ── */
     .gauge-wrap { position: relative; height: 160px; display: flex; align-items: flex-end; justify-content: center; }
     .gauge-center { position: absolute; bottom: 12px; left: 50%; transform: translateX(-50%); text-align: center; }
     .gauge-val { font-size: 30px; font-weight: 800; line-height: 1; }
     .gauge-lbl { font-size: 11px; color: var(--text-muted); margin-top: 2px; }
+
+    /* ── Equipe ── */
     .equipe-chip {
       display: inline-flex; align-items: center; gap: 5px;
       background: var(--primary-bg); border: 1px solid var(--primary-border);
@@ -32,44 +79,13 @@
       background: none; border: none; cursor: pointer; color: var(--danger);
       font-size: 15px; line-height: 1; padding: 0 0 0 2px;
     }
-    .fat-table th, .fat-table td { padding: 8px 12px; font-size: 12.5px; }
-    .fat-table thead tr { background: #EBF5EE; }
-    .fat-table td.num { text-align: right; font-weight: 600; }
-    .prev-cell { cursor:pointer; border-bottom:1px dashed #2563eb; }
-    .prev-cell:hover { background:#eff6ff; border-radius:3px; }
-    .prev-inline { width:110px; border:1px solid #2563eb; border-radius:4px; padding:2px 6px; font-size:12px; }
-    .alerta-exp {
-      background: #FFFBEB; border: 1px solid #FCD34D; border-radius: 8px;
-      padding: 10px 16px; margin-bottom: 8px; font-size: 13px;
-      display: flex; align-items: center; gap: 8px;
-    }
-    .alerta-exp.critico { background: var(--danger-light); border-color: #FECACA; }
 
-    /* Balanço de Massa */
-    .balanco-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
-      gap: 12px;
-      margin-bottom: 16px;
-    }
-    .balanco-card {
-      background: #fff;
-      border-radius: 10px;
-      border: 1px solid #E5E7EB;
-      padding: 14px 16px;
-    }
-    .balanco-card .bc-label { font-size: 11px; font-weight: 600; text-transform: uppercase; color: var(--text-muted); margin-bottom: 4px; }
-    .balanco-card .bc-val  { font-size: 20px; font-weight: 800; margin-bottom: 2px; }
-    .balanco-card .bc-pct  { font-size: 12px; font-weight: 600; }
-    .balanco-bar-wrap { background:#F3F4F6; border-radius:8px; height:22px; display:flex; overflow:hidden; margin-bottom:8px; }
+    /* ── Balanço de Massa ── */
+    .balanco-bar-wrap { background:#F3F4F6; border-radius:8px; height:18px; display:flex; overflow:hidden; margin-bottom:8px; }
     .balanco-bar-seg  { height:100%; transition: width .4s; display:flex; align-items:center; justify-content:center; font-size:10px; font-weight:700; color:#fff; overflow:hidden; white-space:nowrap; }
     .balanco-legenda  { display:flex; flex-wrap:wrap; gap:10px; font-size:11px; }
     .balanco-legenda span { display:flex; align-items:center; gap:4px; }
     .balanco-legenda i { width:10px; height:10px; border-radius:2px; display:inline-block; }
-    .balanco-fechamento {
-      border-radius:8px; padding:10px 16px; font-size:13px; font-weight:600;
-      display:flex; align-items:center; gap:8px; margin-top:10px;
-    }
   </style>
 </head>
 <body>
@@ -86,46 +102,72 @@
 
     <div class="page-body">
 
+      <!-- ══ BANNER ══ -->
+      <div class="rel-section" style="background:linear-gradient(135deg,var(--primary-dark) 0%,var(--primary) 55%,var(--primary-light) 100%);border-radius:16px;padding:28px 32px;margin-bottom:16px;position:relative;overflow:hidden">
+        <div style="position:absolute;top:-50px;right:-50px;width:200px;height:200px;border-radius:50%;background:rgba(94,197,191,0.08)"></div>
+        <div style="position:absolute;bottom:-60px;right:110px;width:150px;height:150px;border-radius:50%;background:rgba(255,255,255,0.04)"></div>
+        <div style="position:relative;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:16px">
+          <div>
+            <div style="font-size:10px;font-weight:700;text-transform:uppercase;color:#5EC5BF;letter-spacing:.18em;margin-bottom:10px">SGR Indaiatuba — UVR Indaiatuba</div>
+            <div style="font-size:28px;font-weight:900;color:#ffffff;letter-spacing:-.8px;line-height:1.1">Dashboard Operacional</div>
+            <div style="font-size:16px;color:rgba(255,255,255,0.8);font-weight:500;margin-top:8px" id="capa-periodo">Carregando…</div>
+          </div>
+          <div style="text-align:right">
+            <div style="font-size:11px;color:rgba(255,255,255,0.55);margin-bottom:4px">Visão geral da operação</div>
+            <div style="font-size:13px;color:#5EC5BF;font-weight:600" id="capa-data"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ══ PAINEL EXECUTIVO ══ -->
+      <div style="margin-bottom:16px">
+        <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:#94a3b8;margin-bottom:10px;padding-left:2px">Visão Geral</div>
+        <div id="painel-executivo" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:8px"></div>
+      </div>
+
       <!-- ── ALERTAS VENCIMENTO EXPERIÊNCIA ── -->
       <div id="alertas-exp-dash"></div>
 
       <!-- ── BALANÇO DE MASSA ── -->
-      <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;margin-bottom:8px">
-        <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
-          <div class="dash-section-title" style="margin-bottom:0">Balanço de Massa / Taxa de Reciclagem</div>
-          <div style="display:flex;gap:4px;align-items:center">
+      <div class="card rel-section">
+        <div class="sec-hd">
+          <div class="sec-dot" id="balanco-dot" style="background:#94a3b8"></div>
+          <div class="sec-title">Balanço de Massa / Taxa de Reciclagem</div>
+          <div class="sec-line"></div>
+          <span class="sec-badge" id="balanco-badge" style="color:#64748b;background:#f1f5f9">—</span>
+        </div>
+        <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;margin-bottom:14px">
+          <div style="display:flex;align-items:center;gap:4px;flex-wrap:wrap">
             <span style="font-size:11px;color:var(--text-muted)">Tipo:</span>
             <button id="bal-cat-todos"    class="bal-cat-btn active" style="font-size:11px;padding:3px 9px;border-radius:20px;border:1px solid #D1D5DB;background:var(--primary);color:#fff;cursor:pointer">Todos</button>
             <button id="bal-cat-reciclavel" class="bal-cat-btn"     style="font-size:11px;padding:3px 9px;border-radius:20px;border:1px solid #D1D5DB;background:#fff;color:#374151;cursor:pointer">♻ Recicláveis</button>
             <button id="bal-cat-nao"        class="bal-cat-btn"     style="font-size:11px;padding:3px 9px;border-radius:20px;border:1px solid #D1D5DB;background:#fff;color:#374151;cursor:pointer">🚫 Não Recicláveis</button>
           </div>
-        </div>
-        <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap">
-          <span style="font-size:12px;color:var(--text-muted)">Período:</span>
-          <button class="btn btn-sm" id="bal-btn-mes" style="font-size:12px;background:var(--primary);color:#fff;border:none;border-radius:6px;padding:4px 10px;cursor:pointer">Mês atual</button>
-          <button class="btn btn-sm" id="bal-btn-3m"  style="font-size:12px;background:#fff;color:#374151;border:1px solid #D1D5DB;border-radius:6px;padding:4px 10px;cursor:pointer">3 meses</button>
-          <button class="btn btn-sm" id="bal-btn-ano" style="font-size:12px;background:#fff;color:#374151;border:1px solid #D1D5DB;border-radius:6px;padding:4px 10px;cursor:pointer">Ano</button>
-          <button class="btn btn-sm" id="bal-btn-custom" style="font-size:12px;background:#fff;color:#374151;border:1px solid #D1D5DB;border-radius:6px;padding:4px 10px;cursor:pointer">Personalizado</button>
-          <div id="bal-custom-inputs" style="display:none;gap:6px;align-items:center">
-            <input type="date" id="bal-de"  style="font-size:12px;padding:3px 7px;border:1px solid #e2e8f0;border-radius:6px" />
-            <span style="font-size:12px">–</span>
-            <input type="date" id="bal-ate" style="font-size:12px;padding:3px 7px;border:1px solid #e2e8f0;border-radius:6px" />
-            <button class="btn btn-sm btn-primary" id="bal-btn-aplicar" style="font-size:12px">Filtrar</button>
+          <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap">
+            <span style="font-size:12px;color:var(--text-muted)">Período:</span>
+            <button class="btn btn-sm" id="bal-btn-mes" style="font-size:12px;background:var(--primary);color:#fff;border:none;border-radius:6px;padding:4px 10px;cursor:pointer">Mês atual</button>
+            <button class="btn btn-sm" id="bal-btn-3m"  style="font-size:12px;background:#fff;color:#374151;border:1px solid #D1D5DB;border-radius:6px;padding:4px 10px;cursor:pointer">3 meses</button>
+            <button class="btn btn-sm" id="bal-btn-ano" style="font-size:12px;background:#fff;color:#374151;border:1px solid #D1D5DB;border-radius:6px;padding:4px 10px;cursor:pointer">Ano</button>
+            <button class="btn btn-sm" id="bal-btn-custom" style="font-size:12px;background:#fff;color:#374151;border:1px solid #D1D5DB;border-radius:6px;padding:4px 10px;cursor:pointer">Personalizado</button>
+            <div id="bal-custom-inputs" style="display:none;gap:6px;align-items:center">
+              <input type="date" id="bal-de"  style="font-size:12px;padding:3px 7px;border:1px solid #e2e8f0;border-radius:6px" />
+              <span style="font-size:12px">–</span>
+              <input type="date" id="bal-ate" style="font-size:12px;padding:3px 7px;border:1px solid #e2e8f0;border-radius:6px" />
+              <button class="btn btn-sm btn-primary" id="bal-btn-aplicar" style="font-size:12px">Filtrar</button>
+            </div>
           </div>
         </div>
-      </div>
-      <div style="display:grid;grid-template-columns:2fr 1fr;gap:16px;margin-bottom:20px">
-        <div class="card" id="balanco-section">
-          <div class="balanco-grid" id="balanco-cards"></div>
-          <div class="balanco-bar-wrap" id="balanco-bar"></div>
-          <div class="balanco-legenda" id="balanco-legenda"></div>
-          <div id="balanco-fechamento"></div>
-        </div>
-        <div class="card" style="text-align:center">
-          <div style="font-size:13px;font-weight:600;margin-bottom:4px">Taxa de Reciclagem</div>
-          <div class="gauge-wrap">
+        <div style="display:grid;grid-template-columns:2fr 1fr;gap:20px">
+          <div>
+            <div id="balanco-cards"></div>
+            <div class="balanco-bar-wrap" id="balanco-bar"></div>
+            <div class="balanco-legenda" id="balanco-legenda"></div>
+            <div id="balanco-fechamento"></div>
+          </div>
+          <div style="display:flex;flex-direction:column;align-items:center;justify-content:center">
+            <div style="font-size:11px;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:.05em;margin-bottom:4px">Taxa de Reciclagem</div>
             <canvas id="gauge-canvas" style="max-height:160px"></canvas>
-            <div class="gauge-center">
+            <div class="gauge-center" style="position:static;margin-top:-18px">
               <div class="gauge-val" id="gauge-val" style="color:var(--primary)">—</div>
               <div class="gauge-lbl">(Expedido + Estoque) / Recebido</div>
             </div>
@@ -135,39 +177,46 @@
 
       <!-- ── EQUIPAMENTOS + EQUIPE ── -->
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:20px">
-        <div class="card">
-          <div style="font-size:13px;font-weight:600;margin-bottom:12px">⚙ Equipamentos</div>
-          <div style="display:flex;gap:16px;margin-bottom:12px">
-            <div style="text-align:center">
-              <div style="font-size:28px;font-weight:800;color:var(--primary)" id="equip-total">—</div>
-              <div style="font-size:11px;color:var(--text-muted)">Total</div>
+        <div class="card rel-section" style="margin-bottom:0">
+          <div class="sec-hd">
+            <div class="sec-dot" id="equip-dot" style="background:#94a3b8"></div>
+            <div class="sec-title">Equipamentos</div>
+            <div class="sec-line"></div>
+            <span class="sec-badge" id="equip-badge" style="color:#64748b;background:#f1f5f9">—</span>
+          </div>
+          <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:12px">
+            <div class="rel-kpi" style="border-left:4px solid var(--primary)">
+              <div class="rel-kpi-label">Total</div>
+              <div class="rel-kpi-val" id="equip-total">—</div>
             </div>
-            <div style="text-align:center">
-              <div style="font-size:28px;font-weight:800;color:var(--success)" id="equip-ativos">—</div>
-              <div style="font-size:11px;color:var(--text-muted)">Ativos</div>
+            <div class="rel-kpi" style="border-left:4px solid #16a34a">
+              <div class="rel-kpi-label">Ativos</div>
+              <div class="rel-kpi-val" id="equip-ativos">—</div>
             </div>
-            <div style="text-align:center">
-              <div style="font-size:28px;font-weight:800;color:var(--warning)" id="equip-pct">—</div>
-              <div style="font-size:11px;color:var(--text-muted)">Disponíveis</div>
+            <div class="rel-kpi" id="equip-pct-card" style="border-left:4px solid #94a3b8">
+              <div class="rel-kpi-label">Disponíveis</div>
+              <div class="rel-kpi-val" id="equip-pct">—</div>
             </div>
           </div>
           <div class="progress-bar"><div class="progress-fill" id="equip-bar" style="width:0%"></div></div>
           <div id="equip-lista" style="margin-top:10px;font-size:12px;color:var(--text-muted)"></div>
         </div>
 
-        <div class="card">
-          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
-            <div style="font-size:13px;font-weight:600">👷 Equipe de Hoje</div>
+        <div class="card rel-section" style="margin-bottom:0">
+          <div class="sec-hd">
+            <div class="sec-dot" id="equipe-dot" style="background:#94a3b8"></div>
+            <div class="sec-title">Equipe de Hoje</div>
+            <div class="sec-line"></div>
             <button class="btn btn-sm btn-primary" id="btn-registrar-equipe">Registrar</button>
           </div>
-          <div style="display:flex;gap:12px;margin-bottom:10px">
-            <div style="text-align:center">
-              <div style="font-size:28px;font-weight:800;color:var(--primary)" id="equipe-total-colab">—</div>
-              <div style="font-size:11px;color:var(--text-muted)">Colaboradores</div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px">
+            <div class="rel-kpi" style="border-left:4px solid var(--primary)">
+              <div class="rel-kpi-label">Colaboradores</div>
+              <div class="rel-kpi-val" id="equipe-total-colab">—</div>
             </div>
-            <div style="text-align:center">
-              <div style="font-size:28px;font-weight:800;color:var(--success)" id="equipe-hoje-count">—</div>
-              <div style="font-size:11px;color:var(--text-muted)">Hoje</div>
+            <div class="rel-kpi" id="equipe-hoje-card" style="border-left:4px solid #94a3b8">
+              <div class="rel-kpi-label">Presentes Hoje</div>
+              <div class="rel-kpi-val" id="equipe-hoje-count">—</div>
             </div>
           </div>
           <div id="equipe-hoje-chips" style="max-height:80px;overflow-y:auto"></div>
@@ -175,8 +224,13 @@
       </div>
 
       <!-- ── FATURAMENTO REALIZADO x PREVISTO ── -->
-      <div class="dash-section-title">Faturamento Realizado × Previsto</div>
-      <div class="chart-card" style="margin-bottom:20px">
+      <div class="card rel-section">
+        <div class="sec-hd">
+          <div class="sec-dot" id="fat-dot" style="background:#94a3b8"></div>
+          <div class="sec-title">Faturamento Realizado × Previsto</div>
+          <div class="sec-line"></div>
+          <span class="sec-badge" id="fat-badge" style="color:#64748b;background:#f1f5f9">—</span>
+        </div>
         <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;margin-bottom:16px">
           <h3 style="font-size:14px;font-weight:600">Anual</h3>
           <div style="display:flex;gap:8px;align-items:center">
@@ -197,9 +251,13 @@
       </div>
 
       <!-- ── PRODUÇÃO MENSAL ── -->
-      <div class="dash-section-title">Produção do Ano</div>
-      <div class="chart-card">
-        <h3 style="font-size:14px;font-weight:600;margin-bottom:16px">Produção Mensal (ton)</h3>
+      <div class="card rel-section">
+        <div class="sec-hd">
+          <div class="sec-dot" style="background:#3B82F6"></div>
+          <div class="sec-title">Produção do Ano</div>
+          <div class="sec-line"></div>
+          <span class="sec-badge" id="prod-badge" style="color:#1d4ed8;background:#eff6ff">—</span>
+        </div>
         <div class="chart-wrap" style="height:240px"><canvas id="chart-producao"></canvas></div>
       </div>
 
@@ -236,6 +294,13 @@ const MESES      = ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out',
 const MESES_FULL = ['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
 let chartProd, chartFatPrev, gaugeChart;
 
+document.getElementById('capa-data').textContent =
+  new Date().toLocaleDateString('pt-BR', { weekday:'long', day:'2-digit', month:'long', year:'numeric' });
+
+// ── Cache para o Painel Executivo ────────────────────────────────────────────
+let _kpiFat = 0, _kpiMeta = 0;
+let _kpiEquipPct = 0, _kpiEquipTotal = 0, _kpiEquipAtivos = 0;
+
 const anoAtualVal = anoAtual();
 [document.getElementById('filtro-ano'), document.getElementById('fat-ano')].forEach(s => {
   s.innerHTML = '';
@@ -257,7 +322,7 @@ document.getElementById('filtro-ano').addEventListener('change', () => {
   document.getElementById('fat-ano').value = ano;
   carregarDados();
 });
-document.getElementById('fat-ano').addEventListener('change', carregarFatPrevisto);
+document.getElementById('fat-ano').addEventListener('change', async () => { await carregarFatPrevisto(); renderPainelExecutivo(); });
 
 // ── Filtro categoria Balanço ─────────────────────────────────────────────────
 document.querySelectorAll('.bal-cat-btn').forEach(btn => {
@@ -269,7 +334,7 @@ document.querySelectorAll('.bal-cat-btn').forEach(btn => {
       b.style.background = ativo ? 'var(--primary)' : '#fff';
       b.style.color       = ativo ? '#fff' : '#374151';
     });
-    if (_balancoInicio && _balancoFim) carregarBalanco(_balancoInicio, _balancoFim);
+    if (_balancoInicio && _balancoFim) carregarBalanco(_balancoInicio, _balancoFim).then(renderPainelExecutivo);
   });
 });
 
@@ -290,7 +355,7 @@ function setBalBtn(ativo) {
   document.getElementById('bal-custom-inputs').style.display = ativo === 'custom' ? 'flex' : 'none';
 }
 function recarregarBalanco(inicio, fim) {
-  Promise.all([carregarKPIs(inicio, fim), carregarBalanco(inicio, fim)]);
+  Promise.all([carregarKPIs(inicio, fim), carregarBalanco(inicio, fim)]).then(renderPainelExecutivo);
 }
 balBtns.mes.addEventListener('click', () => {
   setBalBtn('mes');
@@ -321,7 +386,9 @@ async function carregarDados() {
   const mes = document.getElementById('filtro-mes').value;
   const ano = document.getElementById('filtro-ano').value;
   const [y, m] = mes.split('-');
-  document.getElementById('periodo-label').textContent = `${MESES_FULL[+m-1]} de ${y}`;
+  const periodoTxt = `${MESES_FULL[+m-1]} de ${y}`;
+  document.getElementById('periodo-label').textContent = periodoTxt;
+  document.getElementById('capa-periodo').textContent  = periodoTxt;
   const inicio = `${y}-${m}-01`;
   const fim    = new Date(y, m, 0).toISOString().split('T')[0];
   await Promise.all([
@@ -333,6 +400,40 @@ async function carregarDados() {
     carregarFatPrevisto(),
     carregarAlertasExp(),
   ]);
+  renderPainelExecutivo();
+}
+
+/* ── Painel Executivo ── */
+function renderPainelExecutivo() {
+  const recebido = _balancoBase.recebido || 0;
+  const expedido = _balancoBase.expedido || 0;
+  const estoque  = _balancoBase.estoque  || 0;
+  const taxa     = recebido > 0 ? Math.min(((expedido + estoque) / recebido) * 100, 100) : 0;
+
+  const atingimento = _kpiMeta > 0 ? (_kpiFat / _kpiMeta * 100) : null;
+  const cA = atingimento === null ? '#94a3b8' : atingimento >= 100 ? '#1a6b3c' : atingimento >= 80 ? '#D97706' : '#D64545';
+  const cT = taxa >= 70 ? '#1a6b3c' : taxa >= 50 ? '#D97706' : '#D64545';
+  const cE = _kpiEquipPct >= 80 ? '#1a6b3c' : _kpiEquipPct >= 60 ? '#D97706' : '#D64545';
+
+  const kpis = [
+    { label:'Faturamento',     val: moeda(_kpiFat),  sub: document.getElementById('periodo-label').textContent, strip:'#1a6b3c' },
+    { label:'Meta do Mês',     val: _kpiMeta > 0 ? moeda(_kpiMeta) : '—', sub:'objetivo mensal', strip:'#64748b' },
+    { label:'Atingimento',     val: atingimento !== null ? atingimento.toFixed(1)+'%' : '—',
+      sub: atingimento === null ? 'sem meta' : atingimento >= 100 ? '✅ Meta atingida' : atingimento >= 80 ? '⚠️ Próximo da meta' : '❌ Abaixo da meta',
+      strip:cA, valCor:cA },
+    { label:'Volume Recebido', val: ton(recebido), sub:'no período', strip:'#3B82F6' },
+    { label:'Taxa Reciclagem', val: taxa.toFixed(1)+'%',
+      sub: taxa >= 70 ? '✅ Meta ambiental OK' : taxa >= 50 ? '⚠️ Atenção' : '❌ Abaixo do esperado',
+      strip:cT, valCor:cT },
+    { label:'Disponib. Frota', val: _kpiEquipPct+'%', sub: _kpiEquipAtivos+' de '+_kpiEquipTotal+' equipamentos', strip:cE, valCor:cE },
+  ];
+
+  document.getElementById('painel-executivo').innerHTML = kpis.map(k => `
+    <div class="exec-kpi" style="--strip:${k.strip}">
+      <div class="exec-kpi-label">${k.label}</div>
+      <div class="exec-kpi-val" style="color:${k.valCor||'#0f172a'}">${k.val}</div>
+      <div class="exec-kpi-sub">${k.sub}</div>
+    </div>`).join('');
 }
 
 /* ── KPIs ── */
@@ -357,60 +458,63 @@ async function carregarKPIs(inicio, fim) {
 }
 
 /* ── Balanço de Massa ── */
-let _balancoBase = {}; // cache para reedição de passivo
+let _balancoBase = {}; // cache para reedição de passivo e painel executivo
 
-function renderBalanco({ recebido, expedido, rejeito, estoque, periodo }) {
+function renderBalanco({ recebido, expedido, rejeito, estoque }) {
   // Passivo = saldo automático descontando o estoque já classificado
   const passivo = Math.max(0, recebido - expedido - rejeito - estoque);
   const pct     = v => recebido > 0 ? (v / recebido * 100).toFixed(1) : '0.0';
+  const taxa    = recebido > 0 ? Math.min(((expedido + estoque) / recebido) * 100, 100) : 0;
 
-  const segmentos = [
-    { label:'Expedido', val:expedido, cor:'#1B7A43' },
-    { label:'Rejeito',  val:rejeito,  cor:'#EF4444' },
-    { label:'Passivo',  val:passivo,  cor:'#F59E0B' },
-  ];
-
-  // Card informativo
-  const cardsInfo = [
-    { label:'Estoque', val:estoque, cor:'#3B82F6' },
+  const cards = [
+    { label:'Recebido', val:recebido, cor:'#334155', bg:'#f8fafc', desc:'entrada total' },
+    { label:'Expedido', val:expedido, cor:'#1a6b3c', bg:'#f0fdf4', desc:pct(expedido)+'% do receb.' },
+    { label:'Rejeito',  val:rejeito,  cor:'#DC2626', bg:'#fff5f5', desc:pct(rejeito)+'% do receb.' },
+    { label:'Estoque',  val:estoque,  cor:'#2563eb', bg:'#eff6ff', desc:pct(estoque)+'% do receb.' },
+    { label:'Passivo',  val:passivo,  cor:'#D97706', bg:'#fffbeb', desc:pct(passivo)+'% do receb.' },
   ];
 
   document.getElementById('balanco-cards').innerHTML = `
-    <div class="balanco-card">
-      <div class="bc-label">⬇ Recebido</div>
-      <div class="bc-val" style="color:var(--primary)">${ton(recebido)}</div>
-      <div class="bc-pct" style="color:var(--text-muted)">100% — base do balanço</div>
-    </div>
-    ${segmentos.map(s=>`
-    <div class="balanco-card">
-      <div class="bc-label" style="color:${s.cor}">${s.label}</div>
-      <div class="bc-val" style="color:${s.cor}">${ton(s.val)}</div>
-      <div class="bc-pct" style="color:${s.cor}">${pct(s.val)}% do recebido</div>
-    </div>`).join('')}
-    ${cardsInfo.map(s=>`
-    <div class="balanco-card">
-      <div class="bc-label" style="color:${s.cor}">${s.label} <span style="font-size:10px;color:#94a3b8;font-weight:400">(informativo)</span></div>
-      <div class="bc-val" style="color:${s.cor}">${ton(s.val)}</div>
-      <div class="bc-pct" style="color:${s.cor}">${pct(s.val)}% do recebido</div>
-    </div>`).join('')}
-  `;
-
-  document.getElementById('balanco-bar').innerHTML = recebido > 0
-    ? segmentos.map(s=>`<div class="balanco-bar-seg" style="width:${pct(s.val)}%;background:${s.cor}" title="${s.label}: ${pct(s.val)}%">${parseFloat(pct(s.val))>5?pct(s.val)+'%':''}</div>`).join('')
-    : '<div style="width:100%;background:#E5E7EB;border-radius:8px;height:22px"></div>';
-
-  document.getElementById('balanco-legenda').innerHTML = [
-    ...segmentos,
-    { label:'Estoque', val:estoque, cor:'#3B82F6' }
-  ].map(s=>`<span><i style="background:${s.cor}"></i>${s.label} ${pct(s.val)}%</span>`).join('');
-
-  document.getElementById('balanco-fechamento').innerHTML = `
-    <div class="balanco-fechamento" style="background:#D1FAE5;border:1px solid #6EE7B7">
-      ✅ Balanço fechado — Passivo de ${ton(passivo)} (${pct(passivo)}% do recebido) em processamento ou aguardando destinação.
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(110px,1fr));gap:8px;margin-bottom:14px">
+      ${cards.map(k=>`
+      <div style="background:${k.bg};border-radius:10px;padding:12px 8px;text-align:center">
+        <div style="font-size:9px;font-weight:700;text-transform:uppercase;color:${k.cor};margin-bottom:4px;letter-spacing:.04em">${k.label}</div>
+        <div style="font-size:18px;font-weight:900;color:${k.cor};letter-spacing:-.3px">${ton(k.val)}</div>
+        <div style="font-size:10px;color:#94a3b8;margin-top:2px">${k.desc}</div>
+      </div>`).join('')}
     </div>`;
 
+  const segmentos = [
+    { label:'Expedido', val:expedido, cor:'#1a6b3c' },
+    { label:'Rejeito',  val:rejeito,  cor:'#DC2626' },
+    { label:'Estoque',  val:estoque,  cor:'#2563eb' },
+    { label:'Passivo',  val:passivo,  cor:'#D97706' },
+  ];
+
+  document.getElementById('balanco-bar').innerHTML = recebido > 0
+    ? segmentos.map(s=>`<div class="balanco-bar-seg" style="width:${pct(s.val)}%;background:${s.cor}" title="${s.label}: ${pct(s.val)}%">${parseFloat(pct(s.val))>6?pct(s.val)+'%':''}</div>`).join('')
+    : '<div style="width:100%;background:#E5E7EB;border-radius:8px;height:18px"></div>';
+
+  document.getElementById('balanco-legenda').innerHTML =
+    segmentos.map(s=>`<span><i style="background:${s.cor}"></i>${s.label} ${pct(s.val)}%</span>`).join('');
+
+  const corNota = taxa>=70?'#166534':taxa>=50?'#713f12':'#991b1b';
+  const bgNota  = taxa>=70?'#f0fdf4':taxa>=50?'#fefce8':'#fff5f5';
+  const brNota  = taxa>=70?'#86efac':taxa>=50?'#fde047':'#fca5a5';
+  document.getElementById('balanco-fechamento').innerHTML = `
+    <div style="margin-top:12px;background:${bgNota};border:1px solid ${brNota};border-radius:8px;padding:10px 14px;font-size:12px;color:${corNota}">
+      ${taxa>=70?'✅':'⚠️'} Taxa de reciclagem de <strong>${taxa.toFixed(1)}%</strong>. Volume em passivo: <strong>${ton(passivo)}</strong> (${pct(passivo)}% do recebido) aguardando destinação.
+    </div>`;
+
+  // Cabeçalho da seção (dot + badge)
+  const cT = taxa>=70?'#16a34a':taxa>=50?'#d97706':'#dc2626';
+  const bgT = taxa>=70?'#dcfce7':taxa>=50?'#fef9c3':'#fee2e2';
+  document.getElementById('balanco-dot').style.background = cT;
+  const balBadge = document.getElementById('balanco-badge');
+  balBadge.style.color = cT; balBadge.style.background = bgT;
+  balBadge.textContent = `Taxa Reciclagem: ${taxa.toFixed(1)}%`;
+
   // Atualiza o gauge com os dados filtrados
-  const taxa = recebido > 0 ? Math.min(((expedido + estoque) / recebido) * 100, 100) : 0;
   atualizarGauge(taxa);
 }
 
@@ -435,7 +539,6 @@ let _balancoInicio = '', _balancoFim = '';
 async function carregarBalanco(inicio, fim) {
   _balancoInicio = inicio;
   _balancoFim    = fim;
-  const periodo  = inicio.slice(0, 7);
 
   const [ents, vends, mats] = await Promise.all([
     fetchAllPaginated('entradas', 'peso_liquido, peso_liquido_descontos, tipo_movimentacao, tipo_material', [['gte','data',inicio],['lte','data',fim]]),
@@ -464,12 +567,12 @@ async function carregarBalanco(inicio, fim) {
   const estoque  = matsFilt.reduce((s,r)=>s+parseFloat(r.estoque_kg||0),0);
 
   _balancoBase = { recebido, expedido, rejeito, estoque };
-  renderBalanco({ recebido, expedido, rejeito, estoque, periodo });
+  renderBalanco({ recebido, expedido, rejeito, estoque });
 }
 
 /* ── Gauge ── */
 function atualizarGauge(taxa) {
-  const cor = taxa >= 70 ? '#1B7A43' : taxa >= 40 ? '#D97706' : '#D64545';
+  const cor = taxa >= 70 ? '#1a6b3c' : taxa >= 40 ? '#D97706' : '#D64545';
   document.getElementById('gauge-val').textContent = taxa.toFixed(1)+'%';
   document.getElementById('gauge-val').style.color = cor;
   if (gaugeChart) gaugeChart.destroy();
@@ -500,6 +603,16 @@ async function carregarEquipamentos() {
   document.getElementById('equip-bar').style.width    = pct+'%';
   document.getElementById('equip-lista').textContent  =
     (data||[]).filter(e=>e.status!=='parado').map(e=>e.nome).join(' · ') || 'Nenhum ativo';
+
+  _kpiEquipPct = pct; _kpiEquipTotal = total; _kpiEquipAtivos = ativos;
+  const cE = pct>=80?'#16a34a':pct>=60?'#d97706':'#dc2626';
+  const bgE = pct>=80?'#dcfce7':pct>=60?'#fef9c3':'#fee2e2';
+  document.getElementById('equip-dot').style.background = cE;
+  const equipBadge = document.getElementById('equip-badge');
+  equipBadge.style.color = cE; equipBadge.style.background = bgE;
+  equipBadge.textContent = `Disponibilidade: ${pct}%`;
+  document.getElementById('equip-pct').style.color = cE;
+  document.getElementById('equip-pct-card').style.borderLeftColor = cE;
 }
 
 /* ── Equipe Hoje ── */
@@ -510,11 +623,20 @@ async function carregarEquipeHoje() {
     supabase.from('equipe_diaria').select('id, colaborador_id, colaboradores(nome)').eq('data', hoje),
     supabase.from('colaboradores').select('*', { count:'exact', head:true }).is('demissao', null),
   ]);
-  document.getElementById('equipe-total-colab').textContent = count || 0;
-  document.getElementById('equipe-hoje-count').textContent  = (hoje_eq||[]).length;
+  const totalColab = count || 0;
+  const presentes   = (hoje_eq||[]).length;
+  document.getElementById('equipe-total-colab').textContent = totalColab;
+  document.getElementById('equipe-hoje-count').textContent  = presentes;
+
+  const pctPresenca = totalColab > 0 ? Math.round(presentes / totalColab * 100) : 0;
+  const cP = pctPresenca>=80?'#16a34a':pctPresenca>=50?'#d97706':'#dc2626';
+  const bgP = pctPresenca>=80?'#dcfce7':pctPresenca>=50?'#fef9c3':'#fee2e2';
+  document.getElementById('equipe-dot').style.background = cP;
+  document.getElementById('equipe-hoje-count').style.color = cP;
+  document.getElementById('equipe-hoje-card').style.borderLeftColor = cP;
 
   const chips = document.getElementById('equipe-hoje-chips');
-  if (!(hoje_eq||[]).length) {
+  if (!presentes) {
     chips.innerHTML = '<span style="font-size:12px;color:var(--text-muted)">Nenhum registrado hoje</span>';
     return;
   }
@@ -590,7 +712,15 @@ async function carregarAlertasExp() {
   });
 
   document.getElementById('alertas-exp-dash').innerHTML = alertas.length
-    ? `<div style="margin-bottom:16px"><div style="font-size:13px;font-weight:700;color:var(--danger);margin-bottom:8px">⏱ Vencimentos de Experiência Próximos</div>${alertas.join('')}</div>`
+    ? `<div class="card rel-section">
+        <div class="sec-hd">
+          <div class="sec-dot" style="background:#DC2626"></div>
+          <div class="sec-title">Vencimentos de Experiência Próximos</div>
+          <div class="sec-line"></div>
+          <span class="sec-badge" style="color:#991b1b;background:#fee2e2">${alertas.length} alerta${alertas.length>1?'s':''}</span>
+        </div>
+        ${alertas.join('')}
+      </div>`
     : '';
 }
 
@@ -600,10 +730,11 @@ async function carregarGraficoProducao(ano) {
     .gte('data', `${ano}-01-01`).lte('data', `${ano}-12-31`);
   const agg = Array(12).fill(0);
   (prods||[]).forEach(r => { agg[new Date(r.data+'T00:00:00').getMonth()] += r.peso_produzido_kg; });
+  document.getElementById('prod-badge').textContent = `${ton(agg.reduce((a,b)=>a+b,0))} no ano`;
   if (chartProd) chartProd.destroy();
   chartProd = new Chart(document.getElementById('chart-producao'), {
     type: 'bar',
-    data: { labels: MESES, datasets: [{ data: agg, backgroundColor: '#1B7A43', borderRadius: 5 }] },
+    data: { labels: MESES, datasets: [{ data: agg, backgroundColor: '#1a6b3c', borderRadius: 5 }] },
     options: {
       responsive: true, maintainAspectRatio: false,
       plugins: { legend: { display: false } },
@@ -637,13 +768,28 @@ async function carregarFatPrevisto() {
   });
   const ticket = real.map((r,i) => kgVnd[i]>0 ? r/(kgVnd[i]/1000) : 0);
 
+  // Indicadores do mês selecionado no filtro (para o Painel Executivo e o badge da seção)
+  const anoFiltro = document.getElementById('filtro-ano').value;
+  const mesIdx    = ano === anoFiltro
+    ? parseInt(document.getElementById('filtro-mes').value.split('-')[1]) - 1
+    : new Date().getMonth();
+  _kpiFat  = real[mesIdx] || 0;
+  _kpiMeta = prev[mesIdx] || 0;
+  const atingMes = _kpiMeta > 0 ? (_kpiFat / _kpiMeta * 100) : null;
+  const cAt = atingMes === null ? '#94a3b8' : atingMes >= 100 ? '#16a34a' : atingMes >= 80 ? '#d97706' : '#dc2626';
+  const bgAt = atingMes === null ? '#f1f5f9' : atingMes >= 100 ? '#dcfce7' : atingMes >= 80 ? '#fef9c3' : '#fee2e2';
+  document.getElementById('fat-dot').style.background = cAt;
+  const fatBadge = document.getElementById('fat-badge');
+  fatBadge.style.color = cAt; fatBadge.style.background = bgAt;
+  fatBadge.textContent = atingMes !== null ? `Atingimento: ${atingMes.toFixed(1)}%` : 'Sem meta no período';
+
   if (chartFatPrev) chartFatPrev.destroy();
   chartFatPrev = new Chart(document.getElementById('chart-fat-prev'), {
     type: 'bar',
     data: {
       labels: MESES,
       datasets: [
-        { label:'Realizado', data:real, backgroundColor:'#1B7A43', borderRadius:4, order:2 },
+        { label:'Realizado', data:real, backgroundColor:'#1a6b3c', borderRadius:4, order:2 },
         { label:'Previsto',  data:prev, backgroundColor:'rgba(214,69,69,.2)', borderColor:'#D64545', borderWidth:2, type:'line', tension:.3, pointRadius:4, order:1 },
       ]
     },
@@ -654,7 +800,7 @@ async function carregarFatPrevisto() {
           display: ctx => ctx.parsed.y > 0,
           anchor: ctx => ctx.dataset.type === 'line' ? 'end' : 'end',
           align:  ctx => ctx.dataset.type === 'line' ? 'top' : 'end',
-          color:  ctx => ctx.dataset.type === 'line' ? '#D64545' : '#1B7A43',
+          color:  ctx => ctx.dataset.type === 'line' ? '#D64545' : '#1a6b3c',
           font:   ctx => ({ size: ctx.dataset.type === 'line' ? 9 : 10, weight:'600' }),
           formatter: v => v > 0 ? 'R$'+v.toLocaleString('pt-BR',{minimumFractionDigits:0,maximumFractionDigits:0}) : ''
         }
@@ -705,7 +851,8 @@ async function carregarFatPrevisto() {
           await supabase.from('metas').insert({ indicador:'faturamento', periodo, valor_meta: valor });
         }
         toast('Previsto atualizado!');
-        carregarFatPrevisto();
+        await carregarFatPrevisto();
+        renderPainelExecutivo();
       }
       input.addEventListener('blur', salvar);
       input.addEventListener('keydown', e => {
@@ -723,4 +870,3 @@ carregarDados();
 </script>
 </body>
 </html>
-
