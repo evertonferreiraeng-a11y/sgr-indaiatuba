@@ -68,11 +68,12 @@
 
     /* ── Equipe ── */
     .equipe-chip {
-      display: inline-flex; align-items: center; gap: 5px;
+      display: inline-flex; flex-direction: column; align-items: flex-start;
       background: var(--primary-bg); border: 1px solid var(--primary-border);
-      border-radius: 20px; padding: 3px 8px 3px 10px;
-      font-size: 12px; font-weight: 500; margin: 3px;
+      border-radius: 10px; padding: 5px 10px;
+      font-size: 12px; font-weight: 500; margin: 3px; vertical-align: top;
     }
+    .equipe-chip .chip-sub { font-size: 10px; font-weight: 700; margin-top: 2px; }
 
     /* ── Balanço de Massa ── */
     .balanco-bar-wrap { background:#F3F4F6; border-radius:8px; height:18px; display:flex; overflow:hidden; margin-bottom:8px; }
@@ -691,18 +692,37 @@ async function carregarEquipamentos() {
   document.getElementById('equip-pct-card').style.borderLeftColor = cE;
 }
 
+const OC_TIPO_LABEL = { falta:'Falta injustificada', atestado:'Atestado', advertencia:'Advertência', elogio:'Elogio', outro:'Outro' };
+const OC_TIPO_COR   = { falta:'#dc2626', atestado:'#d97706', advertencia:'#dc2626', elogio:'#16a34a', outro:'#64748b' };
+
 /* ── Equipe Hoje (presença puxada do módulo RH) ── */
 async function carregarEquipeHoje() {
   const hoje = new Date().toISOString().split('T')[0];
-  const [{ data: colabs, count }, { data: presencas }, { data: cargosAll }] = await Promise.all([
-    supabase.from('colaboradores').select('id, nome, cargos(nome)', { count:'exact' }).is('demissao', null).order('nome'),
+  const [{ data: colabs, count }, { data: presencas }, { data: cargosAll }, { data: ocorrHoje }] = await Promise.all([
+    supabase.from('colaboradores').select('id, nome, em_ferias, cargos(nome)', { count:'exact' }).is('demissao', null).order('nome'),
     supabase.from('presenca_diaria').select('colaborador_id, presente').eq('data', hoje),
     supabase.from('cargos').select('nome, preenchido, total_vagas').order('nome'),
+    supabase.from('ocorrencias').select('colaborador_id, tipo').eq('data', hoje),
   ]);
 
   const totalColab = count || (colabs||[]).length;
   const presMap = {};
   (presencas||[]).forEach(p => { presMap[p.colaborador_id] = p.presente; });
+  const ocMap = {};
+  (ocorrHoje||[]).forEach(o => { ocMap[o.colaborador_id] = o.tipo; });
+  function subInfo(c) {
+    if (c.em_ferias) return { label:'Férias', cor:'#2563eb' };
+    const tipo = ocMap[c.id];
+    if (tipo) return { label: OC_TIPO_LABEL[tipo] || tipo, cor: OC_TIPO_COR[tipo] || '#64748b' };
+    return null;
+  }
+  function chip(c, emoji, bgStyle) {
+    const sub = subInfo(c);
+    return `<span class="equipe-chip"${bgStyle ? ` style="${bgStyle}"` : ''}>
+      <span>${emoji} ${c.nome}</span>
+      ${sub ? `<span class="chip-sub" style="color:${sub.cor}">${sub.label}</span>` : ''}
+    </span>`;
+  }
 
   const presentesList = (colabs||[]).filter(c => presMap[c.id] === true);
   const faltantesList = (colabs||[]).filter(c => presMap[c.id] === false);
@@ -728,8 +748,8 @@ async function carregarEquipeHoje() {
     chips.innerHTML = '<span style="font-size:12px;color:var(--text-muted)">Nenhuma presença registrada hoje no módulo RH</span>';
   } else {
     chips.innerHTML =
-      presentesList.map(c => `<span class="equipe-chip">✅ ${c.nome}</span>`).join('') +
-      faltantesList.map(c => `<span class="equipe-chip" style="background:#fee2e2;border-color:#fecaca;color:#991b1b">🚫 ${c.nome}</span>`).join('') +
+      presentesList.map(c => chip(c, '✅')).join('') +
+      faltantesList.map(c => chip(c, '🚫', 'background:#fee2e2;border-color:#fecaca;color:#991b1b')).join('') +
       (semRegistroList.length ? `<span class="equipe-chip" style="background:#f1f5f9;border-color:#e2e8f0;color:#64748b">⏳ ${semRegistroList.length} sem registro</span>` : '');
   }
 
