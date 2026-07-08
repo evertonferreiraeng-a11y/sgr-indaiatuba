@@ -290,6 +290,7 @@ document.getElementById('capa-data').textContent =
 // ── Cache para o Painel Executivo e o card Comercial ─────────────────────────
 let _kpiFat = 0, _kpiMeta = 0;
 let _kpiEquipPct = 0, _kpiEquipTotal = 0, _kpiEquipAtivos = 0;
+let _kpiPresencaPct = 0, _kpiPresentes = 0, _kpiTotalColab = 0;
 let _comExpKg = 0, _comTicket = 0, _comSaldoVal = 0, _comSaldoKg = 0, _comPotencial = 0;
 
 const anoAtualVal = anoAtual();
@@ -405,6 +406,7 @@ function renderPainelExecutivo() {
   const cA = atingimento === null ? '#94a3b8' : atingimento >= 100 ? '#1a6b3c' : atingimento >= 80 ? '#D97706' : '#D64545';
   const cT = taxa >= 70 ? '#1a6b3c' : taxa >= 50 ? '#D97706' : '#D64545';
   const cE = _kpiEquipPct >= 80 ? '#1a6b3c' : _kpiEquipPct >= 60 ? '#D97706' : '#D64545';
+  const cR = _kpiPresencaPct >= 90 ? '#1a6b3c' : _kpiPresencaPct >= 70 ? '#D97706' : '#D64545';
 
   const kpis = [
     { label:'Faturamento',     val: moeda(_kpiFat),  sub: document.getElementById('periodo-label').textContent, strip:'#1a6b3c' },
@@ -417,6 +419,7 @@ function renderPainelExecutivo() {
       sub: taxa >= 70 ? '✅ Meta ambiental OK' : taxa >= 50 ? '⚠️ Atenção' : '❌ Abaixo do esperado',
       strip:cT, valCor:cT },
     { label:'Disponib. Frota', val: _kpiEquipPct+'%', sub: _kpiEquipAtivos+' de '+_kpiEquipTotal+' equipamentos', strip:cE, valCor:cE },
+    { label:'Presença RH',     val: _kpiPresencaPct+'%', sub: _kpiPresentes+' de '+_kpiTotalColab+' colaboradores', strip:cR, valCor:cR },
   ];
 
   document.getElementById('painel-executivo').innerHTML = kpis.map(k => `
@@ -680,6 +683,7 @@ async function carregarEquipeHoje() {
   document.getElementById('equipe-faltas-count').textContent = faltantesList.length;
 
   const pctPresenca = totalColab > 0 ? Math.round(presentesList.length / totalColab * 100) : 0;
+  _kpiPresencaPct = pctPresenca; _kpiPresentes = presentesList.length; _kpiTotalColab = totalColab;
   const cP  = pctPresenca>=90?'#16a34a':pctPresenca>=70?'#d97706':'#dc2626';
   const bgP = pctPresenca>=90?'#dcfce7':pctPresenca>=70?'#fef9c3':'#fee2e2';
   document.getElementById('equipe-dot').style.background = cP;
