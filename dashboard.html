@@ -75,10 +75,6 @@
       border-radius: 20px; padding: 3px 8px 3px 10px;
       font-size: 12px; font-weight: 500; margin: 3px;
     }
-    .equipe-chip .remove-btn {
-      background: none; border: none; cursor: pointer; color: var(--danger);
-      font-size: 15px; line-height: 1; padding: 0 0 0 2px;
-    }
 
     /* ── Balanço de Massa ── */
     .balanco-bar-wrap { background:#F3F4F6; border-radius:8px; height:18px; display:flex; overflow:hidden; margin-bottom:8px; }
@@ -175,52 +171,61 @@
         </div>
       </div>
 
-      <!-- ── EQUIPAMENTOS + EQUIPE ── -->
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:20px">
-        <div class="card rel-section" style="margin-bottom:0">
-          <div class="sec-hd">
-            <div class="sec-dot" id="equip-dot" style="background:#94a3b8"></div>
-            <div class="sec-title">Equipamentos</div>
-            <div class="sec-line"></div>
-            <span class="sec-badge" id="equip-badge" style="color:#64748b;background:#f1f5f9">—</span>
-          </div>
-          <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:12px">
-            <div class="rel-kpi" style="border-left:4px solid var(--primary)">
-              <div class="rel-kpi-label">Total</div>
-              <div class="rel-kpi-val" id="equip-total">—</div>
-            </div>
-            <div class="rel-kpi" style="border-left:4px solid #16a34a">
-              <div class="rel-kpi-label">Ativos</div>
-              <div class="rel-kpi-val" id="equip-ativos">—</div>
-            </div>
-            <div class="rel-kpi" id="equip-pct-card" style="border-left:4px solid #94a3b8">
-              <div class="rel-kpi-label">Disponíveis</div>
-              <div class="rel-kpi-val" id="equip-pct">—</div>
-            </div>
-          </div>
-          <div class="progress-bar"><div class="progress-fill" id="equip-bar" style="width:0%"></div></div>
-          <div id="equip-lista" style="margin-top:10px;font-size:12px;color:var(--text-muted)"></div>
+      <!-- ── EQUIPAMENTOS ── -->
+      <div class="card rel-section">
+        <div class="sec-hd">
+          <div class="sec-dot" id="equip-dot" style="background:#94a3b8"></div>
+          <div class="sec-title">Equipamentos</div>
+          <div class="sec-line"></div>
+          <span class="sec-badge" id="equip-badge" style="color:#64748b;background:#f1f5f9">—</span>
         </div>
+        <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:12px">
+          <div class="rel-kpi" style="border-left:4px solid var(--primary)">
+            <div class="rel-kpi-label">Total</div>
+            <div class="rel-kpi-val" id="equip-total">—</div>
+          </div>
+          <div class="rel-kpi" style="border-left:4px solid #16a34a">
+            <div class="rel-kpi-label">Ativos</div>
+            <div class="rel-kpi-val" id="equip-ativos">—</div>
+          </div>
+          <div class="rel-kpi" id="equip-pct-card" style="border-left:4px solid #94a3b8">
+            <div class="rel-kpi-label">Disponíveis</div>
+            <div class="rel-kpi-val" id="equip-pct">—</div>
+          </div>
+        </div>
+        <div class="progress-bar"><div class="progress-fill" id="equip-bar" style="width:0%"></div></div>
+        <div id="equip-lista" style="margin-top:10px;font-size:12px;color:var(--text-muted)"></div>
+      </div>
 
-        <div class="card rel-section" style="margin-bottom:0">
-          <div class="sec-hd">
-            <div class="sec-dot" id="equipe-dot" style="background:#94a3b8"></div>
-            <div class="sec-title">Equipe de Hoje</div>
-            <div class="sec-line"></div>
-            <button class="btn btn-sm btn-primary" id="btn-registrar-equipe">Registrar</button>
-          </div>
-          <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px">
-            <div class="rel-kpi" style="border-left:4px solid var(--primary)">
-              <div class="rel-kpi-label">Colaboradores</div>
-              <div class="rel-kpi-val" id="equipe-total-colab">—</div>
-            </div>
-            <div class="rel-kpi" id="equipe-hoje-card" style="border-left:4px solid #94a3b8">
-              <div class="rel-kpi-label">Presentes Hoje</div>
-              <div class="rel-kpi-val" id="equipe-hoje-count">—</div>
-            </div>
-          </div>
-          <div id="equipe-hoje-chips" style="max-height:80px;overflow-y:auto"></div>
+      <!-- ── EQUIPE DE HOJE (RH) ── -->
+      <div class="card rel-section">
+        <div class="sec-hd">
+          <div class="sec-dot" id="equipe-dot" style="background:#94a3b8"></div>
+          <div class="sec-title">Equipe de Hoje</div>
+          <div class="sec-line"></div>
+          <span class="sec-badge" id="equipe-badge" style="color:#64748b;background:#f1f5f9">—</span>
+          <a href="rh.html" class="btn btn-sm btn-outline" style="text-decoration:none">Abrir RH</a>
         </div>
+        <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:12px">
+          <div class="rel-kpi" style="border-left:4px solid var(--primary)">
+            <div class="rel-kpi-label">Colaboradores</div>
+            <div class="rel-kpi-val" id="equipe-total-colab">—</div>
+          </div>
+          <div class="rel-kpi" id="equipe-hoje-card" style="border-left:4px solid #94a3b8">
+            <div class="rel-kpi-label">Presentes Hoje</div>
+            <div class="rel-kpi-val" id="equipe-hoje-count">—</div>
+          </div>
+          <div class="rel-kpi" style="border-left:4px solid #dc2626">
+            <div class="rel-kpi-label">Faltas Hoje</div>
+            <div class="rel-kpi-val" id="equipe-faltas-count" style="color:#dc2626">—</div>
+          </div>
+        </div>
+        <div id="equipe-hoje-chips" style="margin-bottom:16px"></div>
+        <div style="font-size:11px;font-weight:700;text-transform:uppercase;color:#94a3b8;margin-bottom:8px">Balanço de Vagas</div>
+        <table class="fat-table" id="tbl-vagas">
+          <thead><tr><th>Cargo</th><th class="text-right">Preenchido</th><th class="text-right">Total de Vagas</th><th>Situação</th></tr></thead>
+          <tbody id="tbody-vagas-dash"></tbody>
+        </table>
       </div>
 
       <!-- ── FATURAMENTO REALIZADO x PREVISTO ── -->
@@ -231,6 +236,7 @@
           <div class="sec-line"></div>
           <span class="sec-badge" id="fat-badge" style="color:#64748b;background:#f1f5f9">—</span>
         </div>
+        <div id="comercial-cards" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px;margin-bottom:18px"></div>
         <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;margin-bottom:16px">
           <h3 style="font-size:14px;font-weight:600">Anual</h3>
           <div style="display:flex;gap:8px;align-items:center">
@@ -265,27 +271,9 @@
   </div>
 </div>
 
-<!-- Modal: Registrar equipe -->
-<div class="modal-backdrop" id="modal-equipe">
-  <div class="modal" style="max-width:480px">
-    <div class="modal-header">
-      <h3>Equipe de Hoje</h3>
-      <button class="modal-close" data-close="modal-equipe">✕</button>
-    </div>
-    <div class="modal-body">
-      <p style="font-size:12px;color:var(--text-muted);margin-bottom:12px">Marque os colaboradores presentes hoje:</p>
-      <div id="equipe-checklist" style="display:grid;grid-template-columns:1fr 1fr;gap:6px;max-height:320px;overflow-y:auto"></div>
-    </div>
-    <div class="modal-footer">
-      <button class="btn btn-outline" data-close="modal-equipe">Fechar</button>
-      <button class="btn btn-primary" id="btn-salvar-equipe">Salvar</button>
-    </div>
-  </div>
-</div>
-
 <div id="toast-container"></div>
 <script type="module">
-import { initPage, supabase, moeda, peso, ton, mesAtual, anoAtual, toast, abrirModal, fecharModal } from './js/config.js?v=2';
+import { initPage, supabase, moeda, peso, ton, mesAtual, anoAtual, toast } from './js/config.js?v=2';
 
 
 await initPage();
@@ -297,9 +285,10 @@ let chartProd, chartFatPrev, gaugeChart;
 document.getElementById('capa-data').textContent =
   new Date().toLocaleDateString('pt-BR', { weekday:'long', day:'2-digit', month:'long', year:'numeric' });
 
-// ── Cache para o Painel Executivo ────────────────────────────────────────────
+// ── Cache para o Painel Executivo e o card Comercial ─────────────────────────
 let _kpiFat = 0, _kpiMeta = 0;
 let _kpiEquipPct = 0, _kpiEquipTotal = 0, _kpiEquipAtivos = 0;
+let _comExpKg = 0, _comTicket = 0, _comSaldoVal = 0, _comSaldoKg = 0, _comPotencial = 0;
 
 const anoAtualVal = anoAtual();
 [document.getElementById('filtro-ano'), document.getElementById('fat-ano')].forEach(s => {
@@ -322,7 +311,7 @@ document.getElementById('filtro-ano').addEventListener('change', () => {
   document.getElementById('fat-ano').value = ano;
   carregarDados();
 });
-document.getElementById('fat-ano').addEventListener('change', async () => { await carregarFatPrevisto(); renderPainelExecutivo(); });
+document.getElementById('fat-ano').addEventListener('change', carregarFatPrevisto);
 
 // ── Filtro categoria Balanço ─────────────────────────────────────────────────
 document.querySelectorAll('.bal-cat-btn').forEach(btn => {
@@ -438,10 +427,12 @@ function renderPainelExecutivo() {
 
 /* ── KPIs ── */
 async function carregarKPIs(inicio, fim) {
-  const [{ data: ents }, { data: vends }, { data: mats }] = await Promise.all([
+  const periodo = inicio.slice(0, 7);
+  const [{ data: ents }, { data: vends }, { data: mats }, { data: metas }] = await Promise.all([
     supabase.from('entradas').select('peso_liquido, tipo_movimentacao').gte('data', inicio).lte('data', fim),
     supabase.from('vendas').select('peso_kg, valor_total').gte('data', inicio).lte('data', fim),
     supabase.from('materiais').select('estoque_kg, valor_unitario, no_estoque').eq('no_estoque', true),
+    supabase.from('metas').select('valor_meta').eq('indicador','faturamento').eq('periodo', periodo),
   ]);
 
   const recicKg  = (ents||[]).filter(r=>r.tipo_movimentacao!=='saida').reduce((s,r)=>s+parseFloat(r.peso_liquido||0), 0);
@@ -455,6 +446,56 @@ async function carregarKPIs(inicio, fim) {
 
   const taxa = recicKg > 0 ? Math.min(((expKg + saldoKg) / recicKg) * 100, 100) : 0;
   atualizarGauge(taxa);
+
+  // Cache para o Painel Executivo e o card Comercial
+  _kpiFat      = expVal;
+  _kpiMeta     = (metas && metas[0]?.valor_meta) || 0;
+  _comExpKg    = expKg;
+  _comTicket   = expKg > 0 ? expVal / (expKg / 1000) : 0;
+  _comSaldoVal = saldoVal;
+  _comSaldoKg  = saldoKg;
+  _comPotencial= expVal + saldoVal;
+  renderComercial();
+}
+
+/* ── Comercial (cards no padrão do Comitê de Gestão) ── */
+function renderComercial() {
+  const atM  = _kpiMeta > 0 ? (_kpiFat / _kpiMeta * 100) : null;
+  const cA   = atM===null?'#94a3b8':atM>=100?'#16a34a':atM>=80?'#d97706':'#dc2626';
+  const bgA  = atM===null?'#f1f5f9':atM>=100?'#dcfce7':atM>=80?'#fef9c3':'#fee2e2';
+  const lA   = atM===null?'sem meta':atM>=100?'✅ Meta atingida':atM>=80?'⚠️ Próximo da meta':'❌ Abaixo da meta';
+  document.getElementById('fat-dot').style.background = cA;
+  const fatBadge = document.getElementById('fat-badge');
+  fatBadge.style.color = cA; fatBadge.style.background = bgA;
+  fatBadge.textContent = atM !== null ? `Atingimento: ${atM.toFixed(1)}%` : lA;
+
+  const periodoLbl = document.getElementById('periodo-label').textContent;
+  document.getElementById('comercial-cards').innerHTML = `
+    <div style="background:#f0fdf4;border-radius:10px;border:1px solid #86efac;padding:14px">
+      <div style="font-size:10px;font-weight:700;text-transform:uppercase;color:#166534;margin-bottom:5px">Faturamento</div>
+      <div style="font-size:19px;font-weight:900;color:#15803d;letter-spacing:-.5px">${moeda(_kpiFat)}</div>
+      <div style="font-size:10px;color:#4ade80;margin-top:4px">${periodoLbl}</div>
+    </div>
+    <div class="rel-kpi">
+      <div class="rel-kpi-label">Volume Vendido</div>
+      <div class="rel-kpi-val">${ton(_comExpKg)}</div>
+      <div class="rel-kpi-sub">no período</div>
+    </div>
+    <div class="rel-kpi">
+      <div class="rel-kpi-label">Preço Médio</div>
+      <div class="rel-kpi-val" style="font-size:18px">${moeda(_comTicket)}<span style="font-size:10px;color:#94a3b8">/ton</span></div>
+      <div class="rel-kpi-sub">ticket médio</div>
+    </div>
+    <div style="background:#eff6ff;border-radius:10px;border:1px solid #bfdbfe;padding:14px">
+      <div style="font-size:10px;font-weight:700;text-transform:uppercase;color:#1d4ed8;margin-bottom:5px">Valor em Estoque</div>
+      <div style="font-size:19px;font-weight:900;color:#1d4ed8;letter-spacing:-.5px">${moeda(_comSaldoVal)}</div>
+      <div style="font-size:10px;color:#93c5fd;margin-top:4px">${ton(_comSaldoKg)} armazenado</div>
+    </div>
+    <div style="background:#fff;border-radius:10px;border:2px solid var(--primary);padding:14px">
+      <div style="font-size:10px;font-weight:700;text-transform:uppercase;color:var(--primary);margin-bottom:5px">Potencial Total</div>
+      <div style="font-size:19px;font-weight:900;color:var(--primary);letter-spacing:-.5px">${moeda(_comPotencial)}</div>
+      <div style="font-size:10px;color:#94a3b8;margin-top:4px">realizado + estoque</div>
+    </div>`;
 }
 
 /* ── Balanço de Massa ── */
@@ -615,72 +656,71 @@ async function carregarEquipamentos() {
   document.getElementById('equip-pct-card').style.borderLeftColor = cE;
 }
 
-/* ── Equipe Hoje ── */
+/* ── Equipe Hoje (presença puxada do módulo RH) ── */
 async function carregarEquipeHoje() {
   const hoje = new Date().toISOString().split('T')[0];
-  const [{ data: todos }, { data: hoje_eq }, { count }] = await Promise.all([
-    supabase.from('colaboradores').select('id, nome').is('demissao', null).order('nome'),
-    supabase.from('equipe_diaria').select('id, colaborador_id, colaboradores(nome)').eq('data', hoje),
-    supabase.from('colaboradores').select('*', { count:'exact', head:true }).is('demissao', null),
+  const [{ data: colabs, count }, { data: presencas }, { data: cargosAll }] = await Promise.all([
+    supabase.from('colaboradores').select('id, nome, cargos(nome)', { count:'exact' }).is('demissao', null).order('nome'),
+    supabase.from('presenca_diaria').select('colaborador_id, presente').eq('data', hoje),
+    supabase.from('cargos').select('nome, preenchido, total_vagas').order('nome'),
   ]);
-  const totalColab = count || 0;
-  const presentes   = (hoje_eq||[]).length;
-  document.getElementById('equipe-total-colab').textContent = totalColab;
-  document.getElementById('equipe-hoje-count').textContent  = presentes;
 
-  const pctPresenca = totalColab > 0 ? Math.round(presentes / totalColab * 100) : 0;
-  const cP = pctPresenca>=80?'#16a34a':pctPresenca>=50?'#d97706':'#dc2626';
-  const bgP = pctPresenca>=80?'#dcfce7':pctPresenca>=50?'#fef9c3':'#fee2e2';
+  const totalColab = count || (colabs||[]).length;
+  const presMap = {};
+  (presencas||[]).forEach(p => { presMap[p.colaborador_id] = p.presente; });
+
+  const presentesList = (colabs||[]).filter(c => presMap[c.id] === true);
+  const faltantesList = (colabs||[]).filter(c => presMap[c.id] === false);
+  const semRegistroList = (colabs||[]).filter(c => !(c.id in presMap));
+
+  document.getElementById('equipe-total-colab').textContent  = totalColab;
+  document.getElementById('equipe-hoje-count').textContent   = presentesList.length;
+  document.getElementById('equipe-faltas-count').textContent = faltantesList.length;
+
+  const pctPresenca = totalColab > 0 ? Math.round(presentesList.length / totalColab * 100) : 0;
+  const cP  = pctPresenca>=90?'#16a34a':pctPresenca>=70?'#d97706':'#dc2626';
+  const bgP = pctPresenca>=90?'#dcfce7':pctPresenca>=70?'#fef9c3':'#fee2e2';
   document.getElementById('equipe-dot').style.background = cP;
+  const equipeBadge = document.getElementById('equipe-badge');
+  equipeBadge.style.color = cP; equipeBadge.style.background = bgP;
+  equipeBadge.textContent = `Presença: ${pctPresenca}%`;
   document.getElementById('equipe-hoje-count').style.color = cP;
   document.getElementById('equipe-hoje-card').style.borderLeftColor = cP;
 
   const chips = document.getElementById('equipe-hoje-chips');
-  if (!presentes) {
-    chips.innerHTML = '<span style="font-size:12px;color:var(--text-muted)">Nenhum registrado hoje</span>';
-    return;
+  if (!presentesList.length && !faltantesList.length) {
+    chips.innerHTML = '<span style="font-size:12px;color:var(--text-muted)">Nenhuma presença registrada hoje no módulo RH</span>';
+  } else {
+    chips.innerHTML =
+      presentesList.map(c => `<span class="equipe-chip">✅ ${c.nome}</span>`).join('') +
+      faltantesList.map(c => `<span class="equipe-chip" style="background:#fee2e2;border-color:#fecaca;color:#991b1b">🚫 ${c.nome}</span>`).join('') +
+      (semRegistroList.length ? `<span class="equipe-chip" style="background:#f1f5f9;border-color:#e2e8f0;color:#64748b">⏳ ${semRegistroList.length} sem registro</span>` : '');
   }
-  chips.innerHTML = (hoje_eq||[]).map(r => `
-    <span class="equipe-chip">
-      👷 ${r.colaboradores?.nome || '—'}
-      <button class="remove-btn" onclick="removerEquipe('${r.id}')" title="Remover">✕</button>
-    </span>
-  `).join('');
+
+  // ── Balanço de Vagas (mesmos dados do módulo RH) ──
+  const tbody = document.getElementById('tbody-vagas-dash');
+  if (!(cargosAll||[]).length) {
+    tbody.innerHTML = '<tr><td colspan="4" style="text-align:center;color:var(--text-muted)">Nenhum cargo cadastrado.</td></tr>';
+  } else {
+    tbody.innerHTML = cargosAll.map(cargo => {
+      const preenchido = cargo.preenchido ?? 0;
+      const total = cargo.total_vagas ?? 0;
+      const emAberto = total - preenchido;
+      const completo = total > 0 && preenchido >= total;
+      const situacao = total === 0
+        ? '<span style="color:#94a3b8">Sem vagas definidas</span>'
+        : completo
+          ? '<span style="background:#d1fae5;color:#065f46;padding:2px 10px;border-radius:10px;font-size:11px;font-weight:600">✅ Completo</span>'
+          : `<span style="color:#d97706;font-weight:600">⚠ ${emAberto} vaga(s) em aberto</span>`;
+      return `<tr>
+        <td>${cargo.nome}</td>
+        <td class="num" style="color:${preenchido===0?'#dc2626':preenchido<total?'#d97706':'#16a34a'}">${preenchido}</td>
+        <td class="num">${total}</td>
+        <td>${situacao}</td>
+      </tr>`;
+    }).join('');
+  }
 }
-
-window.removerEquipe = async id => {
-  await supabase.from('equipe_diaria').delete().eq('id', id);
-  carregarEquipeHoje();
-};
-
-/* ── Modal Equipe ── */
-document.getElementById('btn-registrar-equipe').addEventListener('click', async () => {
-  const hoje = new Date().toISOString().split('T')[0];
-  const [{ data: todos }, { data: presentes }] = await Promise.all([
-    supabase.from('colaboradores').select('id, nome').eq('ativo', true).is('demissao', null).order('nome'),
-    supabase.from('equipe_diaria').select('colaborador_id').eq('data', hoje),
-  ]);
-  const presenteIds = new Set((presentes||[]).map(r=>r.colaborador_id));
-  document.getElementById('equipe-checklist').innerHTML = (todos||[]).map(c => `
-    <label style="display:flex;align-items:center;gap:8px;padding:6px 8px;border-radius:6px;cursor:pointer;border:1px solid #E5E7EB;font-size:13px">
-      <input type="checkbox" value="${c.id}" ${presenteIds.has(c.id)?'checked':''} style="width:auto" />
-      ${c.nome}
-    </label>
-  `).join('');
-  abrirModal('modal-equipe');
-});
-
-document.getElementById('btn-salvar-equipe').addEventListener('click', async () => {
-  const hoje = new Date().toISOString().split('T')[0];
-  const checks = document.querySelectorAll('#equipe-checklist input[type=checkbox]');
-  const selecionados = [...checks].filter(c=>c.checked).map(c=>c.value);
-  await supabase.from('equipe_diaria').delete().eq('data', hoje);
-  if (selecionados.length)
-    await supabase.from('equipe_diaria').insert(selecionados.map(id => ({ data: hoje, colaborador_id: id })));
-  toast(`Equipe registrada: ${selecionados.length} pessoas`);
-  fecharModal('modal-equipe');
-  carregarEquipeHoje();
-});
 
 /* ── Alertas Vencimento Experiência ── */
 async function carregarAlertasExp() {
@@ -768,21 +808,6 @@ async function carregarFatPrevisto() {
   });
   const ticket = real.map((r,i) => kgVnd[i]>0 ? r/(kgVnd[i]/1000) : 0);
 
-  // Indicadores do mês selecionado no filtro (para o Painel Executivo e o badge da seção)
-  const anoFiltro = document.getElementById('filtro-ano').value;
-  const mesIdx    = ano === anoFiltro
-    ? parseInt(document.getElementById('filtro-mes').value.split('-')[1]) - 1
-    : new Date().getMonth();
-  _kpiFat  = real[mesIdx] || 0;
-  _kpiMeta = prev[mesIdx] || 0;
-  const atingMes = _kpiMeta > 0 ? (_kpiFat / _kpiMeta * 100) : null;
-  const cAt = atingMes === null ? '#94a3b8' : atingMes >= 100 ? '#16a34a' : atingMes >= 80 ? '#d97706' : '#dc2626';
-  const bgAt = atingMes === null ? '#f1f5f9' : atingMes >= 100 ? '#dcfce7' : atingMes >= 80 ? '#fef9c3' : '#fee2e2';
-  document.getElementById('fat-dot').style.background = cAt;
-  const fatBadge = document.getElementById('fat-badge');
-  fatBadge.style.color = cAt; fatBadge.style.background = bgAt;
-  fatBadge.textContent = atingMes !== null ? `Atingimento: ${atingMes.toFixed(1)}%` : 'Sem meta no período';
-
   if (chartFatPrev) chartFatPrev.destroy();
   chartFatPrev = new Chart(document.getElementById('chart-fat-prev'), {
     type: 'bar',
@@ -852,6 +877,8 @@ async function carregarFatPrevisto() {
         }
         toast('Previsto atualizado!');
         await carregarFatPrevisto();
+        const [yy, mm] = document.getElementById('filtro-mes').value.split('-');
+        await carregarKPIs(`${yy}-${mm}-01`, new Date(yy, mm, 0).toISOString().split('T')[0]);
         renderPainelExecutivo();
       }
       input.addEventListener('blur', salvar);
@@ -862,9 +889,6 @@ async function carregarFatPrevisto() {
     });
   });
 }
-
-document.querySelectorAll('[data-close]').forEach(btn => btn.addEventListener('click', () => fecharModal(btn.dataset.close)));
-document.querySelectorAll('.modal-backdrop').forEach(m => m.addEventListener('click', e => { if(e.target===m) fecharModal(m.id); }));
 
 carregarDados();
 </script>
