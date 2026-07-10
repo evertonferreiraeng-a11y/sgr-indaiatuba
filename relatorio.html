@@ -221,8 +221,9 @@ async function carregar() {
   document.getElementById('rel-body').innerHTML = '<div style="text-align:center;padding:48px;color:#94a3b8">Carregando…</div>';
 
   const ano = inicio.slice(0, 4);
+  const hojeStr = new Date().toISOString().split('T')[0];
 
-  const [ents, vends, mats, equipamentos, colaboradores, avaliacoes, ocorrencias, producoes, metas, vendsAno, cargosAll] = await Promise.all([
+  const [ents, vends, mats, equipamentos, colaboradores, avaliacoes, ocorrencias, producoes, metas, vendsAno, cargosAll, presencaHoje] = await Promise.all([
     fetchAll('entradas', 'peso_liquido, peso_liquido_descontos, tipo_movimentacao, tipo_material, data', [['gte','data',inicio],['lte','data',fim]]),
     fetchAll('vendas', 'peso_kg, valor_total, data, clientes(nome)', [['gte','data',inicio],['lte','data',fim]]),
     fetchAll('materiais', 'nome, estoque_kg, valor_unitario, no_estoque', [['eq','no_estoque',true]]),
@@ -234,6 +235,7 @@ async function carregar() {
     fetchAll('metas', 'periodo, valor_meta', [['eq','indicador','faturamento'],['gte','periodo',`${ano}-01`],['lte','periodo',`${ano}-12`]]),
     fetchAll('vendas', 'peso_kg, valor_total, data', [['gte','data',`${ano}-01-01`],['lte','data',`${ano}-12-31`]]),
     fetchAll('cargos', 'nome, vagas', []),
+    fetchAll('presenca_diaria', 'colaborador_id, presente', [['eq','data',hojeStr]]),
   ]);
 
   // Snapshot de referência — carregado separadamente para não travar se tabela não existir
@@ -360,6 +362,10 @@ async function carregar() {
   );
   const emFerias  = ativos.filter(c=>c.em_ferias).length;
   const ativosTrabalho = ativos.filter(c=>!c.em_ferias).length;
+  const presencaHojeMap = {};
+  presencaHoje.forEach(p => { presencaHojeMap[p.colaborador_id] = p; });
+  const trabalhandoHoje = ativos.filter(c => !c.em_ferias && presencaHojeMap[c.id]?.presente !== false).length;
+  const pctTrabalhandoHoje = ativos.length ? Math.round((trabalhandoHoje/ativos.length)*100) : 0;
   const faltas    = ocorrencias.filter(o=>o.conta_como_falta).length;
   const atestados = ocorrencias.filter(o=>o.tipo==='atestado').length;
   const demAno    = colaboradores.filter(c=>c.demissao && c.demissao.startsWith(ano)).length;
@@ -400,6 +406,7 @@ async function carregar() {
     colobsComNota: colobsComNota.map(c=>({ nome:c.nome, cargo:c.cargo, nota:c.nota, fimExp:c.fimExp })),
     notaMedia, turnover,
     ativos: ativos.length, emExp: emExp.length,
+    trabalhandoHoje, pctTrabalhandoHoje,
     vagasMap: Object.fromEntries(
       Object.entries((() => {
         const vm = {};
@@ -970,6 +977,7 @@ async function carregar() {
           <div style="margin-top:5px;display:flex;flex-direction:column;gap:2px">
             <span style="font-size:11px;color:#16a34a;font-weight:600">✔ ${ativosTrabalho} em atividade</span>
             <span style="font-size:11px;color:#2563eb;font-weight:600">☀ ${emFerias} em férias</span>
+            <span style="font-size:11px;color:#0d9488;font-weight:600">📅 ${trabalhandoHoje} trabalhando hoje (${pctTrabalhandoHoje}%)</span>
           </div>
         </div>
         <div class="rel-kpi">
