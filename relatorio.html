@@ -387,7 +387,7 @@ async function carregar() {
     const hoje = new Date().toISOString().slice(0,10);
     const exp1 = c.fim_experiencia_1 && hoje <= c.fim_experiencia_1 ? c.fim_experiencia_1 : null;
     const exp2 = c.fim_experiencia_2 && hoje <= c.fim_experiencia_2 ? c.fim_experiencia_2 : null;
-    const fimExp = exp2 || exp1;
+    const fimExp = exp1 || exp2;
     return { nome: c.nome, cargo: c.cargos?.nome || '—', fimExp, nota };
   }).sort((a,b)=>(b.nota??-1)-(a.nota??-1));
 
