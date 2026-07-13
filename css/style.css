@@ -667,7 +667,7 @@ fieldset.nf-checklist-fieldset { border: none; padding: 0; margin: 0; }
 fieldset.nf-checklist-fieldset:disabled .nf-check-label { cursor: default; opacity: .7; }
 
 .nf-dot {
-  display: inline-block; width: 8px; height: 8px; border-radius: 50%;
+  display: inline-block; width: 12px; height: 12px; border-radius: 50%;
   margin-right: 8px; flex-shrink: 0; vertical-align: middle;
 }
 .nf-dot-red   { background: var(--danger); }
