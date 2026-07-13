@@ -142,8 +142,11 @@ async function init() {
   fornData = forn || [];
   atualizarListasFornecedor();
 
-  const statusOpts = STEPS.map(s => `<option value="${s.id}">${s.label}</option>`).join('') + '<option value="cancelado">Cancelado</option>';
-  document.getElementById('f-status').innerHTML = '<option value="">Todas</option>' + statusOpts;
+  document.getElementById('f-status').innerHTML = `
+    <option value="">Todas</option>
+    <option value="processo">Em Processo</option>
+    <option value="concluido">Concluído</option>
+  `;
 
   const isAdmin = perfil?.role === 'admin';
   document.getElementById('btn-novo').style.display = isAdmin ? '' : 'none';
@@ -182,12 +185,8 @@ async function carregarPedidos() {
 
   const { data } = await q;
   let rows = data || [];
-  if (status === 'cancelado') {
-    rows = rows.filter(r => r.cancelado);
-  } else if (status) {
-    const stepLabel = STEPS.find(s => s.id === status)?.label;
-    rows = rows.filter(r => !r.cancelado && situacaoAtual(r).label === stepLabel);
-  }
+  if (status === 'processo')       rows = rows.filter(r => !situacaoAtual(r).completo);
+  else if (status === 'concluido') rows = rows.filter(r => situacaoAtual(r).completo);
 
   pedidosData = rows;
   renderTabela();
