@@ -11,21 +11,21 @@
   <div id="sidebar-root"></div>
   <div class="main-content">
     <div class="page-header">
-      <div><h2>Notas Fiscais</h2><p>Acompanhamento do pedido de compra até o envio ao financeiro</p></div>
-      <button class="btn btn-primary" id="btn-novo">+ Novo Pedido de Compra</button>
+      <div><h2>Notas Fiscais</h2><p>Acompanhamento do pedido de compra e da nota fiscal, em qualquer ordem</p></div>
+      <button class="btn btn-primary" id="btn-novo">+ Novo Registro</button>
     </div>
     <div class="page-body">
       <!-- KPIs -->
       <div class="kpi-grid" style="grid-template-columns:repeat(4,1fr)">
         <div class="kpi-card">
-          <div class="kpi-label">Pedidos em Aberto</div>
+          <div class="kpi-label">Registros em Aberto</div>
           <div class="kpi-value" id="kpi-aberto">—</div>
           <div class="kpi-sub" id="kpi-aberto-sub"></div>
         </div>
         <div class="kpi-card">
-          <div class="kpi-label">Aguardando Fornecedor</div>
+          <div class="kpi-label">Aguardando NF do Fornecedor</div>
           <div class="kpi-value" id="kpi-forn">—</div>
-          <div class="kpi-sub">Enviado / NF emitida</div>
+          <div class="kpi-sub">Enviado, sem NF recebida</div>
         </div>
         <div class="kpi-card">
           <div class="kpi-label">Aguardando Lançamento</div>
@@ -42,7 +42,7 @@
       <div class="card mb-16" style="padding:16px">
         <div class="filters-row">
           <div class="form-group"><label>Fornecedor</label><select id="f-fornecedor"><option value="">Todos</option></select></div>
-          <div class="form-group"><label>Status</label><select id="f-status"><option value="">Todos</option></select></div>
+          <div class="form-group"><label>Situação</label><select id="f-status"><option value="">Todas</option></select></div>
           <div class="form-group"><label>Buscar (Nº Pedido / Nº NF)</label><input type="text" id="f-busca" placeholder="Ex: 1234" /></div>
           <div class="form-group" style="justify-content:flex-end"><label>&nbsp;</label><button class="btn btn-primary" id="btn-filtrar">Filtrar</button></div>
         </div>
@@ -51,13 +51,13 @@
       <!-- Tabela -->
       <div class="table-card">
         <div class="table-card-header">
-          <h3>Pedidos de Compra</h3>
+          <h3>Registros</h3>
           <span id="pedidos-count" class="text-muted" style="font-size:12px"></span>
         </div>
         <div class="table-scroll">
           <table>
             <thead>
-              <tr><th>Nº Pedido</th><th>Fornecedor</th><th>Descrição</th><th class="text-right">Valor</th><th>Nº NF</th><th>Status</th><th>Atualizado</th><th>Ações</th></tr>
+              <tr><th>Nº Pedido</th><th>Fornecedor</th><th>Descrição</th><th class="text-right">Valor</th><th>Nº NF</th><th>Situação</th><th>Atualizado</th><th>Ações</th></tr>
             </thead>
             <tbody id="tb-pedidos"></tbody>
           </table>
@@ -67,63 +67,43 @@
   </div>
 </div>
 
-<!-- Modal: Novo Pedido de Compra -->
-<div class="modal-backdrop" id="modal-pedido">
-  <div class="modal">
+<!-- Modal: Novo/Editar Registro -->
+<div class="modal-backdrop" id="modal-registro">
+  <div class="modal" style="max-width:640px">
     <div class="modal-header">
-      <h3>Novo Pedido de Compra</h3>
-      <button class="modal-close" data-close="modal-pedido">✕</button>
+      <h3 id="modal-registro-title">Novo Registro</h3>
+      <button class="modal-close" data-close="modal-registro">✕</button>
     </div>
     <div class="modal-body">
-      <form id="form-pedido">
-        <div class="form-grid">
-          <div class="form-group"><label>Nº do Pedido *</label><input type="text" name="numero_pedido" required /></div>
-          <div class="form-group"><label>Fornecedor *</label><select name="fornecedor_id" required><option value="">Selecione…</option></select></div>
-          <div class="form-group"><label>Data do Pedido *</label><input type="date" name="data_pedido" required /></div>
-          <div class="form-group"><label>Valor (R$)</label><input type="number" name="valor" min="0" step="0.01" /></div>
-          <div class="form-group full"><label>Descrição / Itens</label><textarea name="descricao" placeholder="O que está sendo comprado…"></textarea></div>
+      <fieldset id="registro-fieldset" style="border:none;padding:0;margin:0">
+        <div class="form-grid mb-16">
+          <div class="form-group full">
+            <label>Fornecedor *</label>
+            <input type="text" id="inp-fornecedor" list="dl-fornecedores" autocomplete="off" placeholder="Digite ou selecione um fornecedor…" />
+            <datalist id="dl-fornecedores"></datalist>
+          </div>
+          <div class="form-group"><label>Nº do Pedido</label><input type="text" id="inp-numero-pedido" placeholder="Se ainda não existir, deixe em branco" /></div>
+          <div class="form-group"><label>Nº da Nota Fiscal</label><input type="text" id="inp-numero-nf" placeholder="Se ainda não existir, deixe em branco" /></div>
+          <div class="form-group"><label>Valor (R$)</label><input type="number" id="inp-valor" min="0" step="0.01" /></div>
+          <div class="form-group full"><label>Descrição / Itens</label><textarea id="inp-descricao" placeholder="O que está sendo comprado…"></textarea></div>
         </div>
-      </form>
-    </div>
-    <div class="modal-footer">
-      <button class="btn btn-outline" data-close="modal-pedido">Cancelar</button>
-      <button class="btn btn-primary" id="btn-salvar-pedido">Salvar</button>
-    </div>
-  </div>
-</div>
 
-<!-- Modal: Detalhe / Avançar Etapa -->
-<div class="modal-backdrop" id="modal-detalhe">
-  <div class="modal">
-    <div class="modal-header">
-      <h3>Pedido <span id="det-pedido"></span></h3>
-      <button class="modal-close" data-close="modal-detalhe">✕</button>
-    </div>
-    <div class="modal-body">
-      <div class="form-grid mb-16">
-        <div class="form-group"><label>Fornecedor</label><div id="det-fornecedor" class="fw-600"></div></div>
-        <div class="form-group"><label>Valor</label><div id="det-valor" class="fw-600"></div></div>
-        <div class="form-group full"><label>Descrição</label><div id="det-descricao"></div></div>
-      </div>
+        <label class="mb-8" style="display:block">Etapas (marque as que já aconteceram, em qualquer ordem)</label>
+        <div class="nf-checklist" id="nf-checklist"></div>
 
-      <label class="mb-8" style="display:block">Fluxo do Pedido</label>
-      <div class="nf-stepper" id="nf-stepper"></div>
-
-      <div id="det-edit-fields">
-        <div class="form-grid">
-          <div class="form-group"><label>Nº da Nota Fiscal</label><input type="text" id="inp-numero-nf" /></div>
-          <div class="form-group full"><label>Observação</label><textarea id="inp-observacao" placeholder="Ex: arquivo salvo na pasta Financeiro/NFs/2026…"></textarea></div>
+        <div class="form-grid mt-16">
+          <div class="form-group full"><label>Observação</label><textarea id="inp-observacao" placeholder="Ex: nota salva na pasta Financeiro/NFs/2026…"></textarea></div>
         </div>
-      </div>
+      </fieldset>
     </div>
     <div class="modal-footer" style="justify-content:space-between">
       <div>
-        <button class="btn btn-outline" id="btn-cancelar-pedido" style="display:none">Cancelar Pedido</button>
-        <button class="btn btn-outline" id="btn-reabrir" style="display:none">Reabrir Pedido</button>
+        <button class="btn btn-outline" id="btn-cancelar-registro" style="display:none">Marcar como Cancelado</button>
+        <button class="btn btn-outline" id="btn-reabrir" style="display:none">Reabrir Registro</button>
       </div>
       <div style="display:flex;gap:10px">
-        <button class="btn btn-outline" id="btn-salvar-detalhe">Salvar</button>
-        <button class="btn btn-primary" id="btn-avancar" style="display:none"></button>
+        <button class="btn btn-outline" data-close="modal-registro">Fechar</button>
+        <button class="btn btn-primary" id="btn-salvar-registro">Salvar</button>
       </div>
     </div>
   </div>
@@ -136,25 +116,35 @@ import { initPage, supabase, moeda, dataBR, toast, abrirModal, fecharModal } fro
 await initPage();
 
 const STEPS = [
-  { id: 'pedido_criado',      label: 'Pedido Criado',         date: 'data_pedido' },
-  { id: 'aprovado',           label: 'Aprovado',              date: 'data_aprovacao' },
-  { id: 'enviado_fornecedor', label: 'Enviado ao Fornecedor', date: 'data_envio_fornecedor' },
-  { id: 'nf_emitida',         label: 'NF Emitida',            date: 'data_nf_emitida' },
-  { id: 'nf_recebida',        label: 'NF Recebida',           date: 'data_nf_recebida' },
-  { id: 'lancada_sistema',    label: 'Lançada no Sistema',    date: 'data_lancamento' },
-  { id: 'arquivada',          label: 'Arquivada',             date: 'data_arquivamento' },
-  { id: 'enviada_financeiro', label: 'Enviada ao Financeiro', date: 'data_envio_financeiro' },
+  { id: 'pedido_criado',      label: 'Pedido de Compra Criado', date: 'data_pedido' },
+  { id: 'aprovado',           label: 'Aprovado no Sistema',      date: 'data_aprovacao' },
+  { id: 'enviado_fornecedor', label: 'Enviado ao Fornecedor',    date: 'data_envio_fornecedor' },
+  { id: 'nf_emitida',         label: 'NF Emitida pelo Fornecedor', date: 'data_nf_emitida' },
+  { id: 'nf_recebida',        label: 'NF Recebida por Nós',      date: 'data_nf_recebida' },
+  { id: 'lancada_sistema',    label: 'Entrada da NF Lançada no Sistema', date: 'data_lancamento' },
+  { id: 'arquivada',          label: 'Nota Salva na Pasta',      date: 'data_arquivamento' },
+  { id: 'enviada_financeiro', label: 'Enviada ao Financeiro',    date: 'data_envio_financeiro' },
 ];
 const BADGE = {
   pedido_criado: 'gray', aprovado: 'blue', enviado_fornecedor: 'purple',
   nf_emitida: 'yellow', nf_recebida: 'teal', lancada_sistema: 'orange',
-  arquivada: 'indigo', enviada_financeiro: 'green', cancelado: 'red',
+  arquivada: 'indigo', enviada_financeiro: 'green', cancelado: 'red', novo: 'gray',
 };
 
-let perfil, pedidosData = [], pedidoAtual = null;
+let perfil, fornData = [], pedidosData = [], registroAtual = null;
 
 function hojeISO() { return new Date().toISOString().split('T')[0]; }
 function soData(v) { return v ? v.split('T')[0] : ''; }
+
+/* Situação exibida = etapa mais avançada já marcada, na ordem do pipeline.
+   Funciona mesmo quando as etapas acontecem fora de ordem (ex: NF antes do pedido). */
+function situacaoAtual(r) {
+  if (r.cancelado) return { label: 'Cancelado', cor: 'red' };
+  for (let i = STEPS.length - 1; i >= 0; i--) {
+    if (r[STEPS[i].date]) return { label: STEPS[i].label, cor: BADGE[STEPS[i].id] };
+  }
+  return { label: 'Novo', cor: 'gray' };
+}
 
 async function init() {
   const { data: { user } } = await supabase.auth.getUser();
@@ -162,24 +152,46 @@ async function init() {
   perfil = p;
 
   const { data: forn } = await supabase.from('fornecedores').select('id, nome').eq('ativo', true).order('nome');
-  const opts = (forn || []).map(f => `<option value="${f.id}">${f.nome}</option>`).join('');
-  document.querySelector('#form-pedido [name="fornecedor_id"]').innerHTML = '<option value="">Selecione…</option>' + opts;
-  document.getElementById('f-fornecedor').innerHTML = '<option value="">Todos</option>' + opts;
+  fornData = forn || [];
+  atualizarListasFornecedor();
 
   const statusOpts = STEPS.map(s => `<option value="${s.id}">${s.label}</option>`).join('') + '<option value="cancelado">Cancelado</option>';
-  document.getElementById('f-status').innerHTML = '<option value="">Todos</option>' + statusOpts;
+  document.getElementById('f-status').innerHTML = '<option value="">Todas</option>' + statusOpts;
+
+  const isAdmin = perfil?.role === 'admin';
+  document.getElementById('btn-novo').style.display = isAdmin ? '' : 'none';
 
   await Promise.all([carregarKPIs(), carregarPedidos()]);
 }
 
+function atualizarListasFornecedor() {
+  document.getElementById('dl-fornecedores').innerHTML = fornData.map(f => `<option value="${f.nome}"></option>`).join('');
+  document.getElementById('f-fornecedor').innerHTML = '<option value="">Todos</option>' + fornData.map(f => `<option value="${f.id}">${f.nome}</option>`).join('');
+}
+
+/* Encontra o fornecedor pelo nome digitado (sem diferenciar maiúsculas/acentos exatos);
+   se não existir, cria um novo cadastro automaticamente. */
+async function resolverFornecedor(nome) {
+  const nomeNorm = nome.trim();
+  const existente = fornData.find(f => f.nome.trim().toLowerCase() === nomeNorm.toLowerCase());
+  if (existente) return existente.id;
+
+  const { data, error } = await supabase.from('fornecedores').insert({ nome: nomeNorm }).select('id, nome').single();
+  if (error) { toast('Erro ao criar fornecedor: ' + error.message, 'error'); throw error; }
+  fornData.push(data);
+  atualizarListasFornecedor();
+  return data.id;
+}
+
 async function carregarKPIs() {
-  const { data } = await supabase.from('notas_fiscais_pedidos').select('status, valor, data_envio_financeiro');
+  const { data } = await supabase.from('notas_fiscais_pedidos')
+    .select('cancelado, valor, data_envio_fornecedor, data_nf_recebida, data_lancamento, data_envio_financeiro');
   const rows = data || [];
-  const emAberto     = rows.filter(r => !['enviada_financeiro', 'cancelado'].includes(r.status));
-  const aguardForn   = rows.filter(r => ['enviado_fornecedor', 'nf_emitida'].includes(r.status));
-  const aguardLanc   = rows.filter(r => r.status === 'nf_recebida');
-  const ym           = hojeISO().slice(0, 7);
-  const concluidasMes = rows.filter(r => r.status === 'enviada_financeiro' && r.data_envio_financeiro?.startsWith(ym));
+  const emAberto      = rows.filter(r => !r.cancelado && !r.data_envio_financeiro);
+  const aguardForn    = rows.filter(r => !r.cancelado && r.data_envio_fornecedor && !r.data_nf_recebida);
+  const aguardLanc    = rows.filter(r => !r.cancelado && r.data_nf_recebida && !r.data_lancamento);
+  const ym            = hojeISO().slice(0, 7);
+  const concluidasMes = rows.filter(r => r.data_envio_financeiro?.startsWith(ym));
 
   document.getElementById('kpi-aberto').textContent = emAberto.length;
   document.getElementById('kpi-aberto-sub').textContent = moeda(emAberto.reduce((s, r) => s + (r.valor || 0), 0));
@@ -189,186 +201,182 @@ async function carregarKPIs() {
 }
 
 async function carregarPedidos() {
-  let q = supabase.from('notas_fiscais_pedidos').select('*, fornecedores(nome)').order('criado_em', { ascending: false });
+  let q = supabase.from('notas_fiscais_pedidos').select('*, fornecedores(nome)').order('atualizado_em', { ascending: false });
 
   const forn   = document.getElementById('f-fornecedor').value;
   const status = document.getElementById('f-status').value;
   const busca  = document.getElementById('f-busca').value.trim();
 
   if (forn)   q = q.eq('fornecedor_id', forn);
-  if (status) q = q.eq('status', status);
   if (busca)  q = q.or(`numero_pedido.ilike.%${busca}%,numero_nf.ilike.%${busca}%`);
 
   const { data } = await q;
-  pedidosData = data || [];
+  let rows = data || [];
+  if (status === 'cancelado') {
+    rows = rows.filter(r => r.cancelado);
+  } else if (status) {
+    const stepLabel = STEPS.find(s => s.id === status)?.label;
+    rows = rows.filter(r => !r.cancelado && situacaoAtual(r).label === stepLabel);
+  }
+
+  pedidosData = rows;
   renderTabela();
 }
 
 function renderTabela() {
   const isAdmin = perfil?.role === 'admin';
-  document.getElementById('pedidos-count').textContent = `${pedidosData.length} pedidos`;
+  document.getElementById('pedidos-count').textContent = `${pedidosData.length} registros`;
   const tb = document.getElementById('tb-pedidos');
 
   if (!pedidosData.length) {
-    tb.innerHTML = '<tr><td colspan="8" class="table-empty">Nenhum pedido encontrado</td></tr>';
+    tb.innerHTML = '<tr><td colspan="8" class="table-empty">Nenhum registro encontrado</td></tr>';
     return;
   }
 
   tb.innerHTML = pedidosData.map(r => {
-    const step  = STEPS.find(s => s.id === r.status);
-    const label = step ? step.label : 'Cancelado';
-    const cor   = BADGE[r.status] || 'gray';
+    const sit = situacaoAtual(r);
     return `
       <tr>
-        <td class="fw-600">${r.numero_pedido}</td>
+        <td class="fw-600">${r.numero_pedido || '—'}</td>
         <td>${r.fornecedores?.nome || '—'}</td>
         <td>${r.descricao || '—'}</td>
         <td class="text-right">${r.valor != null ? moeda(r.valor) : '—'}</td>
         <td>${r.numero_nf || '—'}</td>
-        <td><span class="badge badge-${cor}">${label}</span></td>
+        <td><span class="badge badge-${sit.cor}">${sit.label}</span></td>
         <td>${dataBR(soData(r.atualizado_em || r.criado_em))}</td>
         <td>
-          <button class="btn-icon" onclick="abrirDetalhe('${r.id}')">👁️</button>
+          <button class="btn-icon" onclick="abrirRegistro('${r.id}')">${isAdmin ? '✏️' : '👁️'}</button>
           ${isAdmin ? `<button class="btn-icon danger" onclick="excluirPedido('${r.id}')">🗑️</button>` : ''}
         </td>
       </tr>`;
   }).join('');
 }
 
-function renderStepper(r) {
-  const curIdx = STEPS.findIndex(s => s.id === r.status);
-  const html = STEPS.map((s, i) => {
-    let cls = 'nf-step';
-    if (r.status !== 'cancelado') {
-      if (i < curIdx) cls += ' done';
-      else if (i === curIdx) cls += ' current';
-    } else if (i <= curIdx) {
-      cls += ' done';
-    }
-    const dv = r[s.date];
-    const sub = dv ? dataBR(dv) : (i === curIdx && r.status !== 'cancelado' ? 'Em andamento' : '—');
-    return `<div class="${cls}">
-      <div class="nf-step-dot">${(i < curIdx || (r.status === 'cancelado' && i <= curIdx)) ? '✓' : i + 1}</div>
-      <div><div class="nf-step-label">${s.label}</div><div class="nf-step-date">${sub}</div></div>
-    </div>`;
+function buildChecklist(record) {
+  const el = document.getElementById('nf-checklist');
+  el.innerHTML = STEPS.map(s => {
+    const val = record ? record[s.date] : null;
+    return `
+      <div class="nf-check-row">
+        <label class="nf-check-label">
+          <input type="checkbox" class="nf-check-cb" data-step="${s.date}" ${val ? 'checked' : ''} />
+          ${s.label}
+        </label>
+        <input type="date" class="nf-check-date" data-step-input="${s.date}" value="${val || ''}" ${val ? '' : 'disabled'} />
+      </div>`;
   }).join('');
 
-  const canceladoHtml = r.status === 'cancelado'
-    ? `<div class="nf-step cancel"><div class="nf-step-dot">✕</div><div><div class="nf-step-label">Cancelado</div><div class="nf-step-date">${dataBR(soData(r.atualizado_em))}</div></div></div>`
-    : '';
-
-  document.getElementById('nf-stepper').innerHTML = html + canceladoHtml;
+  el.querySelectorAll('.nf-check-cb').forEach(cb => {
+    cb.addEventListener('change', () => {
+      const dateInput = el.querySelector(`[data-step-input="${cb.dataset.step}"]`);
+      if (cb.checked) {
+        dateInput.disabled = false;
+        if (!dateInput.value) dateInput.value = hojeISO();
+      } else {
+        dateInput.disabled = true;
+        dateInput.value = '';
+      }
+    });
+  });
 }
 
-window.abrirDetalhe = id => {
+function coletarChecklist() {
+  const el = document.getElementById('nf-checklist');
+  const out = {};
+  STEPS.forEach(s => {
+    const cb = el.querySelector(`[data-step="${s.date}"]`);
+    const dateInput = el.querySelector(`[data-step-input="${s.date}"]`);
+    out[s.date] = cb.checked ? (dateInput.value || hojeISO()) : null;
+  });
+  return out;
+}
+
+window.abrirRegistro = id => {
   const r = pedidosData.find(p => p.id === id);
   if (!r) return;
-  pedidoAtual = r;
-
-  document.getElementById('det-pedido').textContent = r.numero_pedido;
-  document.getElementById('det-fornecedor').textContent = r.fornecedores?.nome || '—';
-  document.getElementById('det-descricao').textContent = r.descricao || '—';
-  document.getElementById('det-valor').textContent = r.valor != null ? moeda(r.valor) : '—';
-  document.getElementById('inp-numero-nf').value = r.numero_nf || '';
-  document.getElementById('inp-observacao').value = r.observacao || '';
-
-  renderStepper(r);
-
-  const isAdmin = perfil?.role === 'admin';
-  const finalizado = ['enviada_financeiro', 'cancelado'].includes(r.status);
-  document.getElementById('det-edit-fields').style.display = isAdmin ? '' : 'none';
-  document.getElementById('btn-salvar-detalhe').style.display = isAdmin ? '' : 'none';
-  document.getElementById('btn-cancelar-pedido').style.display = (isAdmin && !finalizado) ? '' : 'none';
-  document.getElementById('btn-reabrir').style.display = (isAdmin && r.status === 'cancelado') ? '' : 'none';
-
-  const next = STEPS[STEPS.findIndex(s => s.id === r.status) + 1];
-  const btnAvancar = document.getElementById('btn-avancar');
-  if (isAdmin && next) {
-    btnAvancar.style.display = '';
-    btnAvancar.textContent = `Avançar → ${next.label}`;
-  } else {
-    btnAvancar.style.display = 'none';
-  }
-
-  abrirModal('modal-detalhe');
+  abrirModalRegistro(r);
 };
 
-document.getElementById('btn-salvar-detalhe').addEventListener('click', async () => {
+function abrirModalRegistro(record) {
+  registroAtual = record || null;
+  const isAdmin = perfil?.role === 'admin';
+
+  document.getElementById('modal-registro-title').textContent = record
+    ? `Registro — ${record.numero_pedido || record.numero_nf || record.fornecedores?.nome || ''}`
+    : 'Novo Registro';
+
+  document.getElementById('inp-fornecedor').value    = record?.fornecedores?.nome || '';
+  document.getElementById('inp-numero-pedido').value = record?.numero_pedido || '';
+  document.getElementById('inp-numero-nf').value      = record?.numero_nf || '';
+  document.getElementById('inp-valor').value          = record?.valor ?? '';
+  document.getElementById('inp-descricao').value      = record?.descricao || '';
+  document.getElementById('inp-observacao').value     = record?.observacao || '';
+
+  buildChecklist(record);
+
+  document.getElementById('registro-fieldset').disabled = !isAdmin;
+  document.getElementById('btn-salvar-registro').style.display = isAdmin ? '' : 'none';
+  document.getElementById('btn-cancelar-registro').style.display = (isAdmin && record && !record.cancelado) ? '' : 'none';
+  document.getElementById('btn-reabrir').style.display = (isAdmin && record?.cancelado) ? '' : 'none';
+
+  abrirModal('modal-registro');
+}
+
+document.getElementById('btn-novo').addEventListener('click', () => abrirModalRegistro(null));
+
+document.getElementById('btn-salvar-registro').addEventListener('click', async () => {
+  const nomeForn = document.getElementById('inp-fornecedor').value.trim();
+  if (!nomeForn) { toast('Informe o fornecedor', 'error'); return; }
+
+  let fornecedor_id;
+  try { fornecedor_id = await resolverFornecedor(nomeForn); }
+  catch { return; }
+
   const payload = {
-    numero_nf:  document.getElementById('inp-numero-nf').value.trim() || null,
-    observacao: document.getElementById('inp-observacao').value.trim() || null,
+    fornecedor_id,
+    numero_pedido: document.getElementById('inp-numero-pedido').value.trim() || null,
+    numero_nf:     document.getElementById('inp-numero-nf').value.trim() || null,
+    valor:         document.getElementById('inp-valor').value ? parseFloat(document.getElementById('inp-valor').value) : null,
+    descricao:     document.getElementById('inp-descricao').value.trim() || null,
+    observacao:    document.getElementById('inp-observacao').value.trim() || null,
+    ...coletarChecklist(),
     atualizado_em: new Date().toISOString(),
   };
-  await supabase.from('notas_fiscais_pedidos').update(payload).eq('id', pedidoAtual.id);
-  toast('Dados atualizados!');
-  fecharModal('modal-detalhe');
+
+  if (registroAtual) {
+    await supabase.from('notas_fiscais_pedidos').update(payload).eq('id', registroAtual.id);
+    toast('Registro atualizado!');
+  } else {
+    const { data: { user } } = await supabase.auth.getUser();
+    payload.criado_por = user.id;
+    await supabase.from('notas_fiscais_pedidos').insert(payload);
+    toast('Registro criado!');
+  }
+  fecharModal('modal-registro');
   await Promise.all([carregarKPIs(), carregarPedidos()]);
 });
 
-document.getElementById('btn-avancar').addEventListener('click', async () => {
-  const idx  = STEPS.findIndex(s => s.id === pedidoAtual.status);
-  const next = STEPS[idx + 1];
-  if (!next) return;
-  const payload = {
-    status: next.id,
-    [next.date]: hojeISO(),
-    numero_nf:  document.getElementById('inp-numero-nf').value.trim() || null,
-    observacao: document.getElementById('inp-observacao').value.trim() || null,
-    atualizado_em: new Date().toISOString(),
-  };
-  await supabase.from('notas_fiscais_pedidos').update(payload).eq('id', pedidoAtual.id);
-  toast(`Etapa atualizada: ${next.label}`);
-  fecharModal('modal-detalhe');
-  await Promise.all([carregarKPIs(), carregarPedidos()]);
-});
-
-document.getElementById('btn-cancelar-pedido').addEventListener('click', async () => {
-  if (!confirm('Cancelar este pedido de compra?')) return;
-  await supabase.from('notas_fiscais_pedidos').update({ status: 'cancelado', atualizado_em: new Date().toISOString() }).eq('id', pedidoAtual.id);
-  toast('Pedido cancelado.', 'info');
-  fecharModal('modal-detalhe');
+document.getElementById('btn-cancelar-registro').addEventListener('click', async () => {
+  if (!confirm('Marcar este registro como cancelado?')) return;
+  await supabase.from('notas_fiscais_pedidos').update({ cancelado: true, atualizado_em: new Date().toISOString() }).eq('id', registroAtual.id);
+  toast('Registro cancelado.', 'info');
+  fecharModal('modal-registro');
   await Promise.all([carregarKPIs(), carregarPedidos()]);
 });
 
 document.getElementById('btn-reabrir').addEventListener('click', async () => {
-  await supabase.from('notas_fiscais_pedidos').update({ status: 'pedido_criado', atualizado_em: new Date().toISOString() }).eq('id', pedidoAtual.id);
-  toast('Pedido reaberto.');
-  fecharModal('modal-detalhe');
+  await supabase.from('notas_fiscais_pedidos').update({ cancelado: false, atualizado_em: new Date().toISOString() }).eq('id', registroAtual.id);
+  toast('Registro reaberto.');
+  fecharModal('modal-registro');
   await Promise.all([carregarKPIs(), carregarPedidos()]);
 });
 
 window.excluirPedido = async id => {
-  if (!confirm('Excluir este pedido de compra?')) return;
+  if (!confirm('Excluir este registro?')) return;
   await supabase.from('notas_fiscais_pedidos').delete().eq('id', id);
-  toast('Pedido excluído!');
+  toast('Registro excluído!');
   await Promise.all([carregarKPIs(), carregarPedidos()]);
 };
-
-/* ── Novo Pedido ── */
-document.getElementById('btn-novo').addEventListener('click', () => {
-  document.getElementById('form-pedido').reset();
-  document.querySelector('#form-pedido [name="data_pedido"]').value = hojeISO();
-  abrirModal('modal-pedido');
-});
-
-document.getElementById('btn-salvar-pedido').addEventListener('click', async () => {
-  const f = document.getElementById('form-pedido');
-  if (!f.checkValidity()) { f.reportValidity(); return; }
-  const fd = Object.fromEntries(new FormData(f));
-  const { data: { user } } = await supabase.auth.getUser();
-  const payload = {
-    numero_pedido: fd.numero_pedido.trim(),
-    fornecedor_id: fd.fornecedor_id,
-    descricao: fd.descricao?.trim() || null,
-    valor: fd.valor ? parseFloat(fd.valor) : null,
-    data_pedido: fd.data_pedido,
-    criado_por: user.id,
-  };
-  await supabase.from('notas_fiscais_pedidos').insert(payload);
-  toast('Pedido de compra registrado!');
-  fecharModal('modal-pedido');
-  await Promise.all([carregarKPIs(), carregarPedidos()]);
-});
 
 document.getElementById('btn-filtrar').addEventListener('click', carregarPedidos);
 document.querySelectorAll('[data-close]').forEach(btn => btn.addEventListener('click', () => fecharModal(btn.dataset.close)));
