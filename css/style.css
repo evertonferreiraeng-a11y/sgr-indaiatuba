@@ -325,6 +325,10 @@ tbody tr:hover { background: #f8fafc; }
 .badge-yellow { background: #fef9c3; color: #854d0e; }
 .badge-gray   { background: #f1f5f9; color: #475569; }
 .badge-blue   { background: #dbeafe; color: #1e40af; }
+.badge-purple { background: #f3e8ff; color: #6b21a8; }
+.badge-teal   { background: #ccfbf1; color: #0f766e; }
+.badge-orange { background: #ffedd5; color: #9a3412; }
+.badge-indigo { background: #e0e7ff; color: #3730a3; }
 
 /* ──────────────────────────────────────────
    BUTTONS
@@ -640,6 +644,33 @@ textarea { resize: vertical; min-height: 80px; }
 .rotina-ativa .sidebar-nav a.active { opacity: 1; }
 .rotina-ativa .page-header { top: 52px; }
 .rotina-ativa .main-content { padding-top: 52px; }
+
+/* ──────────────────────────────────────────
+   STEPPER (fluxo de etapas)
+────────────────────────────────────────── */
+.nf-stepper { display: flex; flex-direction: column; gap: 0; margin: 4px 0 20px; }
+.nf-step {
+  display: flex; align-items: flex-start; gap: 12px;
+  padding: 8px 0; position: relative;
+}
+.nf-step-dot {
+  width: 22px; height: 22px; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 11px; font-weight: 700; flex-shrink: 0;
+  background: #e2e8f0; color: #94a3b8;
+  border: 2px solid #e2e8f0;
+}
+.nf-step.done .nf-step-dot   { background: var(--success); color: #fff; border-color: var(--success); }
+.nf-step.current .nf-step-dot{ background: #fff; color: var(--primary); border-color: var(--primary); }
+.nf-step.cancel .nf-step-dot { background: var(--danger); color: #fff; border-color: var(--danger); }
+.nf-step:not(:last-child)::before {
+  content: ''; position: absolute; left: 10.5px; top: 30px; bottom: -8px;
+  width: 2px; background: #e2e8f0;
+}
+.nf-step.done:not(:last-child)::before { background: var(--success); }
+.nf-step-label { font-size: 13px; font-weight: 600; color: var(--text); }
+.nf-step.current .nf-step-label { color: var(--primary); }
+.nf-step-date { font-size: 11.5px; color: var(--text-muted); margin-top: 1px; }
 
 /* ──────────────────────────────────────────
    UTILS
