@@ -15,29 +15,6 @@
       <button class="btn btn-primary" id="btn-novo">+ Novo Registro</button>
     </div>
     <div class="page-body">
-      <!-- KPIs -->
-      <div class="kpi-grid" style="grid-template-columns:repeat(4,1fr)">
-        <div class="kpi-card">
-          <div class="kpi-label">Registros em Aberto</div>
-          <div class="kpi-value" id="kpi-aberto">—</div>
-          <div class="kpi-sub" id="kpi-aberto-sub"></div>
-        </div>
-        <div class="kpi-card">
-          <div class="kpi-label">Aguardando NF do Fornecedor</div>
-          <div class="kpi-value" id="kpi-forn">—</div>
-          <div class="kpi-sub">Enviado, sem NF recebida</div>
-        </div>
-        <div class="kpi-card">
-          <div class="kpi-label">Aguardando Lançamento</div>
-          <div class="kpi-value" id="kpi-lanc">—</div>
-          <div class="kpi-sub">NF recebida</div>
-        </div>
-        <div class="kpi-card">
-          <div class="kpi-label">Enviadas ao Financeiro (Mês)</div>
-          <div class="kpi-value text-green" id="kpi-concl">—</div>
-        </div>
-      </div>
-
       <!-- Filtros -->
       <div class="card mb-16" style="padding:16px">
         <div class="filters-row">
@@ -139,7 +116,7 @@ function soData(v) { return v ? v.split('T')[0] : ''; }
 /* Situação exibida = etapa mais avançada já marcada, na ordem do pipeline.
    Funciona mesmo quando as etapas acontecem fora de ordem (ex: NF antes do pedido). */
 function situacaoAtual(r) {
-  if (r.cancelado) return { label: 'Cancelado', cor: 'red', proxima: null };
+  if (r.cancelado) return { label: 'Cancelado', cor: 'red', proxima: null, completo: false };
 
   let idx = -1;
   for (let i = STEPS.length - 1; i >= 0; i--) {
@@ -152,6 +129,7 @@ function situacaoAtual(r) {
     label: atual ? atual.label : 'Novo',
     cor: atual ? BADGE[atual.id] : 'gray',
     proxima: proxima ? proxima.label : null,
+    completo: idx === STEPS.length - 1,
   };
 }
 
@@ -170,7 +148,7 @@ async function init() {
   const isAdmin = perfil?.role === 'admin';
   document.getElementById('btn-novo').style.display = isAdmin ? '' : 'none';
 
-  await Promise.all([carregarKPIs(), carregarPedidos()]);
+  await carregarPedidos();
 }
 
 function atualizarListasFornecedor() {
@@ -190,23 +168,6 @@ async function resolverFornecedor(nome) {
   fornData.push(data);
   atualizarListasFornecedor();
   return data.id;
-}
-
-async function carregarKPIs() {
-  const { data } = await supabase.from('notas_fiscais_pedidos')
-    .select('cancelado, valor, data_envio_fornecedor, data_nf_recebida, data_lancamento, data_envio_financeiro');
-  const rows = data || [];
-  const emAberto      = rows.filter(r => !r.cancelado && !r.data_envio_financeiro);
-  const aguardForn    = rows.filter(r => !r.cancelado && r.data_envio_fornecedor && !r.data_nf_recebida);
-  const aguardLanc    = rows.filter(r => !r.cancelado && r.data_nf_recebida && !r.data_lancamento);
-  const ym            = hojeISO().slice(0, 7);
-  const concluidasMes = rows.filter(r => r.data_envio_financeiro?.startsWith(ym));
-
-  document.getElementById('kpi-aberto').textContent = emAberto.length;
-  document.getElementById('kpi-aberto-sub').textContent = moeda(emAberto.reduce((s, r) => s + (r.valor || 0), 0));
-  document.getElementById('kpi-forn').textContent = aguardForn.length;
-  document.getElementById('kpi-lanc').textContent = aguardLanc.length;
-  document.getElementById('kpi-concl').textContent = concluidasMes.length;
 }
 
 async function carregarPedidos() {
@@ -246,7 +207,10 @@ function renderTabela() {
     const sit = situacaoAtual(r);
     return `
       <tr>
-        <td class="fw-600">${r.numero_pedido || '—'}</td>
+        <td class="fw-600">
+          <span class="nf-dot ${sit.completo ? 'nf-dot-green' : 'nf-dot-red'}" title="${sit.completo ? 'Concluído' : 'Pendente'}"></span>
+          ${r.numero_pedido || '—'}
+        </td>
         <td>${r.fornecedores?.nome || '—'}</td>
         <td>${r.descricao || '—'}</td>
         <td class="text-right">${r.valor != null ? moeda(r.valor) : '—'}</td>
@@ -369,7 +333,7 @@ document.getElementById('btn-salvar-registro').addEventListener('click', async (
     toast('Registro criado!');
   }
   fecharModal('modal-registro');
-  await Promise.all([carregarKPIs(), carregarPedidos()]);
+  await carregarPedidos();
 });
 
 document.getElementById('btn-cancelar-registro').addEventListener('click', async () => {
@@ -378,7 +342,7 @@ document.getElementById('btn-cancelar-registro').addEventListener('click', async
   if (error) { toast('Erro: ' + error.message, 'error'); return; }
   toast('Registro cancelado.', 'info');
   fecharModal('modal-registro');
-  await Promise.all([carregarKPIs(), carregarPedidos()]);
+  await carregarPedidos();
 });
 
 document.getElementById('btn-reabrir').addEventListener('click', async () => {
@@ -386,7 +350,7 @@ document.getElementById('btn-reabrir').addEventListener('click', async () => {
   if (error) { toast('Erro: ' + error.message, 'error'); return; }
   toast('Registro reaberto.');
   fecharModal('modal-registro');
-  await Promise.all([carregarKPIs(), carregarPedidos()]);
+  await carregarPedidos();
 });
 
 window.excluirPedido = async id => {
@@ -394,7 +358,7 @@ window.excluirPedido = async id => {
   const { error } = await supabase.from('notas_fiscais_pedidos').delete().eq('id', id);
   if (error) { toast('Erro ao excluir: ' + error.message, 'error'); return; }
   toast('Registro excluído!');
-  await Promise.all([carregarKPIs(), carregarPedidos()]);
+  await carregarPedidos();
 };
 
 document.getElementById('btn-filtrar').addEventListener('click', carregarPedidos);
