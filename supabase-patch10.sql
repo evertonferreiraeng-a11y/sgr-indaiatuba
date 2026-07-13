@@ -3,20 +3,24 @@
 -- Execute no SQL Editor do Supabase
 -- ============================================================
 
-CREATE TABLE IF NOT EXISTS public.notas_fiscais_pedidos (
+-- Recria do zero: a versão anterior desta tabela (com coluna "status" fixa
+-- e numero_pedido obrigatório) foi substituída por um modelo de checklist,
+-- onde cada etapa é uma data independente que pode ser marcada em qualquer
+-- ordem — necessário para o caso em que o fornecedor emite a nota antes de
+-- existir um pedido de compra no sistema.
+DROP TABLE IF EXISTS public.notas_fiscais_pedidos;
+
+CREATE TABLE public.notas_fiscais_pedidos (
   id                     UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  numero_pedido          TEXT NOT NULL,
+  numero_pedido          TEXT,
   fornecedor_id          UUID NOT NULL REFERENCES public.fornecedores(id),
   descricao              TEXT,
   valor                  NUMERIC,
   numero_nf              TEXT,
   observacao             TEXT,
-  status                 TEXT NOT NULL DEFAULT 'pedido_criado' CHECK (status IN (
-                           'pedido_criado', 'aprovado', 'enviado_fornecedor',
-                           'nf_emitida', 'nf_recebida', 'lancada_sistema',
-                           'arquivada', 'enviada_financeiro', 'cancelado'
-                         )),
-  data_pedido            DATE NOT NULL DEFAULT CURRENT_DATE,
+  cancelado              BOOLEAN NOT NULL DEFAULT FALSE,
+
+  data_pedido            DATE,
   data_aprovacao         DATE,
   data_envio_fornecedor  DATE,
   data_nf_emitida        DATE,
@@ -24,6 +28,7 @@ CREATE TABLE IF NOT EXISTS public.notas_fiscais_pedidos (
   data_lancamento        DATE,
   data_arquivamento      DATE,
   data_envio_financeiro  DATE,
+
   criado_por             UUID REFERENCES public.profiles(id),
   criado_em              TIMESTAMPTZ DEFAULT NOW(),
   atualizado_em          TIMESTAMPTZ DEFAULT NOW()
