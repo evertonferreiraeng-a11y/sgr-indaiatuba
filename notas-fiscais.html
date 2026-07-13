@@ -139,11 +139,20 @@ function soData(v) { return v ? v.split('T')[0] : ''; }
 /* Situação exibida = etapa mais avançada já marcada, na ordem do pipeline.
    Funciona mesmo quando as etapas acontecem fora de ordem (ex: NF antes do pedido). */
 function situacaoAtual(r) {
-  if (r.cancelado) return { label: 'Cancelado', cor: 'red' };
+  if (r.cancelado) return { label: 'Cancelado', cor: 'red', proxima: null };
+
+  let idx = -1;
   for (let i = STEPS.length - 1; i >= 0; i--) {
-    if (r[STEPS[i].date]) return { label: STEPS[i].label, cor: BADGE[STEPS[i].id] };
+    if (r[STEPS[i].date]) { idx = i; break; }
   }
-  return { label: 'Novo', cor: 'gray' };
+  const atual   = idx >= 0 ? STEPS[idx] : null;
+  const proxima = STEPS[idx + 1] || null;
+
+  return {
+    label: atual ? atual.label : 'Novo',
+    cor: atual ? BADGE[atual.id] : 'gray',
+    proxima: proxima ? proxima.label : null,
+  };
 }
 
 async function init() {
@@ -242,7 +251,12 @@ function renderTabela() {
         <td>${r.descricao || '—'}</td>
         <td class="text-right">${r.valor != null ? moeda(r.valor) : '—'}</td>
         <td>${r.numero_nf || '—'}</td>
-        <td><span class="badge badge-${sit.cor}">${sit.label}</span></td>
+        <td>
+          <span class="badge badge-${sit.cor}">${sit.label}</span>
+          ${sit.proxima
+            ? `<div class="text-muted" style="font-size:11px;margin-top:3px;white-space:nowrap">Pendente: ${sit.proxima}</div>`
+            : (!r.cancelado ? '<div class="text-green" style="font-size:11px;margin-top:3px">Concluído</div>' : '')}
+        </td>
         <td>${dataBR(soData(r.atualizado_em || r.criado_em))}</td>
         <td>
           <button class="btn-icon" onclick="abrirRegistro('${r.id}')">${isAdmin ? '✏️' : '👁️'}</button>
