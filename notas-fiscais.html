@@ -344,12 +344,14 @@ document.getElementById('btn-salvar-registro').addEventListener('click', async (
   };
 
   if (registroAtual) {
-    await supabase.from('notas_fiscais_pedidos').update(payload).eq('id', registroAtual.id);
+    const { error } = await supabase.from('notas_fiscais_pedidos').update(payload).eq('id', registroAtual.id);
+    if (error) { toast('Erro ao salvar: ' + error.message, 'error'); return; }
     toast('Registro atualizado!');
   } else {
     const { data: { user } } = await supabase.auth.getUser();
     payload.criado_por = user.id;
-    await supabase.from('notas_fiscais_pedidos').insert(payload);
+    const { error } = await supabase.from('notas_fiscais_pedidos').insert(payload);
+    if (error) { toast('Erro ao criar: ' + error.message, 'error'); return; }
     toast('Registro criado!');
   }
   fecharModal('modal-registro');
@@ -358,14 +360,16 @@ document.getElementById('btn-salvar-registro').addEventListener('click', async (
 
 document.getElementById('btn-cancelar-registro').addEventListener('click', async () => {
   if (!confirm('Marcar este registro como cancelado?')) return;
-  await supabase.from('notas_fiscais_pedidos').update({ cancelado: true, atualizado_em: new Date().toISOString() }).eq('id', registroAtual.id);
+  const { error } = await supabase.from('notas_fiscais_pedidos').update({ cancelado: true, atualizado_em: new Date().toISOString() }).eq('id', registroAtual.id);
+  if (error) { toast('Erro: ' + error.message, 'error'); return; }
   toast('Registro cancelado.', 'info');
   fecharModal('modal-registro');
   await Promise.all([carregarKPIs(), carregarPedidos()]);
 });
 
 document.getElementById('btn-reabrir').addEventListener('click', async () => {
-  await supabase.from('notas_fiscais_pedidos').update({ cancelado: false, atualizado_em: new Date().toISOString() }).eq('id', registroAtual.id);
+  const { error } = await supabase.from('notas_fiscais_pedidos').update({ cancelado: false, atualizado_em: new Date().toISOString() }).eq('id', registroAtual.id);
+  if (error) { toast('Erro: ' + error.message, 'error'); return; }
   toast('Registro reaberto.');
   fecharModal('modal-registro');
   await Promise.all([carregarKPIs(), carregarPedidos()]);
@@ -373,7 +377,8 @@ document.getElementById('btn-reabrir').addEventListener('click', async () => {
 
 window.excluirPedido = async id => {
   if (!confirm('Excluir este registro?')) return;
-  await supabase.from('notas_fiscais_pedidos').delete().eq('id', id);
+  const { error } = await supabase.from('notas_fiscais_pedidos').delete().eq('id', id);
+  if (error) { toast('Erro ao excluir: ' + error.message, 'error'); return; }
   toast('Registro excluído!');
   await Promise.all([carregarKPIs(), carregarPedidos()]);
 };
