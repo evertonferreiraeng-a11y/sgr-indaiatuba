@@ -4,7 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Notas Fiscais — SGR Indaiatuba</title>
-  <link rel="stylesheet" href="css/style.css?v=2" />
+  <link rel="stylesheet" href="css/style.css?v=3" />
 </head>
 <body>
 <div class="app-layout">
@@ -20,6 +20,7 @@
         <div class="filters-row">
           <div class="form-group"><label>Fornecedor</label><select id="f-fornecedor"><option value="">Todos</option></select></div>
           <div class="form-group"><label>Situação</label><select id="f-status"><option value="">Todas</option></select></div>
+          <div class="form-group"><label>Mês de Emissão da NF</label><input type="month" id="f-mes" /></div>
           <div class="form-group"><label>Buscar (Nº Pedido / Nº NF)</label><input type="text" id="f-busca" placeholder="Ex: 1234" /></div>
           <div class="form-group" style="justify-content:flex-end"><label>&nbsp;</label><button class="btn btn-primary" id="btn-filtrar">Filtrar</button></div>
         </div>
@@ -37,6 +38,13 @@
               <tr><th>Nº Pedido</th><th>Fornecedor</th><th>Descrição</th><th class="text-right">Valor</th><th>Nº NF</th><th>Situação</th><th>Atualizado</th><th>Ações</th></tr>
             </thead>
             <tbody id="tb-pedidos"></tbody>
+            <tfoot>
+              <tr>
+                <td colspan="3" class="text-right fw-600">Total</td>
+                <td class="text-right fw-600" id="td-total-valor">—</td>
+                <td colspan="4"></td>
+              </tr>
+            </tfoot>
           </table>
         </div>
       </div>
@@ -179,9 +187,11 @@ async function carregarPedidos() {
   const forn   = document.getElementById('f-fornecedor').value;
   const status = document.getElementById('f-status').value;
   const busca  = document.getElementById('f-busca').value.trim();
+  const mes    = document.getElementById('f-mes').value;
 
   if (forn)   q = q.eq('fornecedor_id', forn);
   if (busca)  q = q.or(`numero_pedido.ilike.%${busca}%,numero_nf.ilike.%${busca}%`);
+  if (mes)    q = q.gte('data_nf_emitida', `${mes}-01`).lte('data_nf_emitida', `${mes}-31`);
 
   const { data } = await q;
   let rows = data || [];
@@ -196,6 +206,9 @@ function renderTabela() {
   const isAdmin = perfil?.role === 'admin';
   document.getElementById('pedidos-count').textContent = `${pedidosData.length} registros`;
   const tb = document.getElementById('tb-pedidos');
+
+  const totalValor = pedidosData.reduce((s, r) => s + (r.valor != null ? Number(r.valor) : 0), 0);
+  document.getElementById('td-total-valor').textContent = moeda(totalValor);
 
   if (!pedidosData.length) {
     tb.innerHTML = '<tr><td colspan="8" class="table-empty">Nenhum registro encontrado</td></tr>';
@@ -213,7 +226,7 @@ function renderTabela() {
         <td>${r.fornecedores?.nome || '—'}</td>
         <td>${r.descricao || '—'}</td>
         <td class="text-right">${r.valor != null ? moeda(r.valor) : '—'}</td>
-        <td>${r.numero_nf || '—'}</td>
+        <td>${r.numero_nf || '—'}${r.data_nf_emitida ? ` <span class="text-muted" style="font-size:11px">(${dataBR(soData(r.data_nf_emitida))})</span>` : ''}</td>
         <td>
           <span class="badge badge-${sit.cor}">${sit.label}</span>
           ${sit.proxima
