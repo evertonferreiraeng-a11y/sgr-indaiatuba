@@ -192,7 +192,11 @@ async function carregarPedidos() {
 
   if (forn)   q = q.eq('fornecedor_id', forn);
   if (busca)  q = q.or(`numero_pedido.ilike.%${busca}%,numero_nf.ilike.%${busca}%`);
-  if (mes)    q = q.gte('data_nf_emitida', `${mes}-01`).lte('data_nf_emitida', `${mes}-31`);
+  if (mes) {
+    const [ano, mesNum] = mes.split('-').map(Number);
+    const proximoMes = mesNum === 12 ? `${ano + 1}-01-01` : `${ano}-${String(mesNum + 1).padStart(2, '0')}-01`;
+    q = q.gte('data_nf_emitida', `${mes}-01`).lt('data_nf_emitida', proximoMes);
+  }
 
   const { data } = await q;
   let rows = data || [];
