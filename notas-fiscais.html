@@ -69,6 +69,7 @@
           </div>
           <div class="form-group"><label>Nº do Pedido</label><input type="text" id="inp-numero-pedido" placeholder="Se ainda não existir, deixe em branco" /></div>
           <div class="form-group"><label>Nº da Nota Fiscal</label><input type="text" id="inp-numero-nf" placeholder="Se ainda não existir, deixe em branco" /></div>
+          <div class="form-group"><label>Data de Emissão da NF</label><input type="date" id="inp-data-emissao" /></div>
           <div class="form-group"><label>Valor (R$)</label><input type="number" id="inp-valor" min="0" step="0.01" /></div>
           <div class="form-group full"><label>Descrição / Itens</label><textarea id="inp-descricao" placeholder="O que está sendo comprado…"></textarea></div>
         </div>
@@ -244,7 +245,7 @@ function renderTabela() {
 
 function buildChecklist(record) {
   const el = document.getElementById('nf-checklist');
-  el.innerHTML = STEPS.map(s => {
+  el.innerHTML = STEPS.filter(s => s.date !== 'data_nf_emitida').map(s => {
     const val = record ? record[s.date] : null;
     return `
       <div class="nf-check-row">
@@ -272,8 +273,9 @@ function buildChecklist(record) {
 
 function coletarChecklist() {
   const el = document.getElementById('nf-checklist');
-  const out = {};
+  const out = { data_nf_emitida: document.getElementById('inp-data-emissao').value || null };
   STEPS.forEach(s => {
+    if (s.date === 'data_nf_emitida') return;
     const cb = el.querySelector(`[data-step="${s.date}"]`);
     const dateInput = el.querySelector(`[data-step-input="${s.date}"]`);
     out[s.date] = cb.checked ? (dateInput.value || hojeISO()) : null;
@@ -298,6 +300,7 @@ function abrirModalRegistro(record) {
   document.getElementById('inp-fornecedor').value    = record?.fornecedores?.nome || '';
   document.getElementById('inp-numero-pedido').value = record?.numero_pedido || '';
   document.getElementById('inp-numero-nf').value      = record?.numero_nf || '';
+  document.getElementById('inp-data-emissao').value   = soData(record?.data_nf_emitida);
   document.getElementById('inp-valor').value          = record?.valor ?? '';
   document.getElementById('inp-descricao').value      = record?.descricao || '';
   document.getElementById('inp-observacao').value     = record?.observacao || '';
