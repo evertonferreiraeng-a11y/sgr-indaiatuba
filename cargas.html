@@ -45,20 +45,32 @@
     .entity-card .ec-actions button:hover{border-color:var(--primary);background:var(--primary-bg)}
     .entity-card .ec-actions button.danger:hover{border-color:var(--danger);background:var(--danger-light)}
 
-    .destino-table-wrap{margin-bottom:32px}
-    .destino-table{border-collapse:collapse;width:100%;min-width:600px}
-    .destino-table th, .destino-table td{border:1px solid var(--border);padding:0;font-size:12.5px}
-    .destino-table th{background:var(--bg);color:var(--text-muted);font-weight:700;text-transform:uppercase;letter-spacing:.04em;font-size:10.5px;padding:9px 12px;text-align:left;white-space:nowrap}
-    .destino-table td.cli-nome{padding:9px 12px;font-weight:600;color:var(--text);white-space:nowrap;background:var(--card-bg);cursor:pointer}
+    .destino-table-wrap{margin-bottom:32px;background:var(--card-bg);border:1px solid var(--border);border-radius:var(--radius);box-shadow:var(--shadow-sm);overflow:hidden}
+    .destino-table{border-collapse:collapse;width:100%}
+    .destino-table th, .destino-table td{border-right:1px solid var(--border);border-bottom:1px solid var(--border);padding:0;font-size:12.5px}
+    .destino-table th:last-child, .destino-table td:last-child{border-right:none}
+    .destino-table tbody tr:last-child td{border-bottom:none}
+    .destino-table thead th{background:var(--bg);color:var(--text-muted);font-weight:700;text-transform:uppercase;letter-spacing:.05em;font-size:10px;padding:12px 14px;text-align:left;white-space:nowrap;border-bottom:1.5px solid var(--border)}
+    .destino-table th .th-row{display:flex;align-items:center;justify-content:space-between;gap:8px}
+    .destino-table th .th-remove{opacity:0;transition:.15s;border:none;background:transparent;color:var(--text-muted);cursor:pointer;font-size:12px;padding:2px 4px;border-radius:4px;line-height:1}
+    .destino-table th:hover .th-remove{opacity:.6}
+    .destino-table th .th-remove:hover{opacity:1!important;color:var(--danger);background:var(--danger-light)}
+    .destino-table th.col-add{width:1%;padding:8px}
+    .destino-table th.col-add button{border:1.5px dashed var(--border);background:transparent;color:var(--text-muted);border-radius:8px;width:30px;height:30px;font-size:16px;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:.15s}
+    .destino-table th.col-add button:hover{border-color:var(--primary);color:var(--primary);background:var(--primary-bg)}
+    .destino-table td.cli-nome{padding:11px 14px;font-weight:600;color:var(--text);white-space:nowrap;cursor:pointer;transition:.15s}
     .destino-table td.cli-nome:hover{color:var(--primary)}
-    .destino-table td.cli-nome .cli-arrow{color:var(--text-muted);font-size:12px;font-weight:400;margin-left:2px}
-    .destino-table td.destino-cell input{width:100%;border:none;padding:9px 12px;font-size:12.5px;background:transparent;color:var(--text);outline:none;min-width:160px}
-    .destino-table td.destino-cell input:focus{background:var(--primary-bg);box-shadow:inset 0 0 0 2px var(--primary)}
-    .destino-table td.acoes-cell{padding:4px 8px;white-space:nowrap;text-align:center;background:var(--card-bg)}
-    .destino-table td.acoes-cell button{border:1px solid var(--border);background:#fff;border-radius:6px;width:26px;height:26px;font-size:12px;cursor:pointer;margin:0 2px}
-    .destino-table td.acoes-cell button:hover{border-color:var(--primary);background:var(--primary-bg)}
-    .destino-table tbody tr:hover td{background:#fafcfb}
-    .destino-table tbody tr:hover td.cli-nome, .destino-table tbody tr:hover td.acoes-cell{background:#fafcfb}
+    .destino-table td.cli-nome .cli-arrow{color:var(--text-muted);font-size:11px;font-weight:400;margin-left:3px;opacity:.6}
+    .destino-table td.destino-cell{width:140px}
+    .destino-table td.destino-cell input{width:100%;border:none;padding:11px 12px;font-size:12.5px;background:transparent;color:var(--text);outline:none}
+    .destino-table td.destino-cell input::placeholder{color:#c7d0cb}
+    .destino-table td.destino-cell input:focus{background:var(--primary-bg);box-shadow:inset 0 0 0 1.5px var(--primary)}
+    .destino-table td.acoes-cell{padding:4px 10px;white-space:nowrap;text-align:center;width:1%}
+    .destino-table td.acoes-cell button{border:none;background:transparent;border-radius:6px;width:26px;height:26px;font-size:12px;cursor:pointer;margin:0 1px;opacity:0;transition:.15s}
+    .destino-table tbody tr:hover td.acoes-cell button{opacity:1}
+    .destino-table td.acoes-cell button:hover{background:var(--primary-bg)}
+    .destino-table tbody tr:nth-child(even){background:#fafbfa}
+    .destino-table tbody tr:hover{background:#f0f7f3}
 
     .estudo-card{background:var(--card-bg);border:1px solid var(--border);border-radius:12px;padding:14px 18px;margin-bottom:12px;cursor:pointer;transition:.15s;display:flex;gap:14px;align-items:center}
     .estudo-card:hover{border-color:var(--primary);box-shadow:var(--shadow-sm)}
@@ -373,7 +385,12 @@ window.renderDestinosTable = async function () {
   destinos.forEach(d => { mapa[`${d.cliente_id}_${d.tipo_carga_id}`] = d.destino || ''; });
   const isAdmin = perfil?.role === 'admin';
 
-  const thead = `<thead><tr><th>Cliente</th>${tiposAtivos.map(t => `<th>${esc(t.nome)}</th>`).join('')}<th style="width:1%"></th></tr></thead>`;
+  const thead = `<thead><tr>
+    <th>Cliente</th>
+    ${tiposAtivos.map(t => `<th><div class="th-row"><span>${esc(t.nome)}</span>${isAdmin ? `<button class="th-remove" onclick="removerColunaTipo('${t.id}','${esc(t.nome)}')" title="Remover coluna">✕</button>` : ''}</div></th>`).join('')}
+    ${isAdmin ? `<th class="col-add"><button onclick="adicionarColunaTipo()" title="Adicionar coluna">+</button></th>` : ''}
+    <th style="width:1%"></th>
+  </tr></thead>`;
   const tbody = `<tbody>${filtered.map(c => `
     <tr>
       <td class="cli-nome" onclick="selectCliente('${c.id}')">${esc(c.nome)} <span class="cli-arrow">→</span></td>
@@ -382,6 +399,7 @@ window.renderDestinosTable = async function () {
           <input type="text" value="${esc(mapa[`${c.id}_${t.id}`] || '')}" placeholder="—" ${isAdmin ? '' : 'disabled'}
             onchange="salvarDestino('${c.id}','${t.id}', this.value)" />
         </td>`).join('')}
+      ${isAdmin ? `<td></td>` : ''}
       <td class="acoes-cell">${isAdmin ? `
         <button onclick="abrirModalEditarCliente('${c.id}')" title="Editar">✏️</button>
         <button onclick="excluirCliente('${c.id}')" title="Excluir">🗑️</button>
@@ -397,6 +415,22 @@ window.salvarDestino = async function (clienteId, tipoId, destino) {
       { onConflict: 'cliente_id,tipo_carga_id' });
   if (error) { toast('Erro ao salvar destino', 'error'); return; }
   toast('Destino salvo!');
+};
+
+window.adicionarColunaTipo = async function () {
+  const nome = (prompt('Nome da nova coluna (tipo de carga):') || '').trim();
+  if (!nome) return;
+  const { error } = await supabase.from('tipos_carga').insert({ nome });
+  if (error) { toast('Erro ao adicionar coluna (talvez já exista)', 'error'); return; }
+  await carregarTipos();
+  renderDestinosTable();
+  if (currentClienteId) await renderTipos();
+  toast('Coluna adicionada!');
+};
+
+window.removerColunaTipo = function (id, nome) {
+  if (!confirm(`Remover a coluna "${nome}"? Os estudos e destinos já registrados continuam salvos, só a coluna some da tabela.`)) return;
+  toggleAtivoTipo(id, false);
 };
 
 // ── TIPOS DE CARGA ──
