@@ -46,7 +46,7 @@
     .entity-card .ec-actions button.danger:hover{border-color:var(--danger);background:var(--danger-light)}
 
     .destino-table-wrap{margin-bottom:32px;background:var(--card-bg);border:1px solid var(--border);border-radius:var(--radius);box-shadow:var(--shadow-sm);overflow:hidden}
-    .destino-table{border-collapse:collapse;width:100%}
+    .destino-table{border-collapse:collapse;width:100%;table-layout:fixed}
     .destino-table th, .destino-table td{border-right:1px solid var(--border);border-bottom:1px solid var(--border);padding:0;font-size:12.5px}
     .destino-table th:last-child, .destino-table td:last-child{border-right:none}
     .destino-table tbody tr:last-child td{border-bottom:none}
@@ -58,7 +58,7 @@
     .destino-table th.col-add{width:1%;padding:8px}
     .destino-table th.col-add button{border:1.5px dashed var(--border);background:transparent;color:var(--text-muted);border-radius:8px;width:30px;height:30px;font-size:16px;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:.15s}
     .destino-table th.col-add button:hover{border-color:var(--primary);color:var(--primary);background:var(--primary-bg)}
-    .destino-table td.cli-nome{padding:11px 14px;font-weight:600;color:var(--text);white-space:nowrap;cursor:pointer;transition:.15s}
+    .destino-table td.cli-nome{padding:11px 14px;font-weight:600;color:var(--text);white-space:normal;width:220px;max-width:220px;cursor:pointer;transition:.15s}
     .destino-table td.cli-nome:hover{color:var(--primary)}
     .destino-table td.cli-nome .cli-arrow{color:var(--text-muted);font-size:11px;font-weight:400;margin-left:3px;opacity:.6}
     .destino-table td.destino-cell{width:140px}
@@ -386,10 +386,11 @@ window.renderDestinosTable = async function () {
   const isAdmin = perfil?.role === 'admin';
 
   const thead = `<thead><tr>
-    <th>Cliente</th>
-    ${tiposAtivos.map(t => `<th><div class="th-row"><span>${esc(t.nome)}</span>${isAdmin ? `<button class="th-remove" onclick="removerColunaTipo('${t.id}','${esc(t.nome)}')" title="Remover coluna">✕</button>` : ''}</div></th>`).join('')}
-    ${isAdmin ? `<th class="col-add"><button onclick="adicionarColunaTipo()" title="Adicionar coluna">+</button></th>` : ''}
-    <th style="width:1%"></th>
+    <th style="width:220px">Cliente</th>
+    ${tiposAtivos.map(t => `<th style="width:150px"><div class="th-row"><span>${esc(t.nome)}</span>${isAdmin ? `<button class="th-remove" onclick="removerColunaTipo('${t.id}','${esc(t.nome)}')" title="Remover coluna">✕</button>` : ''}</div></th>`).join('')}
+    ${isAdmin ? `<th class="col-add" style="width:44px"><button onclick="adicionarColunaTipo()" title="Adicionar coluna">+</button></th>` : ''}
+    <th style="width:70px"></th>
+    <th class="col-spacer"></th>
   </tr></thead>`;
   const tbody = `<tbody>${filtered.map(c => `
     <tr>
@@ -404,6 +405,7 @@ window.renderDestinosTable = async function () {
         <button onclick="abrirModalEditarCliente('${c.id}')" title="Editar">✏️</button>
         <button onclick="excluirCliente('${c.id}')" title="Excluir">🗑️</button>
       ` : ''}</td>
+      <td class="col-spacer"></td>
     </tr>`).join('')}</tbody>`;
 
   table.innerHTML = thead + tbody;
