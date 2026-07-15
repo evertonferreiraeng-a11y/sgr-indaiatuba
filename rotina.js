@@ -10,7 +10,6 @@ export const MODULOS = [
   { id:'estoque',       label:'Estoque',            href:'estoque.html',           icon:'📦', desc:'Verificar e atualizar estoque' },
   { id:'equipamentos',  label:'Equipamentos',       href:'equipamentos.html',      icon:'🔧', desc:'Status dos equipamentos' },
   { id:'comercial',     label:'Comercial',          href:'comercial.html',         icon:'🛒', desc:'Dados comerciais e metas' },
-  { id:'financeiro',    label:'Financeiro',         href:'financeiro.html',        icon:'💰', desc:'Informações financeiras' },
   { id:'rh',            label:'RH',                 href:'rh.html',                icon:'👥', desc:'Recursos humanos' },
   { id:'tarefas',       label:'Tarefas',            href:'tarefas.html',           icon:'✅', desc:'Gerenciar tarefas do dia' },
   { id:'relatorio',     label:'Relatório Comitê',   href:'relatorio.html',         icon:'📊', desc:'Relatório para diretoria' },
