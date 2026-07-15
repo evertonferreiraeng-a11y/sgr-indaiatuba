@@ -152,14 +152,10 @@ export function sidebarHTML() {
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8M12 17v4"/></svg>
           Equipamentos
         </a>
-        <div class="nav-section">Comercial / Financeiro</div>
+        <div class="nav-section">Comercial</div>
         <a href="comercial.html">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 2L3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 01-8 0"/></svg>
           Comercial
-        </a>
-        <a href="financeiro.html">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 100 7h5a3.5 3.5 0 110 7H6"/></svg>
-          Financeiro
         </a>
         <a href="notas-fiscais.html">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="8" y1="13" x2="16" y2="13"/><line x1="8" y1="17" x2="13" y2="17"/></svg>
@@ -228,7 +224,6 @@ const MODULOS_ROTINA = [
   { id:'estoque',       label:'Estoque',            href:'estoque.html',           icon:'📦', desc:'Verificar e atualizar estoque' },
   { id:'equipamentos',  label:'Equipamentos',       href:'equipamentos.html',      icon:'🔧', desc:'Status dos equipamentos' },
   { id:'comercial',     label:'Comercial',          href:'comercial.html',         icon:'🛒', desc:'Dados comerciais e metas' },
-  { id:'financeiro',    label:'Financeiro',         href:'financeiro.html',        icon:'💰', desc:'Informações financeiras' },
   { id:'rh',            label:'RH',                 href:'rh.html',                icon:'👥', desc:'Recursos humanos' },
   { id:'tarefas',       label:'Tarefas',            href:'tarefas.html',           icon:'✅', desc:'Gerenciar tarefas do dia' },
   { id:'relatorio',     label:'Relatório Comitê',   href:'relatorio.html',         icon:'📊', desc:'Relatório para diretoria' },
