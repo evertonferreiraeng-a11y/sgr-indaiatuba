@@ -39,6 +39,21 @@
     .entity-card .ec-meta{font-size:12px;color:var(--text-muted)}
     .entity-card .ec-footer{display:flex;align-items:center;justify-content:space-between;margin-top:14px}
     .entity-card .ec-arrow{color:var(--text-muted);font-size:16px}
+    .entity-card .ec-actions{position:absolute;top:14px;right:14px;display:flex;gap:4px;opacity:0;transition:.15s}
+    .entity-card:hover .ec-actions{opacity:1}
+    .entity-card .ec-actions button{border:1px solid var(--border);background:#fff;border-radius:6px;width:26px;height:26px;font-size:12px;cursor:pointer;display:flex;align-items:center;justify-content:center}
+    .entity-card .ec-actions button:hover{border-color:var(--primary);background:var(--primary-bg)}
+    .entity-card .ec-actions button.danger:hover{border-color:var(--danger);background:var(--danger-light)}
+
+    .destino-table-wrap{margin-bottom:32px}
+    .destino-table{border-collapse:collapse;width:100%;min-width:600px}
+    .destino-table th, .destino-table td{border:1px solid var(--border);padding:0;font-size:12.5px}
+    .destino-table th{background:var(--bg);color:var(--text-muted);font-weight:700;text-transform:uppercase;letter-spacing:.04em;font-size:10.5px;padding:9px 12px;text-align:left;white-space:nowrap}
+    .destino-table td.cli-nome{padding:9px 12px;font-weight:600;color:var(--text);white-space:nowrap;background:var(--card-bg)}
+    .destino-table td.destino-cell input{width:100%;border:none;padding:9px 12px;font-size:12.5px;background:transparent;color:var(--text);outline:none;min-width:160px}
+    .destino-table td.destino-cell input:focus{background:var(--primary-bg);box-shadow:inset 0 0 0 2px var(--primary)}
+    .destino-table tbody tr:hover td{background:#fafcfb}
+    .destino-table tbody tr:hover td.cli-nome{background:#fafcfb}
 
     .estudo-card{background:var(--card-bg);border:1px solid var(--border);border-radius:12px;padding:14px 18px;margin-bottom:12px;cursor:pointer;transition:.15s;display:flex;gap:14px;align-items:center}
     .estudo-card:hover{border-color:var(--primary);box-shadow:var(--shadow-sm)}
@@ -89,6 +104,16 @@
         <div><h2>Clientes</h2><p>Selecione um cliente para ver os estudos de carga</p></div>
         <button class="btn btn-primary" id="btn-novo-cliente">+ Novo Cliente</button>
       </div>
+
+      <div class="destino-table-wrap">
+        <div class="section-row" style="margin-bottom:12px">
+          <div><h2 style="font-size:15px">Destino das Cargas por Cliente</h2><p>Preencha para onde deve ir cada tipo de carga</p></div>
+        </div>
+        <div class="table-scroll">
+          <table class="destino-table" id="destino-table"></table>
+        </div>
+      </div>
+
       <div class="search-bar">
         <span class="sico">🔍</span>
         <input type="text" id="search-clientes" placeholder="Buscar cliente..." oninput="renderClientes()">
@@ -132,11 +157,12 @@
 <div class="modal-backdrop" id="modal-cliente">
   <div class="modal">
     <div class="modal-header">
-      <h3>Novo Cliente</h3>
+      <h3 id="modal-cliente-title">Novo Cliente</h3>
       <button class="modal-close" data-close="modal-cliente">✕</button>
     </div>
     <div class="modal-body">
       <form id="form-cliente">
+        <input type="hidden" name="id" />
         <div class="form-grid">
           <div class="form-group full"><label>Nome *</label><input type="text" name="nome" required /></div>
           <div class="form-group"><label>Documento</label><input type="text" name="documento" /></div>
@@ -281,6 +307,7 @@ async function carregarClientes() {
 window.renderClientes = function () {
   const q = (document.getElementById('search-clientes').value || '').trim().toLowerCase();
   const grid = document.getElementById('clientes-grid');
+  const isAdmin = perfil?.role === 'admin';
   const filtered = clientes.filter(c => !q || c.nome.toLowerCase().includes(q));
   if (!filtered.length) {
     grid.innerHTML = `<div class="empty"><div class="ico-empty">🏭</div><h3>Nenhum cliente encontrado</h3><p>Clique em "+ Novo Cliente" para começar</p></div>`;
@@ -288,6 +315,10 @@ window.renderClientes = function () {
   }
   grid.innerHTML = `<div class="card-grid">${filtered.map(c => `
     <div class="entity-card" onclick="selectCliente('${c.id}')">
+      ${isAdmin ? `<div class="ec-actions">
+        <button onclick="event.stopPropagation();abrirModalEditarCliente('${c.id}')" title="Editar">✏️</button>
+        <button class="danger" onclick="event.stopPropagation();excluirCliente('${c.id}')" title="Excluir">🗑️</button>
+      </div>` : ''}
       <div class="ec-icon">🏭</div>
       <h3>${esc(c.nome)}</h3>
       <div class="ec-meta">${esc(c.contato || 'Sem contato cadastrado')}</div>
@@ -295,21 +326,89 @@ window.renderClientes = function () {
     </div>`).join('')}</div>`;
 };
 
-document.getElementById('btn-novo-cliente').addEventListener('click', () => abrirModal('modal-cliente'));
+document.getElementById('btn-novo-cliente').addEventListener('click', () => {
+  document.getElementById('modal-cliente-title').textContent = 'Novo Cliente';
+  const f = document.getElementById('form-cliente');
+  f.reset();
+  f.querySelector('[name="id"]').value = '';
+  abrirModal('modal-cliente');
+});
+
+window.abrirModalEditarCliente = function (id) {
+  const c = clientes.find(x => x.id === id);
+  if (!c) return;
+  document.getElementById('modal-cliente-title').textContent = 'Editar Cliente';
+  const f = document.getElementById('form-cliente');
+  f.reset();
+  f.querySelector('[name="id"]').value = c.id;
+  f.querySelector('[name="nome"]').value = c.nome || '';
+  f.querySelector('[name="documento"]').value = c.documento || '';
+  f.querySelector('[name="contato"]').value = c.contato || '';
+  abrirModal('modal-cliente');
+};
+
+window.excluirCliente = async function (id) {
+  const c = clientes.find(x => x.id === id);
+  if (!c) return;
+  if (!confirm(`Excluir "${c.nome}"? O cliente deixa de aparecer nas listas, mas o histórico em outras telas é mantido.`)) return;
+  const { error } = await supabase.from('clientes').update({ ativo: false }).eq('id', id);
+  if (error) { toast('Erro ao excluir cliente', 'error'); return; }
+  toast('Cliente excluído!');
+  await carregarClientes();
+  renderClientes();
+  renderDestinosTable();
+};
 
 document.getElementById('btn-salvar-cliente').addEventListener('click', async () => {
   const f = document.getElementById('form-cliente');
   if (!f.checkValidity()) { f.reportValidity(); return; }
   const fd = Object.fromEntries(new FormData(f));
-  const { error } = await supabase.from('clientes').insert({
-    nome: fd.nome, documento: fd.documento || null, contato: fd.contato || null,
-  });
+  const payload = { nome: fd.nome, documento: fd.documento || null, contato: fd.contato || null };
+  const { error } = fd.id
+    ? await supabase.from('clientes').update(payload).eq('id', fd.id)
+    : await supabase.from('clientes').insert(payload);
   if (error) { toast('Erro ao salvar cliente', 'error'); return; }
-  toast('Cliente cadastrado!');
+  toast('Cliente salvo!');
   fecharModal('modal-cliente');
   await carregarClientes();
   renderClientes();
+  renderDestinosTable();
 });
+
+// ── DESTINO DAS CARGAS (matriz cliente x tipo de carga) ──
+async function renderDestinosTable() {
+  const table = document.getElementById('destino-table');
+  const tiposAtivos = tiposCarga.filter(t => t.ativo);
+  if (!clientes.length || !tiposAtivos.length) {
+    table.innerHTML = '';
+    return;
+  }
+  const { data: destinos } = await supabase.from('destinos_carga').select('*');
+  const mapa = {};
+  (destinos || []).forEach(d => { mapa[`${d.cliente_id}_${d.tipo_carga_id}`] = d.destino || ''; });
+  const isAdmin = perfil?.role === 'admin';
+
+  const thead = `<thead><tr><th>Cliente</th>${tiposAtivos.map(t => `<th>${esc(t.nome)}</th>`).join('')}</tr></thead>`;
+  const tbody = `<tbody>${clientes.map(c => `
+    <tr>
+      <td class="cli-nome">${esc(c.nome)}</td>
+      ${tiposAtivos.map(t => `
+        <td class="destino-cell">
+          <input type="text" value="${esc(mapa[`${c.id}_${t.id}`] || '')}" placeholder="—" ${isAdmin ? '' : 'disabled'}
+            onchange="salvarDestino('${c.id}','${t.id}', this.value)" />
+        </td>`).join('')}
+    </tr>`).join('')}</tbody>`;
+
+  table.innerHTML = thead + tbody;
+}
+
+window.salvarDestino = async function (clienteId, tipoId, destino) {
+  const { error } = await supabase.from('destinos_carga')
+    .upsert({ cliente_id: clienteId, tipo_carga_id: tipoId, destino: destino || null, atualizado_em: new Date().toISOString() },
+      { onConflict: 'cliente_id,tipo_carga_id' });
+  if (error) { toast('Erro ao salvar destino', 'error'); return; }
+  toast('Destino salvo!');
+};
 
 // ── TIPOS DE CARGA ──
 async function carregarTipos() {
@@ -365,6 +464,7 @@ document.getElementById('btn-add-tipo').addEventListener('click', async () => {
   await carregarTipos();
   renderTiposManageList();
   if (currentClienteId) await renderTipos();
+  renderDestinosTable();
   toast('Tipo de carga adicionado!');
 });
 
@@ -375,6 +475,7 @@ window.renomearTipo = async function (id, novoNome) {
   if (error) { toast('Erro ao renomear tipo', 'error'); return; }
   await carregarTipos();
   if (currentClienteId) await renderTipos();
+  renderDestinosTable();
 };
 
 window.toggleAtivoTipo = async function (id, ativo) {
@@ -382,6 +483,7 @@ window.toggleAtivoTipo = async function (id, ativo) {
   await carregarTipos();
   renderTiposManageList();
   if (currentClienteId) await renderTipos();
+  renderDestinosTable();
 };
 
 // ── ESTUDOS ──
@@ -581,6 +683,7 @@ async function init() {
   perfil = await getPerfilUsuario();
   await Promise.all([carregarClientes(), carregarTipos()]);
   renderClientes();
+  renderDestinosTable();
 }
 
 await init();
