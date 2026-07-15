@@ -49,11 +49,16 @@
     .destino-table{border-collapse:collapse;width:100%;min-width:600px}
     .destino-table th, .destino-table td{border:1px solid var(--border);padding:0;font-size:12.5px}
     .destino-table th{background:var(--bg);color:var(--text-muted);font-weight:700;text-transform:uppercase;letter-spacing:.04em;font-size:10.5px;padding:9px 12px;text-align:left;white-space:nowrap}
-    .destino-table td.cli-nome{padding:9px 12px;font-weight:600;color:var(--text);white-space:nowrap;background:var(--card-bg)}
+    .destino-table td.cli-nome{padding:9px 12px;font-weight:600;color:var(--text);white-space:nowrap;background:var(--card-bg);cursor:pointer}
+    .destino-table td.cli-nome:hover{color:var(--primary)}
+    .destino-table td.cli-nome .cli-arrow{color:var(--text-muted);font-size:12px;font-weight:400;margin-left:2px}
     .destino-table td.destino-cell input{width:100%;border:none;padding:9px 12px;font-size:12.5px;background:transparent;color:var(--text);outline:none;min-width:160px}
     .destino-table td.destino-cell input:focus{background:var(--primary-bg);box-shadow:inset 0 0 0 2px var(--primary)}
+    .destino-table td.acoes-cell{padding:4px 8px;white-space:nowrap;text-align:center;background:var(--card-bg)}
+    .destino-table td.acoes-cell button{border:1px solid var(--border);background:#fff;border-radius:6px;width:26px;height:26px;font-size:12px;cursor:pointer;margin:0 2px}
+    .destino-table td.acoes-cell button:hover{border-color:var(--primary);background:var(--primary-bg)}
     .destino-table tbody tr:hover td{background:#fafcfb}
-    .destino-table tbody tr:hover td.cli-nome{background:#fafcfb}
+    .destino-table tbody tr:hover td.cli-nome, .destino-table tbody tr:hover td.acoes-cell{background:#fafcfb}
 
     .estudo-card{background:var(--card-bg);border:1px solid var(--border);border-radius:12px;padding:14px 18px;margin-bottom:12px;cursor:pointer;transition:.15s;display:flex;gap:14px;align-items:center}
     .estudo-card:hover{border-color:var(--primary);box-shadow:var(--shadow-sm)}
@@ -101,24 +106,20 @@
     <!-- PAGE: CLIENTES -->
     <div id="pg-clientes" class="page active">
       <div class="section-row">
-        <div><h2>Clientes</h2><p>Selecione um cliente para ver os estudos de carga</p></div>
+        <div><h2>Clientes</h2><p>Clique num cliente para ver os tipos de carga e estudos</p></div>
         <button class="btn btn-primary" id="btn-novo-cliente">+ Novo Cliente</button>
-      </div>
-
-      <div class="destino-table-wrap">
-        <div class="section-row" style="margin-bottom:12px">
-          <div><h2 style="font-size:15px">Destino das Cargas por Cliente</h2><p>Preencha para onde deve ir cada tipo de carga</p></div>
-        </div>
-        <div class="table-scroll">
-          <table class="destino-table" id="destino-table"></table>
-        </div>
       </div>
 
       <div class="search-bar">
         <span class="sico">🔍</span>
-        <input type="text" id="search-clientes" placeholder="Buscar cliente..." oninput="renderClientes()">
+        <input type="text" id="search-clientes" placeholder="Buscar cliente..." oninput="renderDestinosTable()">
       </div>
-      <div id="clientes-grid"></div>
+
+      <div class="destino-table-wrap">
+        <div class="table-scroll">
+          <table class="destino-table" id="destino-table"></table>
+        </div>
+      </div>
     </div>
 
     <!-- PAGE: TIPOS DE CARGA -->
@@ -270,7 +271,7 @@ function showPage(id) {
 window.goHome = function () {
   currentClienteId = null; currentTipoId = null;
   showPage('pg-clientes');
-  renderClientes();
+  renderDestinosTable();
 };
 
 window.selectCliente = async function (id) {
@@ -304,28 +305,6 @@ async function carregarClientes() {
   clientes = data || [];
 }
 
-window.renderClientes = function () {
-  const q = (document.getElementById('search-clientes').value || '').trim().toLowerCase();
-  const grid = document.getElementById('clientes-grid');
-  const isAdmin = perfil?.role === 'admin';
-  const filtered = clientes.filter(c => !q || c.nome.toLowerCase().includes(q));
-  if (!filtered.length) {
-    grid.innerHTML = `<div class="empty"><div class="ico-empty">🏭</div><h3>Nenhum cliente encontrado</h3><p>Clique em "+ Novo Cliente" para começar</p></div>`;
-    return;
-  }
-  grid.innerHTML = `<div class="card-grid">${filtered.map(c => `
-    <div class="entity-card" onclick="selectCliente('${c.id}')">
-      ${isAdmin ? `<div class="ec-actions">
-        <button onclick="event.stopPropagation();abrirModalEditarCliente('${c.id}')" title="Editar">✏️</button>
-        <button class="danger" onclick="event.stopPropagation();excluirCliente('${c.id}')" title="Excluir">🗑️</button>
-      </div>` : ''}
-      <div class="ec-icon">🏭</div>
-      <h3>${esc(c.nome)}</h3>
-      <div class="ec-meta">${esc(c.contato || 'Sem contato cadastrado')}</div>
-      <div class="ec-footer"><span></span><span class="ec-arrow">→</span></div>
-    </div>`).join('')}</div>`;
-};
-
 document.getElementById('btn-novo-cliente').addEventListener('click', () => {
   document.getElementById('modal-cliente-title').textContent = 'Novo Cliente';
   const f = document.getElementById('form-cliente');
@@ -355,7 +334,6 @@ window.excluirCliente = async function (id) {
   if (error) { toast('Erro ao excluir cliente', 'error'); return; }
   toast('Cliente excluído!');
   await carregarClientes();
-  renderClientes();
   renderDestinosTable();
 };
 
@@ -371,36 +349,47 @@ document.getElementById('btn-salvar-cliente').addEventListener('click', async ()
   toast('Cliente salvo!');
   fecharModal('modal-cliente');
   await carregarClientes();
-  renderClientes();
   renderDestinosTable();
 });
 
-// ── DESTINO DAS CARGAS (matriz cliente x tipo de carga) ──
-async function renderDestinosTable() {
+// ── DESTINO DAS CARGAS (matriz cliente x tipo de carga) — também serve como lista de clientes ──
+window.renderDestinosTable = async function () {
   const table = document.getElementById('destino-table');
-  const tiposAtivos = tiposCarga.filter(t => t.ativo);
-  if (!clientes.length || !tiposAtivos.length) {
-    table.innerHTML = '';
+  const q = (document.getElementById('search-clientes').value || '').trim().toLowerCase();
+  const filtered = clientes.filter(c => !q || c.nome.toLowerCase().includes(q));
+
+  if (!filtered.length) {
+    table.innerHTML = `<tbody><tr><td style="padding:40px;text-align:center;color:var(--text-muted)">Nenhum cliente encontrado</td></tr></tbody>`;
     return;
   }
-  const { data: destinos } = await supabase.from('destinos_carga').select('*');
+
+  const tiposAtivos = tiposCarga.filter(t => t.ativo);
+  let destinos = [];
+  if (tiposAtivos.length) {
+    const { data } = await supabase.from('destinos_carga').select('*');
+    destinos = data || [];
+  }
   const mapa = {};
-  (destinos || []).forEach(d => { mapa[`${d.cliente_id}_${d.tipo_carga_id}`] = d.destino || ''; });
+  destinos.forEach(d => { mapa[`${d.cliente_id}_${d.tipo_carga_id}`] = d.destino || ''; });
   const isAdmin = perfil?.role === 'admin';
 
-  const thead = `<thead><tr><th>Cliente</th>${tiposAtivos.map(t => `<th>${esc(t.nome)}</th>`).join('')}</tr></thead>`;
-  const tbody = `<tbody>${clientes.map(c => `
+  const thead = `<thead><tr><th>Cliente</th>${tiposAtivos.map(t => `<th>${esc(t.nome)}</th>`).join('')}<th style="width:1%"></th></tr></thead>`;
+  const tbody = `<tbody>${filtered.map(c => `
     <tr>
-      <td class="cli-nome">${esc(c.nome)}</td>
+      <td class="cli-nome" onclick="selectCliente('${c.id}')">${esc(c.nome)} <span class="cli-arrow">→</span></td>
       ${tiposAtivos.map(t => `
         <td class="destino-cell">
           <input type="text" value="${esc(mapa[`${c.id}_${t.id}`] || '')}" placeholder="—" ${isAdmin ? '' : 'disabled'}
             onchange="salvarDestino('${c.id}','${t.id}', this.value)" />
         </td>`).join('')}
+      <td class="acoes-cell">${isAdmin ? `
+        <button onclick="abrirModalEditarCliente('${c.id}')" title="Editar">✏️</button>
+        <button onclick="excluirCliente('${c.id}')" title="Excluir">🗑️</button>
+      ` : ''}</td>
     </tr>`).join('')}</tbody>`;
 
   table.innerHTML = thead + tbody;
-}
+};
 
 window.salvarDestino = async function (clienteId, tipoId, destino) {
   const { error } = await supabase.from('destinos_carga')
@@ -682,7 +671,6 @@ document.querySelectorAll('.modal-backdrop').forEach(m => m.addEventListener('cl
 async function init() {
   perfil = await getPerfilUsuario();
   await Promise.all([carregarClientes(), carregarTipos()]);
-  renderClientes();
   renderDestinosTable();
 }
 
