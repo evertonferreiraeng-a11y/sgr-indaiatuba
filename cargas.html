@@ -1,0 +1,589 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Estudo de Cargas — SGR Indaiatuba</title>
+  <link rel="stylesheet" href="css/style.css" />
+  <style>
+    .page{display:none;padding:24px 28px}
+    .page.active{display:block!important}
+
+    .breadcrumb{display:flex;align-items:center;gap:6px;font-size:13px;color:var(--text-muted);margin-bottom:22px}
+    .breadcrumb .bc-link{cursor:pointer;color:var(--primary);font-weight:600}
+    .breadcrumb .bc-link:hover{text-decoration:underline}
+    .breadcrumb .sep{color:#bbb}
+    .breadcrumb .bc-cur{color:var(--text);font-weight:600}
+
+    .search-bar{position:relative;margin-bottom:20px;max-width:420px}
+    .search-bar input{width:100%;padding:11px 16px 11px 42px;border:1px solid var(--border);border-radius:var(--radius);font-size:14px;background:#fff;outline:none;transition:.2s;color:var(--text)}
+    .search-bar input:focus{border-color:var(--primary);box-shadow:0 0 0 3px rgba(26,107,60,.1)}
+    .search-bar .sico{position:absolute;left:14px;top:50%;transform:translateY(-50%);color:var(--text-muted);font-size:16px;pointer-events:none}
+
+    .empty{text-align:center;padding:64px 20px;color:var(--text-muted)}
+    .empty .ico-empty{font-size:52px;margin-bottom:16px;opacity:.35}
+    .empty h3{font-size:16px;font-weight:700;margin-bottom:8px;color:var(--text)}
+    .empty p{font-size:13px}
+
+    .section-row{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;margin-bottom:20px}
+    .section-row h2{font-size:20px;font-weight:800;color:var(--text)}
+    .section-row p{font-size:13px;color:var(--text-muted);margin-top:2px}
+
+    .card-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:16px}
+    .entity-card{background:var(--card-bg);border:1px solid var(--border);border-radius:14px;padding:22px 20px 18px;cursor:pointer;transition:.2s;position:relative;overflow:hidden}
+    .entity-card::before{content:'';position:absolute;top:0;left:0;right:0;height:4px;background:var(--primary);opacity:0;transition:.2s}
+    .entity-card:hover{border-color:var(--primary);box-shadow:var(--shadow-md);transform:translateY(-2px)}
+    .entity-card:hover::before{opacity:1}
+    .entity-card .ec-icon{font-size:28px;margin-bottom:10px}
+    .entity-card h3{font-size:15px;font-weight:700;color:var(--text);margin-bottom:5px}
+    .entity-card .ec-meta{font-size:12px;color:var(--text-muted)}
+    .entity-card .ec-footer{display:flex;align-items:center;justify-content:space-between;margin-top:14px}
+    .entity-card .ec-arrow{color:var(--text-muted);font-size:16px}
+
+    .estudo-card{background:var(--card-bg);border:1px solid var(--border);border-radius:12px;padding:14px 18px;margin-bottom:12px;cursor:pointer;transition:.15s;display:flex;gap:14px;align-items:center}
+    .estudo-card:hover{border-color:var(--primary);box-shadow:var(--shadow-sm)}
+    .estudo-card .es-thumb{width:60px;height:60px;border-radius:8px;object-fit:cover;background:var(--bg);flex-shrink:0}
+    .estudo-card .es-thumb-empty{width:60px;height:60px;border-radius:8px;background:var(--bg);display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0;color:var(--text-muted)}
+    .estudo-card .es-body{flex:1;min-width:0}
+    .estudo-card .es-top{display:flex;align-items:center;gap:8px;margin-bottom:4px}
+    .estudo-card .es-date{font-size:12px;color:var(--text-muted)}
+    .estudo-card .es-obs{font-size:13px;color:var(--text);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+
+    .foto-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:12px;margin-top:10px}
+    .foto-item{border:1px solid var(--border);border-radius:10px;overflow:hidden;background:#fafafa;position:relative}
+    .foto-item img{width:100%;height:120px;object-fit:cover;display:block}
+    .foto-item .foto-loading{position:absolute;top:6px;right:6px;background:#fff;border-radius:20px;padding:2px 8px;font-size:10px;color:var(--text-muted);box-shadow:var(--shadow-sm)}
+    .foto-leg{padding:6px 8px}
+    .foto-leg input{width:100%;border:none;border-bottom:1px solid var(--border);padding:3px 0;font-size:12px;outline:none;background:transparent;color:var(--text)}
+    .foto-leg input:focus{border-color:var(--primary)}
+    .foto-remove{display:block;width:100%;text-align:center;padding:5px;font-size:11px;color:var(--danger);cursor:pointer;font-weight:700}
+    .foto-remove:hover{background:var(--danger-light)}
+    .foto-upload-btn{border:2px dashed var(--border);border-radius:10px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;height:130px;cursor:pointer;transition:.2s;color:var(--text-muted);font-size:12px;font-weight:600}
+    .foto-upload-btn:hover{border-color:var(--primary);color:var(--primary);background:var(--primary-bg)}
+    .foto-upload-btn .ico-big{font-size:28px}
+
+    .foto-view-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:12px;margin-top:10px}
+    .foto-view-item img{width:100%;height:130px;object-fit:cover;border-radius:10px;border:1px solid var(--border);cursor:zoom-in;display:block}
+    .foto-view-item .fv-leg{font-size:11px;color:var(--text-muted);margin-top:4px;text-align:center}
+
+    .tipo-manage-row{display:flex;align-items:center;gap:8px;padding:8px 0;border-bottom:1px solid var(--border)}
+    .tipo-manage-row:last-child{border-bottom:none}
+    .tipo-manage-row input[type=text]{flex:1}
+    .modal.wide{max-width:720px}
+
+    .zoom-backdrop{display:none;position:fixed;inset:0;background:rgba(0,0,0,.85);z-index:300;align-items:center;justify-content:center;padding:24px}
+    .zoom-backdrop.open{display:flex}
+    .zoom-backdrop img{max-width:100%;max-height:100%;border-radius:8px}
+  </style>
+</head>
+<body>
+<div class="app-layout">
+  <div class="main-content">
+    <div class="page-header">
+      <div><h2>Estudo de Cargas</h2><p>Fotos e observações para avaliar a qualidade das cargas por cliente</p></div>
+    </div>
+
+    <!-- PAGE: CLIENTES -->
+    <div id="pg-clientes" class="page active">
+      <div class="section-row">
+        <div><h2>Clientes</h2><p>Selecione um cliente para ver os estudos de carga</p></div>
+        <button class="btn btn-primary" id="btn-novo-cliente">+ Novo Cliente</button>
+      </div>
+      <div class="search-bar">
+        <span class="sico">🔍</span>
+        <input type="text" id="search-clientes" placeholder="Buscar cliente..." oninput="renderClientes()">
+      </div>
+      <div id="clientes-grid"></div>
+    </div>
+
+    <!-- PAGE: TIPOS DE CARGA -->
+    <div id="pg-tipos" class="page">
+      <div class="breadcrumb">
+        <span class="bc-link" onclick="goHome()">Clientes</span>
+        <span class="sep">›</span>
+        <span class="bc-cur" id="bc-cliente">—</span>
+      </div>
+      <div class="section-row">
+        <div><h2 id="tipos-cliente-nome">—</h2><p>Escolha o tipo de carga para ver os estudos</p></div>
+        <button class="btn btn-outline" onclick="abrirModalTipos()">🏷️ Gerenciar Tipos</button>
+      </div>
+      <div id="tipos-grid"></div>
+    </div>
+
+    <!-- PAGE: ESTUDOS -->
+    <div id="pg-estudos" class="page">
+      <div class="breadcrumb">
+        <span class="bc-link" onclick="goHome()">Clientes</span>
+        <span class="sep">›</span>
+        <span class="bc-link" onclick="goClientePage()" id="bc-cliente2">—</span>
+        <span class="sep">›</span>
+        <span class="bc-cur" id="bc-tipo">—</span>
+      </div>
+      <div class="section-row">
+        <div><h2 id="estudos-tipo-nome">—</h2><p id="estudos-count">—</p></div>
+        <button class="btn btn-primary" onclick="abrirModalNovoEstudo()">+ Novo Estudo</button>
+      </div>
+      <div id="estudos-list"></div>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: Novo Cliente -->
+<div class="modal-backdrop" id="modal-cliente">
+  <div class="modal">
+    <div class="modal-header">
+      <h3>Novo Cliente</h3>
+      <button class="modal-close" data-close="modal-cliente">✕</button>
+    </div>
+    <div class="modal-body">
+      <form id="form-cliente">
+        <div class="form-grid">
+          <div class="form-group full"><label>Nome *</label><input type="text" name="nome" required /></div>
+          <div class="form-group"><label>Documento</label><input type="text" name="documento" /></div>
+          <div class="form-group"><label>Contato</label><input type="text" name="contato" /></div>
+        </div>
+      </form>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-outline" data-close="modal-cliente">Cancelar</button>
+      <button class="btn btn-primary" id="btn-salvar-cliente">Salvar</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: Gerenciar Tipos de Carga -->
+<div class="modal-backdrop" id="modal-tipos">
+  <div class="modal">
+    <div class="modal-header">
+      <h3>Gerenciar Tipos de Carga</h3>
+      <button class="modal-close" data-close="modal-tipos">✕</button>
+    </div>
+    <div class="modal-body">
+      <div style="display:flex;gap:8px;margin-bottom:14px">
+        <input type="text" id="novo-tipo-nome" placeholder="Ex: Reciclável, Orgânico..." style="flex:1" />
+        <button class="btn btn-primary" id="btn-add-tipo">Adicionar</button>
+      </div>
+      <div id="tipos-manage-list"></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-outline" data-close="modal-tipos">Fechar</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: Novo/Editar Estudo -->
+<div class="modal-backdrop" id="modal-estudo">
+  <div class="modal wide">
+    <div class="modal-header">
+      <h3 id="modal-estudo-title">Novo Estudo</h3>
+      <button class="modal-close" data-close="modal-estudo" onclick="fecharModalEstudo()">✕</button>
+    </div>
+    <div class="modal-body">
+      <form id="form-estudo">
+        <input type="hidden" name="id" />
+        <div class="form-grid">
+          <div class="form-group"><label>Data *</label><input type="date" name="data" required /></div>
+          <div class="form-group"><label>Avaliação *</label>
+            <select name="avaliacao" required>
+              <option value="">Selecione…</option>
+              <option value="aprovada">✅ Aprovada</option>
+              <option value="reprovada">❌ Reprovada</option>
+            </select>
+          </div>
+          <div class="form-group full"><label>Observações</label><textarea name="observacoes" rows="3" placeholder="Descreva o que foi observado na carga..."></textarea></div>
+        </div>
+        <div style="margin-top:10px">
+          <label>Fotos</label>
+          <div class="foto-grid" id="foto-grid">
+            <label class="foto-upload-btn" for="foto-input">
+              <span class="ico-big">📷</span>
+              <span>Adicionar fotos</span>
+            </label>
+          </div>
+          <input type="file" id="foto-input" multiple accept="image/*" style="display:none" onchange="handleFotos(event)">
+        </div>
+      </form>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-danger" id="btn-excluir-estudo" style="display:none;margin-right:auto" onclick="excluirEstudo()">Excluir</button>
+      <button class="btn btn-outline" data-close="modal-estudo" onclick="fecharModalEstudo()">Cancelar</button>
+      <button class="btn btn-primary" id="btn-salvar-estudo">Salvar</button>
+    </div>
+  </div>
+</div>
+
+<!-- Zoom de foto -->
+<div class="zoom-backdrop" id="zoom-backdrop" onclick="fecharZoom()">
+  <img id="zoom-img" src="" alt="">
+</div>
+
+<div id="toast-container"></div>
+<script type="module">
+import { initPage, supabase, dataBR, toast, abrirModal, fecharModal, getPerfilUsuario } from './js/config.js?v=2';
+
+await initPage();
+
+const BUCKET = 'cargas';
+let perfil, clientes = [], tiposCarga = [], estudosAtuais = [];
+let currentClienteId = null, currentTipoId = null;
+let estudoEditandoId = null, estudoIdEmEdicao = null;
+let fotos = [];
+let fotosUploadedThisSession = [];
+let modalReadOnly = false;
+
+function esc(s) { return String(s || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;'); }
+function publicUrl(path) { return supabase.storage.from(BUCKET).getPublicUrl(path).data.publicUrl; }
+function slug(name) { return name.replace(/[^a-zA-Z0-9.\-_]/g, '_'); }
+
+function showPage(id) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+}
+
+// ── NAVEGAÇÃO ──
+window.goHome = function () {
+  currentClienteId = null; currentTipoId = null;
+  showPage('pg-clientes');
+  renderClientes();
+};
+
+window.selectCliente = async function (id) {
+  currentClienteId = id;
+  const c = clientes.find(x => x.id === id);
+  document.getElementById('bc-cliente').textContent = c?.nome || '—';
+  document.getElementById('tipos-cliente-nome').textContent = c?.nome || '—';
+  showPage('pg-tipos');
+  await renderTipos();
+};
+
+window.goClientePage = async function () {
+  showPage('pg-tipos');
+  await renderTipos();
+};
+
+window.selectTipo = async function (id) {
+  currentTipoId = id;
+  const t = tiposCarga.find(x => x.id === id);
+  const c = clientes.find(x => x.id === currentClienteId);
+  document.getElementById('bc-cliente2').textContent = c?.nome || '—';
+  document.getElementById('bc-tipo').textContent = t?.nome || '—';
+  document.getElementById('estudos-tipo-nome').textContent = t?.nome || '—';
+  showPage('pg-estudos');
+  await renderEstudos();
+};
+
+// ── CLIENTES ──
+async function carregarClientes() {
+  const { data } = await supabase.from('clientes').select('*').eq('ativo', true).order('nome');
+  clientes = data || [];
+}
+
+window.renderClientes = function () {
+  const q = (document.getElementById('search-clientes').value || '').trim().toLowerCase();
+  const grid = document.getElementById('clientes-grid');
+  const filtered = clientes.filter(c => !q || c.nome.toLowerCase().includes(q));
+  if (!filtered.length) {
+    grid.innerHTML = `<div class="empty"><div class="ico-empty">🏭</div><h3>Nenhum cliente encontrado</h3><p>Clique em "+ Novo Cliente" para começar</p></div>`;
+    return;
+  }
+  grid.innerHTML = `<div class="card-grid">${filtered.map(c => `
+    <div class="entity-card" onclick="selectCliente('${c.id}')">
+      <div class="ec-icon">🏭</div>
+      <h3>${esc(c.nome)}</h3>
+      <div class="ec-meta">${esc(c.contato || 'Sem contato cadastrado')}</div>
+      <div class="ec-footer"><span></span><span class="ec-arrow">→</span></div>
+    </div>`).join('')}</div>`;
+};
+
+document.getElementById('btn-novo-cliente').addEventListener('click', () => abrirModal('modal-cliente'));
+
+document.getElementById('btn-salvar-cliente').addEventListener('click', async () => {
+  const f = document.getElementById('form-cliente');
+  if (!f.checkValidity()) { f.reportValidity(); return; }
+  const fd = Object.fromEntries(new FormData(f));
+  const { error } = await supabase.from('clientes').insert({
+    nome: fd.nome, documento: fd.documento || null, contato: fd.contato || null,
+  });
+  if (error) { toast('Erro ao salvar cliente', 'error'); return; }
+  toast('Cliente cadastrado!');
+  fecharModal('modal-cliente');
+  await carregarClientes();
+  renderClientes();
+});
+
+// ── TIPOS DE CARGA ──
+async function carregarTipos() {
+  const { data } = await supabase.from('tipos_carga').select('*').order('nome');
+  tiposCarga = data || [];
+}
+
+async function renderTipos() {
+  const grid = document.getElementById('tipos-grid');
+  const ativos = tiposCarga.filter(t => t.ativo);
+  if (!ativos.length) {
+    grid.innerHTML = `<div class="empty"><div class="ico-empty">🏷️</div><h3>Nenhum tipo de carga cadastrado</h3><p>Clique em "Gerenciar Tipos" para adicionar</p></div>`;
+    return;
+  }
+  const { data: contagens } = await supabase.from('estudos_carga').select('tipo_carga_id').eq('cliente_id', currentClienteId);
+  const counts = {};
+  (contagens || []).forEach(r => { counts[r.tipo_carga_id] = (counts[r.tipo_carga_id] || 0) + 1; });
+
+  grid.innerHTML = `<div class="card-grid">${ativos.map(t => `
+    <div class="entity-card" onclick="selectTipo('${t.id}')">
+      <div class="ec-icon">♻️</div>
+      <h3>${esc(t.nome)}</h3>
+      <div class="ec-meta">${counts[t.id] || 0} estudo${counts[t.id] === 1 ? '' : 's'}</div>
+      <div class="ec-footer"><span></span><span class="ec-arrow">→</span></div>
+    </div>`).join('')}</div>`;
+}
+
+window.abrirModalTipos = function () {
+  renderTiposManageList();
+  abrirModal('modal-tipos');
+};
+
+function renderTiposManageList() {
+  const list = document.getElementById('tipos-manage-list');
+  if (!tiposCarga.length) {
+    list.innerHTML = `<p style="font-size:13px;color:var(--text-muted)">Nenhum tipo cadastrado ainda.</p>`;
+    return;
+  }
+  list.innerHTML = tiposCarga.map(t => `
+    <div class="tipo-manage-row">
+      <input type="text" value="${esc(t.nome)}" onchange="renomearTipo('${t.id}', this.value)" />
+      <button class="btn btn-outline btn-sm" onclick="toggleAtivoTipo('${t.id}', ${!t.ativo})">${t.ativo ? 'Desativar' : 'Ativar'}</button>
+    </div>`).join('');
+}
+
+document.getElementById('btn-add-tipo').addEventListener('click', async () => {
+  const input = document.getElementById('novo-tipo-nome');
+  const nome = input.value.trim();
+  if (!nome) return;
+  const { error } = await supabase.from('tipos_carga').insert({ nome });
+  if (error) { toast('Erro ao adicionar tipo (talvez já exista)', 'error'); return; }
+  input.value = '';
+  await carregarTipos();
+  renderTiposManageList();
+  if (currentClienteId) await renderTipos();
+  toast('Tipo de carga adicionado!');
+});
+
+window.renomearTipo = async function (id, novoNome) {
+  novoNome = novoNome.trim();
+  if (!novoNome) return;
+  const { error } = await supabase.from('tipos_carga').update({ nome: novoNome }).eq('id', id);
+  if (error) { toast('Erro ao renomear tipo', 'error'); return; }
+  await carregarTipos();
+  if (currentClienteId) await renderTipos();
+};
+
+window.toggleAtivoTipo = async function (id, ativo) {
+  await supabase.from('tipos_carga').update({ ativo }).eq('id', id);
+  await carregarTipos();
+  renderTiposManageList();
+  if (currentClienteId) await renderTipos();
+};
+
+// ── ESTUDOS ──
+async function renderEstudos() {
+  const { data } = await supabase.from('estudos_carga')
+    .select('*').eq('cliente_id', currentClienteId).eq('tipo_carga_id', currentTipoId)
+    .order('data', { ascending: false });
+  estudosAtuais = data || [];
+  document.getElementById('estudos-count').textContent = `${estudosAtuais.length} estudo${estudosAtuais.length === 1 ? '' : 's'} registrado${estudosAtuais.length === 1 ? '' : 's'}`;
+
+  const list = document.getElementById('estudos-list');
+  if (!estudosAtuais.length) {
+    list.innerHTML = `<div class="empty"><div class="ico-empty">📋</div><h3>Nenhum estudo registrado</h3><p>Clique em "+ Novo Estudo" para registrar a primeira inspeção</p></div>`;
+    return;
+  }
+  list.innerHTML = estudosAtuais.map(e => {
+    const thumb = (e.fotos || [])[0];
+    const badgeClass = e.avaliacao === 'aprovada' ? 'badge-green' : 'badge-red';
+    const badgeLabel = e.avaliacao === 'aprovada' ? '✅ Aprovada' : '❌ Reprovada';
+    return `
+    <div class="estudo-card" onclick="abrirModalEditarEstudo('${e.id}')">
+      ${thumb ? `<img class="es-thumb" src="${publicUrl(thumb.path)}" alt="">` : `<div class="es-thumb-empty">📷</div>`}
+      <div class="es-body">
+        <div class="es-top"><span class="es-date">${dataBR(e.data)}</span><span class="badge ${badgeClass}">${badgeLabel}</span></div>
+        <div class="es-obs">${esc(e.observacoes || 'Sem observações')}</div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+// ── MODAL ESTUDO (criar/editar) ──
+window.abrirModalNovoEstudo = function () {
+  estudoIdEmEdicao = crypto.randomUUID();
+  estudoEditandoId = null;
+  fotos = [];
+  fotosUploadedThisSession = [];
+  document.getElementById('modal-estudo-title').textContent = 'Novo Estudo';
+  document.getElementById('form-estudo').reset();
+  document.querySelector('#form-estudo [name="data"]').value = new Date().toISOString().split('T')[0];
+  document.getElementById('btn-excluir-estudo').style.display = 'none';
+  const isAdmin = perfil?.role === 'admin';
+  document.getElementById('btn-salvar-estudo').style.display = isAdmin ? '' : 'none';
+  modalReadOnly = !isAdmin;
+  setFormEstudoReadOnly(!isAdmin);
+  renderFotoGrid();
+  abrirModal('modal-estudo');
+};
+
+window.abrirModalEditarEstudo = function (id) {
+  const e = estudosAtuais.find(x => x.id === id);
+  if (!e) return;
+  estudoIdEmEdicao = e.id;
+  estudoEditandoId = e.id;
+  fotos = (e.fotos || []).map(f => ({ path: f.path, legenda: f.legenda, previewUrl: publicUrl(f.path), uploading: false }));
+  fotosUploadedThisSession = [];
+  document.getElementById('modal-estudo-title').textContent = 'Estudo de Carga';
+  const f = document.getElementById('form-estudo');
+  f.reset();
+  f.querySelector('[name="data"]').value = e.data;
+  f.querySelector('[name="avaliacao"]').value = e.avaliacao;
+  f.querySelector('[name="observacoes"]').value = e.observacoes || '';
+  const isAdmin = perfil?.role === 'admin';
+  document.getElementById('btn-excluir-estudo').style.display = isAdmin ? '' : 'none';
+  document.getElementById('btn-salvar-estudo').style.display = isAdmin ? '' : 'none';
+  modalReadOnly = !isAdmin;
+  setFormEstudoReadOnly(!isAdmin);
+  renderFotoGrid();
+  abrirModal('modal-estudo');
+};
+
+function setFormEstudoReadOnly(readOnly) {
+  const f = document.getElementById('form-estudo');
+  f.querySelectorAll('input, select, textarea').forEach(el => { el.disabled = readOnly; });
+}
+
+window.fecharModalEstudo = async function () {
+  const paths = fotosUploadedThisSession.slice();
+  if (paths.length) await supabase.storage.from(BUCKET).remove(paths);
+  fotos = [];
+  fotosUploadedThisSession = [];
+};
+
+// ── FOTOS ──
+window.handleFotos = function (e) {
+  const files = Array.from(e.target.files);
+  files.forEach(file => {
+    const item = { path: null, legenda: '', previewUrl: URL.createObjectURL(file), uploading: true, removed: false };
+    fotos.push(item);
+    renderFotoGrid();
+    const path = `${estudoIdEmEdicao}/${Date.now()}-${slug(file.name)}`;
+    supabase.storage.from(BUCKET).upload(path, file).then(({ error }) => {
+      if (item.removed) {
+        if (!error) supabase.storage.from(BUCKET).remove([path]);
+        return;
+      }
+      if (error) { toast('Erro ao enviar foto', 'error'); fotos.splice(fotos.indexOf(item), 1); renderFotoGrid(); return; }
+      item.path = path;
+      item.uploading = false;
+      fotosUploadedThisSession.push(path);
+      renderFotoGrid();
+    });
+  });
+  e.target.value = '';
+};
+
+function renderFotoGrid() {
+  const grid = document.getElementById('foto-grid');
+  grid.innerHTML = fotos.map((f, i) => `
+    <div class="foto-item">
+      <img src="${f.previewUrl}" alt="" onclick="abrirZoom('${f.previewUrl}')">
+      ${f.uploading ? `<span class="foto-loading">enviando…</span>` : ''}
+      <div class="foto-leg">
+        ${modalReadOnly
+          ? `<div style="font-size:12px;padding:3px 0;color:var(--text)">${esc(f.legenda || 'Sem legenda')}</div>`
+          : `<input type="text" value="${esc(f.legenda)}" placeholder="Legenda da foto" oninput="fotos[${i}].legenda=this.value">
+             <span class="foto-remove" onclick="removeFoto(${i})">✕ remover</span>`}
+      </div>
+    </div>`).join('')
+  + (modalReadOnly ? '' : `<label class="foto-upload-btn" for="foto-input">
+      <span class="ico-big">📷</span><span>Adicionar fotos</span>
+    </label>`);
+}
+
+window.removeFoto = async function (i) {
+  const item = fotos[i];
+  item.removed = true;
+  if (item.path) {
+    await supabase.storage.from(BUCKET).remove([item.path]);
+    fotosUploadedThisSession = fotosUploadedThisSession.filter(p => p !== item.path);
+  }
+  fotos.splice(i, 1);
+  renderFotoGrid();
+};
+
+// ── SALVAR / EXCLUIR ESTUDO ──
+document.getElementById('btn-salvar-estudo').addEventListener('click', async () => {
+  const f = document.getElementById('form-estudo');
+  if (!f.checkValidity()) { f.reportValidity(); return; }
+  if (fotos.some(x => x.uploading)) { toast('Aguarde o envio das fotos terminar', 'error'); return; }
+
+  const fd = Object.fromEntries(new FormData(f));
+  const { data: { user } } = await supabase.auth.getUser();
+  const payload = {
+    cliente_id: currentClienteId,
+    tipo_carga_id: currentTipoId,
+    data: fd.data,
+    avaliacao: fd.avaliacao,
+    observacoes: fd.observacoes || null,
+    fotos: fotos.map(x => ({ path: x.path, legenda: x.legenda })),
+    criado_por: user.id,
+  };
+
+  let error;
+  if (estudoEditandoId) {
+    ({ error } = await supabase.from('estudos_carga').update(payload).eq('id', estudoEditandoId));
+  } else {
+    ({ error } = await supabase.from('estudos_carga').insert({ id: estudoIdEmEdicao, ...payload }));
+  }
+  if (error) { toast('Erro ao salvar estudo', 'error'); return; }
+
+  toast('Estudo salvo!');
+  fotosUploadedThisSession = [];
+  fecharModal('modal-estudo');
+  await renderEstudos();
+  await renderTipos();
+});
+
+window.excluirEstudo = async function () {
+  if (!estudoEditandoId) return;
+  if (!confirm('Excluir este estudo? As fotos também serão removidas.')) return;
+  const e = estudosAtuais.find(x => x.id === estudoEditandoId);
+  const paths = (e?.fotos || []).map(f => f.path).filter(Boolean);
+  if (paths.length) await supabase.storage.from(BUCKET).remove(paths);
+  await supabase.from('estudos_carga').delete().eq('id', estudoEditandoId);
+  toast('Estudo excluído!');
+  fotosUploadedThisSession = [];
+  fecharModal('modal-estudo');
+  await renderEstudos();
+  await renderTipos();
+};
+
+// ── ZOOM DE FOTO ──
+window.abrirZoom = function (src) {
+  document.getElementById('zoom-img').src = src;
+  document.getElementById('zoom-backdrop').classList.add('open');
+};
+window.fecharZoom = function () {
+  document.getElementById('zoom-backdrop').classList.remove('open');
+};
+
+// ── MODAIS: fechar ao clicar fora / botão fechar ──
+document.querySelectorAll('[data-close]').forEach(btn => btn.addEventListener('click', () => fecharModal(btn.dataset.close)));
+document.querySelectorAll('.modal-backdrop').forEach(m => m.addEventListener('click', e => { if (e.target === m) fecharModal(m.id); }));
+
+// ── INIT ──
+async function init() {
+  perfil = await getPerfilUsuario();
+  await Promise.all([carregarClientes(), carregarTipos()]);
+  renderClientes();
+}
+
+await init();
+</script>
+</body>
+</html>
