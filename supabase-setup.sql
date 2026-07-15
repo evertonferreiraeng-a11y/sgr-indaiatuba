@@ -133,18 +133,6 @@ CREATE TABLE IF NOT EXISTS public.vendas (
   criado_em   TIMESTAMPTZ DEFAULT NOW()
 );
 
--- 12. FINANCEIRO LANÇAMENTOS
-CREATE TABLE IF NOT EXISTS public.financeiro_lancamentos (
-  id         UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  tipo       TEXT NOT NULL CHECK (tipo IN ('receita', 'despesa')),
-  categoria  TEXT NOT NULL,
-  descricao  TEXT,
-  valor      NUMERIC NOT NULL,
-  data       DATE NOT NULL,
-  criado_por UUID REFERENCES public.profiles(id),
-  criado_em  TIMESTAMPTZ DEFAULT NOW()
-);
-
 -- 13. RH OCORRÊNCIAS
 CREATE TABLE IF NOT EXISTS public.rh_ocorrencias (
   id              UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -179,7 +167,6 @@ ALTER TABLE public.entradas               ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.producao               ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.estoque_movimentacoes  ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.vendas                 ENABLE ROW LEVEL SECURITY;
-ALTER TABLE public.financeiro_lancamentos ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.rh_ocorrencias         ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.metas                  ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.configuracoes          ENABLE ROW LEVEL SECURITY;
@@ -191,7 +178,7 @@ BEGIN
   FOR t IN SELECT unnest(ARRAY[
     'profiles','fornecedores','materiais','equipamentos','clientes',
     'colaboradores','entradas','producao','estoque_movimentacoes',
-    'vendas','financeiro_lancamentos','rh_ocorrencias','metas','configuracoes'
+    'vendas','rh_ocorrencias','metas','configuracoes'
   ]) LOOP
     EXECUTE format(
       'DROP POLICY IF EXISTS "leitura_autenticado" ON public.%I; '||
@@ -208,7 +195,7 @@ BEGIN
   FOR t IN SELECT unnest(ARRAY[
     'fornecedores','materiais','equipamentos','clientes',
     'colaboradores','entradas','producao','estoque_movimentacoes',
-    'vendas','financeiro_lancamentos','rh_ocorrencias','metas','configuracoes'
+    'vendas','rh_ocorrencias','metas','configuracoes'
   ]) LOOP
     EXECUTE format(
       'DROP POLICY IF EXISTS "escrita_admin" ON public.%I; '||
