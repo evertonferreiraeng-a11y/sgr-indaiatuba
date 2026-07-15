@@ -653,10 +653,6 @@ document.getElementById('btn-salvar-venda').addEventListener('click', async () =
       material_id:payload.material_id, tipo:'saida', peso_kg:pk,
       origem_tipo:'venda', origem_id:nova.id, data:payload.data,
     });
-    await supabase.from('financeiro').insert({
-      tipo:'receita', descricao:`Venda — ${nova.id}`,
-      valor:payload.valor_total, data:payload.data, referencia_tipo:'venda', referencia_id:nova.id,
-    });
     toast('Venda registrada!');
   }
   fecharModal('modal-venda');
