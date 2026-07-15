@@ -53,7 +53,6 @@ sgr-indaiatuba/
 ├── producao.html       # Processamento + equipamentos + materiais
 ├── estoque.html        # Saldo e histórico de movimentações
 ├── comercial.html      # Vendas + clientes
-├── financeiro.html     # Fluxo de caixa + lançamentos
 ├── rh.html             # Colaboradores + ocorrências
 ├── css/
 │   └── style.css
@@ -69,10 +68,10 @@ sgr-indaiatuba/
 |---|---|
 | Salvar entrada | INSERT em `estoque_movimentacoes` (tipo: entrada, origem: entrada) |
 | Salvar produção | INSERT em `estoque_movimentacoes` (tipo: entrada, origem: producao) |
-| Salvar venda | INSERT em `estoque_movimentacoes` (tipo: saida) + INSERT em `financeiro_lancamentos` (receita) |
+| Salvar venda | INSERT em `estoque_movimentacoes` (tipo: saida) |
 | Editar entrada/produção/venda | DELETE + re-INSERT nas movimentações relacionadas |
 | Excluir entrada/produção | DELETE em `estoque_movimentacoes` onde `origem_id = id` |
-| Excluir venda | Reverte estoque + reverte lançamento financeiro |
+| Excluir venda | Reverte estoque |
 
 ## 8. Cadastrar metas
 
