@@ -226,7 +226,7 @@ async function carregar() {
   const [ents, vends, mats, equipamentos, colaboradores, avaliacoes, ocorrencias, producoes, metas, vendsAno, cargosAll, presencaHoje] = await Promise.all([
     fetchAll('entradas', 'peso_liquido, peso_liquido_descontos, tipo_movimentacao, tipo_material, data', [['gte','data',inicio],['lte','data',fim]]),
     fetchAll('vendas', 'peso_kg, valor_total, data, clientes(nome)', [['gte','data',inicio],['lte','data',fim]]),
-    fetchAll('materiais', 'nome, estoque_kg, valor_unitario, no_estoque', [['eq','no_estoque',true]]),
+    fetchAll('materiais', 'nome, estoque_kg, valor_unitario, no_estoque, observacao', [['eq','no_estoque',true]]),
     fetchAll('equipamentos', 'id, nome, frota, status, capacidade_pct, descricao, funcao', []),
     fetchAll('colaboradores', '*, cargos(nome, vagas)', []),
     fetchAll('colaborador_avaliacoes', '*', []),
@@ -732,6 +732,7 @@ async function carregar() {
           <th style="text-align:right">% do total</th>
           <th style="text-align:right">Valor estimado</th>
           <th style="min-width:100px">Distribuição</th>
+          <th>Observação</th>
         </tr></thead>
         <tbody>
           ${matsEstoque.map(m=>{
@@ -743,6 +744,7 @@ async function carregar() {
               <td style="text-align:right">${pctM.toFixed(1)}%</td>
               <td style="text-align:right">${valM>0?moeda(valM):'—'}</td>
               <td><div style="background:#e2e8f0;border-radius:4px;height:7px;overflow:hidden"><div style="background:#2563eb;height:100%;width:${pctM}%;border-radius:4px"></div></div></td>
+              <td style="color:#475569;font-size:12px">${m.observacao || '—'}</td>
             </tr>`;
           }).join('')}
         </tbody>
