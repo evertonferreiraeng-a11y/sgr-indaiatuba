@@ -215,7 +215,10 @@ body{font-family:'Segoe UI',Arial,sans-serif;background:var(--bg);color:var(--tx
 <div id="pg-clients" class="page active">
   <div class="page-header">
     <div><h2>Não Conformidade</h2><p>Selecione um cliente para ver ou registrar não conformidades</p></div>
-    <button class="btn btn-primary" onclick="openNewClientModal()">+ Novo Cliente</button>
+    <div style="display:flex;gap:10px;flex-wrap:wrap">
+      <button class="btn btn-ghost" onclick="otimizarArmazenamento()" title="Recompacta fotos grandes já salvas para liberar espaço">🧹 Liberar espaço</button>
+      <button class="btn btn-primary" onclick="openNewClientModal()">+ Novo Cliente</button>
+    </div>
   </div>
   <div class="search-bar">
     <span class="sico">🔍</span>
@@ -444,6 +447,28 @@ function saveClients(d){localStorage.setItem(LS_CLIENTS,JSON.stringify(d))}
 function getRNCs(){return JSON.parse(localStorage.getItem(LS_RNCS)||'[]')}
 function saveRNCs(d){try{localStorage.setItem(LS_RNCS,JSON.stringify(d));return true}catch(e){return false}}
 function uid(){return Date.now().toString(36)+Math.random().toString(36).slice(2,6)}
+
+async function otimizarArmazenamento(){
+  const rncs=getRNCs();
+  const before=JSON.stringify(rncs).length;
+  let changed=0;
+  for(const r of rncs){
+    if(!r.fotos) continue;
+    for(let i=0;i<r.fotos.length;i++){
+      const f=r.fotos[i];
+      if(f.base64 && f.base64.length>200000){
+        try{ f.base64=await compressImage(f.base64,1280,0.6); changed++; }catch(e){}
+      }
+    }
+  }
+  if(changed===0){ toast('Nenhuma foto grande encontrada. O espaço já está otimizado.'); return; }
+  const after=JSON.stringify(rncs).length;
+  const ok=saveRNCs(rncs);
+  if(!ok){ toast('Não foi possível liberar espaço suficiente. Considere excluir fotos ou RNCs antigas.'); return; }
+  const freedKB=Math.round((before-after)/1024);
+  toast(`Espaço liberado: ${freedKB}KB (${changed} foto(s) otimizada(s)).`);
+  renderClients();
+}
 
 let currentClientId=null, currentRNCId=null, editingClientId=null, fotos=[], activeStatusFilter=null;
 
@@ -849,7 +874,7 @@ Object.assign(window, {
   openNewClientModal, openEditClientModal, salvarCliente, confirmDeleteClient,
   closeModal, openCombo, closeComboDelay, filterCombo, pickCombo, pickSuggest,
   handleFotos, removeFoto, renderClients, renderRNCs,
-  salvarRNC, gerarPDF, setStatusFilter
+  salvarRNC, gerarPDF, setStatusFilter, otimizarArmazenamento
 });
 
 // ── INIT ──
