@@ -733,13 +733,14 @@ function salvarRNC(){
     recebedor:document.getElementById('f-recebedor').value.trim(),
     criadoEm:new Date().toISOString()
   };
-  if(currentRNCId){const i=rncs.findIndex(r=>r.id===currentRNCId);if(i>=0)rncs[i]=data}
-  else{rncs.push(data);currentRNCId=data.id}
+  const i=rncs.findIndex(r=>r.id===data.id);
+  if(i>=0) rncs[i]=data; else rncs.push(data);
   const ok=saveRNCs(rncs) && getRNCs().some(r=>r.id===data.id);
   if(!ok){
     toast('Erro ao salvar! Espaço de armazenamento do navegador cheio (fotos grandes) ou modo anônimo/privado bloqueando o salvamento.');
     return;
   }
+  currentRNCId=data.id;
   document.getElementById('form-title').textContent='Editar RNC – '+codigo;
   document.getElementById('bc-rnc-form').textContent=codigo;
   document.getElementById('btn-pdf').style.display='';
