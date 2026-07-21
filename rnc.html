@@ -449,6 +449,52 @@ function getRNCs(){return JSON.parse(localStorage.getItem(LS_RNCS)||'[]')}
 function saveRNCs(d){try{localStorage.setItem(LS_RNCS,JSON.stringify(d));return true}catch(e){return false}}
 function uid(){return Date.now().toString(36)+Math.random().toString(36).slice(2,6)}
 
+// ── FOTOS: armazenadas no IndexedDB (suporta centenas de MB, ao contrário do localStorage) ──
+const IDB_NAME='rnc_fotos_db', IDB_STORE='fotos';
+function openFotosDB(){
+  return new Promise((resolve,reject)=>{
+    const req=indexedDB.open(IDB_NAME,1);
+    req.onupgradeneeded=()=>{ if(!req.result.objectStoreNames.contains(IDB_STORE)) req.result.createObjectStore(IDB_STORE); };
+    req.onsuccess=()=>resolve(req.result);
+    req.onerror=()=>reject(req.error);
+  });
+}
+async function idbGetFotos(rncId){
+  try{
+    const db=await openFotosDB();
+    return await new Promise((resolve,reject)=>{
+      const tx=db.transaction(IDB_STORE,'readonly');
+      const req=tx.objectStore(IDB_STORE).get(rncId);
+      req.onsuccess=()=>resolve(req.result||[]);
+      req.onerror=()=>reject(req.error);
+    });
+  }catch(e){ return []; }
+}
+async function idbSetFotos(rncId,fotosArr){
+  const db=await openFotosDB();
+  return new Promise((resolve,reject)=>{
+    const tx=db.transaction(IDB_STORE,'readwrite');
+    tx.objectStore(IDB_STORE).put(fotosArr,rncId);
+    tx.oncomplete=()=>resolve(true);
+    tx.onerror=()=>reject(tx.error);
+  });
+}
+async function idbDeleteFotos(rncId){
+  try{
+    const db=await openFotosDB();
+    return await new Promise((resolve,reject)=>{
+      const tx=db.transaction(IDB_STORE,'readwrite');
+      tx.objectStore(IDB_STORE).delete(rncId);
+      tx.oncomplete=()=>resolve(true);
+      tx.onerror=()=>reject(tx.error);
+    });
+  }catch(e){ return false; }
+}
+async function loadFotosFor(r){
+  if(r.fotos) return r.fotos; // RNC antiga (formato legado, fotos ainda no localStorage)
+  return await idbGetFotos(r.id);
+}
+
 function diagnosticarArmazenamento(){
   const testKey='__rnc_diag__';
   const sizesKB=[1,10,50,100,250,500,1000,2000,5000];
@@ -488,23 +534,30 @@ async function otimizarArmazenamento(){
   }
   const rncs=getRNCs();
   const before=JSON.stringify(rncs).length;
-  let changed=0;
+  let migrated=0, compressed=0;
   for(const r of rncs){
-    if(!r.fotos) continue;
-    for(let i=0;i<r.fotos.length;i++){
-      const f=r.fotos[i];
+    if(!r.fotos) continue; // só RNCs antigas ainda têm fotos embutidas aqui
+    const arr=r.fotos;
+    for(let i=0;i<arr.length;i++){
+      const f=arr[i];
       if(f.base64 && f.base64.length>200000){
-        try{ f.base64=await compressImage(f.base64,1280,0.6); changed++; }catch(e){}
+        try{ f.base64=await compressImage(f.base64,1280,0.6); compressed++; }catch(e){}
       }
     }
+    try{
+      await idbSetFotos(r.id,arr);
+      r.fotoCount=arr.length;
+      delete r.fotos;
+      migrated++;
+    }catch(e){}
   }
   const after=JSON.stringify(rncs).length;
   const afterKB=Math.round(after/1024);
-  if(changed===0){ toast(`Nenhuma foto grande encontrada (uso atual: ${afterKB}KB). O espaço já está otimizado.`); return; }
+  if(migrated===0){ toast(`Nenhuma foto para otimizar (uso do localStorage: ${afterKB}KB). Já está no formato mais eficiente.`); return; }
   const ok=saveRNCs(rncs);
-  if(!ok){ toast(`Mesmo após otimizar, ainda ocupa ${afterKB}KB e não coube no armazenamento. Exclua fotos ou RNCs antigas para liberar mais espaço.`); return; }
+  if(!ok){ toast('Não foi possível salvar após otimizar. Tente novamente.'); return; }
   const freedKB=Math.round((before-after)/1024);
-  toast(`Espaço liberado: ${freedKB}KB (${changed} foto(s) otimizada(s)). Uso atual: ${afterKB}KB.`);
+  toast(`Espaço liberado: ${freedKB}KB. ${migrated} RNC(s) com fotos movidas para um armazenamento maior (${compressed} foto(s) compactada(s)).`);
   renderClients();
 }
 
@@ -531,10 +584,10 @@ function goNewRNC(){
   document.getElementById('f-codigo').value='RNC'+String(n).padStart(3,'0');
   showPage('pg-rnc-form');
 }
-function goEditRNC(id){
+async function goEditRNC(id){
   currentRNCId=id;
   const r=getRNCs().find(x=>x.id===id); if(!r) return;
-  fotos=(r.fotos||[]).map(f=>({...f}));
+  fotos=(await loadFotosFor(r)).map(f=>({...f}));
   document.getElementById('form-title').textContent='Editar RNC – '+r.codigo;
   document.getElementById('bc-rnc-form').textContent=r.codigo;
   document.getElementById('btn-pdf').style.display='';
@@ -630,6 +683,7 @@ function renderRNCs(){
     const ncB=r.tipoNC==='Potencial'?'badge-potencial':'badge-real';
     const acB=r.tipoAcao==='Preventiva'?'badge-preventiva':'badge-corretiva';
     const st=r.status||'pendente';
+    const fcount=r.fotoCount??(r.fotos?r.fotos.length:0);
     return `<div class="rnc-item" onclick="goEditRNC('${r.id}')">
       <div class="ri-status ris-${st}"></div>
       <span class="ri-code">${esc(r.codigo||'—')}</span>
@@ -639,7 +693,7 @@ function renderRNCs(){
           <span class="badge ${ncB}">${esc(r.tipoNC||'Real')}</span>
           <span class="badge ${acB}">${esc(r.tipoAcao||'Corretiva')}</span>
         </div>
-        <div class="ri-sub">${esc((r.detalhamento||'').slice(0,90))}${(r.detalhamento||'').length>90?'…':''} · ${(r.fotos||[]).length} foto${(r.fotos||[]).length!==1?'s':''}</div>
+        <div class="ri-sub">${esc((r.detalhamento||'').slice(0,90))}${(r.detalhamento||'').length>90?'…':''} · ${fcount} foto${fcount!==1?'s':''}</div>
       </div>
       <div class="ri-date">${fmtDate(r.data)}</div>
     </div>`;
@@ -709,13 +763,14 @@ function filterCombo(v){
 }
 
 // ── SAVE RNC ──
-function salvarRNC(){
+async function salvarRNC(){
   const codigo=document.getElementById('f-codigo').value.trim();
   const residuo=document.getElementById('f-residuo').value.trim();
   if(!codigo){toast('Informe o Código RNC');return}
   if(!residuo){toast('Informe o Resíduo');return}
   const client=getClients().find(c=>c.id===currentClientId);
   const rncs=getRNCs();
+  const fotosSnapshot=fotos.map(f=>({...f}));
   const data={
     id:currentRNCId||uid(), clienteId:currentClientId, clienteNome:client?.nome||'',
     codigo, data:document.getElementById('f-data').value,
@@ -723,7 +778,7 @@ function salvarRNC(){
     detalhamento:document.getElementById('f-detalhe').value.trim(),
     tipoNC:document.getElementById('f-tipo-nc').value,
     causaNC:document.getElementById('f-causa').value.trim(),
-    fotos:fotos.map(f=>({...f})),
+    fotoCount:fotosSnapshot.length,
     tipoAcao:document.getElementById('f-tipo-acao').value,
     planoAcao:document.getElementById('f-plano').value.trim(),
     prazo:document.getElementById('f-prazo').value.trim(),
@@ -735,9 +790,11 @@ function salvarRNC(){
   };
   const i=rncs.findIndex(r=>r.id===data.id);
   if(i>=0) rncs[i]=data; else rncs.push(data);
-  const ok=saveRNCs(rncs) && getRNCs().some(r=>r.id===data.id);
+  let fotosOk=true;
+  try{ await idbSetFotos(data.id,fotosSnapshot); }catch(e){ fotosOk=false; }
+  const ok=fotosOk && saveRNCs(rncs) && getRNCs().some(r=>r.id===data.id);
   if(!ok){
-    toast('Erro ao salvar! Espaço de armazenamento do navegador cheio (fotos grandes) ou modo anônimo/privado bloqueando o salvamento.');
+    toast('Erro ao salvar! Espaço de armazenamento do navegador cheio ou modo anônimo/privado bloqueando o salvamento.');
     return;
   }
   currentRNCId=data.id;
@@ -807,12 +864,13 @@ function salvarCliente(){
 
 function confirmDeleteClient(){
   const c=getClients().find(x=>x.id===currentClientId);
-  const count=getRNCs().filter(r=>r.clienteId===currentClientId).length;
+  const affected=getRNCs().filter(r=>r.clienteId===currentClientId);
   document.getElementById('confirm-title').textContent='Excluir cliente';
-  document.getElementById('confirm-msg').textContent=`Excluir "${c?.nome}"? Isso removerá também ${count} RNC(s). Esta ação não pode ser desfeita.`;
+  document.getElementById('confirm-msg').textContent=`Excluir "${c?.nome}"? Isso removerá também ${affected.length} RNC(s). Esta ação não pode ser desfeita.`;
   document.getElementById('confirm-ok').onclick=()=>{
     saveClients(getClients().filter(c=>c.id!==currentClientId));
     saveRNCs(getRNCs().filter(r=>r.clienteId!==currentClientId));
+    affected.forEach(r=>idbDeleteFotos(r.id));
     closeModal('confirm-modal'); toast('Cliente excluído.'); goHome();
   };
   openModal('confirm-modal');
@@ -835,7 +893,7 @@ function esc(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').
 function fmtDate(v){return v?v.split('-').reverse().join('/'):'—'}
 
 // ── PDF ──
-function gerarPDF(){
+async function gerarPDF(){
   const r=getRNCs().find(x=>x.id===currentRNCId);
   if(!r){toast('Salve a RNC antes de exportar');return}
   const client=getClients().find(c=>c.id===r.clienteId);
@@ -870,7 +928,7 @@ function gerarPDF(){
     ${FOOTER}</div>`;
 
   // FOTO PAGES
-  const fts=r.fotos||[]; let fotoPgs='';
+  const fts=await loadFotosFor(r); let fotoPgs='';
   for(let i=0;i<fts.length;i+=6){
     const chunk=fts.slice(i,i+6), pairs=[];
     for(let j=0;j<chunk.length;j+=2) pairs.push(chunk.slice(j,j+2));
