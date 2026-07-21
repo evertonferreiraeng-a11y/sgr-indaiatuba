@@ -448,7 +448,20 @@ function getRNCs(){return JSON.parse(localStorage.getItem(LS_RNCS)||'[]')}
 function saveRNCs(d){try{localStorage.setItem(LS_RNCS,JSON.stringify(d));return true}catch(e){return false}}
 function uid(){return Date.now().toString(36)+Math.random().toString(36).slice(2,6)}
 
+function testStorageBasico(){
+  try{
+    const k='__rnc_test__'+Date.now();
+    localStorage.setItem(k,'1');
+    const ok=localStorage.getItem(k)==='1';
+    localStorage.removeItem(k);
+    return ok;
+  }catch(e){ return false; }
+}
 async function otimizarArmazenamento(){
+  if(!testStorageBasico()){
+    toast('O navegador está BLOQUEANDO o armazenamento local (não é falta de espaço). Verifique se está em aba anônima/privada, ou se "Dados de site"/cookies estão desativados para esta página, e tente em uma aba normal.');
+    return;
+  }
   const rncs=getRNCs();
   const before=JSON.stringify(rncs).length;
   let changed=0;
@@ -461,12 +474,13 @@ async function otimizarArmazenamento(){
       }
     }
   }
-  if(changed===0){ toast('Nenhuma foto grande encontrada. O espaço já está otimizado.'); return; }
   const after=JSON.stringify(rncs).length;
+  const afterKB=Math.round(after/1024);
+  if(changed===0){ toast(`Nenhuma foto grande encontrada (uso atual: ${afterKB}KB). O espaço já está otimizado.`); return; }
   const ok=saveRNCs(rncs);
-  if(!ok){ toast('Não foi possível liberar espaço suficiente. Considere excluir fotos ou RNCs antigas.'); return; }
+  if(!ok){ toast(`Mesmo após otimizar, ainda ocupa ${afterKB}KB e não coube no armazenamento. Exclua fotos ou RNCs antigas para liberar mais espaço.`); return; }
   const freedKB=Math.round((before-after)/1024);
-  toast(`Espaço liberado: ${freedKB}KB (${changed} foto(s) otimizada(s)).`);
+  toast(`Espaço liberado: ${freedKB}KB (${changed} foto(s) otimizada(s)). Uso atual: ${afterKB}KB.`);
   renderClients();
 }
 
