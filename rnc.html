@@ -217,6 +217,7 @@ body{font-family:'Segoe UI',Arial,sans-serif;background:var(--bg);color:var(--tx
     <div><h2>Não Conformidade</h2><p>Selecione um cliente para ver ou registrar não conformidades</p></div>
     <div style="display:flex;gap:10px;flex-wrap:wrap">
       <button class="btn btn-ghost" onclick="otimizarArmazenamento()" title="Recompacta fotos grandes já salvas para liberar espaço">🧹 Liberar espaço</button>
+      <button class="btn btn-ghost" onclick="diagnosticarArmazenamento()" title="Descobre quanto de armazenamento o navegador realmente permite">🔍 Diagnosticar</button>
       <button class="btn btn-primary" onclick="openNewClientModal()">+ Novo Cliente</button>
     </div>
   </div>
@@ -448,6 +449,29 @@ function getRNCs(){return JSON.parse(localStorage.getItem(LS_RNCS)||'[]')}
 function saveRNCs(d){try{localStorage.setItem(LS_RNCS,JSON.stringify(d));return true}catch(e){return false}}
 function uid(){return Date.now().toString(36)+Math.random().toString(36).slice(2,6)}
 
+function diagnosticarArmazenamento(){
+  const testKey='__rnc_diag__';
+  const sizesKB=[1,10,50,100,250,500,1000,2000,5000];
+  let maxOkKB=0, failedAtKB=null;
+  for(const kb of sizesKB){
+    try{
+      localStorage.setItem(testKey,'x'.repeat(kb*1024));
+      maxOkKB=kb;
+    }catch(e){ failedAtKB=kb; break; }
+  }
+  try{ localStorage.removeItem(testKey); }catch(e){}
+  let usedChars=0;
+  for(let i=0;i<localStorage.length;i++){
+    const k=localStorage.key(i);
+    usedChars+=(localStorage.getItem(k)||'').length;
+  }
+  const usedKB=Math.round(usedChars/1024);
+  const msg=failedAtKB!=null
+    ? `Este navegador só aceita até ~${maxOkKB}KB por gravação (falhou em ${failedAtKB}KB). Já em uso: ~${usedKB}KB. Isso é uma limitação do navegador/dispositivo, não do sistema.`
+    : `Este navegador aceita pelo menos ${maxOkKB}KB sem problema. Já em uso: ~${usedKB}KB.`;
+  toast(msg);
+  return msg;
+}
 function testStorageBasico(){
   try{
     const k='__rnc_test__'+Date.now();
@@ -888,7 +912,7 @@ Object.assign(window, {
   openNewClientModal, openEditClientModal, salvarCliente, confirmDeleteClient,
   closeModal, openCombo, closeComboDelay, filterCombo, pickCombo, pickSuggest,
   handleFotos, removeFoto, renderClients, renderRNCs,
-  salvarRNC, gerarPDF, setStatusFilter, otimizarArmazenamento
+  salvarRNC, gerarPDF, setStatusFilter, otimizarArmazenamento, diagnosticarArmazenamento
 });
 
 // ── INIT ──
