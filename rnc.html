@@ -442,7 +442,7 @@ const CLIENTES_PADRAO=[
 function getClients(){return JSON.parse(localStorage.getItem(LS_CLIENTS)||'[]')}
 function saveClients(d){localStorage.setItem(LS_CLIENTS,JSON.stringify(d))}
 function getRNCs(){return JSON.parse(localStorage.getItem(LS_RNCS)||'[]')}
-function saveRNCs(d){localStorage.setItem(LS_RNCS,JSON.stringify(d))}
+function saveRNCs(d){try{localStorage.setItem(LS_RNCS,JSON.stringify(d));return true}catch(e){return false}}
 function uid(){return Date.now().toString(36)+Math.random().toString(36).slice(2,6)}
 
 let currentClientId=null, currentRNCId=null, editingClientId=null, fotos=[], activeStatusFilter=null;
@@ -652,7 +652,11 @@ function salvarRNC(){
   };
   if(currentRNCId){const i=rncs.findIndex(r=>r.id===currentRNCId);if(i>=0)rncs[i]=data}
   else{rncs.push(data);currentRNCId=data.id}
-  saveRNCs(rncs);
+  const ok=saveRNCs(rncs) && getRNCs().some(r=>r.id===data.id);
+  if(!ok){
+    toast('Erro ao salvar! Espaço de armazenamento do navegador cheio (fotos grandes) ou modo anônimo/privado bloqueando o salvamento.');
+    return;
+  }
   document.getElementById('form-title').textContent='Editar RNC – '+codigo;
   document.getElementById('bc-rnc-form').textContent=codigo;
   document.getElementById('btn-pdf').style.display='';
