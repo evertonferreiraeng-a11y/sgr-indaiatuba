@@ -7,6 +7,14 @@
   <link rel="stylesheet" href="css/style.css" />
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4/dist/chart.umd.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+  <style>
+    .com-tabs{display:flex;gap:0;border-bottom:2px solid var(--border);margin-bottom:20px}
+    .com-tab{padding:10px 28px;font-size:14px;font-weight:600;cursor:pointer;border-bottom:3px solid transparent;margin-bottom:-2px;color:var(--text-muted);transition:.15s;background:none;border-top:none;border-left:none;border-right:none}
+    .com-tab.active{color:var(--primary);border-bottom-color:var(--primary)}
+    .com-tab:hover:not(.active){color:var(--text)}
+    .tab-pane{display:none}.tab-pane.active{display:block}
+    .rank-medal{font-size:14px}
+  </style>
 </head>
 <body>
 <div class="app-layout">
@@ -21,6 +29,15 @@
       </div>
     </div>
     <div class="page-body">
+
+      <!-- TABS -->
+      <div class="com-tabs">
+        <button class="com-tab active" data-tab="vendas">📋 Vendas</button>
+        <button class="com-tab" data-tab="analises">📊 Análises Comerciais</button>
+      </div>
+
+      <!-- ══ TAB: VENDAS ══ -->
+      <div class="tab-pane active" id="tab-vendas">
 
       <!-- KPIs -->
       <div class="kpi-grid" style="grid-template-columns:repeat(3,minmax(0,220px))">
@@ -181,6 +198,129 @@
           </table>
         </div>
       </div>
+      </div>
+      <!-- ══ FIM TAB: VENDAS ══ -->
+
+      <!-- ══ TAB: ANÁLISES COMERCIAIS ══ -->
+      <div class="tab-pane" id="tab-analises">
+
+        <!-- Filtros -->
+        <div class="card mb-16" style="padding:16px">
+          <div class="filters-row" style="flex-wrap:wrap;gap:10px">
+            <div class="form-group">
+              <label>Período</label>
+              <select id="an-tipo-periodo" style="min-width:130px">
+                <option value="ano">Ano</option>
+                <option value="mes">Mês</option>
+                <option value="personalizado">Personalizado</option>
+              </select>
+            </div>
+            <div class="form-group" id="an-grp-ano"><label>Ano</label><select id="an-ano"></select></div>
+            <div class="form-group" id="an-grp-mes" style="display:none"><label>Mês</label><input type="month" id="an-mes" /></div>
+            <div id="an-grp-custom" style="display:none;gap:8px;align-items:flex-end;flex-wrap:wrap">
+              <div class="form-group"><label>De</label><input type="date" id="an-de" /></div>
+              <div class="form-group"><label>Até</label><input type="date" id="an-ate" /></div>
+            </div>
+            <div class="form-group"><label>Cliente</label><select id="an-cliente"><option value="">Todos</option></select></div>
+            <div class="form-group"><label>Material</label><select id="an-material"><option value="">Todos</option></select></div>
+            <div class="form-group" style="justify-content:flex-end"><label>&nbsp;</label>
+              <button class="btn btn-primary" id="btn-an-filtrar">Aplicar Filtros</button>
+            </div>
+            <div class="form-group" style="justify-content:flex-end"><label>&nbsp;</label>
+              <button class="btn btn-outline" id="btn-an-exportar">⬇ Exportar Excel</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- KPIs -->
+        <div class="kpi-grid mb-16" style="grid-template-columns:repeat(auto-fill,minmax(170px,1fr))">
+          <div class="kpi-card"><div class="kpi-label">Faturamento</div><div class="kpi-value" id="an-kpi-fat">—</div></div>
+          <div class="kpi-card"><div class="kpi-label">Volume</div><div class="kpi-value" id="an-kpi-vol">—</div></div>
+          <div class="kpi-card"><div class="kpi-label">Ticket Médio</div><div class="kpi-value" id="an-kpi-ticket">—</div><div class="kpi-sub">por tonelada</div></div>
+          <div class="kpi-card"><div class="kpi-label">Nº de Vendas</div><div class="kpi-value" id="an-kpi-vendas">—</div></div>
+          <div class="kpi-card"><div class="kpi-label">Clientes Ativos</div><div class="kpi-value" id="an-kpi-clientes">—</div></div>
+          <div class="kpi-card"><div class="kpi-label">Materiais Movimentados</div><div class="kpi-value" id="an-kpi-materiais">—</div></div>
+          <div class="kpi-card"><div class="kpi-label">Maior Cliente</div><div class="kpi-value" id="an-kpi-top-cliente" style="font-size:15px">—</div><div class="kpi-sub" id="an-kpi-top-cliente-pct"></div></div>
+          <div class="kpi-card"><div class="kpi-label">Concentração Top 5</div><div class="kpi-value" id="an-kpi-concentracao">—</div><div class="kpi-sub">% do faturamento</div></div>
+        </div>
+
+        <!-- Rankings -->
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px">
+          <div class="card" style="padding:16px">
+            <h4 style="margin-bottom:8px">🏆 Ranking de Clientes (Top 10)</h4>
+            <div style="height:280px;position:relative"><canvas id="chart-rank-clientes"></canvas></div>
+          </div>
+          <div class="card" style="padding:16px">
+            <h4 style="margin-bottom:8px">🏆 Ranking de Materiais (Top 10)</h4>
+            <div style="height:280px;position:relative"><canvas id="chart-rank-materiais"></canvas></div>
+          </div>
+        </div>
+
+        <!-- Distribuição / Evolução -->
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px">
+          <div class="card" style="padding:16px">
+            <h4 style="margin-bottom:8px">📦 Distribuição do Faturamento por Material</h4>
+            <div style="height:260px;position:relative"><canvas id="chart-dist-material"></canvas></div>
+          </div>
+          <div class="card" style="padding:16px">
+            <h4 style="margin-bottom:8px">📈 Evolução do Ticket Médio Mensal</h4>
+            <div style="height:260px;position:relative"><canvas id="chart-evol-ticket"></canvas></div>
+          </div>
+        </div>
+
+        <!-- Tabela: Detalhamento por Cliente -->
+        <div class="table-card mb-16">
+          <div class="table-card-header">
+            <h3>Detalhamento por Cliente</h3>
+            <span id="an-cli-total" class="text-muted" style="font-size:12px"></span>
+          </div>
+          <div class="table-scroll">
+            <table style="font-size:12px">
+              <thead>
+                <tr>
+                  <th>#</th>
+                  <th>Cliente</th>
+                  <th class="text-right">Nº Vendas</th>
+                  <th class="text-right">Volume (ton)</th>
+                  <th class="text-right">Faturamento</th>
+                  <th class="text-right">% Participação</th>
+                  <th class="text-right">Ticket Médio</th>
+                  <th>Material Principal</th>
+                </tr>
+              </thead>
+              <tbody id="tb-an-clientes"></tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- Tabela: Detalhamento por Material -->
+        <div class="table-card">
+          <div class="table-card-header">
+            <h3>Detalhamento por Material</h3>
+            <span id="an-mat-total" class="text-muted" style="font-size:12px"></span>
+          </div>
+          <div class="table-scroll">
+            <table style="font-size:12px">
+              <thead>
+                <tr>
+                  <th>#</th>
+                  <th>Material</th>
+                  <th class="text-right">Nº Vendas</th>
+                  <th class="text-right">Volume (ton)</th>
+                  <th class="text-right">Faturamento</th>
+                  <th class="text-right">% Participação</th>
+                  <th class="text-right">Preço Médio/ton</th>
+                  <th>Principal Cliente</th>
+                </tr>
+              </thead>
+              <tbody id="tb-an-materiais"></tbody>
+            </table>
+          </div>
+        </div>
+
+      </div>
+      <!-- ══ FIM TAB: ANÁLISES COMERCIAIS ══ -->
+
     </div>
   </div>
 </div>
@@ -229,6 +369,20 @@ await initPage();
 let perfil, vendaData = [], clienteData = [], matData = [], colunasVendas = new Set();
 let chartClientes = null, chartEvolucao = null;
 
+// ── TABS ─────────────────────────────────────────────────────────────────────
+document.querySelectorAll('.com-tab').forEach(tab => {
+  tab.addEventListener('click', () => {
+    document.querySelectorAll('.com-tab').forEach(t => t.classList.remove('active'));
+    document.querySelectorAll('.tab-pane').forEach(p => p.classList.remove('active'));
+    tab.classList.add('active');
+    document.getElementById('tab-' + tab.dataset.tab).classList.add('active');
+    const isAnalises = tab.dataset.tab === 'analises';
+    document.getElementById('btn-nova-venda').style.display = isAnalises ? 'none' : '';
+    document.getElementById('btn-importar-excel').style.display = isAnalises ? 'none' : '';
+    if (isAnalises) carregarAnalises();
+  });
+});
+
 document.getElementById('f-mes').value = mesAtual();
 
 // ── auto-calc ─────────────────────────────────────────────────────────────────
@@ -267,6 +421,13 @@ async function init() {
   document.querySelector('#form-venda [name="cliente_id"]').innerHTML = '<option value="">Selecione…</option>' + cliOpts;
   document.querySelector('#form-venda [name="material_id"]').innerHTML = '<option value="">Selecione…</option>' + matOpts;
   document.getElementById('f-mat').innerHTML = '<option value="">Todos</option>' + matOpts;
+
+  document.getElementById('an-cliente').innerHTML  = '<option value="">Todos</option>' + cliOpts;
+  document.getElementById('an-material').innerHTML = '<option value="">Todos</option>' + matOpts;
+  const anoN = anoAtual();
+  document.getElementById('an-ano').innerHTML = Array.from({length:5}, (_,i)=>anoN-i)
+    .map(y=>`<option value="${y}"${y===anoN?' selected':''}>${y}</option>`).join('');
+  document.getElementById('an-mes').value = mesAtual();
 
   await Promise.all([carregar(), carregarGraficos()]);
 }
@@ -842,6 +1003,303 @@ document.getElementById('input-excel').addEventListener('change', async e => {
     toast(`Importação concluída: ${ok} registros salvos.`);
   }
   await carregar();
+});
+
+// ── Análises Comerciais ──────────────────────────────────────────────────────
+const PALETA = ['#2a78d6','#008300','#e87ba4','#eda100','#1baf7a','#eb6834','#4a3aa7','#e34948'];
+let anaData = [];
+let chartRankClientes = null, chartRankMateriais = null, chartDistMaterial = null, chartEvolTicket = null;
+
+document.getElementById('an-tipo-periodo').addEventListener('change', function() {
+  const v = this.value;
+  document.getElementById('an-grp-ano').style.display    = v === 'ano' ? '' : 'none';
+  document.getElementById('an-grp-mes').style.display    = v === 'mes' ? '' : 'none';
+  document.getElementById('an-grp-custom').style.display = v === 'personalizado' ? 'flex' : 'none';
+});
+
+function anaPeriodoRange() {
+  const tipo = document.getElementById('an-tipo-periodo').value;
+  if (tipo === 'mes') {
+    const mes = document.getElementById('an-mes').value || mesAtual();
+    return periodoRange(mes);
+  }
+  if (tipo === 'personalizado') {
+    return { ini: document.getElementById('an-de').value, fim: document.getElementById('an-ate').value };
+  }
+  const ano = document.getElementById('an-ano').value || anoAtual();
+  return { ini: `${ano}-01-01`, fim: `${ano}-12-31` };
+}
+
+async function carregarAnalises() {
+  const { ini, fim } = anaPeriodoRange();
+  if (!ini || !fim) { toast('Selecione o período De e Até.', 'error'); return; }
+
+  const cli = document.getElementById('an-cliente').value;
+  const mat = document.getElementById('an-material').value;
+
+  let q = supabase.from('vendas')
+    .select('*, clientes(nome), materiais(nome)')
+    .gte('data', ini).lte('data', fim)
+    .order('data');
+  if (cli) q = q.eq('cliente_id', cli);
+  if (mat) q = q.eq('material_id', mat);
+
+  const { data } = await q;
+  anaData = data || [];
+
+  renderAnaKPIs();
+  renderRankClientes();
+  renderRankMateriais();
+  renderDistMaterial();
+  renderEvolTicket();
+  renderTabelaAnaClientes();
+  renderTabelaAnaMateriais();
+}
+
+function anaAgrupar(rows, keyFn) {
+  const map = {};
+  rows.forEach(r => {
+    const key = keyFn(r);
+    if (!map[key]) map[key] = { vendas: 0, vol: 0, fat: 0 };
+    map[key].vendas += 1;
+    map[key].vol += parseFloat(r.peso_kg || 0);
+    map[key].fat += parseFloat(r.valor_total || 0);
+  });
+  return map;
+}
+
+function anaTopN(map, n = 10) {
+  return Object.entries(map).sort((a, b) => b[1].fat - a[1].fat).slice(0, n);
+}
+
+function renderAnaKPIs() {
+  const fat = anaData.reduce((s, r) => s + (r.valor_total || 0), 0);
+  const vol = anaData.reduce((s, r) => s + (r.peso_kg || 0), 0);
+  const clientesUnicos  = new Set(anaData.map(r => r.cliente_id).filter(Boolean));
+  const materiaisUnicos = new Set(anaData.map(r => r.material_id).filter(Boolean));
+
+  document.getElementById('an-kpi-fat').textContent      = moeda(fat);
+  document.getElementById('an-kpi-vol').textContent      = ton(vol);
+  document.getElementById('an-kpi-ticket').textContent   = vol > 0 ? moeda(fat / (vol / 1000)) : '—';
+  document.getElementById('an-kpi-vendas').textContent    = anaData.length;
+  document.getElementById('an-kpi-clientes').textContent  = clientesUnicos.size;
+  document.getElementById('an-kpi-materiais').textContent = materiaisUnicos.size;
+
+  const porCliente = anaAgrupar(anaData, r => r.clientes?.nome || 'Desconhecido');
+  const ranked = Object.entries(porCliente).sort((a, b) => b[1].fat - a[1].fat);
+  if (ranked.length) {
+    const [nome, info] = ranked[0];
+    document.getElementById('an-kpi-top-cliente').textContent = nome;
+    document.getElementById('an-kpi-top-cliente-pct').textContent = fat > 0 ? `${(info.fat / fat * 100).toFixed(1)}% do faturamento` : '';
+    const top5 = ranked.slice(0, 5).reduce((s, [, v]) => s + v.fat, 0);
+    document.getElementById('an-kpi-concentracao').textContent = fat > 0 ? `${(top5 / fat * 100).toFixed(1)}%` : '—';
+  } else {
+    document.getElementById('an-kpi-top-cliente').textContent = '—';
+    document.getElementById('an-kpi-top-cliente-pct').textContent = '';
+    document.getElementById('an-kpi-concentracao').textContent = '—';
+  }
+}
+
+function renderRankClientes() {
+  const map = anaAgrupar(anaData, r => r.clientes?.nome || 'Desconhecido');
+  const top = anaTopN(map, 10);
+  const labels = top.map(([nome]) => nome);
+  const valores = top.map(([, v]) => v.fat);
+
+  if (chartRankClientes) chartRankClientes.destroy();
+  chartRankClientes = new Chart(document.getElementById('chart-rank-clientes').getContext('2d'), {
+    type: 'bar',
+    data: { labels, datasets: [{ label: 'Faturamento (R$)', data: valores, backgroundColor: '#2a78d6', borderRadius: 4 }] },
+    options: {
+      indexAxis: 'y', responsive: true, maintainAspectRatio: false,
+      plugins: {
+        legend: { display: false },
+        tooltip: { callbacks: { label: ctx => {
+          const [, info] = top[ctx.dataIndex];
+          const tk = info.vol > 0 ? info.fat / (info.vol / 1000) : 0;
+          return [`Faturamento: ${moeda(info.fat)}`, `Volume: ${ton(info.vol)}`, `Ticket médio: ${moeda(tk)}/ton`, `Vendas: ${info.vendas}`];
+        } } }
+      },
+      scales: { x: { beginAtZero: true, ticks: { callback: v => 'R$' + v.toLocaleString('pt-BR') } } }
+    }
+  });
+}
+
+function renderRankMateriais() {
+  const map = anaAgrupar(anaData, r => r.materiais?.nome || r.codigo_material || 'Sem material');
+  const top = anaTopN(map, 10);
+  const labels = top.map(([nome]) => nome);
+  const valores = top.map(([, v]) => v.fat);
+
+  if (chartRankMateriais) chartRankMateriais.destroy();
+  chartRankMateriais = new Chart(document.getElementById('chart-rank-materiais').getContext('2d'), {
+    type: 'bar',
+    data: { labels, datasets: [{ label: 'Faturamento (R$)', data: valores, backgroundColor: '#1baf7a', borderRadius: 4 }] },
+    options: {
+      indexAxis: 'y', responsive: true, maintainAspectRatio: false,
+      plugins: {
+        legend: { display: false },
+        tooltip: { callbacks: { label: ctx => {
+          const [, info] = top[ctx.dataIndex];
+          const pm = info.vol > 0 ? info.fat / (info.vol / 1000) : 0;
+          return [`Faturamento: ${moeda(info.fat)}`, `Volume: ${ton(info.vol)}`, `Preço médio: ${moeda(pm)}/ton`, `Vendas: ${info.vendas}`];
+        } } }
+      },
+      scales: { x: { beginAtZero: true, ticks: { callback: v => 'R$' + v.toLocaleString('pt-BR') } } }
+    }
+  });
+}
+
+function renderDistMaterial() {
+  const map = anaAgrupar(anaData, r => r.materiais?.nome || r.codigo_material || 'Sem material');
+  const sorted = Object.entries(map).sort((a, b) => b[1].fat - a[1].fat);
+  const top = sorted.slice(0, 7);
+  const outrosFat = sorted.slice(7).reduce((s, [, v]) => s + v.fat, 0);
+
+  const labels = top.map(([nome]) => nome);
+  const valores = top.map(([, v]) => v.fat);
+  const cores = labels.map((_, i) => PALETA[i]);
+  if (outrosFat > 0) { labels.push('Outros'); valores.push(outrosFat); cores.push('#94a3b8'); }
+
+  if (chartDistMaterial) chartDistMaterial.destroy();
+  chartDistMaterial = new Chart(document.getElementById('chart-dist-material').getContext('2d'), {
+    type: 'doughnut',
+    data: { labels, datasets: [{ data: valores, backgroundColor: cores, borderColor: '#fff', borderWidth: 2 }] },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: {
+        legend: { position: 'right', labels: { boxWidth: 12, font: { size: 11 } } },
+        tooltip: { callbacks: { label: ctx => {
+          const total = valores.reduce((a, b) => a + b, 0);
+          const pct = total > 0 ? (ctx.parsed / total * 100).toFixed(1) : 0;
+          return ` ${ctx.label}: ${moeda(ctx.parsed)} (${pct}%)`;
+        } } }
+      }
+    }
+  });
+}
+
+function renderEvolTicket() {
+  const meses = {};
+  anaData.forEach(r => {
+    const key = r.data.substring(0, 7);
+    if (!meses[key]) meses[key] = { vol: 0, fat: 0 };
+    meses[key].vol += parseFloat(r.peso_kg || 0);
+    meses[key].fat += parseFloat(r.valor_total || 0);
+  });
+  const labs = Object.keys(meses).sort();
+  const valores = labs.map(k => meses[k].vol > 0 ? meses[k].fat / (meses[k].vol / 1000) : 0);
+
+  if (chartEvolTicket) chartEvolTicket.destroy();
+  chartEvolTicket = new Chart(document.getElementById('chart-evol-ticket').getContext('2d'), {
+    type: 'line',
+    data: {
+      labels: labs.map(l => { const [y, m] = l.split('-'); return new Date(+y, +m - 1, 1).toLocaleDateString('pt-BR', { month: 'short', year: '2-digit' }); }),
+      datasets: [{ label: 'Ticket Médio (R$/ton)', data: valores, borderColor: '#2a78d6', backgroundColor: '#cde2fb', fill: true, tension: 0.3 }]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { display: false } },
+      scales: { y: { beginAtZero: true, ticks: { callback: v => 'R$' + v.toLocaleString('pt-BR') } } }
+    }
+  });
+}
+
+function renderTabelaAnaClientes() {
+  const map = anaAgrupar(anaData, r => r.clientes?.nome || 'Desconhecido');
+  const matPorCliente = {};
+  anaData.forEach(r => {
+    const cli = r.clientes?.nome || 'Desconhecido';
+    const mat = r.materiais?.nome || r.codigo_material || 'Sem material';
+    if (!matPorCliente[cli]) matPorCliente[cli] = {};
+    matPorCliente[cli][mat] = (matPorCliente[cli][mat] || 0) + (r.valor_total || 0);
+  });
+  const totalFat = Object.values(map).reduce((s, v) => s + v.fat, 0);
+  const linhas = Object.entries(map).sort((a, b) => b[1].fat - a[1].fat);
+
+  const tb = document.getElementById('tb-an-clientes');
+  if (!linhas.length) {
+    tb.innerHTML = '<tr><td colspan="8" class="table-empty">Nenhum dado encontrado</td></tr>';
+    document.getElementById('an-cli-total').textContent = '';
+    return;
+  }
+
+  tb.innerHTML = linhas.map(([nome, v], i) => {
+    const pct = totalFat > 0 ? (v.fat / totalFat * 100).toFixed(1) : '0.0';
+    const ticket = v.vol > 0 ? moeda(v.fat / (v.vol / 1000)) : '—';
+    const principal = Object.entries(matPorCliente[nome] || {}).sort((a, b) => b[1] - a[1])[0]?.[0] || '—';
+    const medalha = i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : (i + 1);
+    return `<tr>
+      <td class="rank-medal">${medalha}</td>
+      <td><strong>${nome}</strong></td>
+      <td class="text-right">${v.vendas}</td>
+      <td class="text-right">${ton(v.vol)}</td>
+      <td class="text-right">${moeda(v.fat)}</td>
+      <td class="text-right">${pct}%</td>
+      <td class="text-right">${ticket}</td>
+      <td>${principal}</td>
+    </tr>`;
+  }).join('');
+  document.getElementById('an-cli-total').textContent = `${linhas.length} clientes`;
+}
+
+function renderTabelaAnaMateriais() {
+  const map = anaAgrupar(anaData, r => r.materiais?.nome || r.codigo_material || 'Sem material');
+  const cliPorMaterial = {};
+  anaData.forEach(r => {
+    const mat = r.materiais?.nome || r.codigo_material || 'Sem material';
+    const cli = r.clientes?.nome || 'Desconhecido';
+    if (!cliPorMaterial[mat]) cliPorMaterial[mat] = {};
+    cliPorMaterial[mat][cli] = (cliPorMaterial[mat][cli] || 0) + (r.valor_total || 0);
+  });
+  const totalFat = Object.values(map).reduce((s, v) => s + v.fat, 0);
+  const linhas = Object.entries(map).sort((a, b) => b[1].fat - a[1].fat);
+
+  const tb = document.getElementById('tb-an-materiais');
+  if (!linhas.length) {
+    tb.innerHTML = '<tr><td colspan="8" class="table-empty">Nenhum dado encontrado</td></tr>';
+    document.getElementById('an-mat-total').textContent = '';
+    return;
+  }
+
+  tb.innerHTML = linhas.map(([nome, v], i) => {
+    const pct = totalFat > 0 ? (v.fat / totalFat * 100).toFixed(1) : '0.0';
+    const precoMedio = v.vol > 0 ? moeda(v.fat / (v.vol / 1000)) : '—';
+    const principal = Object.entries(cliPorMaterial[nome] || {}).sort((a, b) => b[1] - a[1])[0]?.[0] || '—';
+    const medalha = i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : (i + 1);
+    return `<tr>
+      <td class="rank-medal">${medalha}</td>
+      <td><strong>${nome}</strong></td>
+      <td class="text-right">${v.vendas}</td>
+      <td class="text-right">${ton(v.vol)}</td>
+      <td class="text-right">${moeda(v.fat)}</td>
+      <td class="text-right">${pct}%</td>
+      <td class="text-right">${precoMedio}</td>
+      <td>${principal}</td>
+    </tr>`;
+  }).join('');
+  document.getElementById('an-mat-total').textContent = `${linhas.length} materiais`;
+}
+
+document.getElementById('btn-an-filtrar').addEventListener('click', carregarAnalises);
+
+document.getElementById('btn-an-exportar').addEventListener('click', () => {
+  if (!anaData.length) { toast('Nenhum dado para exportar', 'error'); return; }
+  const rows = anaData.map(r => ({
+    Cliente: r.clientes?.nome || '—',
+    Data: dataBR(r.data),
+    Material: r.materiais?.nome || r.codigo_material || '—',
+    'Volume (kg)': r.peso_kg || 0,
+    'Preço/ton (R$)': r.preco_kg ? (r.preco_kg * 1000) : '',
+    'Valor Total (R$)': r.valor_total || 0,
+    'Ticket (R$/ton)': r.peso_kg ? (r.valor_total || 0) / (r.peso_kg / 1000) : '',
+    'O. Venda': r.ordem_venda || '',
+    NF: r.nf || '',
+  }));
+  const ws = XLSX.utils.json_to_sheet(rows);
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, 'Análises');
+  XLSX.writeFile(wb, `analises-comercial-${new Date().toISOString().split('T')[0]}.xlsx`);
 });
 
 await init();
