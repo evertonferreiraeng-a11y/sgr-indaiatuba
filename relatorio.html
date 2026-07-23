@@ -1076,14 +1076,19 @@ async function carregar() {
         const data = chart.data.datasets[0].data;
         const { ctx } = chart;
         ctx.save();
-        ctx.font = '700 10px system-ui, -apple-system, sans-serif';
-        ctx.fillStyle = '#1e293b';
+        ctx.font = '800 13px system-ui, -apple-system, sans-serif';
+        ctx.fillStyle = '#0f172a';
         ctx.textAlign = 'center';
         ctx.textBaseline = 'bottom';
         meta.data.forEach((bar, i) => {
           const v = data[i];
           if (!v) return;
-          ctx.fillText(fmtCompacto(v), bar.x, bar.y - 4);
+          const texto = fmtCompacto(v);
+          const w = ctx.measureText(texto).width;
+          ctx.fillStyle = 'rgba(255,255,255,.85)';
+          ctx.fillRect(bar.x - w / 2 - 3, bar.y - 19, w + 6, 16);
+          ctx.fillStyle = '#0f172a';
+          ctx.fillText(texto, bar.x, bar.y - 5);
         });
         ctx.restore();
       },
@@ -1123,7 +1128,7 @@ async function carregar() {
       options: {
         responsive: true,
         maintainAspectRatio: false,
-        layout: { padding: { top: 22 } },
+        layout: { padding: { top: 28 } },
         plugins: {
           legend: { position: 'bottom', labels: { boxWidth: 12, usePointStyle: true, font: { size: 11 } } },
           tooltip: { callbacks: { label: ctx => `${ctx.dataset.label}: ${ctx.raw ? moeda(ctx.raw) : '—'}` } },
