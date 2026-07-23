@@ -760,6 +760,7 @@ async function carregar() {
           <div class="sec-dot" style="background:${cE}"></div>
           <div class="sec-title">Equipamentos</div>
           <div class="sec-line"></div>
+          <button onclick="toggleSnapSelectMode()" id="btn-snap-select-mode" style="padding:5px 12px;border-radius:6px;border:1px solid #D1D5DB;background:#fff;color:#374151;cursor:pointer;font-size:11px;font-weight:600;margin-right:8px">☑ Selecionar vários dias</button>
           <span class="sec-badge" style="color:${cE};background:${bgE}">Disponibilidade: ${equPct}%</span>
         </div>`;
       })()}
@@ -891,8 +892,10 @@ async function carregar() {
             const label = s==='operando'?'Operando':s==='restricao'?'Restrição':s==='parado'?'Parado':'clique para registrar';
             const title = `${dNames[dow]} ${dia}/${m} — ${label}`;
             const cor = s==='operando'?'#10b981':s==='restricao'?'#f59e0b':s==='parado'?'#ef4444':'#e2e8f0';
-            return `<div onclick="editarSnapDia('${equipId}','${date}',this)" title="${title}"
-              style="flex:1;background:${cor};cursor:pointer;border-radius:2px;transition:filter .1s"
+            const selKey = equipId+'|'+date;
+            const isSel = window._snapSelecionados && window._snapSelecionados.has(selKey);
+            return `<div class="snap-day-cell" data-eid="${equipId}" data-date="${date}" onclick="toggleSnapCell('${equipId}','${date}',this)" title="${title}"
+              style="flex:1;background:${cor};cursor:pointer;border-radius:2px;transition:filter .1s;${isSel?'outline:2px solid #2563eb;outline-offset:1px':''}"
               onmouseover="this.style.filter='brightness(.85)'" onmouseout="this.style.filter=''"></div>`;
           }).join('');
           const total = 7;
@@ -979,7 +982,6 @@ async function carregar() {
           <div style="margin-top:5px;display:flex;flex-direction:column;gap:2px">
             <span style="font-size:11px;color:#16a34a;font-weight:600">✔ ${ativosTrabalho} em atividade</span>
             <span style="font-size:11px;color:#2563eb;font-weight:600">☀ ${emFerias} em férias</span>
-            <span style="font-size:11px;color:#0d9488;font-weight:600">📅 ${trabalhandoHoje} trabalhando hoje (${pctTrabalhandoHoje}%)</span>
           </div>
         </div>
         <div class="rel-kpi">
@@ -1304,6 +1306,90 @@ window.salvarSnapDia = async (equipId, date, status) => {
       return;
     }
   }
+  await carregar();
+};
+
+// ── Seleção múltipla de dias no gráfico de disponibilidade ──────────────────
+window._snapSelecionados = window._snapSelecionados || new Set();
+window._snapSelectMode = false;
+
+window.toggleSnapSelectMode = () => {
+  window._snapSelectMode = !window._snapSelectMode;
+  window._snapSelecionados.clear();
+  const btn = document.getElementById('btn-snap-select-mode');
+  if (btn) {
+    btn.textContent = window._snapSelectMode ? '✕ Cancelar seleção' : '☑ Selecionar vários dias';
+    btn.style.background = window._snapSelectMode ? '#fee2e2' : '#fff';
+    btn.style.color = window._snapSelectMode ? '#991b1b' : '#374151';
+  }
+  document.querySelectorAll('.snap-day-cell').forEach(el => { el.style.outline = ''; });
+  atualizarBarraSnapSelecao();
+};
+
+window.toggleSnapCell = (equipId, date, el) => {
+  if (!window._snapSelectMode) { editarSnapDia(equipId, date, el); return; }
+  const key = equipId + '|' + date;
+  if (window._snapSelecionados.has(key)) {
+    window._snapSelecionados.delete(key);
+    el.style.outline = '';
+  } else {
+    window._snapSelecionados.add(key);
+    el.style.outline = '2px solid #2563eb';
+    el.style.outlineOffset = '1px';
+  }
+  atualizarBarraSnapSelecao();
+};
+
+function atualizarBarraSnapSelecao() {
+  let bar = document.getElementById('snap-select-bar');
+  const n = window._snapSelecionados.size;
+  if (!window._snapSelectMode || n === 0) {
+    if (bar) bar.remove();
+    return;
+  }
+  if (!bar) {
+    bar = document.createElement('div');
+    bar.id = 'snap-select-bar';
+    bar.style.cssText = 'position:fixed;left:50%;bottom:24px;transform:translateX(-50%);z-index:9999;background:#0f172a;color:#fff;border-radius:12px;box-shadow:0 8px 24px rgba(0,0,0,.25);padding:10px 14px;display:flex;align-items:center;gap:10px;font-size:13px';
+    document.body.appendChild(bar);
+  }
+  bar.innerHTML = `
+    <span style="font-weight:700;white-space:nowrap">${n} dia${n>1?'s':''} selecionado${n>1?'s':''}</span>
+    <button onclick="salvarSnapDiaLote('operando')" style="padding:6px 12px;border:none;border-radius:6px;background:#d1fae5;color:#065f46;font-weight:700;cursor:pointer;font-size:12px">✅ Operando</button>
+    <button onclick="salvarSnapDiaLote('restricao')" style="padding:6px 12px;border:none;border-radius:6px;background:#fef3c7;color:#92400e;font-weight:700;cursor:pointer;font-size:12px">⚠️ Restrição</button>
+    <button onclick="salvarSnapDiaLote('parado')" style="padding:6px 12px;border:none;border-radius:6px;background:#fee2e2;color:#991b1b;font-weight:700;cursor:pointer;font-size:12px">❌ Parado</button>
+    <button onclick="salvarSnapDiaLote('')" style="padding:6px 12px;border:none;border-radius:6px;background:#334155;color:#e2e8f0;font-weight:600;cursor:pointer;font-size:12px">— Limpar</button>
+    <button onclick="toggleSnapSelectMode()" style="padding:6px 10px;border:none;border-radius:6px;background:transparent;color:#94a3b8;cursor:pointer;font-size:12px">Cancelar</button>`;
+}
+
+window.salvarSnapDiaLote = async (status) => {
+  const itens = Array.from(window._snapSelecionados).map(k => {
+    const [equipId, date] = k.split('|');
+    return { equipId, date };
+  });
+  if (!itens.length) return;
+
+  const equipsMap = {};
+  (window._equipsRel || []).forEach(e => { equipsMap[e.id] = e; });
+
+  for (const { equipId, date } of itens) {
+    const { error: delErr } = await supabase.from('equipamentos_snapshot').delete()
+      .eq('semana', date).eq('equipamento_id', equipId);
+    if (delErr) console.error('Erro ao deletar:', delErr);
+  }
+  if (status) {
+    const rows = itens.map(({ equipId, date }) => {
+      const eq = equipsMap[equipId];
+      return { semana: date, equipamento_id: equipId, equipamento_nome: eq?.nome || '', equipamento_frota: eq?.frota || '', status };
+    });
+    const { error: insErr } = await supabase.from('equipamentos_snapshot').insert(rows);
+    if (insErr) {
+      alert('Erro ao salvar em lote: ' + insErr.message);
+      return;
+    }
+  }
+  window._snapSelecionados.clear();
+  window._snapSelectMode = false;
   await carregar();
 };
 
