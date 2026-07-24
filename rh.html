@@ -85,8 +85,8 @@
             <span style="font-size:12px;color:#64748b">total</span>
           </div>
           <div style="display:flex;gap:10px;margin-top:6px;flex-wrap:wrap">
-            <span style="font-size:12px;font-weight:600;color:#16a34a">✔ <span id="kpi-ativos">—</span> ativos</span>
-            <span style="font-size:12px;font-weight:600;color:#2563eb">☀ <span id="kpi-ferias">—</span> férias</span>
+            <span style="font-size:12px;font-weight:600;color:#16a34a;display:inline-flex;align-items:center;gap:4px"><span class="icon" style="width:11px;height:11px"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></span><span id="kpi-ativos">—</span> ativos</span>
+            <span style="font-size:12px;font-weight:600;color:#2563eb;display:inline-flex;align-items:center;gap:4px"><span class="icon" style="width:11px;height:11px"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg></span><span id="kpi-ferias">—</span> férias</span>
           </div>
         </div>
         <div class="kpi-card"><div class="kpi-label">Em Experiência</div><div class="kpi-value" id="kpi-exp">—</div><div class="kpi-sub">1º ou 2º período</div></div>
@@ -107,7 +107,7 @@
           </select>
         </div>
         <div class="form-group">
-          <label>📅 Data das Presenças</label>
+          <label style="display:flex;align-items:center;gap:4px"><span class="icon" style="width:11px;height:11px"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg></span>Data das Presenças</label>
           <input type="date" id="presenca-data" />
         </div>
         <div class="form-group" style="justify-content:flex-end"><label>&nbsp;</label>
@@ -165,23 +165,23 @@
           <div class="form-group"><label>Passou 1ª Experiência?</label>
             <select name="passou_exp_1">
               <option value="">Pendente / não avaliado</option>
-              <option value="true">✅ Sim — aprovado</option>
-              <option value="false">❌ Não — reprovado</option>
+              <option value="true">Sim — aprovado</option>
+              <option value="false">Não — reprovado</option>
             </select>
           </div>
           <div class="form-group"><label>Fim 2ª Experiência (90d)</label><input type="date" name="fim_exp_2" /></div>
           <div class="form-group"><label>Passou 2ª Experiência?</label>
             <select name="passou_exp_2">
               <option value="">Pendente / não avaliado</option>
-              <option value="true">✅ Sim — efetivado</option>
-              <option value="false">❌ Não — reprovado</option>
+              <option value="true">Sim — efetivado</option>
+              <option value="false">Não — reprovado</option>
             </select>
           </div>
           <div class="form-group full"><label>Data de Demissão</label><input type="date" name="demissao" /></div>
           <div class="form-group full">
             <label style="display:flex;align-items:center;gap:10px;cursor:pointer;font-weight:600">
               <input type="checkbox" name="em_ferias" id="chk-ferias" style="width:16px;height:16px;accent-color:#2563eb" />
-              <span>☀ Colaborador em férias no momento</span>
+              <span style="display:inline-flex;align-items:center;gap:4px"><span class="icon" style="width:13px;height:13px"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg></span>Colaborador em férias no momento</span>
             </label>
           </div>
         </div>
@@ -256,8 +256,8 @@
           <div class="form-group">
             <label>Presença no dia</label>
             <select name="presenca_no_dia" id="sel-presenca-oc" style="font-weight:600">
-              <option value="true">✔ Presente</option>
-              <option value="false">✖ Falta</option>
+              <option value="true">Presente</option>
+              <option value="false">Falta</option>
             </select>
           </div>
           <div class="form-group full">
@@ -314,6 +314,7 @@
 <div id="toast-container"></div>
 <script type="module">
 import { initPage, supabase, dataBR, toast, abrirModal, fecharModal } from './js/config.js?v=2';
+import { icon } from './js/icons.js';
 
 await initPage();
 
@@ -485,11 +486,11 @@ function cardHTML(c, isAdm, hoje, iniMes, fimMes) {
   if (c.demissao) {
     expTag = badge('#fee2e2','#991b1b', `Demitido ${dataBR(c.demissao)}`);
   } else if (ap2 === true) {
-    expTag = badge('#d1fae5','#065f46','✅ Aprovado — Efetivado');
+    expTag = badge('#d1fae5','#065f46', icon('check',{size:11}) + ' Aprovado — Efetivado');
   } else if (ap2 === false) {
-    expTag = badge('#fee2e2','#991b1b','❌ Reprovado 2ª Exp.');
+    expTag = badge('#fee2e2','#991b1b', icon('x-circle',{size:11}) + ' Reprovado 2ª Exp.');
   } else if (ap1 === false) {
-    expTag = badge('#fee2e2','#991b1b','❌ Reprovado 1ª Exp.');
+    expTag = badge('#fee2e2','#991b1b', icon('x-circle',{size:11}) + ' Reprovado 1ª Exp.');
   } else if (c.fim_experiencia_1 && hoje <= c.fim_experiencia_1) {
     // 1ª ainda vigente → mostra ela (a mais próxima)
     expTag = badge('#dbeafe','#1e40af',`1ª Exp. até ${dataBR(c.fim_experiencia_1)}`);
@@ -499,21 +500,21 @@ function cardHTML(c, isAdm, hoje, iniMes, fimMes) {
     // passou da 1ª pelo prazo, na 2ª
     expTag = badge('#fef3c7','#92400e',`2ª Exp. até ${dataBR(c.fim_experiencia_2)}`);
   } else if (c.fim_experiencia_2 && hoje > c.fim_experiencia_2) {
-    expTag = badge('#d1fae5','#065f46','✓ Efetivado');
+    expTag = badge('#d1fae5','#065f46', icon('check',{size:11}) + ' Efetivado');
   } else if (c.fim_experiencia_1 && hoje > c.fim_experiencia_1) {
-    expTag = badge('#fef3c7','#92400e','⏳ Aguardando 2ª exp.');
+    expTag = badge('#fef3c7','#92400e', icon('clock',{size:11}) + ' Aguardando 2ª exp.');
   }
 
   // Recomendação baseada sempre na Nota Atual (média de todas as avaliações)
   let rec;
   if (notaAtual === null || isNaN(notaAtual))
-    rec = { cls:'rec-nd', icon:'📋', texto:'SEM AVALIAÇÃO — Registre avaliações para acompanhar o desempenho' };
+    rec = { cls:'rec-nd', icon:icon('list',{size:13}), texto:'SEM AVALIAÇÃO — Registre avaliações para acompanhar o desempenho' };
   else if (notaAtual >= 7)
-    rec = { cls:'rec-ok', icon:'✅', texto:`RECOMENDADO (${notaAtual.toFixed(1)}) — Manter colaborador` };
+    rec = { cls:'rec-ok', icon:icon('check',{size:13}), texto:`RECOMENDADO (${notaAtual.toFixed(1)}) — Manter colaborador` };
   else if (notaAtual >= 5)
-    rec = { cls:'rec-att', icon:'⚠️', texto:`EM OBSERVAÇÃO (${notaAtual.toFixed(1)}) — Acompanhar de perto` };
+    rec = { cls:'rec-att', icon:icon('alert-triangle',{size:13}), texto:`EM OBSERVAÇÃO (${notaAtual.toFixed(1)}) — Acompanhar de perto` };
   else
-    rec = { cls:'rec-no', icon:'❌', texto:`NÃO RECOMENDADO (${notaAtual.toFixed(1)}) — Avaliar desligamento` };
+    rec = { cls:'rec-no', icon:icon('x-circle',{size:13}), texto:`NÃO RECOMENDADO (${notaAtual.toFixed(1)}) — Avaliar desligamento` };
 
   // Avaliações HTML inline
   const avalsHTML = avals.length ? avals.map(a => {
@@ -527,8 +528,8 @@ function cardHTML(c, isAdm, hoje, iniMes, fimMes) {
         </div>
         <div style="display:flex;align-items:center;gap:6px">
           <span class="aval-nota" style="color:${cor}">${media !== null ? media.toFixed(1) : '—'}</span>
-          ${isAdm ? `<button class="btn-icon" onclick="editarAval('${a.id}')">✏️</button>
-                     <button class="btn-icon danger" onclick="excluirAval('${a.id}')">🗑️</button>` : ''}
+          ${isAdm ? `<button class="btn-icon" onclick="editarAval('${a.id}')">${icon('edit',{size:15})}</button>
+                     <button class="btn-icon danger" onclick="excluirAval('${a.id}')">${icon('trash',{size:15})}</button>` : ''}
         </div>
       </div>
       <div class="aval-criterios">
@@ -548,7 +549,7 @@ function cardHTML(c, isAdm, hoje, iniMes, fimMes) {
       <span class="oc-tipo" style="${TIPO_COR[o.tipo]||'background:#f1f5f9;color:#475569'}">${TIPO_LABEL[o.tipo]||o.tipo}</span>
       <span style="color:#64748b;font-size:12px;white-space:nowrap">${dataBR(o.data)}</span>
       <span style="flex:1;color:#374151">${o.descricao||''}</span>
-      ${isAdm ? `<button class="btn-icon" onclick="excluirOc('${o.id}')">🗑️</button>` : ''}
+      ${isAdm ? `<button class="btn-icon" onclick="excluirOc('${o.id}')">${icon('trash',{size:15})}</button>` : ''}
     </div>
   `).join('') : '<p style="font-size:13px;color:#94a3b8;margin:0">Nenhuma ocorrência registrada.</p>';
 
@@ -568,8 +569,8 @@ function cardHTML(c, isAdm, hoje, iniMes, fimMes) {
           ${expTag ? `<div style="margin-top:4px">${expTag}</div>` : ''}
         </div>
         ${isAdm ? `<div class="colab-actions">
-          <button class="btn-icon" onclick="editarColab('${c.id}')">✏️</button>
-          <button class="btn-icon danger" onclick="excluirColab('${c.id}')">🗑️</button>
+          <button class="btn-icon" onclick="editarColab('${c.id}')">${icon('edit',{size:15})}</button>
+          <button class="btn-icon danger" onclick="excluirColab('${c.id}')">${icon('trash',{size:15})}</button>
         </div>` : ''}
       </div>
       <div class="colab-stats">
@@ -592,7 +593,7 @@ function cardHTML(c, isAdm, hoje, iniMes, fimMes) {
     <div class="colab-detail">
       <div class="detail-section">
         <div class="detail-header">
-          <h5>📋 Avaliações de Desempenho</h5>
+          <h5 style="display:flex;align-items:center;gap:6px">${icon('list',{size:13})}Avaliações de Desempenho</h5>
           ${isAdm ? `<button class="btn btn-primary" style="padding:4px 12px;font-size:12px" onclick="novaAvalPara('${c.id}')">+ Avaliação</button>` : ''}
         </div>
         ${avalsHTML}
@@ -863,8 +864,8 @@ function renderBalancoVagas() {
     const situacao   = total === 0
       ? `<span style="color:#94a3b8;font-size:12px">Sem vagas definidas</span>`
       : completo
-        ? `<span style="background:#d1fae5;color:#065f46;padding:2px 10px;border-radius:10px;font-size:12px;font-weight:600">✅ Completo</span>`
-        : `<span style="color:#d97706;font-size:13px;font-weight:600">⚠ ${emAberto} vaga(s) em aberto</span>`;
+        ? `<span style="background:#d1fae5;color:#065f46;padding:2px 10px;border-radius:10px;font-size:12px;font-weight:600">${icon('check',{size:11})} Completo</span>`
+        : `<span style="color:#d97706;font-size:13px;font-weight:600">${icon('alert-triangle',{size:12})} ${emAberto} vaga(s) em aberto</span>`;
     return `<tr style="border-bottom:1px solid #f1f5f9">
       <td style="padding:10px 16px;color:#1e293b">${cargo.nome}</td>
       <td style="padding:10px 16px;text-align:center;font-weight:700;color:${preenchido===0?'#dc2626':preenchido<total?'#d97706':'#16a34a'}">${preenchido}</td>
@@ -872,8 +873,8 @@ function renderBalancoVagas() {
       <td style="padding:10px 16px">${situacao}</td>
       <td style="padding:10px 16px">
         ${isAdm ? `<div style="display:flex;gap:4px">
-          <button class="btn-icon" onclick="editarCargo('${cargo.id}')">✏️</button>
-          <button class="btn-icon danger" onclick="excluirCargo('${cargo.id}')">🗑️</button>
+          <button class="btn-icon" onclick="editarCargo('${cargo.id}')">${icon('edit',{size:15})}</button>
+          <button class="btn-icon danger" onclick="excluirCargo('${cargo.id}')">${icon('trash',{size:15})}</button>
         </div>` : ''}
       </td>
     </tr>`;
