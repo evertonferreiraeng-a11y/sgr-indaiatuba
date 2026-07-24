@@ -32,8 +32,8 @@ export function toast(msg, type = 'success') {
   }
   const t = document.createElement('div');
   t.className = `toast toast-${type}`;
-  const icons = { success: '✓', error: '✕', info: 'ℹ' };
-  t.innerHTML = `<span>${icons[type] ?? '●'}</span><span>${msg}</span>`;
+  const ic = { success: 'check', error: 'x-circle', info: 'info' };
+  t.innerHTML = `<span>${icon(ic[type] ?? 'info', { size: 16 })}</span><span>${msg}</span>`;
   c.appendChild(t);
   setTimeout(() => { t.style.opacity = '0'; t.style.transition = 'opacity .3s'; }, 3200);
   setTimeout(() => t.remove(), 3600);
