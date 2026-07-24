@@ -45,7 +45,7 @@ body{font-family:'Segoe UI',Arial,sans-serif;background:var(--bg);color:var(--tx
 .search-bar{position:relative;margin-bottom:20px}
 .search-bar input{width:100%;padding:11px 16px 11px 42px;border:1.5px solid var(--bd);border-radius:9px;font-size:14px;background:#fff;outline:none;transition:.2s;color:var(--tx)}
 .search-bar input:focus{border-color:var(--gr);box-shadow:0 0 0 3px #00663618}
-.search-bar .sico{position:absolute;left:14px;top:50%;transform:translateY(-50%);color:var(--cz);font-size:16px;pointer-events:none}
+.search-bar .sico{position:absolute;left:14px;top:50%;transform:translateY(-50%);color:var(--cz);display:flex;pointer-events:none}
 
 /* CLIENT GRID */
 #clients-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:16px}
@@ -53,7 +53,7 @@ body{font-family:'Segoe UI',Arial,sans-serif;background:var(--bg);color:var(--tx
 .client-card::before{content:'';position:absolute;top:0;left:0;right:0;height:4px;background:var(--gr);opacity:0;transition:.2s}
 .client-card:hover{border-color:var(--gr);box-shadow:0 6px 24px #00663622;transform:translateY(-2px)}
 .client-card:hover::before{opacity:1}
-.cc-icon{width:46px;height:46px;background:var(--gr3);border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:22px;margin-bottom:14px}
+.cc-icon{width:46px;height:46px;background:var(--gr3);border-radius:12px;display:flex;align-items:center;justify-content:center;margin-bottom:14px}
 .client-card h3{font-size:15px;font-weight:700;color:var(--tx);margin-bottom:5px}
 .client-card .cc-meta{font-size:12px;color:var(--cz);margin-bottom:12px}
 .cc-footer{display:flex;align-items:center;justify-content:space-between;margin-top:14px;padding-top:12px;border-top:1px solid var(--bd)}
@@ -126,14 +126,14 @@ body{font-family:'Segoe UI',Arial,sans-serif;background:var(--bg);color:var(--tx
 .foto-remove:hover{background:#fee2e2}
 .foto-upload-btn{border:2px dashed var(--bd);border-radius:10px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;height:160px;cursor:pointer;transition:.2s;color:var(--cz);font-size:13px;font-weight:600}
 .foto-upload-btn:hover{border-color:var(--gr);color:var(--gr);background:#f0faf4}
-.foto-upload-btn .ico-big{font-size:34px}
+.foto-upload-btn .ico-big{display:flex}
 
 /* FORM ACTIONS */
 .form-actions{display:flex;gap:12px;justify-content:flex-end;flex-wrap:wrap;padding-top:8px;margin-top:4px}
 
 /* EMPTY */
 .empty{text-align:center;padding:64px 20px;color:var(--cz)}
-.empty .ico-empty{font-size:52px;margin-bottom:16px;opacity:.35}
+.empty .ico-empty{display:flex;justify-content:center;margin-bottom:16px;opacity:.35}
 .empty h3{font-size:16px;font-weight:700;margin-bottom:8px;color:var(--tx)}
 .empty p{font-size:13px}
 
@@ -216,13 +216,13 @@ body{font-family:'Segoe UI',Arial,sans-serif;background:var(--bg);color:var(--tx
   <div class="page-header">
     <div><h2>Não Conformidade</h2><p>Selecione um cliente para ver ou registrar não conformidades</p></div>
     <div style="display:flex;gap:10px;flex-wrap:wrap">
-      <button class="btn btn-ghost" onclick="otimizarArmazenamento()" title="Recompacta fotos grandes já salvas para liberar espaço">🧹 Liberar espaço</button>
-      <button class="btn btn-ghost" onclick="diagnosticarArmazenamento()" title="Descobre quanto de armazenamento o navegador realmente permite">🔍 Diagnosticar</button>
+      <button class="btn btn-ghost" onclick="otimizarArmazenamento()" title="Recompacta fotos grandes já salvas para liberar espaço"><span class="icon" style="width:13px;height:13px"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4a2 2 0 0 0 1-1.73z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/></svg></span> Liberar espaço</button>
+      <button class="btn btn-ghost" onclick="diagnosticarArmazenamento()" title="Descobre quanto de armazenamento o navegador realmente permite"><span class="icon" style="width:13px;height:13px"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg></span> Diagnosticar</button>
       <button class="btn btn-primary" onclick="openNewClientModal()">+ Novo Cliente</button>
     </div>
   </div>
   <div class="search-bar">
-    <span class="sico">🔍</span>
+    <span class="sico"><span class="icon" style="width:15px;height:15px"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg></span></span>
     <input type="text" id="search-clients" placeholder="Buscar cliente..." oninput="renderClients()">
   </div>
   <div id="clients-grid"></div>
@@ -241,19 +241,19 @@ body{font-family:'Segoe UI',Arial,sans-serif;background:var(--bg);color:var(--tx
       <p id="client-rnc-count" style="font-size:13px;color:var(--cz);margin-top:4px">—</p>
     </div>
     <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center">
-      <button class="btn btn-ghost btn-sm" onclick="openEditClientModal()">✏️ Editar</button>
-      <button class="btn btn-danger btn-sm" onclick="confirmDeleteClient()">🗑 Excluir</button>
+      <button class="btn btn-ghost btn-sm" onclick="openEditClientModal()"><span class="icon" style="width:13px;height:13px"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.12 2.12 0 0 1 3 3L12 15l-4 1 1-4z"/></svg></span> Editar</button>
+      <button class="btn btn-danger btn-sm" onclick="confirmDeleteClient()"><span class="icon" style="width:13px;height:13px"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg></span> Excluir</button>
       <button class="btn btn-primary" onclick="goNewRNC()">+ Nova RNC</button>
     </div>
   </div>
   <div class="status-tabs" id="status-tabs">
     <button class="stab active" onclick="setStatusFilter(null,this)">Todas</button>
-    <button class="stab s-pendente" onclick="setStatusFilter('pendente',this)">🔴 Pendente</button>
-    <button class="stab s-concluida" onclick="setStatusFilter('concluida',this)">🟢 Concluída</button>
-    <button class="stab s-cancelada" onclick="setStatusFilter('cancelada',this)">⚫ Cancelada</button>
+    <button class="stab s-pendente" onclick="setStatusFilter('pendente',this)"><span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:#ef4444;margin-right:5px"></span>Pendente</button>
+    <button class="stab s-concluida" onclick="setStatusFilter('concluida',this)"><span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:#10b981;margin-right:5px"></span>Concluída</button>
+    <button class="stab s-cancelada" onclick="setStatusFilter('cancelada',this)"><span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:#64748b;margin-right:5px"></span>Cancelada</button>
   </div>
   <div class="search-bar">
-    <span class="sico">🔍</span>
+    <span class="sico"><span class="icon" style="width:15px;height:15px"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg></span></span>
     <input type="text" id="search-rncs" placeholder="Buscar por código, resíduo, descrição..." oninput="renderRNCs()">
   </div>
   <div id="rnc-list"></div>
@@ -272,13 +272,13 @@ body{font-family:'Segoe UI',Arial,sans-serif;background:var(--bg);color:var(--tx
     <h2 id="form-title" style="font-size:22px;font-weight:800;color:var(--tx)">Nova RNC</h2>
     <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center">
       <button class="btn btn-ghost" onclick="goClientPage()">Cancelar</button>
-      <button class="btn btn-pdf" id="btn-pdf" onclick="gerarPDF()" style="display:none">📄 Exportar PDF</button>
-      <button class="btn btn-primary" onclick="salvarRNC()">💾 Salvar</button>
+      <button class="btn btn-pdf" id="btn-pdf" onclick="gerarPDF()" style="display:none"><span class="icon" style="width:13px;height:13px"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg></span> Exportar PDF</button>
+      <button class="btn btn-primary" onclick="salvarRNC()"><span class="icon" style="width:13px;height:13px"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg></span> Salvar</button>
     </div>
   </div>
 
   <div class="form-card">
-    <h3>📋 Identificação</h3>
+    <h3 style="display:flex;align-items:center;gap:6px"><span class="icon" style="width:15px;height:15px"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg></span>Identificação</h3>
     <div class="form-grid">
       <div class="form-group">
         <label>Código RNC</label>
@@ -300,7 +300,7 @@ body{font-family:'Segoe UI',Arial,sans-serif;background:var(--bg);color:var(--tx
   </div>
 
   <div class="form-card">
-    <h3>📝 Detalhamento da NC</h3>
+    <h3 style="display:flex;align-items:center;gap:6px"><span class="icon" style="width:15px;height:15px"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.12 2.12 0 0 1 3 3L12 15l-4 1 1-4z"/></svg></span>Detalhamento da NC</h3>
     <div class="form-grid">
       <div class="form-group full">
         <label>Detalhamento</label>
@@ -321,10 +321,10 @@ body{font-family:'Segoe UI',Arial,sans-serif;background:var(--bg);color:var(--tx
   </div>
 
   <div class="form-card">
-    <h3>📷 Evidências</h3>
+    <h3 style="display:flex;align-items:center;gap:6px"><span class="icon" style="width:15px;height:15px"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg></span>Evidências</h3>
     <div class="foto-grid" id="foto-grid">
       <label class="foto-upload-btn" for="foto-input">
-        <span class="ico-big">📷</span>
+        <span class="ico-big"><span class="icon" style="width:26px;height:26px"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg></span></span>
         <span>Adicionar fotos</span>
         <span style="font-size:11px;opacity:.65">Clique para selecionar</span>
       </label>
@@ -333,7 +333,7 @@ body{font-family:'Segoe UI',Arial,sans-serif;background:var(--bg);color:var(--tx
   </div>
 
   <div class="form-card">
-    <h3>✅ Plano de Ação</h3>
+    <h3 style="display:flex;align-items:center;gap:6px"><span class="icon" style="width:15px;height:15px"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"/></svg></span>Plano de Ação</h3>
     <div class="form-grid">
       <div class="form-group">
         <label>Tipo de Ação</label>
@@ -367,9 +367,9 @@ body{font-family:'Segoe UI',Arial,sans-serif;background:var(--bg);color:var(--tx
       <div class="form-group">
         <label>Status da RNC</label>
         <select id="f-status">
-          <option value="pendente">🔴 Pendente</option>
-          <option value="concluida">🟢 Concluída</option>
-          <option value="cancelada">⚫ Cancelada</option>
+          <option value="pendente">Pendente</option>
+          <option value="concluida">Concluída</option>
+          <option value="cancelada">Cancelada</option>
         </select>
       </div>
       <div class="form-group full">
@@ -380,7 +380,7 @@ body{font-family:'Segoe UI',Arial,sans-serif;background:var(--bg);color:var(--tx
   </div>
 
   <div class="form-card">
-    <h3>🖊️ Identificação do Recebedor</h3>
+    <h3 style="display:flex;align-items:center;gap:6px"><span class="icon" style="width:15px;height:15px"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 19l7-7 3 3-7 7-3-3z"/><path d="M18 13l-1.5-7.5L2 2l3.5 14.5L13 18l5-5z"/><path d="M2 2l7.586 7.586"/><circle cx="11" cy="11" r="2"/></svg></span>Identificação do Recebedor</h3>
     <div class="form-grid">
       <div class="form-group">
         <label>Nome / Identificação do Recebedor</label>
@@ -391,8 +391,8 @@ body{font-family:'Segoe UI',Arial,sans-serif;background:var(--bg);color:var(--tx
 
   <div class="form-actions">
     <button class="btn btn-ghost" onclick="goClientPage()">Cancelar</button>
-    <button class="btn btn-pdf" id="btn-pdf2" onclick="gerarPDF()" style="display:none">📄 Exportar PDF</button>
-    <button class="btn btn-primary" onclick="salvarRNC()">💾 Salvar RNC</button>
+    <button class="btn btn-pdf" id="btn-pdf2" onclick="gerarPDF()" style="display:none"><span class="icon" style="width:13px;height:13px"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg></span> Exportar PDF</button>
+    <button class="btn btn-primary" onclick="salvarRNC()"><span class="icon" style="width:13px;height:13px"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg></span> Salvar RNC</button>
   </div>
 </div>
 
@@ -433,6 +433,7 @@ body{font-family:'Segoe UI',Arial,sans-serif;background:var(--bg);color:var(--tx
 
 <script type="module">
 import { initPage } from './js/config.js?v=2';
+import { icon } from './js/icons.js';
 await initPage();
 
 const LS_CLIENTS='rnc_clients', LS_RNCS='rnc_registros';
@@ -618,7 +619,7 @@ function renderClients(){
   const grid=document.getElementById('clients-grid');
   const filtered=clients.filter(c=>!q||c.nome.toLowerCase().includes(q));
   if(filtered.length===0){
-    grid.innerHTML=`<div class="empty" style="grid-column:1/-1"><div class="ico-empty">🏭</div><h3>Nenhum cliente cadastrado</h3><p>Clique em "+ Novo Cliente" para começar</p></div>`;
+    grid.innerHTML=`<div class="empty" style="grid-column:1/-1"><div class="ico-empty">${icon('users',{size:52})}</div><h3>Nenhum cliente cadastrado</h3><p>Clique em "+ Novo Cliente" para começar</p></div>`;
     return;
   }
   grid.innerHTML=filtered.map(c=>{
@@ -627,7 +628,7 @@ function renderClients(){
     const pendentes=clientRncs.filter(r=>(r.status||'pendente')==='pendente').length;
     const last=clientRncs.sort((a,b)=>(b.data||'').localeCompare(a.data||''))[0];
     return `<div class="client-card" onclick="selectClient('${c.id}')">
-      <div class="cc-icon">🏭</div>
+      <div class="cc-icon">${icon('users',{size:22})}</div>
       <h3>${esc(c.nome)}</h3>
       ${c.obs?`<div class="cc-meta">${esc(c.obs)}</div>`:last?`<div class="cc-meta">Última: ${fmtDate(last.data)}</div>`:'<div class="cc-meta">Sem registros ainda</div>'}
       <div class="cc-footer">
@@ -675,7 +676,7 @@ function renderRNCs(){
   });
   document.getElementById('client-rnc-count').textContent=`${filtered.length} registro${filtered.length!==1?'s':''} de não conformidade`;
   if(filtered.length===0){
-    list.innerHTML=`<div class="empty"><div class="ico-empty">📋</div><h3>Nenhuma RNC encontrada</h3><p>Clique em "+ Nova RNC" para registrar</p></div>`;
+    list.innerHTML=`<div class="empty"><div class="ico-empty">${icon('inbox-empty',{size:52})}</div><h3>Nenhuma RNC encontrada</h3><p>Clique em "+ Nova RNC" para registrar</p></div>`;
     return;
   }
   filtered.sort((a,b)=>(b.data||'').localeCompare(a.data||''));
@@ -744,7 +745,7 @@ function renderFotoGrid(){
       </div>
     </div>`).join('')
   +`<label class="foto-upload-btn" for="foto-input">
-    <span class="ico-big">📷</span><span>Adicionar fotos</span>
+    <span class="ico-big"><span class="icon" style="width:26px;height:26px"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg></span></span><span>Adicionar fotos</span>
     <span style="font-size:11px;opacity:.65">Clique para selecionar</span>
   </label>`;
 }

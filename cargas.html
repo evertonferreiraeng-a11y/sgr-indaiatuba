@@ -18,10 +18,10 @@
     .search-bar{position:relative;margin-bottom:20px;max-width:420px}
     .search-bar input{width:100%;padding:11px 16px 11px 42px;border:1px solid var(--border);border-radius:var(--radius);font-size:14px;background:#fff;outline:none;transition:.2s;color:var(--text)}
     .search-bar input:focus{border-color:var(--primary);box-shadow:0 0 0 3px rgba(26,107,60,.1)}
-    .search-bar .sico{position:absolute;left:14px;top:50%;transform:translateY(-50%);color:var(--text-muted);font-size:16px;pointer-events:none}
+    .search-bar .sico{position:absolute;left:14px;top:50%;transform:translateY(-50%);color:var(--text-muted);display:flex;pointer-events:none}
 
     .empty{text-align:center;padding:64px 20px;color:var(--text-muted)}
-    .empty .ico-empty{font-size:52px;margin-bottom:16px;opacity:.35}
+    .empty .ico-empty{display:flex;justify-content:center;margin-bottom:16px;opacity:.35}
     .empty h3{font-size:16px;font-weight:700;margin-bottom:8px;color:var(--text)}
     .empty p{font-size:13px}
 
@@ -75,7 +75,7 @@
     .estudo-card{background:var(--card-bg);border:1px solid var(--border);border-radius:12px;padding:14px 18px;margin-bottom:12px;cursor:pointer;transition:.15s;display:flex;gap:14px;align-items:center}
     .estudo-card:hover{border-color:var(--primary);box-shadow:var(--shadow-sm)}
     .estudo-card .es-thumb{width:60px;height:60px;border-radius:8px;object-fit:cover;background:var(--bg);flex-shrink:0}
-    .estudo-card .es-thumb-empty{width:60px;height:60px;border-radius:8px;background:var(--bg);display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0;color:var(--text-muted)}
+    .estudo-card .es-thumb-empty{width:60px;height:60px;border-radius:8px;background:var(--bg);display:flex;align-items:center;justify-content:center;flex-shrink:0;color:var(--text-muted)}
     .estudo-card .es-body{flex:1;min-width:0}
     .estudo-card .es-top{display:flex;align-items:center;gap:8px;margin-bottom:4px}
     .estudo-card .es-date{font-size:12px;color:var(--text-muted)}
@@ -92,7 +92,7 @@
     .foto-remove:hover{background:var(--danger-light)}
     .foto-upload-btn{border:2px dashed var(--border);border-radius:10px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;height:130px;cursor:pointer;transition:.2s;color:var(--text-muted);font-size:12px;font-weight:600}
     .foto-upload-btn:hover{border-color:var(--primary);color:var(--primary);background:var(--primary-bg)}
-    .foto-upload-btn .ico-big{font-size:28px}
+    .foto-upload-btn .ico-big{display:flex}
 
     .foto-view-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:12px;margin-top:10px}
     .foto-view-item img{width:100%;height:130px;object-fit:cover;border-radius:10px;border:1px solid var(--border);cursor:zoom-in;display:block}
@@ -123,7 +123,7 @@
       </div>
 
       <div class="search-bar">
-        <span class="sico">🔍</span>
+        <span class="sico"><span class="icon" style="width:15px;height:15px"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg></span></span>
         <input type="text" id="search-clientes" placeholder="Buscar cliente..." oninput="renderDestinosTable()">
       </div>
 
@@ -143,7 +143,7 @@
       </div>
       <div class="section-row">
         <div><h2 id="tipos-cliente-nome">—</h2><p>Escolha o tipo de carga para ver os estudos</p></div>
-        <button class="btn btn-outline" onclick="abrirModalTipos()">🏷️ Gerenciar Tipos</button>
+        <button class="btn btn-outline" onclick="abrirModalTipos()"><span class="icon" style="width:13px;height:13px"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.59 13.41L13.42 20.58a2 2 0 0 1-2.83 0L2.59 12.58A2 2 0 0 1 2 11.17V3a1 1 0 0 1 1-1h8.17a2 2 0 0 1 1.41.59l8 8a2 2 0 0 1 0 2.82z"/><line x1="7" y1="7" x2="7.01" y2="7"/></svg></span> Gerenciar Tipos</button>
       </div>
       <div id="tipos-grid"></div>
     </div>
@@ -225,8 +225,8 @@
           <div class="form-group"><label>Avaliação *</label>
             <select name="avaliacao" required>
               <option value="">Selecione…</option>
-              <option value="aprovada">✅ Aprovada</option>
-              <option value="reprovada">❌ Reprovada</option>
+              <option value="aprovada">Aprovada</option>
+              <option value="reprovada">Reprovada</option>
             </select>
           </div>
           <div class="form-group full"><label>Observações</label><textarea name="observacoes" rows="3" placeholder="Descreva o que foi observado na carga..."></textarea></div>
@@ -235,7 +235,7 @@
           <label>Fotos</label>
           <div class="foto-grid" id="foto-grid">
             <label class="foto-upload-btn" for="foto-input">
-              <span class="ico-big">📷</span>
+              <span class="ico-big">${icon('image',{size:28})}</span>
               <span>Adicionar fotos</span>
             </label>
           </div>
@@ -259,6 +259,7 @@
 <div id="toast-container"></div>
 <script type="module">
 import { initPage, supabase, dataBR, toast, abrirModal, fecharModal, getPerfilUsuario } from './js/config.js?v=2';
+import { icon } from './js/icons.js';
 
 await initPage();
 
@@ -401,8 +402,8 @@ window.renderDestinosTable = async function () {
         </td>`).join('')}
       ${isAdmin ? `<td></td>` : ''}
       <td class="acoes-cell">${isAdmin ? `
-        <button onclick="abrirModalEditarCliente('${c.id}')" title="Editar">✏️</button>
-        <button onclick="excluirCliente('${c.id}')" title="Excluir">🗑️</button>
+        <button onclick="abrirModalEditarCliente('${c.id}')" title="Editar">${icon('edit',{size:15})}</button>
+        <button onclick="excluirCliente('${c.id}')" title="Excluir">${icon('trash',{size:15})}</button>
       ` : ''}</td>
     </tr>`).join('')}</tbody>`;
 
@@ -443,7 +444,7 @@ async function renderTipos() {
   const grid = document.getElementById('tipos-grid');
   const ativos = tiposCarga.filter(t => t.ativo);
   if (!ativos.length) {
-    grid.innerHTML = `<div class="empty"><div class="ico-empty">🏷️</div><h3>Nenhum tipo de carga cadastrado</h3><p>Clique em "Gerenciar Tipos" para adicionar</p></div>`;
+    grid.innerHTML = `<div class="empty"><div class="ico-empty">${icon('inbox-empty',{size:52})}</div><h3>Nenhum tipo de carga cadastrado</h3><p>Clique em "Gerenciar Tipos" para adicionar</p></div>`;
     return;
   }
   const { data: contagens } = await supabase.from('estudos_carga').select('tipo_carga_id').eq('cliente_id', currentClienteId);
@@ -519,16 +520,16 @@ async function renderEstudos() {
 
   const list = document.getElementById('estudos-list');
   if (!estudosAtuais.length) {
-    list.innerHTML = `<div class="empty"><div class="ico-empty">📋</div><h3>Nenhum estudo registrado</h3><p>Clique em "+ Novo Estudo" para registrar a primeira inspeção</p></div>`;
+    list.innerHTML = `<div class="empty"><div class="ico-empty">${icon('inbox-empty',{size:52})}</div><h3>Nenhum estudo registrado</h3><p>Clique em "+ Novo Estudo" para registrar a primeira inspeção</p></div>`;
     return;
   }
   list.innerHTML = estudosAtuais.map(e => {
     const thumb = (e.fotos || [])[0];
     const badgeClass = e.avaliacao === 'aprovada' ? 'badge-green' : 'badge-red';
-    const badgeLabel = e.avaliacao === 'aprovada' ? '✅ Aprovada' : '❌ Reprovada';
+    const badgeLabel = e.avaliacao === 'aprovada' ? `${icon('check',{size:11})} Aprovada` : `${icon('x-circle',{size:11})} Reprovada`;
     return `
     <div class="estudo-card" onclick="abrirModalEditarEstudo('${e.id}')">
-      ${thumb ? `<img class="es-thumb" src="${publicUrl(thumb.path)}" alt="">` : `<div class="es-thumb-empty">📷</div>`}
+      ${thumb ? `<img class="es-thumb" src="${publicUrl(thumb.path)}" alt="">` : `<div class="es-thumb-empty">${icon('image',{size:22})}</div>`}
       <div class="es-body">
         <div class="es-top"><span class="es-date">${dataBR(e.data)}</span><span class="badge ${badgeClass}">${badgeLabel}</span></div>
         <div class="es-obs">${esc(e.observacoes || 'Sem observações')}</div>
@@ -626,7 +627,7 @@ function renderFotoGrid() {
       </div>
     </div>`).join('')
   + (modalReadOnly ? '' : `<label class="foto-upload-btn" for="foto-input">
-      <span class="ico-big">📷</span><span>Adicionar fotos</span>
+      <span class="ico-big">${icon('image',{size:28})}</span><span>Adicionar fotos</span>
     </label>`);
 }
 

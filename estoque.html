@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="pt-BR">
 <head>
   <meta charset="UTF-8" />
@@ -85,7 +85,8 @@
 
 <div id="toast-container"></div>
 <script type="module">
-import { initPage, supabase, toast, abrirModal, fecharModal } from './js/config.js';
+import { initPage, supabase, toast, abrirModal, fecharModal } from './js/config.js?v=2';
+import { icon } from './js/icons.js';
 
 await initPage();
 
@@ -149,7 +150,7 @@ function renderTabela() {
       : `<td>${m.observacao || '—'}</td>`;
 
     const tdAcoes = isAdmin
-      ? `<td><button class="btn-icon danger" title="Remover do estoque" onclick="removerDoEstoque('${m.id}')">🗑️</button></td>`
+      ? `<td><button class="btn-icon danger" title="Remover do estoque" onclick="removerDoEstoque('${m.id}')">${icon('trash',{size:15})}</button></td>`
       : '<td></td>';
 
     return `<tr>
@@ -255,3 +256,4 @@ await init();
 </script>
 </body>
 </html>
+

@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="pt-BR">
 <head>
   <meta charset="UTF-8" />
@@ -600,7 +600,7 @@ function cardHTML(c, isAdm, hoje, iniMes, fimMes) {
       </div>
       <div class="detail-section">
         <div class="detail-header">
-          <h5>📌 Ocorrências / Faltas</h5>
+          <h5 style="display:flex;align-items:center;gap:6px">${icon('pin',{size:13})}Ocorrências / Faltas</h5>
           ${isAdm ? `<button class="btn btn-primary" style="padding:4px 12px;font-size:12px" onclick="novaOcPara('${c.id}')">+ Ocorrência</button>` : ''}
         </div>
         ${ocsHTML}

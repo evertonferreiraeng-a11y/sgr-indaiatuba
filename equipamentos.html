@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="pt-BR">
 <head>
   <meta charset="UTF-8" />
@@ -48,17 +48,17 @@
           <div class="kpi-sub">cadastrados</div>
         </div>
         <div class="kpi-card kpi-eq kpi-eq-op">
-          <div class="kpi-label">✅ Operando</div>
+          <div class="kpi-label" style="display:flex;align-items:center;gap:4px"><span class="icon" style="width:10px;height:10px"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></span>Operando</div>
           <div class="kpi-value" id="kpi-op">—</div>
           <div class="kpi-sub" id="kpi-op-pct">—</div>
         </div>
         <div class="kpi-card kpi-eq kpi-eq-res">
-          <div class="kpi-label">⚠️ Com Restrição</div>
+          <div class="kpi-label" style="display:flex;align-items:center;gap:4px"><span class="icon" style="width:10px;height:10px"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg></span>Com Restrição</div>
           <div class="kpi-value" id="kpi-res">—</div>
           <div class="kpi-sub" id="kpi-res-pct">—</div>
         </div>
         <div class="kpi-card kpi-eq kpi-eq-par">
-          <div class="kpi-label">❌ Parado</div>
+          <div class="kpi-label" style="display:flex;align-items:center;gap:4px"><span class="icon" style="width:10px;height:10px"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg></span>Parado</div>
           <div class="kpi-value" id="kpi-par">—</div>
           <div class="kpi-sub" id="kpi-par-pct">—</div>
         </div>
@@ -85,13 +85,13 @@
       <div class="card mb-16" style="padding:16px">
         <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;margin-bottom:14px">
           <div>
-            <span style="font-size:13px;font-weight:600;color:#374151">📅 Disponibilidade do Dia</span>
+            <span style="font-size:13px;font-weight:600;color:#374151;display:inline-flex;align-items:center;gap:5px"><span class="icon" style="width:13px;height:13px"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg></span>Disponibilidade do Dia</span>
             <div style="font-size:11px;color:#94a3b8;margin-top:2px">Registre o status de cada equipamento no dia selecionado — isso alimenta a barra de disponibilidade do Dashboard.</div>
           </div>
           <div style="display:flex;align-items:center;gap:8px">
             <input type="date" id="snap-data" style="padding:6px 10px;border-radius:6px;border:1px solid #D1D5DB;font-size:13px" />
             <button type="button" class="btn btn-outline" id="btn-snap-hoje" style="padding:6px 12px;font-size:12px">Hoje</button>
-            <button type="button" class="btn btn-primary" id="btn-snap-salvar" style="padding:6px 14px;font-size:12px">💾 Salvar dia</button>
+            <button type="button" class="btn btn-primary" id="btn-snap-salvar" style="padding:6px 14px;font-size:12px">Salvar dia</button>
           </div>
         </div>
         <div id="snap-dia-lista"></div>
@@ -141,9 +141,9 @@
           <div class="form-group full"><label>Observações</label><textarea name="observacao" rows="2" style="width:100%;resize:vertical" placeholder="Observações gerais sobre o equipamento…"></textarea></div>
           <div class="form-group"><label>Status *</label>
             <select name="status" required id="sel-status-eq" onchange="toggleCapPct(this.value)">
-              <option value="operando">✅ Operando</option>
-              <option value="restricao">⚠️ Operando com Restrição</option>
-              <option value="parado">❌ Parado / Manutenção</option>
+              <option value="operando">Operando</option>
+              <option value="restricao">Operando com Restrição</option>
+              <option value="parado">Parado / Manutenção</option>
             </select>
           </div>
           <div class="form-group" id="campo-cap-pct" style="display:none">
@@ -164,6 +164,7 @@
 <div id="toast-container"></div>
 <script type="module">
 import { initPage, supabase, toast, abrirModal, fecharModal } from './js/config.js?v=2';
+import { icon } from './js/icons.js';
 
 await initPage();
 
@@ -191,9 +192,9 @@ let snapData = hojeStr();
 let snapSelecao = {};
 
 const STATUS_OPCOES = [
-  { v:'operando',  label:'✅ Operando',   cls:'status-operando'  },
-  { v:'restricao', label:'⚠️ Restrição',  cls:'status-restricao' },
-  { v:'parado',    label:'❌ Parado',     cls:'status-parado'    },
+  { v:'operando',  label: icon('check',{size:12}) + ' Operando',           cls:'status-operando'  },
+  { v:'restricao', label: icon('alert-triangle',{size:12}) + ' Restrição', cls:'status-restricao' },
+  { v:'parado',    label: icon('x-circle',{size:12}) + ' Parado',         cls:'status-parado'    },
 ];
 
 async function carregarSnapDia() {
@@ -252,7 +253,7 @@ document.getElementById('btn-snap-salvar').addEventListener('click', async () =>
   }));
   await supabase.from('equipamentos_snapshot').delete().eq('semana', snapData);
   const { error } = await supabase.from('equipamentos_snapshot').insert(rows);
-  btn.disabled = false; btn.textContent = '💾 Salvar dia';
+  btn.disabled = false; btn.textContent = 'Salvar dia';
   if (error) { toast('Erro ao salvar: ' + error.message, 'error'); return; }
   const [a,m,d] = snapData.split('-');
   toast(`Disponibilidade de ${d}/${m}/${a} registrada!`);
@@ -295,17 +296,14 @@ function renderTabela() {
     return;
   }
 
-  const statusInfo = {
-    operando:  { cls:'status-operando',  icon:'✅', label:'Operando' },
-    restricao: { cls:'status-restricao', icon:'⚠️', label:'Com Restrição' },
-    parado:    { cls:'status-parado',    icon:'❌', label:'Parado' },
-  };
+  const statusIcons = { operando:'check', restricao:'alert-triangle', parado:'x-circle' };
+  const statusLabels = { operando:'Operando', restricao:'Com Restrição', parado:'Parado' };
 
   tb.innerHTML = eqData.map(e => {
-    const st = statusInfo[e.status] || statusInfo.operando;
-    const stLabel = e.status === 'restricao' && e.capacidade_pct
-      ? `⚠️ Com Restrição (${e.capacidade_pct}%)`
-      : `${st.icon} ${st.label}`;
+    const cls = `status-${e.status}`;
+    const label = e.status === 'restricao' && e.capacidade_pct
+      ? `Com Restrição (${e.capacidade_pct}%)`
+      : (statusLabels[e.status] || e.status);
     return `<tr>
       <td><strong>${e.nome}</strong></td>
       <td>${e.frota || '<span style="color:#94a3b8">—</span>'}</td>
@@ -313,14 +311,14 @@ function renderTabela() {
       <td style="font-size:13px">${e.funcao || '—'}</td>
       <td style="font-size:13px">${e.capacidade || '—'}</td>
       <td>
-        <span class="status-btn ${st.cls}">${stLabel}</span>
-        ${isAdmin ? `<button class="btn-icon" style="margin-left:4px" onclick="editarEq('${e.id}')">⚙️</button>` : ''}
+        <span class="status-btn ${cls}">${icon(statusIcons[e.status] || 'info',{size:13})} ${label}</span>
+        ${isAdmin ? `<button class="btn-icon" style="margin-left:4px" onclick="editarEq('${e.id}')">${icon('settings',{size:15})}</button>` : ''}
       </td>
       <td style="max-width:240px;font-size:13px;color:#475569">${e.observacao || '<span style="color:#94a3b8">—</span>'}</td>
       <td>
         ${isAdmin ? `
-          <button class="btn-icon" onclick="editarEq('${e.id}')">✏️</button>
-          <button class="btn-icon danger" onclick="excluirEq('${e.id}')">🗑️</button>
+          <button class="btn-icon" onclick="editarEq('${e.id}')">${icon('edit',{size:15})}</button>
+          <button class="btn-icon danger" onclick="excluirEq('${e.id}')">${icon('trash',{size:15})}</button>
         ` : ''}
       </td>
     </tr>`;
@@ -340,7 +338,7 @@ window.alterarStatus = async (id, novoStatus) => {
   if (e) e.status = novoStatus;
   renderKPIs();
   renderTabela();
-  const labels = { operando:'Operando ✅', restricao:'Com Restrição ⚠️', parado:'Parado ❌' };
+  const labels = { operando:'Operando', restricao:'Com Restrição', parado:'Parado' };
   toast(`Status atualizado: ${labels[novoStatus]}`);
 };
 

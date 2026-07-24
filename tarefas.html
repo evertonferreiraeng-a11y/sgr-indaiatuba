@@ -67,7 +67,7 @@
     .modal-overlay.open { display:flex; }
     .modal { background:#fff; border-radius:16px; width:100%; max-width:540px; box-shadow:0 20px 60px rgba(0,0,0,.2); overflow:hidden; }
     .modal-hd { padding:22px 26px 16px; border-bottom:1px solid #f1f5f9; display:flex; align-items:center; gap:10px; }
-    .modal-hd-icon { width:36px; height:36px; border-radius:10px; background:#d1fae5; display:flex; align-items:center; justify-content:center; font-size:16px; flex-shrink:0; }
+    .modal-hd-icon { width:36px; height:36px; border-radius:10px; background:#d1fae5; color:#065f46; display:flex; align-items:center; justify-content:center; font-size:16px; flex-shrink:0; }
     .modal-hd-title { font-size:16px; font-weight:800; color:#0f172a; flex:1; }
     .modal-close { background:none; border:none; font-size:22px; color:#94a3b8; cursor:pointer; line-height:1; padding:0; }
     .modal-close:hover { color:#334155; }
@@ -156,9 +156,9 @@
         </div>
         <select class="tar-filter" id="fil-prioridade" onchange="renderKanban()">
           <option value="">Todas as prioridades</option>
-          <option value="alta">🔴 Alta</option>
-          <option value="media">🟡 Média</option>
-          <option value="baixa">🟢 Baixa</option>
+          <option value="alta">Alta</option>
+          <option value="media">Média</option>
+          <option value="baixa">Baixa</option>
         </select>
         <select class="tar-filter" id="fil-categoria" onchange="renderKanban()">
           <option value="">Todas as categorias</option>
@@ -179,7 +179,7 @@
 <div class="modal-overlay" id="modal-overlay">
   <div class="modal">
     <div class="modal-hd">
-      <div class="modal-hd-icon">✅</div>
+      <div class="modal-hd-icon"><span class="icon" style="width:20px;height:20px"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"/></svg></span></div>
       <div class="modal-hd-title" id="modal-title">Nova Tarefa</div>
       <button class="modal-close" onclick="fecharTarefa()">×</button>
     </div>
@@ -196,18 +196,18 @@
         <div class="field-group">
           <label>Prioridade</label>
           <select id="f-prioridade">
-            <option value="baixa">🟢 Baixa</option>
-            <option value="media" selected>🟡 Média</option>
-            <option value="alta">🔴 Alta</option>
+            <option value="baixa">Baixa</option>
+            <option value="media" selected>Média</option>
+            <option value="alta">Alta</option>
           </select>
         </div>
         <div class="field-group">
           <label>Status</label>
           <select id="f-status">
-            <option value="pendente">⬜ A Fazer</option>
-            <option value="em_andamento">🔵 Em Andamento</option>
-            <option value="concluida">✅ Concluída</option>
-            <option value="cancelada">❌ Cancelada</option>
+            <option value="pendente">A Fazer</option>
+            <option value="em_andamento">Em Andamento</option>
+            <option value="concluida">Concluída</option>
+            <option value="cancelada">Cancelada</option>
           </select>
         </div>
       </div>
@@ -245,6 +245,7 @@
 
 <script type="module">
 import { supabase, initPage } from './js/config.js';
+import { icon } from './js/icons.js';
 
 await initPage();
 
@@ -325,7 +326,7 @@ function renderKpis() {
     <div class="tar-kpi" style="--strip:${vencidas?'#dc2626':'#94a3b8'}">
       <div class="tar-kpi-label">Vencidas</div>
       <div class="tar-kpi-val" style="color:${vencidas?'#dc2626':'#0f172a'}">${vencidas}</div>
-      <div class="tar-kpi-sub">${vencidas?'⚠️ requer atenção':'todas no prazo'}</div>
+      <div class="tar-kpi-sub">${vencidas?icon('alert-triangle',{size:10})+' requer atenção':'todas no prazo'}</div>
     </div>`;
 }
 
@@ -389,8 +390,8 @@ function cardHtml(t, hoje) {
     const [a,m,d] = venc.split('-');
     const label = `${d}/${m}`;
     const cls = venc < hoje ? 'vencida' : venc === hoje ? 'urgente' : 'ok';
-    const icon = venc < hoje ? '⚠️ ' : venc === hoje ? '🔔 ' : '';
-    dateHtml = `<span class="task-date ${cls}">${icon}${label}</span>`;
+    const dateIcon = venc < hoje ? icon('alert-triangle',{size:11}) : venc === hoje ? icon('bell',{size:11}) : '';
+    dateHtml = `<span class="task-date ${cls}">${dateIcon}${label}</span>`;
   } else {
     dateHtml = `<span class="task-date sem-data">Sem prazo</span>`;
   }
@@ -535,14 +536,14 @@ window.ctxMenu = (e, id) => {
   e.stopPropagation();
   const menu = document.getElementById('ctx-menu');
   menu.innerHTML = `
-    <button class="ctx-item" onclick="abrirTarefa('${id}');fecharCtx()">✏️ Editar</button>
+    <button class="ctx-item" onclick="abrirTarefa('${id}');fecharCtx()">${icon('edit',{size:13})} Editar</button>
     <div class="ctx-sep"></div>
-    <button class="ctx-item" onclick="moverStatus('${id}','pendente');fecharCtx()">⬜ A Fazer</button>
-    <button class="ctx-item" onclick="moverStatus('${id}','em_andamento');fecharCtx()">🔵 Em Andamento</button>
-    <button class="ctx-item" onclick="moverStatus('${id}','concluida');fecharCtx()">✅ Concluída</button>
-    <button class="ctx-item" onclick="moverStatus('${id}','cancelada');fecharCtx()">❌ Cancelada</button>
+    <button class="ctx-item" onclick="moverStatus('${id}','pendente');fecharCtx()"><span style="display:inline-block;width:8px;height:8px;border-radius:2px;background:#cbd5e1;margin-right:6px"></span>A Fazer</button>
+    <button class="ctx-item" onclick="moverStatus('${id}','em_andamento');fecharCtx()"><span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:#3b82f6;margin-right:6px"></span>Em Andamento</button>
+    <button class="ctx-item" onclick="moverStatus('${id}','concluida');fecharCtx()">${icon('check',{size:13})} Concluída</button>
+    <button class="ctx-item" onclick="moverStatus('${id}','cancelada');fecharCtx()">${icon('x-circle',{size:13})} Cancelada</button>
     <div class="ctx-sep"></div>
-    <button class="ctx-item danger" onclick="confirmarDelete('${id}');fecharCtx()">🗑️ Excluir</button>`;
+    <button class="ctx-item danger" onclick="confirmarDelete('${id}');fecharCtx()">${icon('trash',{size:13})} Excluir</button>`;
   menu.style.display = 'block';
   const x = Math.min(e.clientX, window.innerWidth - 170);
   const y = Math.min(e.clientY, window.innerHeight - 240);

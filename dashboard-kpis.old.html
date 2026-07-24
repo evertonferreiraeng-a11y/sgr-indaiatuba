@@ -1,0 +1,953 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Dashboard — SGR Indaiatuba</title>
+  <link rel="stylesheet" href="css/style.css" />
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4/dist/chart.umd.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2/dist/chartjs-plugin-datalabels.min.js"></script>
+  <style>
+    /* ── Seções (estilo Comitê de Gestão) ── */
+    .rel-section { margin-bottom: 20px; }
+    .sec-hd {
+      display:flex; align-items:center; gap:10px;
+      margin-bottom:16px; padding-bottom:12px; border-bottom:1px solid #f1f5f9;
+    }
+    .sec-dot { width:10px; height:10px; border-radius:50%; flex-shrink:0; }
+    .sec-title { font-size:12px; font-weight:800; text-transform:uppercase; letter-spacing:.1em; color:#0f172a; }
+    .sec-line { flex:1; height:1px; background:#f1f5f9; }
+    .sec-badge { font-size:11px; font-weight:700; padding:3px 12px; border-radius:20px; white-space:nowrap; }
+
+    /* ── KPI cards (genéricos) ── */
+    .rel-kpi { background:#fff; border:1px solid #e2e8f0; border-radius:10px; padding:14px 16px; }
+    .rel-kpi-label { font-size:10px; font-weight:700; text-transform:uppercase; color:#64748b; margin-bottom:4px; letter-spacing:.04em; }
+    .rel-kpi-val   { font-size:22px; font-weight:900; color:#0f172a; line-height:1; letter-spacing:-.5px; }
+    .rel-kpi-sub   { font-size:11px; color:#94a3b8; margin-top:4px; }
+
+    /* ── KPI executivo (faixa do topo) ── */
+    .exec-kpi {
+      background:#fff; border:1px solid #e2e8f0; border-radius:12px;
+      padding:14px 16px; position:relative; overflow:hidden;
+    }
+    .exec-kpi::before {
+      content:''; position:absolute; top:0; left:0; right:0; height:3px;
+      background:var(--strip,#1a6b3c);
+    }
+    .exec-kpi-label { font-size:10px; font-weight:700; text-transform:uppercase; color:#94a3b8; margin-bottom:8px; letter-spacing:.06em; }
+    .exec-kpi-val   { font-size:21px; font-weight:900; color:#0f172a; line-height:1; letter-spacing:-.5px; }
+    .exec-kpi-sub   { font-size:11px; color:#94a3b8; margin-top:6px; }
+
+    /* ── Tabelas ── */
+    .fat-table { width:100%; border-collapse:collapse; font-size:12.5px; }
+    .fat-table th {
+      background:#f8fafc; font-weight:700; font-size:11px; text-transform:uppercase;
+      letter-spacing:.04em; color:#64748b; padding:9px 12px;
+      text-align:left; border-bottom:2px solid #e2e8f0;
+    }
+    .fat-table td { padding:7px 12px; border-bottom:1px solid #f8fafc; color:#334155; }
+    .fat-table tbody tr:hover { background:#f8fafc; }
+    .fat-table tr:last-child td { border-bottom:none; }
+    .fat-table td.num { text-align: right; font-weight: 600; }
+    .prev-cell { cursor:pointer; border-bottom:1px dashed #2563eb; }
+    .prev-cell:hover { background:#eff6ff; border-radius:3px; }
+    .prev-inline { width:110px; border:1px solid #2563eb; border-radius:4px; padding:2px 6px; font-size:12px; }
+
+    /* ── Alertas de experiência ── */
+    .alerta-exp {
+      background: #FFFBEB; border: 1px solid #FCD34D; border-radius: 8px;
+      padding: 10px 16px; margin-bottom: 8px; font-size: 13px;
+      display: flex; align-items: center; gap: 8px;
+    }
+    .alerta-exp.critico { background: var(--danger-light); border-color: #FECACA; }
+    .alerta-exp:last-child { margin-bottom: 0; }
+
+    /* ── Gauge ── */
+    .gauge-val { font-size: 32px; font-weight: 900; margin-top: -18px; letter-spacing: -1px; }
+    .gauge-lbl { font-size: 11px; color: var(--text-muted); margin-top: 4px; text-align: center; }
+
+    /* ── Equipe ── */
+    #equipe-hoje-chips { display: flex; flex-wrap: nowrap; overflow-x: auto; gap: 6px; padding-bottom: 4px; }
+    .equipe-chip {
+      display: inline-flex; flex-direction: column; align-items: flex-start; flex: 0 0 auto;
+      background: var(--primary-bg); border: 1px solid var(--primary-border);
+      border-radius: 10px; padding: 5px 10px; white-space: nowrap;
+      font-size: 12px; font-weight: 500;
+    }
+    .equipe-chip .chip-sub { font-size: 10px; font-weight: 700; margin-top: 2px; }
+
+    /* ── Balanço de Massa ── */
+    .balanco-bar-wrap { background:#F3F4F6; border-radius:8px; height:18px; display:flex; overflow:hidden; margin-bottom:8px; }
+    .balanco-bar-seg  { height:100%; transition: width .4s; display:flex; align-items:center; justify-content:center; font-size:10px; font-weight:700; color:#fff; overflow:hidden; white-space:nowrap; }
+    .balanco-legenda  { display:flex; flex-wrap:wrap; gap:10px; font-size:11px; }
+    .balanco-legenda span { display:flex; align-items:center; gap:4px; }
+    .balanco-legenda i { width:10px; height:10px; border-radius:2px; display:inline-block; }
+  </style>
+</head>
+<body>
+<div class="app-layout">
+  <div id="sidebar-root"></div>
+  <div class="main-content">
+    <div class="page-header">
+      <div><h2>Dashboard</h2><p id="periodo-label">Carregando…</p></div>
+      <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+        <select id="filtro-ano" style="padding:7px 10px;border-radius:6px;border:1px solid #D1D5DB;font-size:13px"></select>
+        <input type="month" id="filtro-mes" style="width:150px" />
+      </div>
+    </div>
+
+    <div class="page-body">
+
+      <!-- ══ BANNER ══ -->
+      <div class="rel-section" style="background:linear-gradient(135deg,var(--primary-dark) 0%,var(--primary) 55%,var(--primary-light) 100%);border-radius:16px;padding:28px 32px;margin-bottom:16px;position:relative;overflow:hidden">
+        <div style="position:absolute;top:-50px;right:-50px;width:200px;height:200px;border-radius:50%;background:rgba(94,197,191,0.08)"></div>
+        <div style="position:absolute;bottom:-60px;right:110px;width:150px;height:150px;border-radius:50%;background:rgba(255,255,255,0.04)"></div>
+        <div style="position:relative;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:16px">
+          <div>
+            <div style="font-size:10px;font-weight:700;text-transform:uppercase;color:#5EC5BF;letter-spacing:.18em;margin-bottom:10px">SGR Indaiatuba — UVR Indaiatuba</div>
+            <div style="font-size:28px;font-weight:900;color:#ffffff;letter-spacing:-.8px;line-height:1.1">Dashboard Operacional</div>
+            <div style="font-size:16px;color:rgba(255,255,255,0.8);font-weight:500;margin-top:8px" id="capa-periodo">Carregando…</div>
+          </div>
+          <div style="text-align:right">
+            <div style="font-size:11px;color:rgba(255,255,255,0.55);margin-bottom:4px">Visão geral da operação</div>
+            <div style="font-size:13px;color:#5EC5BF;font-weight:600" id="capa-data"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ══ PAINEL EXECUTIVO ══ -->
+      <div style="margin-bottom:16px">
+        <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:#94a3b8;margin-bottom:10px;padding-left:2px">Visão Geral</div>
+        <div id="painel-executivo" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:8px"></div>
+      </div>
+
+      <!-- ── ALERTAS VENCIMENTO EXPERIÊNCIA ── -->
+      <div id="alertas-exp-dash"></div>
+
+      <!-- ── BALANÇO DE MASSA ── -->
+      <div class="card rel-section">
+        <div class="sec-hd">
+          <div class="sec-dot" id="balanco-dot" style="background:#94a3b8"></div>
+          <div class="sec-title">Balanço de Massa / Taxa de Reciclagem</div>
+          <div class="sec-line"></div>
+          <span class="sec-badge" id="balanco-badge" style="color:#64748b;background:#f1f5f9">—</span>
+        </div>
+        <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;margin-bottom:14px">
+          <div style="display:flex;align-items:center;gap:4px;flex-wrap:wrap">
+            <span style="font-size:11px;color:var(--text-muted)">Tipo:</span>
+            <button id="bal-cat-todos"    class="bal-cat-btn active" style="font-size:11px;padding:3px 9px;border-radius:20px;border:1px solid #D1D5DB;background:var(--primary);color:#fff;cursor:pointer">Todos</button>
+            <button id="bal-cat-reciclavel" class="bal-cat-btn"     style="font-size:11px;padding:3px 9px;border-radius:20px;border:1px solid #D1D5DB;background:#fff;color:#374151;cursor:pointer">♻ Recicláveis</button>
+            <button id="bal-cat-nao"        class="bal-cat-btn"     style="font-size:11px;padding:3px 9px;border-radius:20px;border:1px solid #D1D5DB;background:#fff;color:#374151;cursor:pointer">🚫 Não Recicláveis</button>
+          </div>
+          <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap">
+            <span style="font-size:12px;color:var(--text-muted)">Período:</span>
+            <button class="btn btn-sm" id="bal-btn-mes" style="font-size:12px;background:var(--primary);color:#fff;border:none;border-radius:6px;padding:4px 10px;cursor:pointer">Mês atual</button>
+            <button class="btn btn-sm" id="bal-btn-3m"  style="font-size:12px;background:#fff;color:#374151;border:1px solid #D1D5DB;border-radius:6px;padding:4px 10px;cursor:pointer">3 meses</button>
+            <button class="btn btn-sm" id="bal-btn-ano" style="font-size:12px;background:#fff;color:#374151;border:1px solid #D1D5DB;border-radius:6px;padding:4px 10px;cursor:pointer">Ano</button>
+            <button class="btn btn-sm" id="bal-btn-custom" style="font-size:12px;background:#fff;color:#374151;border:1px solid #D1D5DB;border-radius:6px;padding:4px 10px;cursor:pointer">Personalizado</button>
+            <div id="bal-custom-inputs" style="display:none;gap:6px;align-items:center">
+              <input type="date" id="bal-de"  style="font-size:12px;padding:3px 7px;border:1px solid #e2e8f0;border-radius:6px" />
+              <span style="font-size:12px">–</span>
+              <input type="date" id="bal-ate" style="font-size:12px;padding:3px 7px;border:1px solid #e2e8f0;border-radius:6px" />
+              <button class="btn btn-sm btn-primary" id="bal-btn-aplicar" style="font-size:12px">Filtrar</button>
+            </div>
+          </div>
+        </div>
+        <div style="display:grid;grid-template-columns:2fr 1fr;gap:20px">
+          <div>
+            <div id="balanco-cards"></div>
+            <div class="balanco-bar-wrap" id="balanco-bar"></div>
+            <div class="balanco-legenda" id="balanco-legenda"></div>
+            <div id="balanco-fechamento"></div>
+          </div>
+          <div style="display:flex;flex-direction:column;align-items:center;justify-content:center">
+            <div style="font-size:11px;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:.05em;margin-bottom:4px">Taxa de Reciclagem</div>
+            <canvas id="gauge-canvas" width="220" height="120"></canvas>
+            <div class="gauge-val" id="gauge-val">—</div>
+            <div class="gauge-lbl">(Expedido + Estoque) / Recebido</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ── EQUIPAMENTOS ── -->
+      <div class="card rel-section">
+        <div class="sec-hd">
+          <div class="sec-dot" id="equip-dot" style="background:#94a3b8"></div>
+          <div class="sec-title">Equipamentos</div>
+          <div class="sec-line"></div>
+          <span class="sec-badge" id="equip-badge" style="color:#64748b;background:#f1f5f9">—</span>
+        </div>
+        <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:12px">
+          <div class="rel-kpi" style="border-left:4px solid var(--primary)">
+            <div class="rel-kpi-label">Total</div>
+            <div class="rel-kpi-val" id="equip-total">—</div>
+          </div>
+          <div class="rel-kpi" style="border-left:4px solid #16a34a">
+            <div class="rel-kpi-label">Ativos</div>
+            <div class="rel-kpi-val" id="equip-ativos">—</div>
+          </div>
+          <div class="rel-kpi" id="equip-pct-card" style="border-left:4px solid #94a3b8">
+            <div class="rel-kpi-label">Disponíveis</div>
+            <div class="rel-kpi-val" id="equip-pct">—</div>
+          </div>
+        </div>
+        <div class="progress-bar"><div class="progress-fill" id="equip-bar" style="width:0%"></div></div>
+        <div id="equip-lista" style="margin-top:10px;font-size:12px;color:var(--text-muted)"></div>
+      </div>
+
+      <!-- ── EQUIPE DE HOJE (RH) ── -->
+      <div class="card rel-section">
+        <div class="sec-hd">
+          <div class="sec-dot" id="equipe-dot" style="background:#94a3b8"></div>
+          <div class="sec-title">Equipe de Hoje</div>
+          <div class="sec-line"></div>
+          <span class="sec-badge" id="equipe-badge" style="color:#64748b;background:#f1f5f9">—</span>
+          <a href="rh.html" class="btn btn-sm btn-outline" style="text-decoration:none">Abrir RH</a>
+        </div>
+        <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:12px">
+          <div class="rel-kpi" style="border-left:4px solid var(--primary)">
+            <div class="rel-kpi-label">Colaboradores</div>
+            <div class="rel-kpi-val" id="equipe-total-colab">—</div>
+          </div>
+          <div class="rel-kpi" id="equipe-hoje-card" style="border-left:4px solid #94a3b8">
+            <div class="rel-kpi-label">Presentes Hoje</div>
+            <div class="rel-kpi-val" id="equipe-hoje-count">—</div>
+          </div>
+          <div class="rel-kpi" style="border-left:4px solid #dc2626">
+            <div class="rel-kpi-label">Faltas Hoje</div>
+            <div class="rel-kpi-val" id="equipe-faltas-count" style="color:#dc2626">—</div>
+          </div>
+        </div>
+        <div id="equipe-hoje-chips" style="margin-bottom:16px"></div>
+        <div style="font-size:11px;font-weight:700;text-transform:uppercase;color:#94a3b8;margin-bottom:8px">Balanço de Vagas</div>
+        <table class="fat-table" id="tbl-vagas">
+          <thead><tr><th>Cargo</th><th class="text-right">Preenchido</th><th class="text-right">Total de Vagas</th><th>Situação</th></tr></thead>
+          <tbody id="tbody-vagas-dash"></tbody>
+        </table>
+      </div>
+
+      <!-- ── FATURAMENTO REALIZADO x PREVISTO ── -->
+      <div class="card rel-section">
+        <div class="sec-hd">
+          <div class="sec-dot" id="fat-dot" style="background:#94a3b8"></div>
+          <div class="sec-title">Faturamento Realizado × Previsto</div>
+          <div class="sec-line"></div>
+          <span class="sec-badge" id="fat-badge" style="color:#64748b;background:#f1f5f9">—</span>
+        </div>
+        <div id="comercial-cards" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px;margin-bottom:18px"></div>
+        <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;margin-bottom:16px">
+          <h3 style="font-size:14px;font-weight:600">Anual</h3>
+          <div style="display:flex;gap:8px;align-items:center">
+            <span style="font-size:12px;color:var(--text-muted)">Ano:</span>
+            <select id="fat-ano" style="padding:6px 10px;border-radius:6px;border:1px solid #D1D5DB;font-size:13px"></select>
+          </div>
+        </div>
+        <div class="chart-wrap" style="height:260px"><canvas id="chart-fat-prev"></canvas></div>
+        <div class="table-scroll" style="margin-top:16px">
+          <table class="fat-table">
+            <thead>
+              <tr><th>Mês</th><th class="text-right">Realizado (R$)</th><th class="text-right">Previsto (R$) ✏️</th><th class="text-right">Ton Vendidas</th><th class="text-right">Atingimento</th><th class="text-right">Ticket Médio (R$/ton)</th></tr>
+            </thead>
+            <tbody id="tb-fat-mensal"></tbody>
+            <tfoot id="tf-fat-geral" style="background:#EBF5EE;font-weight:700"></tfoot>
+          </table>
+        </div>
+      </div>
+
+      <!-- ── PRODUÇÃO MENSAL ── -->
+      <div class="card rel-section">
+        <div class="sec-hd">
+          <div class="sec-dot" style="background:#3B82F6"></div>
+          <div class="sec-title">Produção do Ano</div>
+          <div class="sec-line"></div>
+          <span class="sec-badge" id="prod-badge" style="color:#1d4ed8;background:#eff6ff">—</span>
+        </div>
+        <div class="chart-wrap" style="height:240px"><canvas id="chart-producao"></canvas></div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<div id="toast-container"></div>
+<script type="module">
+import { initPage, supabase, moeda, peso, ton, mesAtual, anoAtual, toast } from './js/config.js?v=2';
+
+
+await initPage();
+
+const MESES      = ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
+const MESES_FULL = ['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
+let chartProd, chartFatPrev;
+
+document.getElementById('capa-data').textContent =
+  new Date().toLocaleDateString('pt-BR', { weekday:'long', day:'2-digit', month:'long', year:'numeric' });
+
+// ── Cache para o Painel Executivo e o card Comercial ─────────────────────────
+let _kpiFat = 0, _kpiMeta = 0;
+let _kpiEquipPct = 0, _kpiEquipTotal = 0, _kpiEquipAtivos = 0;
+let _kpiPresencaPct = 0, _kpiPresentes = 0, _kpiTotalColab = 0;
+let _comExpKg = 0, _comTicket = 0, _comSaldoVal = 0, _comSaldoKg = 0, _comPotencial = 0;
+
+const anoAtualVal = anoAtual();
+[document.getElementById('filtro-ano'), document.getElementById('fat-ano')].forEach(s => {
+  s.innerHTML = '';
+  for (let a = anoAtualVal; a >= anoAtualVal - 4; a--)
+    s.innerHTML += `<option value="${a}">${a}</option>`;
+});
+document.getElementById('filtro-mes').value = mesAtual();
+
+document.getElementById('filtro-mes').addEventListener('change', () => {
+  const ano = document.getElementById('filtro-mes').value.split('-')[0];
+  document.getElementById('filtro-ano').value = ano;
+  document.getElementById('fat-ano').value = ano;
+  carregarDados();
+});
+document.getElementById('filtro-ano').addEventListener('change', () => {
+  const ano = document.getElementById('filtro-ano').value;
+  const mes = document.getElementById('filtro-mes').value.split('-')[1] || '01';
+  document.getElementById('filtro-mes').value = `${ano}-${mes}`;
+  document.getElementById('fat-ano').value = ano;
+  carregarDados();
+});
+document.getElementById('fat-ano').addEventListener('change', carregarFatPrevisto);
+
+// ── Filtro categoria Balanço ─────────────────────────────────────────────────
+document.querySelectorAll('.bal-cat-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    _balancoCatFiltro = btn.id === 'bal-cat-todos' ? 'todos'
+                      : btn.id === 'bal-cat-reciclavel' ? 'reciclavel' : 'nao';
+    document.querySelectorAll('.bal-cat-btn').forEach(b => {
+      const ativo = b === btn;
+      b.style.background = ativo ? 'var(--primary)' : '#fff';
+      b.style.color       = ativo ? '#fff' : '#374151';
+    });
+    if (_balancoInicio && _balancoFim) carregarBalanco(_balancoInicio, _balancoFim).then(renderPainelExecutivo);
+  });
+});
+
+// ── Filtro Balanço de Massa ──────────────────────────────────────────────────
+const balBtns = {
+  mes:    document.getElementById('bal-btn-mes'),
+  '3m':   document.getElementById('bal-btn-3m'),
+  ano:    document.getElementById('bal-btn-ano'),
+  custom: document.getElementById('bal-btn-custom'),
+};
+function setBalBtn(ativo) {
+  Object.entries(balBtns).forEach(([k, el]) => {
+    const isAtivo = k === ativo;
+    el.style.background = isAtivo ? 'var(--primary)' : '#fff';
+    el.style.color       = isAtivo ? '#fff' : '#374151';
+    el.style.border      = isAtivo ? 'none' : '1px solid #D1D5DB';
+  });
+  document.getElementById('bal-custom-inputs').style.display = ativo === 'custom' ? 'flex' : 'none';
+}
+function recarregarBalanco(inicio, fim) {
+  Promise.all([carregarKPIs(inicio, fim), carregarBalanco(inicio, fim)]).then(renderPainelExecutivo);
+}
+balBtns.mes.addEventListener('click', () => {
+  setBalBtn('mes');
+  const mes = document.getElementById('filtro-mes').value;
+  const [y, m] = mes.split('-');
+  recarregarBalanco(`${y}-${m}-01`, new Date(y, m, 0).toISOString().split('T')[0]);
+});
+balBtns['3m'].addEventListener('click', () => {
+  setBalBtn('3m');
+  const ate = new Date(); ate.setDate(1); ate.setMonth(ate.getMonth()+1); ate.setDate(0);
+  const de  = new Date(ate); de.setMonth(de.getMonth()-2); de.setDate(1);
+  recarregarBalanco(de.toISOString().split('T')[0], ate.toISOString().split('T')[0]);
+});
+balBtns.ano.addEventListener('click', () => {
+  setBalBtn('ano');
+  const ano = document.getElementById('filtro-ano').value;
+  recarregarBalanco(`${ano}-01-01`, `${ano}-12-31`);
+});
+balBtns.custom.addEventListener('click', () => setBalBtn('custom'));
+document.getElementById('bal-btn-aplicar').addEventListener('click', () => {
+  const de  = document.getElementById('bal-de').value;
+  const ate = document.getElementById('bal-ate').value;
+  if (!de || !ate) { alert('Selecione De e Até.'); return; }
+  recarregarBalanco(de, ate);
+});
+
+async function carregarDados() {
+  const mes = document.getElementById('filtro-mes').value;
+  const ano = document.getElementById('filtro-ano').value;
+  const [y, m] = mes.split('-');
+  const periodoTxt = `${MESES_FULL[+m-1]} de ${y}`;
+  document.getElementById('periodo-label').textContent = periodoTxt;
+  document.getElementById('capa-periodo').textContent  = periodoTxt;
+  const inicio = `${y}-${m}-01`;
+  const fim    = new Date(y, m, 0).toISOString().split('T')[0];
+  await Promise.all([
+    carregarKPIs(inicio, fim),
+    carregarBalanco(inicio, fim),
+    carregarEquipamentos(),
+    carregarEquipeHoje(),
+    carregarGraficoProducao(ano),
+    carregarFatPrevisto(),
+    carregarAlertasExp(),
+  ]);
+  renderPainelExecutivo();
+}
+
+/* ── Painel Executivo ── */
+function renderPainelExecutivo() {
+  const recebido = _balancoBase.recebido || 0;
+  const expedido = _balancoBase.expedido || 0;
+  const estoque  = _balancoBase.estoque  || 0;
+  const taxa     = recebido > 0 ? Math.min(((expedido + estoque) / recebido) * 100, 100) : 0;
+
+  const atingimento = _kpiMeta > 0 ? (_kpiFat / _kpiMeta * 100) : null;
+  const cA = atingimento === null ? '#94a3b8' : atingimento >= 100 ? '#1a6b3c' : atingimento >= 80 ? '#D97706' : '#D64545';
+  const cT = taxa >= 70 ? '#1a6b3c' : taxa >= 50 ? '#D97706' : '#D64545';
+  const cE = _kpiEquipPct >= 80 ? '#1a6b3c' : _kpiEquipPct >= 60 ? '#D97706' : '#D64545';
+  const cR = _kpiPresencaPct >= 90 ? '#1a6b3c' : _kpiPresencaPct >= 70 ? '#D97706' : '#D64545';
+
+  const kpis = [
+    { label:'Faturamento',     val: moeda(_kpiFat),  sub: document.getElementById('periodo-label').textContent, strip:'#1a6b3c' },
+    { label:'Meta do Mês',     val: _kpiMeta > 0 ? moeda(_kpiMeta) : '—', sub:'objetivo mensal', strip:'#64748b' },
+    { label:'Atingimento',     val: atingimento !== null ? atingimento.toFixed(1)+'%' : '—',
+      sub: atingimento === null ? 'sem meta' : atingimento >= 100 ? '✅ Meta atingida' : atingimento >= 80 ? '⚠️ Próximo da meta' : '❌ Abaixo da meta',
+      strip:cA, valCor:cA },
+    { label:'Volume Recebido', val: ton(recebido), sub:'no período', strip:'#3B82F6' },
+    { label:'Taxa Reciclagem', val: taxa.toFixed(1)+'%',
+      sub: taxa >= 70 ? '✅ Meta ambiental OK' : taxa >= 50 ? '⚠️ Atenção' : '❌ Abaixo do esperado',
+      strip:cT, valCor:cT },
+    { label:'Disponib. Frota', val: _kpiEquipPct+'%', sub: _kpiEquipAtivos+' de '+_kpiEquipTotal+' equipamentos', strip:cE, valCor:cE },
+    { label:'Presença RH',     val: _kpiPresencaPct+'%', sub: _kpiPresentes+' de '+_kpiTotalColab+' colaboradores', strip:cR, valCor:cR },
+  ];
+
+  document.getElementById('painel-executivo').innerHTML = kpis.map(k => `
+    <div class="exec-kpi" style="--strip:${k.strip}">
+      <div class="exec-kpi-label">${k.label}</div>
+      <div class="exec-kpi-val" style="color:${k.valCor||'#0f172a'}">${k.val}</div>
+      <div class="exec-kpi-sub">${k.sub}</div>
+    </div>`).join('');
+}
+
+/* ── KPIs ── */
+async function carregarKPIs(inicio, fim) {
+  const periodo = inicio.slice(0, 7);
+  const [{ data: ents }, { data: vends }, { data: mats }, { data: metas }] = await Promise.all([
+    supabase.from('entradas').select('peso_liquido, tipo_movimentacao').gte('data', inicio).lte('data', fim),
+    supabase.from('vendas').select('peso_kg, valor_total').gte('data', inicio).lte('data', fim),
+    supabase.from('materiais').select('estoque_kg, valor_unitario, no_estoque').eq('no_estoque', true),
+    supabase.from('metas').select('valor_meta').eq('indicador','faturamento').eq('periodo', periodo),
+  ]);
+
+  const recicKg  = (ents||[]).filter(r=>r.tipo_movimentacao!=='saida').reduce((s,r)=>s+parseFloat(r.peso_liquido||0), 0);
+  const rejKg    = (ents||[]).filter(r=>r.tipo_movimentacao==='saida').reduce((s,r)=>s+parseFloat(r.peso_liquido||0), 0);
+  const totalEnt = recicKg + rejKg;
+  const expKg    = (vends||[]).reduce((s,r)=>s+(r.peso_kg||0), 0);
+  const expVal   = (vends||[]).reduce((s,r)=>s+(r.valor_total||0), 0);
+
+  const saldoKg  = (mats||[]).reduce((s,r)=>s+parseFloat(r.estoque_kg||0), 0);
+  const saldoVal = (mats||[]).reduce((s,r)=>s+(parseFloat(r.estoque_kg||0)*parseFloat(r.valor_unitario||0)), 0);
+
+  const taxa = recicKg > 0 ? Math.min(((expKg + saldoKg) / recicKg) * 100, 100) : 0;
+  atualizarGauge(taxa);
+
+  // Cache para o Painel Executivo e o card Comercial
+  _kpiFat      = expVal;
+  _kpiMeta     = (metas && metas[0]?.valor_meta) || 0;
+  _comExpKg    = expKg;
+  _comTicket   = expKg > 0 ? expVal / (expKg / 1000) : 0;
+  _comSaldoVal = saldoVal;
+  _comSaldoKg  = saldoKg;
+  _comPotencial= expVal + saldoVal;
+  renderComercial();
+}
+
+/* ── Comercial (cards no padrão do Comitê de Gestão) ── */
+function renderComercial() {
+  const atM  = _kpiMeta > 0 ? (_kpiFat / _kpiMeta * 100) : null;
+  const cA   = atM===null?'#94a3b8':atM>=100?'#16a34a':atM>=80?'#d97706':'#dc2626';
+  const bgA  = atM===null?'#f1f5f9':atM>=100?'#dcfce7':atM>=80?'#fef9c3':'#fee2e2';
+  const lA   = atM===null?'sem meta':atM>=100?'✅ Meta atingida':atM>=80?'⚠️ Próximo da meta':'❌ Abaixo da meta';
+  document.getElementById('fat-dot').style.background = cA;
+  const fatBadge = document.getElementById('fat-badge');
+  fatBadge.style.color = cA; fatBadge.style.background = bgA;
+  fatBadge.textContent = atM !== null ? `Atingimento: ${atM.toFixed(1)}%` : lA;
+
+  const periodoLbl = document.getElementById('periodo-label').textContent;
+  document.getElementById('comercial-cards').innerHTML = `
+    <div style="background:#f0fdf4;border-radius:10px;border:1px solid #86efac;padding:14px">
+      <div style="font-size:10px;font-weight:700;text-transform:uppercase;color:#166534;margin-bottom:5px">Faturamento</div>
+      <div style="font-size:19px;font-weight:900;color:#15803d;letter-spacing:-.5px">${moeda(_kpiFat)}</div>
+      <div style="font-size:10px;color:#4ade80;margin-top:4px">${periodoLbl}</div>
+    </div>
+    <div class="rel-kpi">
+      <div class="rel-kpi-label">Volume Vendido</div>
+      <div class="rel-kpi-val">${ton(_comExpKg)}</div>
+      <div class="rel-kpi-sub">no período</div>
+    </div>
+    <div class="rel-kpi">
+      <div class="rel-kpi-label">Preço Médio</div>
+      <div class="rel-kpi-val" style="font-size:18px">${moeda(_comTicket)}<span style="font-size:10px;color:#94a3b8">/ton</span></div>
+      <div class="rel-kpi-sub">ticket médio</div>
+    </div>
+    <div style="background:#eff6ff;border-radius:10px;border:1px solid #bfdbfe;padding:14px">
+      <div style="font-size:10px;font-weight:700;text-transform:uppercase;color:#1d4ed8;margin-bottom:5px">Valor em Estoque</div>
+      <div style="font-size:19px;font-weight:900;color:#1d4ed8;letter-spacing:-.5px">${moeda(_comSaldoVal)}</div>
+      <div style="font-size:10px;color:#93c5fd;margin-top:4px">${ton(_comSaldoKg)} armazenado</div>
+    </div>
+    <div style="background:#fff;border-radius:10px;border:2px solid var(--primary);padding:14px">
+      <div style="font-size:10px;font-weight:700;text-transform:uppercase;color:var(--primary);margin-bottom:5px">Potencial Total</div>
+      <div style="font-size:19px;font-weight:900;color:var(--primary);letter-spacing:-.5px">${moeda(_comPotencial)}</div>
+      <div style="font-size:10px;color:#94a3b8;margin-top:4px">realizado + estoque</div>
+    </div>`;
+}
+
+/* ── Balanço de Massa ── */
+let _balancoBase = {}; // cache para reedição de passivo e painel executivo
+
+function renderBalanco({ recebido, expedido, rejeito, estoque }) {
+  // Passivo = saldo automático descontando o estoque já classificado
+  const passivo = Math.max(0, recebido - expedido - rejeito - estoque);
+  const pct     = v => recebido > 0 ? (v / recebido * 100).toFixed(1) : '0.0';
+  const taxa    = recebido > 0 ? Math.min(((expedido + estoque) / recebido) * 100, 100) : 0;
+
+  const cards = [
+    { label:'Recebido', val:recebido, cor:'#334155', bg:'#f8fafc', desc:'entrada total' },
+    { label:'Expedido', val:expedido, cor:'#1a6b3c', bg:'#f0fdf4', desc:pct(expedido)+'% do receb.' },
+    { label:'Rejeito',  val:rejeito,  cor:'#DC2626', bg:'#fff5f5', desc:pct(rejeito)+'% do receb.' },
+    { label:'Estoque',  val:estoque,  cor:'#2563eb', bg:'#eff6ff', desc:pct(estoque)+'% do receb.' },
+    { label:'Passivo',  val:passivo,  cor:'#D97706', bg:'#fffbeb', desc:pct(passivo)+'% do receb.' },
+  ];
+
+  document.getElementById('balanco-cards').innerHTML = `
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(110px,1fr));gap:8px;margin-bottom:14px">
+      ${cards.map(k=>`
+      <div style="background:${k.bg};border-radius:10px;padding:12px 8px;text-align:center">
+        <div style="font-size:9px;font-weight:700;text-transform:uppercase;color:${k.cor};margin-bottom:4px;letter-spacing:.04em">${k.label}</div>
+        <div style="font-size:18px;font-weight:900;color:${k.cor};letter-spacing:-.3px">${ton(k.val)}</div>
+        <div style="font-size:10px;color:#94a3b8;margin-top:2px">${k.desc}</div>
+      </div>`).join('')}
+    </div>`;
+
+  const segmentos = [
+    { label:'Expedido', val:expedido, cor:'#1a6b3c' },
+    { label:'Rejeito',  val:rejeito,  cor:'#DC2626' },
+    { label:'Estoque',  val:estoque,  cor:'#2563eb' },
+    { label:'Passivo',  val:passivo,  cor:'#D97706' },
+  ];
+
+  document.getElementById('balanco-bar').innerHTML = recebido > 0
+    ? segmentos.map(s=>`<div class="balanco-bar-seg" style="width:${pct(s.val)}%;background:${s.cor}" title="${s.label}: ${pct(s.val)}%">${parseFloat(pct(s.val))>6?pct(s.val)+'%':''}</div>`).join('')
+    : '<div style="width:100%;background:#E5E7EB;border-radius:8px;height:18px"></div>';
+
+  document.getElementById('balanco-legenda').innerHTML =
+    segmentos.map(s=>`<span><i style="background:${s.cor}"></i>${s.label} ${pct(s.val)}%</span>`).join('');
+
+  const corNota = taxa>=70?'#166534':taxa>=50?'#713f12':'#991b1b';
+  const bgNota  = taxa>=70?'#f0fdf4':taxa>=50?'#fefce8':'#fff5f5';
+  const brNota  = taxa>=70?'#86efac':taxa>=50?'#fde047':'#fca5a5';
+  document.getElementById('balanco-fechamento').innerHTML = `
+    <div style="margin-top:12px;background:${bgNota};border:1px solid ${brNota};border-radius:8px;padding:10px 14px;font-size:12px;color:${corNota}">
+      ${taxa>=70?'✅':'⚠️'} Taxa de reciclagem de <strong>${taxa.toFixed(1)}%</strong>. Volume em passivo: <strong>${ton(passivo)}</strong> (${pct(passivo)}% do recebido) aguardando destinação.
+    </div>`;
+
+  // Cabeçalho da seção (dot + badge)
+  const cT = taxa>=70?'#16a34a':taxa>=50?'#d97706':'#dc2626';
+  const bgT = taxa>=70?'#dcfce7':taxa>=50?'#fef9c3':'#fee2e2';
+  document.getElementById('balanco-dot').style.background = cT;
+  const balBadge = document.getElementById('balanco-badge');
+  balBadge.style.color = cT; balBadge.style.background = bgT;
+  balBadge.textContent = `Taxa Reciclagem: ${taxa.toFixed(1)}%`;
+
+  // Atualiza o gauge com os dados filtrados
+  atualizarGauge(taxa);
+}
+
+async function fetchAllPaginated(table, selectFields, filters) {
+  const PAGE = 1000;
+  let all = [], from = 0;
+  while (true) {
+    let q = supabase.from(table).select(selectFields).range(from, from + PAGE - 1);
+    filters.forEach(([method, ...args]) => { q = q[method](...args); });
+    const { data, error } = await q;
+    if (error || !data || data.length === 0) break;
+    all = all.concat(data);
+    if (data.length < PAGE) break;
+    from += PAGE;
+  }
+  return all;
+}
+
+let _balancoCatFiltro = 'todos'; // 'todos' | 'reciclavel' | 'nao'
+let _balancoInicio = '', _balancoFim = '';
+
+async function carregarBalanco(inicio, fim) {
+  _balancoInicio = inicio;
+  _balancoFim    = fim;
+
+  const [ents, vends, mats] = await Promise.all([
+    fetchAllPaginated('entradas', 'peso_liquido, peso_liquido_descontos, tipo_movimentacao, tipo_material', [['gte','data',inicio],['lte','data',fim]]),
+    fetchAllPaginated('vendas',   'peso_kg', [['gte','data',inicio],['lte','data',fim]]),
+    fetchAllPaginated('materiais','estoque_kg', [['eq','no_estoque',true]]),
+  ]);
+
+  // Aplica filtro pelo campo tipo_material das entradas
+  function matchCat(tipoMat) {
+    if (_balancoCatFiltro === 'todos') return true;
+    // Normaliza removendo acentos para comparação segura
+    const norm = (tipoMat || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
+    const ehNao = norm.includes('nao');
+    if (_balancoCatFiltro === 'nao') return ehNao;
+    if (_balancoCatFiltro === 'reciclavel') return !ehNao && norm.includes('recicl');
+    return true;
+  }
+
+  const entsFilt  = ents.filter(r => matchCat(r.tipo_material));
+  const vendsFilt = vends; // vendas não têm tipo_material — sempre incluídas
+  const matsFilt  = mats;  // estoque não tem filtro de categoria disponível
+
+  const recebido = entsFilt.filter(r=>r.tipo_movimentacao!=='saida').reduce((s,r)=>s+parseFloat(r.peso_liquido_descontos||r.peso_liquido||0),0);
+  const rejeito  = entsFilt.filter(r=>r.tipo_movimentacao==='saida').reduce((s,r)=>s+parseFloat(r.peso_liquido||r.peso_liquido_descontos||0),0);
+  const expedido = vendsFilt.reduce((s,r)=>s+(r.peso_kg||0),0);
+  const estoque  = matsFilt.reduce((s,r)=>s+parseFloat(r.estoque_kg||0),0);
+
+  _balancoBase = { recebido, expedido, rejeito, estoque };
+  renderBalanco({ recebido, expedido, rejeito, estoque });
+}
+
+/* ── Gauge (velocímetro em canvas, igual ao Relatório de Comitê) ── */
+function atualizarGauge(taxa) {
+  const canvas = document.getElementById('gauge-canvas');
+  const ctx = canvas.getContext('2d');
+  const cx = 110, cy = 100, r = 80;
+  const startAngle = Math.PI;
+  const endAngle   = 2 * Math.PI;
+  const cor = taxa >= 70 ? '#1a6b3c' : taxa >= 40 ? '#D97706' : '#D64545';
+  const valorAngle = startAngle + (taxa / 100) * Math.PI;
+
+  ctx.clearRect(0, 0, 220, 120);
+
+  // fundo cinza
+  ctx.beginPath();
+  ctx.arc(cx, cy, r, startAngle, endAngle);
+  ctx.lineWidth = 18;
+  ctx.strokeStyle = '#E5E7EB';
+  ctx.lineCap = 'round';
+  ctx.stroke();
+
+  // arco colorido
+  if (taxa > 0) {
+    ctx.beginPath();
+    ctx.arc(cx, cy, r, startAngle, valorAngle);
+    ctx.lineWidth = 18;
+    ctx.strokeStyle = cor;
+    ctx.lineCap = 'round';
+    ctx.stroke();
+  }
+
+  // agulha
+  ctx.beginPath();
+  ctx.moveTo(cx, cy);
+  ctx.lineTo(cx + (r - 22) * Math.cos(valorAngle), cy + (r - 22) * Math.sin(valorAngle));
+  ctx.lineWidth = 3;
+  ctx.strokeStyle = cor;
+  ctx.lineCap = 'round';
+  ctx.stroke();
+
+  // centro
+  ctx.beginPath();
+  ctx.arc(cx, cy, 6, 0, 2 * Math.PI);
+  ctx.fillStyle = cor;
+  ctx.fill();
+
+  const valEl = document.getElementById('gauge-val');
+  valEl.textContent = taxa.toFixed(1) + '%';
+  valEl.style.color = cor;
+}
+
+/* ── Equipamentos ── */
+async function carregarEquipamentos() {
+  const { data } = await supabase.from('equipamentos').select('nome, status, capacidade_pct');
+  const total    = (data||[]).length;
+  const operando = (data||[]).filter(e=>e.status==='operando').length;
+  const restricao= (data||[]).filter(e=>e.status==='restricao').length;
+  const ativos   = operando + restricao;
+  const capTotal = (data||[]).reduce((s,e)=>{
+    if (e.status==='operando')  return s+100;
+    if (e.status==='restricao') return s+(parseFloat(e.capacidade_pct)||50);
+    return s;
+  }, 0);
+  const pct = total > 0 ? Math.round(capTotal / total) : 0;
+  document.getElementById('equip-total').textContent  = total;
+  document.getElementById('equip-ativos').textContent = ativos;
+  document.getElementById('equip-pct').textContent    = pct+'%';
+  document.getElementById('equip-bar').style.width    = pct+'%';
+  document.getElementById('equip-lista').textContent  =
+    (data||[]).filter(e=>e.status!=='parado').map(e=>e.nome).join(' · ') || 'Nenhum ativo';
+
+  _kpiEquipPct = pct; _kpiEquipTotal = total; _kpiEquipAtivos = ativos;
+  const cE = pct>=80?'#16a34a':pct>=60?'#d97706':'#dc2626';
+  const bgE = pct>=80?'#dcfce7':pct>=60?'#fef9c3':'#fee2e2';
+  document.getElementById('equip-dot').style.background = cE;
+  const equipBadge = document.getElementById('equip-badge');
+  equipBadge.style.color = cE; equipBadge.style.background = bgE;
+  equipBadge.textContent = `Disponibilidade: ${pct}%`;
+  document.getElementById('equip-pct').style.color = cE;
+  document.getElementById('equip-pct-card').style.borderLeftColor = cE;
+}
+
+const OC_TIPO_LABEL = { falta:'Falta injustificada', atestado:'Atestado', advertencia:'Advertência', elogio:'Elogio', outro:'Outro' };
+const OC_TIPO_COR   = { falta:'#dc2626', atestado:'#d97706', advertencia:'#dc2626', elogio:'#16a34a', outro:'#64748b' };
+
+/* ── Equipe Hoje (presença puxada do módulo RH) ── */
+async function carregarEquipeHoje() {
+  const hoje = new Date().toISOString().split('T')[0];
+  const [{ data: colabs, count }, { data: presencas }, { data: cargosAll }, { data: ocorrHoje }] = await Promise.all([
+    supabase.from('colaboradores').select('id, nome, em_ferias, cargos(nome)', { count:'exact' }).is('demissao', null).order('nome'),
+    supabase.from('presenca_diaria').select('colaborador_id, presente').eq('data', hoje),
+    supabase.from('cargos').select('nome, preenchido, total_vagas').order('nome'),
+    supabase.from('ocorrencias').select('colaborador_id, tipo').eq('data', hoje),
+  ]);
+
+  const totalColab = count || (colabs||[]).length;
+  const presMap = {};
+  (presencas||[]).forEach(p => { presMap[p.colaborador_id] = p.presente; });
+  const ocMap = {};
+  (ocorrHoje||[]).forEach(o => { ocMap[o.colaborador_id] = o.tipo; });
+  function subInfo(c) {
+    if (c.em_ferias) return { label:'Férias', cor:'#2563eb' };
+    const tipo = ocMap[c.id];
+    if (tipo && tipo !== 'outro') return { label: OC_TIPO_LABEL[tipo] || tipo, cor: OC_TIPO_COR[tipo] || '#64748b' };
+    return null;
+  }
+  function chip(c, emoji, bgStyle) {
+    const sub = subInfo(c);
+    return `<span class="equipe-chip"${bgStyle ? ` style="${bgStyle}"` : ''}>
+      <span>${emoji} ${c.nome}</span>
+      ${sub ? `<span class="chip-sub" style="color:${sub.cor}">${sub.label}</span>` : ''}
+    </span>`;
+  }
+
+  const presentesList = (colabs||[]).filter(c => presMap[c.id] === true);
+  const faltantesList = (colabs||[]).filter(c => presMap[c.id] === false);
+  const semRegistroList = (colabs||[]).filter(c => !(c.id in presMap));
+
+  document.getElementById('equipe-total-colab').textContent  = totalColab;
+  document.getElementById('equipe-hoje-count').textContent   = presentesList.length;
+  document.getElementById('equipe-faltas-count').textContent = faltantesList.length;
+
+  const pctPresenca = totalColab > 0 ? Math.round(presentesList.length / totalColab * 100) : 0;
+  _kpiPresencaPct = pctPresenca; _kpiPresentes = presentesList.length; _kpiTotalColab = totalColab;
+  const cP  = pctPresenca>=90?'#16a34a':pctPresenca>=70?'#d97706':'#dc2626';
+  const bgP = pctPresenca>=90?'#dcfce7':pctPresenca>=70?'#fef9c3':'#fee2e2';
+  document.getElementById('equipe-dot').style.background = cP;
+  const equipeBadge = document.getElementById('equipe-badge');
+  equipeBadge.style.color = cP; equipeBadge.style.background = bgP;
+  equipeBadge.textContent = `Presença: ${pctPresenca}%`;
+  document.getElementById('equipe-hoje-count').style.color = cP;
+  document.getElementById('equipe-hoje-card').style.borderLeftColor = cP;
+
+  const chips = document.getElementById('equipe-hoje-chips');
+  if (!presentesList.length && !faltantesList.length) {
+    chips.innerHTML = '<span style="font-size:12px;color:var(--text-muted)">Nenhuma presença registrada hoje no módulo RH</span>';
+  } else {
+    chips.innerHTML =
+      presentesList.map(c => chip(c, '✅')).join('') +
+      faltantesList.map(c => chip(c, '🚫', 'background:#fee2e2;border-color:#fecaca;color:#991b1b')).join('') +
+      (semRegistroList.length ? `<span class="equipe-chip" style="background:#f1f5f9;border-color:#e2e8f0;color:#64748b">⏳ ${semRegistroList.length} sem registro</span>` : '');
+  }
+
+  // ── Balanço de Vagas (mesmos dados do módulo RH) ──
+  const tbody = document.getElementById('tbody-vagas-dash');
+  if (!(cargosAll||[]).length) {
+    tbody.innerHTML = '<tr><td colspan="4" style="text-align:center;color:var(--text-muted)">Nenhum cargo cadastrado.</td></tr>';
+  } else {
+    tbody.innerHTML = cargosAll.map(cargo => {
+      const preenchido = cargo.preenchido ?? 0;
+      const total = cargo.total_vagas ?? 0;
+      const emAberto = total - preenchido;
+      const completo = total > 0 && preenchido >= total;
+      const situacao = total === 0
+        ? '<span style="color:#94a3b8">Sem vagas definidas</span>'
+        : completo
+          ? '<span style="background:#d1fae5;color:#065f46;padding:2px 10px;border-radius:10px;font-size:11px;font-weight:600">✅ Completo</span>'
+          : `<span style="color:#d97706;font-weight:600">⚠ ${emAberto} vaga(s) em aberto</span>`;
+      return `<tr>
+        <td>${cargo.nome}</td>
+        <td class="num" style="color:${preenchido===0?'#dc2626':preenchido<total?'#d97706':'#16a34a'}">${preenchido}</td>
+        <td class="num">${total}</td>
+        <td>${situacao}</td>
+      </tr>`;
+    }).join('');
+  }
+}
+
+/* ── Alertas Vencimento Experiência ── */
+async function carregarAlertasExp() {
+  const { data: colabs } = await supabase.from('colaboradores')
+    .select('id, nome, data_admissao').is('demissao', null);
+
+  const hoje = new Date(); hoje.setHours(0,0,0,0);
+  const alertas = [];
+
+  (colabs||[]).forEach(c => {
+    [{ dias: 45, label: '1ª' }, { dias: 90, label: '2ª' }].forEach(({ dias, label }) => {
+      const base = new Date(c.data_admissao + 'T00:00:00');
+      const venc = new Date(base); venc.setDate(venc.getDate() + dias - 1);
+      const diff = Math.ceil((venc - hoje) / 86400000);
+      if (diff >= 0 && diff <= 10) {
+        const critico = diff <= 3;
+        const dataStr = venc.toISOString().split('T')[0];
+        const [yy, mm, dd] = dataStr.split('-');
+        alertas.push(`
+          <div class="alerta-exp ${critico ? 'critico' : ''}">
+            ${critico ? '🔴' : '⚠️'}
+            <span><strong>${c.nome}</strong> — ${label} experiência vence em
+            <strong>${diff === 0 ? 'HOJE' : diff + (diff === 1 ? ' dia' : ' dias')}</strong>
+            (${dd}/${mm}/${yy})</span>
+          </div>
+        `);
+      }
+    });
+  });
+
+  document.getElementById('alertas-exp-dash').innerHTML = alertas.length
+    ? `<div class="card rel-section">
+        <div class="sec-hd">
+          <div class="sec-dot" style="background:#DC2626"></div>
+          <div class="sec-title">Vencimentos de Experiência Próximos</div>
+          <div class="sec-line"></div>
+          <span class="sec-badge" style="color:#991b1b;background:#fee2e2">${alertas.length} alerta${alertas.length>1?'s':''}</span>
+        </div>
+        ${alertas.join('')}
+      </div>`
+    : '';
+}
+
+/* ── Gráfico Produção ── */
+async function carregarGraficoProducao(ano) {
+  const { data: prods } = await supabase.from('producao').select('data, peso_produzido_kg')
+    .gte('data', `${ano}-01-01`).lte('data', `${ano}-12-31`);
+  const agg = Array(12).fill(0);
+  (prods||[]).forEach(r => { agg[new Date(r.data+'T00:00:00').getMonth()] += r.peso_produzido_kg; });
+  document.getElementById('prod-badge').textContent = `${ton(agg.reduce((a,b)=>a+b,0))} no ano`;
+  if (chartProd) chartProd.destroy();
+  chartProd = new Chart(document.getElementById('chart-producao'), {
+    type: 'bar',
+    data: { labels: MESES, datasets: [{ data: agg, backgroundColor: '#1a6b3c', borderRadius: 5 }] },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { display: false } },
+      scales: { x: { grid: { display: false } }, y: { grid: { color: '#F0F0F0' }, ticks: { callback: v => (v/1000).toLocaleString('pt-BR',{maximumFractionDigits:2})+' t', font: { size: 11 } } } }
+    }
+  });
+}
+
+/* ── Faturamento Realizado x Previsto ── */
+async function carregarFatPrevisto() {
+  const ano = document.getElementById('fat-ano').value;
+  const [{ data: vends }, { data: metas }] = await Promise.all([
+    supabase.from('vendas').select('data, valor_total, peso_kg').gte('data',`${ano}-01-01`).lte('data',`${ano}-12-31`),
+    supabase.from('metas').select('*').eq('indicador','faturamento').like('periodo',`${ano}-%`),
+  ]);
+
+  const real  = Array(12).fill(0);
+  const prev  = Array(12).fill(0);
+  const qtd   = Array(12).fill(0);
+  const kgVnd = Array(12).fill(0);
+  const metaId = {};
+  (vends||[]).forEach(r => {
+    const i = new Date(r.data+'T00:00:00').getMonth();
+    real[i]  += r.valor_total||0;
+    qtd[i]++;
+    kgVnd[i] += r.peso_kg||0;
+  });
+  (metas||[]).forEach(m => {
+    const i = parseInt(m.periodo.split('-')[1])-1;
+    if(i>=0&&i<12) { prev[i]=m.valor_meta; metaId[i]=m.id; }
+  });
+  const ticket = real.map((r,i) => kgVnd[i]>0 ? r/(kgVnd[i]/1000) : 0);
+
+  if (chartFatPrev) chartFatPrev.destroy();
+  chartFatPrev = new Chart(document.getElementById('chart-fat-prev'), {
+    type: 'bar',
+    data: {
+      labels: MESES,
+      datasets: [
+        { label:'Realizado', data:real, backgroundColor:'#1a6b3c', borderRadius:4, order:2 },
+        { label:'Previsto',  data:prev, backgroundColor:'rgba(214,69,69,.2)', borderColor:'#D64545', borderWidth:2, type:'line', tension:.3, pointRadius:4, order:1 },
+      ]
+    },
+    options: { responsive:true, maintainAspectRatio:false,
+      plugins:{
+        legend:{position:'top'},
+        datalabels:{
+          display: ctx => ctx.parsed.y > 0,
+          anchor: ctx => ctx.dataset.type === 'line' ? 'end' : 'end',
+          align:  ctx => ctx.dataset.type === 'line' ? 'top' : 'end',
+          color:  ctx => ctx.dataset.type === 'line' ? '#D64545' : '#1a6b3c',
+          font:   ctx => ({ size: ctx.dataset.type === 'line' ? 9 : 10, weight:'600' }),
+          formatter: v => v > 0 ? 'R$'+v.toLocaleString('pt-BR',{minimumFractionDigits:0,maximumFractionDigits:0}) : ''
+        }
+      },
+      scales:{ x:{grid:{display:false}}, y:{grid:{color:'#F0F0F0'}, ticks:{callback:v=>'R$'+v.toLocaleString('pt-BR'),font:{size:10}}} } }
+  });
+
+  let totReal=0, totPrev=0, totQtd=0, totKg=0;
+  document.getElementById('tb-fat-mensal').innerHTML = MESES.map((m,i) => {
+    totReal+=real[i]; totPrev+=prev[i]; totQtd+=qtd[i]; totKg+=kgVnd[i];
+    const ating = prev[i]>0 ? (real[i]/prev[i]*100).toFixed(1)+'%' : '—';
+    const cor   = prev[i]>0 ? (real[i]>=prev[i]?'text-green':'text-red') : '';
+    const periodo = `${ano}-${String(i+1).padStart(2,'0')}`;
+    return `<tr>
+      <td>${m}</td>
+      <td class="num">${moeda(real[i])}</td>
+      <td class="num prev-cell" data-mes="${i}" data-periodo="${periodo}" data-meta-id="${metaId[i]||''}" title="Clique para editar">${prev[i]>0?moeda(prev[i]):'— (clique)'}</td>
+      <td class="num">${kgVnd[i]>0 ? (kgVnd[i]/1000).toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2})+' ton' : '—'}</td>
+      <td class="num ${cor}">${ating}</td>
+      <td class="num">${qtd[i]>0?moeda(ticket[i]):'—'}</td>
+    </tr>`;
+  }).join('');
+
+  const atingGeral = totPrev>0?(totReal/totPrev*100).toFixed(1)+'%':'—';
+  document.getElementById('tf-fat-geral').innerHTML = `
+    <tr><td>TOTAL / GERAL</td><td class="num">${moeda(totReal)}</td>
+    <td class="num">${totPrev>0?moeda(totPrev):'—'}</td>
+    <td class="num">${totKg>0?(totKg/1000).toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2})+' ton':'—'}</td>
+    <td class="num">${atingGeral}</td>
+    <td class="num">${totKg>0?moeda(totReal/(totKg/1000)):'—'}</td></tr>
+  `;
+
+  // Inline edit do Previsto
+  document.querySelectorAll('.prev-cell').forEach(cell => {
+    cell.addEventListener('click', () => {
+      const mes    = cell.dataset.mes;
+      const periodo= cell.dataset.periodo;
+      const midOld = cell.dataset.metaId;
+      const original = cell.innerHTML;
+      cell.innerHTML = `<input class="prev-inline" type="number" min="0" step="0.01" placeholder="R$" />`;
+      const input = cell.querySelector('input');
+      input.focus();
+      async function salvar() {
+        const valor = parseFloat(input.value)||0;
+        if (midOld) {
+          await supabase.from('metas').update({ valor_meta: valor }).eq('id', midOld);
+        } else {
+          await supabase.from('metas').insert({ indicador:'faturamento', periodo, valor_meta: valor });
+        }
+        toast('Previsto atualizado!');
+        await carregarFatPrevisto();
+        const [yy, mm] = document.getElementById('filtro-mes').value.split('-');
+        await carregarKPIs(`${yy}-${mm}-01`, new Date(yy, mm, 0).toISOString().split('T')[0]);
+        renderPainelExecutivo();
+      }
+      input.addEventListener('blur', salvar);
+      input.addEventListener('keydown', e => {
+        if (e.key==='Enter') { e.preventDefault(); input.blur(); }
+        if (e.key==='Escape') { cell.innerHTML=original; }
+      });
+    });
+  });
+}
+
+carregarDados();
+</script>
+</body>
+</html>

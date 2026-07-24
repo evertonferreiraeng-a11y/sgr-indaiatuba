@@ -98,6 +98,7 @@
 <div id="toast-container"></div>
 <script type="module">
 import { initPage, supabase, moeda, dataBR, toast, abrirModal, fecharModal } from './js/config.js?v=2';
+import { icon } from './js/icons.js';
 
 await initPage();
 
@@ -240,8 +241,8 @@ function renderTabela() {
         </td>
         <td>${dataBR(soData(r.atualizado_em || r.criado_em))}</td>
         <td>
-          <button class="btn-icon" onclick="abrirRegistro('${r.id}')">${isAdmin ? '✏️' : '👁️'}</button>
-          ${isAdmin ? `<button class="btn-icon danger" onclick="excluirPedido('${r.id}')">🗑️</button>` : ''}
+          <button class="btn-icon" onclick="abrirRegistro('${r.id}')">${isAdmin ? icon('edit',{size:15}) : icon('eye',{size:15})}</button>
+          ${isAdmin ? `<button class="btn-icon danger" onclick="excluirPedido('${r.id}')">${icon('trash',{size:15})}</button>` : ''}
         </td>
       </tr>`;
   }).join('');
