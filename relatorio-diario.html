@@ -194,7 +194,7 @@
       <!-- 1. Equipamentos — KPIs -->
       <div class="rd-section">
         <div class="rd-section-header">
-          <span class="rd-section-title">🔧 Disponibilidade de Equipamentos</span>
+          <span class="rd-section-title" style="display:inline-flex;align-items:center;gap:6px"><span class="icon" style="width:14px;height:14px"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94z"/></svg></span>Disponibilidade de Equipamentos</span>
           <span id="taxa-label-rd" style="font-size:13px;font-weight:700;color:#10b981"></span>
         </div>
         <div style="padding:14px 18px">
@@ -206,17 +206,17 @@
               <div class="kpi-sub">equipamentos</div>
             </div>
             <div class="kpi-card kpi-eq kpi-eq-op">
-              <div class="kpi-label">✅ Operando</div>
+              <div class="kpi-label" style="display:flex;align-items:center;gap:4px"><span class="icon" style="width:10px;height:10px"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></span>Operando</div>
               <div class="kpi-value" id="rd-kpi-op">—</div>
               <div class="kpi-sub" id="rd-kpi-op-pct">—</div>
             </div>
             <div class="kpi-card kpi-eq kpi-eq-res">
-              <div class="kpi-label">⚠️ Restrição</div>
+              <div class="kpi-label" style="display:flex;align-items:center;gap:4px"><span class="icon" style="width:10px;height:10px"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg></span>Restrição</div>
               <div class="kpi-value" id="rd-kpi-res">—</div>
               <div class="kpi-sub" id="rd-kpi-res-pct">—</div>
             </div>
             <div class="kpi-card kpi-eq kpi-eq-par">
-              <div class="kpi-label">❌ Parado</div>
+              <div class="kpi-label" style="display:flex;align-items:center;gap:4px"><span class="icon" style="width:10px;height:10px"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg></span>Parado</div>
               <div class="kpi-value" id="rd-kpi-par">—</div>
               <div class="kpi-sub" id="rd-kpi-par-pct">—</div>
             </div>
@@ -257,7 +257,7 @@
       <!-- 2. RH — Presenças -->
       <div class="rd-section">
         <div class="rd-section-header">
-          <span class="rd-section-title">👥 Recursos Humanos — Presenças</span>
+          <span class="rd-section-title" style="display:inline-flex;align-items:center;gap:6px"><span class="icon" style="width:14px;height:14px"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg></span>Recursos Humanos — Presenças</span>
           <span id="rh-resumo" style="font-size:12px;color:#64748b"></span>
         </div>
         <!-- KPI presença -->
@@ -304,7 +304,7 @@
       <!-- 3. Ocorrências do Dia -->
       <div class="rd-section">
         <div class="rd-section-header">
-          <span class="rd-section-title">📋 Ocorrências do Dia</span>
+          <span class="rd-section-title" style="display:inline-flex;align-items:center;gap:6px"><span class="icon" style="width:14px;height:14px"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg></span>Ocorrências do Dia</span>
           <span style="font-size:12px;color:#64748b">Incidentes, manutenções, aplicações, etc.</span>
         </div>
         <table class="rd-table">
@@ -333,8 +333,8 @@
       <!-- Preview E-mail -->
       <div id="email-preview-wrap" style="display:none;margin-bottom:20px">
         <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
-          <span style="font-size:13px;font-weight:600;color:#374151">📋 Texto para copiar e colar no e-mail</span>
-          <button class="btn btn-primary btn-sm no-print" id="btn-copiar">📋 Copiar texto</button>
+          <span style="font-size:13px;font-weight:600;color:#374151">Texto para copiar e colar no e-mail</span>
+          <button class="btn btn-primary btn-sm no-print" id="btn-copiar"><span class="icon" style="width:12px;height:12px"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg></span> Copiar texto</button>
         </div>
         <div class="email-preview" id="email-preview"></div>
       </div>
@@ -368,6 +368,7 @@
 <div id="toast-container"></div>
 <script type="module">
 import { initPage, supabase, dataBR, toast } from './js/config.js?v=2';
+import { icon, statusPill } from './js/icons.js';
 
 await initPage();
 
@@ -449,22 +450,22 @@ function renderEquipamentos() {
   }
   const isTarde = turno === 'tarde';
   tbody.innerHTML = ativos.map(e => {
-    const stMap = {
-      operando:  { cls:'status-operando',  icon:'✅', label:'Operando' },
-      restricao: { cls:'status-restricao', icon:'⚠️', label: e.capacidade_pct ? `Com Restrição (${e.capacidade_pct}%)` : 'Com Restrição' },
-      parado:    { cls:'status-parado',    icon:'❌', label:'Parado' },
+    const statusLabels = {
+      operando: 'Operando',
+      restricao: e.capacidade_pct ? `Com Restrição (${e.capacidade_pct}%)` : 'Com Restrição',
+      parado: 'Parado',
     };
-    const st = stMap[e.status] || { cls:'', icon:'', label: e.status };
+    const statusIcons = { operando: 'check', restricao: 'alert-triangle', parado: 'x-circle' };
     const statusCell = isTarde
       ? `<select onchange="salvarStatusEquip('${e.id}', this.value)"
            style="border:1px solid #e2e8f0;border-radius:20px;padding:4px 10px;font-size:12px;font-weight:700;cursor:pointer;
                   background:${e.status==='operando'?'#d1fae5':e.status==='restricao'?'#fef3c7':'#fee2e2'};
                   color:${e.status==='operando'?'#065f46':e.status==='restricao'?'#92400e':'#991b1b'}">
-           <option value="operando"  ${e.status==='operando' ?'selected':''}>✅ Operando</option>
-           <option value="restricao" ${e.status==='restricao'?'selected':''}>⚠️ Com Restrição</option>
-           <option value="parado"    ${e.status==='parado'   ?'selected':''}>❌ Parado</option>
+           <option value="operando"  ${e.status==='operando' ?'selected':''}>Operando</option>
+           <option value="restricao" ${e.status==='restricao'?'selected':''}>Com Restrição</option>
+           <option value="parado"    ${e.status==='parado'   ?'selected':''}>Parado</option>
          </select>`
-      : `<span class="status-btn ${st.cls}">${st.icon} ${st.label}</span>`;
+      : `<span class="status-pill status-${e.status}">${icon(statusIcons[e.status] || 'info', { size: 13 })}${statusLabels[e.status] || e.status}</span>`;
     return `<tr>
       <td style="font-weight:600">${e.nome}</td>
       <td style="color:#64748b">${e.frota||'—'}</td>
@@ -534,10 +535,10 @@ function renderRH() {
            onchange="atualizarCorPresenca(this);salvarPresencaRD('${c.id}', this.value)"
            style="border:1px solid #e2e8f0;border-radius:20px;padding:3px 10px;font-size:12px;font-weight:700;cursor:pointer;
                   background:${pres?'#d1fae5':'#fee2e2'};color:${pres?'#065f46':'#991b1b'}">
-           <option value="true"  ${pres ?'selected':''}>✔ Presente</option>
-           <option value="false" ${!pres?'selected':''}>✖ Falta</option>
+           <option value="true"  ${pres ?'selected':''}>Presente</option>
+           <option value="false" ${!pres?'selected':''}>Falta</option>
          </select>`
-      : `<span class="status-badge ${pres ? 'badge-present' : 'badge-absent'}">${pres ? '✔ Presente' : '✖ Falta'}</span>`;
+      : `<span class="status-badge ${pres ? 'badge-present' : 'badge-absent'}">${icon(pres ? 'check' : 'x-circle', { size: 12 })} ${pres ? 'Presente' : 'Falta'}</span>`;
     const obsCell = turno === 'tarde'
       ? `<input type="text" id="obs-pres-${c.id}" value="${obsAtual}" placeholder="Observação…"
            style="width:100%;border:1px solid #e2e8f0;border-radius:6px;padding:4px 8px;font-size:12px"
@@ -655,11 +656,11 @@ function renderComparativo() {
   const pctEqM = n => m.total ? Math.round(n / m.total * 100) + '%' : '—';
 
   const rows = [
-    ['✅ Equip. Operando',   `${m.op} (${pctEqM(m.op)})`,   `${t.op} (${pctEqT(t.op)})`,   delta(m.op, t.op)],
-    ['⚠️ Equip. Restrição',  `${m.res} (${pctEqM(m.res)})`, `${t.res} (${pctEqT(t.res)})`, delta(m.res, t.res, '', true)],
-    ['❌ Equip. Parado',     `${m.par} (${pctEqM(m.par)})`, `${t.par} (${pctEqT(t.par)})`, delta(m.par, t.par, '', true)],
-    ['⚡ Taxa de Utilização', `${m.taxa}%`,                   `${t.taxa}%`,                   delta(m.taxa, t.taxa, '%')],
-    ['👥 Presença RH',       `${m.presentes}/${m.totalColab} (${pctColabM(m.presentes)})`, `${t.presentes}/${t.totalColab} (${pctColab(t.presentes)})`, delta(m.presentes, t.presentes)],
+    [icon('check',{size:12})+' Equip. Operando',   `${m.op} (${pctEqM(m.op)})`,   `${t.op} (${pctEqT(t.op)})`,   delta(m.op, t.op)],
+    [icon('alert-triangle',{size:12})+' Equip. Restrição',  `${m.res} (${pctEqM(m.res)})`, `${t.res} (${pctEqT(t.res)})`, delta(m.res, t.res, '', true)],
+    [icon('x-circle',{size:12})+' Equip. Parado',     `${m.par} (${pctEqM(m.par)})`, `${t.par} (${pctEqT(t.par)})`, delta(m.par, t.par, '', true)],
+    ['Taxa de Utilização', `${m.taxa}%`,                   `${t.taxa}%`,                   delta(m.taxa, t.taxa, '%')],
+    [icon('users',{size:12})+' Presença RH',       `${m.presentes}/${m.totalColab} (${pctColabM(m.presentes)})`, `${t.presentes}/${t.totalColab} (${pctColab(t.presentes)})`, delta(m.presentes, t.presentes)],
   ];
 
   document.getElementById('tbody-comp').innerHTML = rows.map(([ind, vm, vt, dlt]) =>
