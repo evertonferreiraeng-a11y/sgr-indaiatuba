@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="pt-BR">
 <head>
   <meta charset="UTF-8" />
@@ -35,8 +35,8 @@
 
       <!-- TABS -->
       <div class="prod-tabs">
-        <button class="prod-tab active" data-tab="prensagem">🏭 Prensagem</button>
-        <button class="prod-tab" data-tab="triagem">⏱ Triagem de Cargas</button>
+        <button class="prod-tab active" data-tab="prensagem"><span class="icon" style="width:13px;height:13px"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94z"/></svg></span> Prensagem</button>
+        <button class="prod-tab" data-tab="triagem"><span class="icon" style="width:13px;height:13px"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg></span> Triagem de Cargas</button>
       </div>
 
       <!-- ══ TAB: PRENSAGEM ══ -->
@@ -200,8 +200,9 @@
           <div class="form-group"><label>Peso Produzido (kg) *</label><input type="number" name="peso_produzido_kg" min="0.01" step="0.01" required /></div>
           <div class="form-group"><label>Quantidade de Fardos</label><input type="number" name="quantidade_fardos" min="0" step="1" placeholder="Unidades prensadas" /></div>
         </div>
-        <div id="alerta-capacidade" style="display:none;margin-top:12px;padding:8px 12px;background:var(--danger-light);color:var(--danger);border-radius:6px;font-size:12px">
-          ⚠ Produção ultrapassa a capacidade do equipamento hoje!
+        <div id="alerta-capacidade" style="display:none;margin-top:12px;padding:8px 12px;background:var(--danger-light);color:var(--danger);border-radius:6px;font-size:12px;align-items:center;gap:6px">
+          <span class="icon" style="width:13px;height:13px"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg></span>
+          Produção ultrapassa a capacidade do equipamento hoje!
         </div>
       </form>
     </div>
@@ -281,7 +282,8 @@
 
 <div id="toast-container"></div>
 <script type="module">
-import { initPage, supabase, peso, ton, dataBR, toast, abrirModal, fecharModal, mesAtual } from './js/config.js';
+import { initPage, supabase, peso, ton, dataBR, toast, abrirModal, fecharModal, mesAtual } from './js/config.js?v=2';
+import { icon } from './js/icons.js';
 
 await initPage();
 
@@ -362,7 +364,7 @@ async function carregarCapacidades() {
       <h4>${eq.nome}</h4>
       <div class="progress-bar"><div class="progress-fill ${cls}" style="width:${Math.min(pct,100)}%"></div></div>
       <div class="capacity-info"><span>${ton(prod)} produzido</span><span>Cap: ${cap > 0 ? ton(cap) : 'N/D'}</span></div>
-      ${pct >= 100 ? '<div style="font-size:11px;color:var(--danger);margin-top:6px">⚠ Capacidade excedida!</div>' : ''}
+      ${pct >= 100 ? `<div style="font-size:11px;color:var(--danger);margin-top:6px;display:flex;align-items:center;gap:4px">${icon('alert-triangle',{size:11})} Capacidade excedida!</div>` : ''}
     </div>`;
   }).join('');
 }
@@ -411,7 +413,7 @@ async function carregarProducao() {
     type: 'bar',
     data: {
       labels: diasSorted.map(d => { const [,, dd] = d.split('-'); return dd+'/'+d.split('-')[1]; }),
-      datasets: [{ data: diasSorted.map(d=>diasMap[d]), backgroundColor:'#1B7A43', borderRadius:4 }]
+      datasets: [{ data: diasSorted.map(d=>diasMap[d]), backgroundColor:'#006636', borderRadius:4 }]
     },
     options: { responsive:true, maintainAspectRatio:false, plugins:{legend:{display:false}}, scales:{x:{grid:{display:false},ticks:{font:{size:10}}}, y:{grid:{color:'#F0F0F0'}}} }
   });
@@ -446,7 +448,7 @@ async function carregarProducao() {
       <td>${dataBR(r.data)}</td><td>${r.equipamentos?.nome||'—'}</td><td>${r.materiais?.nome||'—'}</td><td>${r.colaboradores?.nome||'—'}</td>
       <td class="text-right">${ton(r.peso_produzido_kg)}</td>
       <td class="text-right">${r.quantidade_fardos ? r.quantidade_fardos+' un' : '—'}</td>
-      <td>${isAdmin?`<button class="btn-icon" onclick="editarProd('${r.id}')">✏️</button><button class="btn-icon danger" onclick="excluirProd('${r.id}')">🗑️</button>`:'—'}</td>
+      <td>${isAdmin?`<button class="btn-icon" onclick="editarProd('${r.id}')">${icon('edit',{size:15})}</button><button class="btn-icon danger" onclick="excluirProd('${r.id}')">${icon('trash',{size:15})}</button>`:'—'}</td>
     </tr>`).join('')
   : '<tr><td colspan="7" class="table-empty">Nenhum registro encontrado</td></tr>';
 }
@@ -459,7 +461,7 @@ async function carregarMateriais() {
       <td>${m.nome}</td><td>${m.unidade_medida||'kg'}</td>
       <td><span class="badge ${m.categoria==='rejeito'?'badge-red':'badge-green'}">${m.categoria==='rejeito'?'Rejeito':'Reciclável'}</span></td>
       <td><span class="badge ${m.ativo?'badge-green':'badge-gray'}">${m.ativo?'Ativo':'Inativo'}</span></td>
-      <td>${isAdmin?`<button class="btn-icon" onclick="editarMat(${JSON.stringify(m).replace(/"/g,'&quot;')})">✏️</button><button class="btn-icon danger" onclick="toggleMat('${m.id}',${m.ativo})">${m.ativo?'🚫':'✅'}</button><button class="btn-icon danger" onclick="excluirMat('${m.id}','${m.nome.replace(/'/g,"\\'")}')">🗑️</button>`:'—'}</td>
+      <td>${isAdmin?`<button class="btn-icon" onclick="editarMat(${JSON.stringify(m).replace(/"/g,'&quot;')})">${icon('edit',{size:15})}</button><button class="btn-icon danger" onclick="toggleMat('${m.id}',${m.ativo})">${icon(m.ativo?'x-circle':'check',{size:15})}</button><button class="btn-icon danger" onclick="excluirMat('${m.id}','${m.nome.replace(/'/g,"\\'")}')">${icon('trash',{size:15})}</button>`:'—'}</td>
     </tr>`).join('') || '<tr><td colspan="5" class="table-empty">Nenhum material</td></tr>';
 }
 
@@ -501,7 +503,7 @@ async function carregarTriagem() {
 
   const { data, error } = await q;
   if (error) {
-    document.getElementById('tri-tb').innerHTML = '<tr><td colspan="10" class="table-empty" style="text-align:left;padding:16px">⚠ <strong>Execute este SQL no Supabase para ativar o módulo de Triagem:</strong><br><br><code style="display:block;font-size:11px;background:#f5f5f5;padding:12px;border-radius:6px;white-space:pre;margin-top:8px">CREATE TABLE triagem (\n  id uuid DEFAULT gen_random_uuid() PRIMARY KEY,\n  data date NOT NULL,\n  cliente text NOT NULL,\n  hora_inicio time,\n  hora_fim time,\n  tempo_minutos integer,\n  operador_id uuid REFERENCES colaboradores(id),\n  material text,\n  peso_kg numeric NOT NULL DEFAULT 0,\n  observacoes text,\n  criado_por uuid,\n  created_at timestamptz DEFAULT now()\n);</code></td></tr>';
+    document.getElementById('tri-tb').innerHTML = '<tr><td colspan="10" class="table-empty" style="text-align:left;padding:16px"><strong>Execute este SQL no Supabase para ativar o módulo de Triagem:</strong><br><br><code style="display:block;font-size:11px;background:#f5f5f5;padding:12px;border-radius:6px;white-space:pre;margin-top:8px">CREATE TABLE triagem (\n  id uuid DEFAULT gen_random_uuid() PRIMARY KEY,\n  data date NOT NULL,\n  cliente text NOT NULL,\n  hora_inicio time,\n  hora_fim time,\n  tempo_minutos integer,\n  operador_id uuid REFERENCES colaboradores(id),\n  material text,\n  peso_kg numeric NOT NULL DEFAULT 0,\n  observacoes text,\n  criado_por uuid,\n  created_at timestamptz DEFAULT now()\n);</code></td></tr>';
     return;
   }
   // Filtro client-side por operador (dentro do JSONB equipe)
@@ -551,13 +553,13 @@ async function carregarTriagem() {
     const avgKg    = d.kgs.length ? (d.kgs.reduce((s,k)=>s+k,0)/d.kgs.length).toFixed(0) : 0;
     const avgVel   = d.vels.length ? Math.round(d.vels.reduce((s,v)=>s+v,0)/d.vels.length) : 0;
     const n = Math.max(d.tempos.length, d.kgs.length);
-    const confianca = n >= 3 ? '<span style="color:#006636;font-size:10px;font-weight:700">✓ base confiável</span>' : n >= 2 ? '<span style="color:#D97706;font-size:10px">amostra parcial</span>' : '<span style="color:#9ca3af;font-size:10px">amostra única</span>';
+    const confianca = n >= 3 ? `<span style="color:#006636;font-size:10px;font-weight:700">${icon('check',{size:10})} base confiável</span>` : n >= 2 ? '<span style="color:#D97706;font-size:10px">amostra parcial</span>' : '<span style="color:#9ca3af;font-size:10px">amostra única</span>';
     return `<tr>
       <td><strong>${nome}</strong></td>
       <td class="text-right">${n} ${confianca}</td>
       <td class="text-right">${fmtTempo(avgTempo)}</td>
       <td class="text-right">${avgKg > 0 ? avgKg + ' kg' : '—'}</td>
-      <td class="text-right fw-600" style="color:#1B7A43">${avgVel > 0 ? avgVel + ' kg/h' : '—'}</td>
+      <td class="text-right fw-600" style="color:#006636">${avgVel > 0 ? avgVel + ' kg/h' : '—'}</td>
     </tr>`;
   }).join('') : '<tr><td colspan="5" class="table-empty">Nenhum dado ainda</td></tr>';
 
@@ -570,7 +572,7 @@ async function carregarTriagem() {
     type: 'bar',
     data: {
       labels: cliVel.map(([n])=>n),
-      datasets: [{ data: cliVel.map(([,v])=>v), backgroundColor:'#1B7A43', borderRadius:4 }]
+      datasets: [{ data: cliVel.map(([,v])=>v), backgroundColor:'#006636', borderRadius:4 }]
     },
     options: {
       responsive:true, maintainAspectRatio:false,
@@ -635,9 +637,9 @@ async function carregarTriagem() {
       <td class="text-right" style="color:#D97706">${r.pausa_minutos>0 ? fmtTempo(r.pausa_minutos) : '—'}</td>
       <td class="text-right fw-600">${fmtTempo(min)}</td>
       <td class="text-right">${r.peso_kg ? ton(r.peso_kg) : '—'}</td>
-      <td class="text-right" style="color:#1B7A43;font-weight:700">${vel > 0 ? vel+' kg/h' : '—'}</td>
+      <td class="text-right" style="color:#006636;font-weight:700">${vel > 0 ? vel+' kg/h' : '—'}</td>
       <td style="max-width:100px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis" title="${r.observacoes||''}">${r.observacoes||'—'}</td>
-      <td>${isAdmin?`<button class="btn-icon" onclick="editarTriagem('${r.id}')">✏️</button><button class="btn-icon danger" onclick="excluirTriagem('${r.id}')">🗑️</button>`:'—'}</td>
+      <td>${isAdmin?`<button class="btn-icon" onclick="editarTriagem('${r.id}')">${icon('edit',{size:15})}</button><button class="btn-icon danger" onclick="excluirTriagem('${r.id}')">${icon('trash',{size:15})}</button>`:'—'}</td>
     </tr>`;
   }).join('') : '<tr><td colspan="11" class="table-empty">Nenhum registro de triagem ainda</td></tr>';
 }
@@ -668,9 +670,9 @@ function atualizarDuracaoPreview() {
   const prev   = document.getElementById('tri-duracao-preview');
   const pessoas = getColabSelecionados().length;
   if (bruto > 0) {
-    let txt = `⏱ ${ini}–${fim} = ${fmtTempo(bruto)}`;
+    let txt = `${icon('clock',{size:12})} ${ini}–${fim} = ${fmtTempo(bruto)}`;
     if (pausa > 0) txt += ` − ${fmtTempo(pausa)} pausa = <strong>${fmtTempo(efetivo)} efetivos</strong>`;
-    if (pessoas > 0) txt += `<br>👥 ${pessoas} colaborador${pessoas > 1 ? 'es' : ''} na carga`;
+    if (pessoas > 0) txt += `<br>${icon('users',{size:12})} ${pessoas} colaborador${pessoas > 1 ? 'es' : ''} na carga`;
     prev.style.display = 'block';
     prev.innerHTML = txt;
   } else {
@@ -784,7 +786,7 @@ async function verificarCapacidade() {
   if (!eq?.capacidade_kg_dia) { alerta.style.display='none'; return; }
   const { data: prod } = await supabase.from('producao').select('peso_produzido_kg').eq('equipamento_id', eqId).eq('data', data);
   const total = (prod||[]).reduce((s,r)=>s+r.peso_produzido_kg,0) + pesoV;
-  alerta.style.display = total > eq.capacidade_kg_dia ? 'block' : 'none';
+  alerta.style.display = total > eq.capacidade_kg_dia ? 'flex' : 'none';
 }
 
 window.editarProd = id => {
@@ -890,3 +892,4 @@ await init();
 </script>
 </body>
 </html>
+
