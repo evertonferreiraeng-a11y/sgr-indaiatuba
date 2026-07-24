@@ -135,9 +135,6 @@
       <button class="rel-cat-btn" id="rel-cat-todos"     style="padding:6px 12px;border-radius:20px;border:1px solid #D1D5DB;background:var(--primary);color:#fff;cursor:pointer;font-size:12px;font-weight:600">Todos</button>
       <button class="rel-cat-btn" id="rel-cat-reciclavel" style="padding:6px 12px;border-radius:20px;border:1px solid #D1D5DB;background:#fff;color:#374151;cursor:pointer;font-size:12px">♻ Recicláveis</button>
       <button class="rel-cat-btn" id="rel-cat-nao"        style="padding:6px 12px;border-radius:20px;border:1px solid #D1D5DB;background:#fff;color:#374151;cursor:pointer;font-size:12px">🚫 Não Recicláveis</button>
-      <button class="btn-pdf" id="btn-salvar-snap" style="background:#0369a1" onclick="salvarSnapshotEquip()">
-        📸 Registrar estado atual
-      </button>
       <select id="snap-ref-select" onchange="window._snapRefData=this.value;carregar()"
         style="font-size:12px;padding:5px 10px;border-radius:8px;border:1px solid #D1D5DB;background:#fff;color:#374151;cursor:pointer;font-weight:600">
         <option value="">— Comparar com… —</option>
@@ -160,9 +157,18 @@
 
 <script type="module">
 import { supabase, initPage, mesAtual, anoAtual, moeda, ton, dataBR } from './js/config.js?v=2';
+import { icon, statusPill } from './js/icons.js';
 
 const MESES = ['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
 const CRITERIOS = ['relacionamento','responsabilidade','cooperacao','conhecimento_trabalho','interesse','atitude_profissional','produtividade'];
+
+// ── Rótulo de status com ícone (substitui os antigos ✅/⚠️/❌ inline) ────────
+function metaLabel(val, { bom, alerta, ruim, semMeta = 'sem meta', limiteBom = 100, limiteAlerta = 80 }) {
+  if (val === null) return semMeta;
+  if (val >= limiteBom)    return icon('check', { size: 12 }) + ' ' + bom;
+  if (val >= limiteAlerta) return icon('alert-triangle', { size: 12 }) + ' ' + alerta;
+  return icon('x-circle', { size: 12 }) + ' ' + ruim;
+}
 
 await initPage();
 
@@ -448,11 +454,11 @@ async function carregar() {
         { label:'Faturamento',      val:moeda(faturamento),       sub:label,                            strip:'#006636' },
         { label:'Meta do Mês',      val:metaMes>0?moeda(metaMes):'—', sub:'objetivo mensal',           strip:'#64748b' },
         { label:'Atingimento',      val:atMes!==null?atMes.toFixed(1)+'%':'—',
-          sub:atMes===null?'sem meta':atMes>=100?'✅ Meta atingida':atMes>=80?'⚠️ Próximo da meta':'❌ Abaixo da meta',
+          sub:metaLabel(atMes, { bom:'Meta atingida', alerta:'Próximo da meta', ruim:'Abaixo da meta' }),
           strip:cA, valCor:cA },
         { label:'Volume Recebido',  val:ton(recebido),            sub:'no período',                     strip:'#3B82F6' },
         { label:'Taxa Reciclagem',  val:taxa.toFixed(1)+'%',
-          sub:taxa>=70?'✅ Meta ambiental OK':taxa>=50?'⚠️ Atenção':'❌ Abaixo do esperado',
+          sub:metaLabel(taxa, { bom:'Meta ambiental OK', alerta:'Atenção', ruim:'Abaixo do esperado', limiteBom:70, limiteAlerta:50 }),
           strip:cT, valCor:cT },
         { label:'Disponib. Frota',  val:equPct+'%',
           sub:equAtivos+' de '+equTotal+' equipamentos',
@@ -506,7 +512,7 @@ async function carregar() {
             ${segs.map(s=>`<span><i style="background:${s.cor}"></i>${s.label} ${pct(s.val)}%</span>`).join('')}
           </div>
           <div style="margin-top:12px;background:${taxa>=70?'#f0fdf4':taxa>=50?'#fefce8':'#fff5f5'};border:1px solid ${taxa>=70?'#86efac':taxa>=50?'#fde047':'#fca5a5'};border-radius:8px;padding:10px 14px;font-size:12px;color:${taxa>=70?'#166534':taxa>=50?'#713f12':'#991b1b'}">
-            ${taxa>=70?'✅':'⚠️'} Taxa de reciclagem de <strong>${taxa.toFixed(1)}%</strong>. Volume em passivo: <strong>${ton(passivo)}</strong> (${pct(passivo)}% do recebido) aguardando destinação.
+            ${icon(taxa>=70?'check':'alert-triangle', { size: 13 })} Taxa de reciclagem de <strong>${taxa.toFixed(1)}%</strong>. Volume em passivo: <strong>${ton(passivo)}</strong> (${pct(passivo)}% do recebido) aguardando destinação.
           </div>
         </div>
         <div style="display:flex;flex-direction:column;align-items:center;justify-content:center">
@@ -525,12 +531,11 @@ async function carregar() {
         const atM=fatPrev[mi]>0?fatReal[mi]/fatPrev[mi]*100:null;
         const cA=atM===null?'#94a3b8':atM>=100?'#16a34a':atM>=80?'#d97706':'#dc2626';
         const bgA=atM===null?'#f1f5f9':atM>=100?'#dcfce7':atM>=80?'#fef9c3':'#fee2e2';
-        const lA=atM===null?'sem meta':atM>=100?'✅ Meta atingida':atM>=80?'⚠️ Próximo da meta':'❌ Abaixo da meta';
         return `<div class="sec-hd">
           <div class="sec-dot" style="background:${cA}"></div>
           <div class="sec-title">Comercial</div>
           <div class="sec-line"></div>
-          <span class="sec-badge" style="color:${cA};background:${bgA}">${atM!==null?'Atingimento: '+atM.toFixed(1)+'%':lA}</span>
+          <span class="sec-badge" style="color:${cA};background:${bgA}">${atM!==null?'Atingimento: '+atM.toFixed(1)+'%':'sem meta'}</span>
         </div>`;
       })()}
       <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:10px;margin-bottom:18px">
@@ -823,15 +828,7 @@ async function carregar() {
       })()}
 
       ${(() => {
-        const SM = {
-          operando:  { label:'Operando',   cor:'#065f46', bg:'#d1fae5', icon:'✅' },
-          restricao: { label:'Restrição',  cor:'#92400e', bg:'#fef3c7', icon:'⚠️' },
-          parado:    { label:'Parado',     cor:'#991b1b', bg:'#fee2e2', icon:'❌' },
-        };
-        const badge = s => {
-          const m = SM[s]; if (!m) return `<span style="color:#94a3b8">—</span>`;
-          return `<span style="display:inline-flex;align-items:center;gap:4px;background:${m.bg};color:${m.cor};padding:3px 12px;border-radius:20px;font-size:12px;font-weight:700;white-space:nowrap">${m.icon} ${m.label}</span>`;
-        };
+        const badge = statusPill;
         const sorted = [...equipamentos].sort((a,b)=>a.nome.localeCompare(b.nome));
 
         // Classify
@@ -894,9 +891,8 @@ async function carregar() {
             const label = s==='operando'?'Operando':s==='restricao'?'Restrição':s==='parado'?'Parado':'clique para registrar';
             const title = `${dNames[dow]} ${dia}/${m} — ${label}`;
             const cor = s==='operando'?'#10b981':s==='restricao'?'#f59e0b':s==='parado'?'#ef4444':'#e2e8f0';
-            return `<div class="snap-day-cell" data-eid="${equipId}" data-date="${date}" onclick="editarSnapDia('${equipId}','${date}',this)" title="${title}"
-              style="flex:1;background:${cor};cursor:pointer;border-radius:2px;transition:filter .1s"
-              onmouseover="this.style.filter='brightness(.85)'" onmouseout="this.style.filter=''"></div>`;
+            return `<div data-eid="${equipId}" data-date="${date}" title="${title}"
+              style="flex:1;background:${cor};border-radius:2px"></div>`;
           }).join('');
           const total = 7;
           const pOp  = Math.round(counts.operando  / total * 100);
@@ -980,8 +976,8 @@ async function carregar() {
           <div class="rel-kpi-label">Quadro Ativo</div>
           <div class="rel-kpi-val">${ativos.length}</div>
           <div style="margin-top:5px;display:flex;flex-direction:column;gap:2px">
-            <span style="font-size:11px;color:#16a34a;font-weight:600">✔ ${ativosTrabalho} em atividade</span>
-            <span style="font-size:11px;color:#2563eb;font-weight:600">☀ ${emFerias} em férias</span>
+            <span style="font-size:11px;color:#16a34a;font-weight:600">${icon('check', { size: 11 })} ${ativosTrabalho} em atividade</span>
+            <span style="font-size:11px;color:#2563eb;font-weight:600">${icon('sun', { size: 11 })} ${emFerias} em férias</span>
           </div>
         </div>
         <div class="rel-kpi">
@@ -992,7 +988,7 @@ async function carregar() {
         <div class="rel-kpi">
           <div class="rel-kpi-label">Nota Média Equipe</div>
           <div class="rel-kpi-val" style="color:${notaMedia===null?'#94a3b8':notaMedia>=7?'#006636':notaMedia>=5?'#D97706':'#DC2626'}">${notaMedia!==null?notaMedia.toFixed(1):'—'}</div>
-          <div class="rel-kpi-sub">${notaMedia===null?'sem avaliações':notaMedia>=7?'✅ Desempenho bom':notaMedia>=5?'⚠️ Em observação':'❌ Atenção necessária'}</div>
+          <div class="rel-kpi-sub">${metaLabel(notaMedia, { bom:'Desempenho bom', alerta:'Em observação', ruim:'Atenção necessária', semMeta:'sem avaliações', limiteBom:7, limiteAlerta:5 })}</div>
         </div>
         <div style="background:${parseFloat(turnover)<=5?'#f0fdf4':parseFloat(turnover)<=10?'#fffbeb':'#fff5f5'};border-radius:10px;border:1px solid ${parseFloat(turnover)<=5?'#86efac':parseFloat(turnover)<=10?'#fde68a':'#fca5a5'};padding:14px">
           <div style="font-size:10px;font-weight:700;text-transform:uppercase;color:${parseFloat(turnover)<=5?'#166534':parseFloat(turnover)<=10?'#92400e':'#991b1b'};margin-bottom:5px">Turnover (ano)</div>
@@ -1020,8 +1016,8 @@ async function carregar() {
             ${linhas.map(([cargo, d]) => {
               const cor = d.total === null ? '#64748b' : d.preenchido >= d.total ? '#006636' : '#DC2626';
               const sit = d.total === null ? '—' : d.preenchido >= d.total
-                ? `<span style="color:#006636;font-weight:600">✅ Completo</span>`
-                : `<span style="color:#DC2626;font-weight:600">⚠️ ${d.total - d.preenchido} vaga(s) em aberto</span>`;
+                ? `<span style="color:#006636;font-weight:600">${icon('check', { size: 12 })} Completo</span>`
+                : `<span style="color:#DC2626;font-weight:600">${icon('alert-triangle', { size: 12 })} ${d.total - d.preenchido} vaga(s) em aberto</span>`;
               return `<tr>
                 <td>${cargo}</td>
                 <td style="text-align:center;font-weight:700;color:${cor}">${d.preenchido}</td>
@@ -1044,7 +1040,7 @@ async function carregar() {
               ${c.nota!==null?`<span class="nota-badge ${notaClass(c.nota)}">${c.nota.toFixed(1)}</span>`:'<span style="color:#94a3b8">—</span>'}
             </td>
             <td style="font-size:12px;color:#475569">
-              ${c.nota===null?'Sem avaliação':c.nota>=7?'✅ Recomendado':c.nota>=5?'⚠️ Em observação':'❌ Avaliar desligamento'}
+              ${metaLabel(c.nota, { bom:'Recomendado', alerta:'Em observação', ruim:'Avaliar desligamento', semMeta:'Sem avaliação', limiteBom:7, limiteAlerta:5 })}
             </td>
             <td style="font-size:12px;color:#F59E0B;font-weight:600">
               ${c.fimExp ? dataBR(c.fimExp) : '<span style="color:#94a3b8">—</span>'}
@@ -1298,98 +1294,6 @@ window.salvarSnapObs = (equipId, obs) => {
       window._snapMapRel[equipId].obs = obs;
     }
   }, 600);
-};
-
-// ── Snapshot semanal equipamentos ────────────────────────────────────────────
-window.salvarSnapshotEquip = async () => {
-  const btn = document.getElementById('btn-salvar-snap');
-  btn.textContent = 'Salvando…'; btn.disabled = true;
-
-  // Data de hoje como referência
-  const semana = new Date().toISOString().split('T')[0];
-
-  const { data: equips } = await supabase.from('equipamentos').select('id, nome, frota, status');
-  if (!equips?.length) { btn.textContent = '📸 Registrar estado atual'; btn.disabled = false; return; }
-
-  // Remove snapshot existente desta data e insere novo
-  await supabase.from('equipamentos_snapshot').delete().eq('semana', semana);
-  const rows = equips.map(e => ({
-    semana,
-    equipamento_id:    e.id,
-    equipamento_nome:  e.nome,
-    equipamento_frota: e.frota || null,
-    status: e.status,
-  }));
-  const { error } = await supabase.from('equipamentos_snapshot').insert(rows);
-
-  if (error) {
-    alert('Erro ao salvar: ' + error.message);
-  } else {
-    btn.style.background = '#15803d';
-    btn.textContent = '✅ Registrado!';
-    // Define a data recém-salva como referência e recarrega
-    window._snapRefData = semana;
-    await carregar();
-    setTimeout(() => {
-      btn.textContent = '📸 Registrar estado atual';
-      btn.style.background = '#0369a1';
-      btn.disabled = false;
-    }, 2000);
-    return;
-  }
-  btn.textContent = '📸 Registrar estado atual'; btn.disabled = false;
-};
-
-// ── Editar status de um dia específico no gráfico de disponibilidade ─────────
-window.editarSnapDia = (equipId, date, el) => {
-  document.querySelectorAll('.snap-day-popup').forEach(p => p.remove());
-  const [a, m, d] = date.split('-');
-  const dNames = ['Dom','Seg','Ter','Qua','Qui','Sex','Sáb'];
-  const dow = new Date(date + 'T12:00:00').getDay();
-  const popup = document.createElement('div');
-  popup.className = 'snap-day-popup';
-  popup.style.cssText = 'position:fixed;z-index:9999;background:#fff;border:1px solid #e2e8f0;border-radius:10px;box-shadow:0 6px 20px rgba(0,0,0,.15);padding:8px;min-width:160px';
-  popup.innerHTML = `
-    <div style="font-size:10px;font-weight:800;color:#94a3b8;text-transform:uppercase;letter-spacing:.06em;padding:4px 8px 8px">${dNames[dow]} ${d}/${m}/${a}</div>
-    <button onclick="salvarSnapDia('${equipId}','${date}','operando')" style="display:block;width:100%;text-align:left;padding:7px 12px;border:none;border-radius:6px;background:none;font-size:12px;font-weight:600;color:#065f46;cursor:pointer" onmouseover="this.style.background='#d1fae5'" onmouseout="this.style.background='none'">✅ Operando</button>
-    <button onclick="salvarSnapDia('${equipId}','${date}','restricao')" style="display:block;width:100%;text-align:left;padding:7px 12px;border:none;border-radius:6px;background:none;font-size:12px;font-weight:600;color:#92400e;cursor:pointer" onmouseover="this.style.background='#fef3c7'" onmouseout="this.style.background='none'">⚠️ Restrição</button>
-    <button onclick="salvarSnapDia('${equipId}','${date}','parado')" style="display:block;width:100%;text-align:left;padding:7px 12px;border:none;border-radius:6px;background:none;font-size:12px;font-weight:600;color:#991b1b;cursor:pointer" onmouseover="this.style.background='#fee2e2'" onmouseout="this.style.background='none'">❌ Parado</button>
-    <hr style="margin:6px 0;border:none;border-top:1px solid #f1f5f9">
-    <button onclick="salvarSnapDia('${equipId}','${date}','')" style="display:block;width:100%;text-align:left;padding:5px 12px;border:none;border-radius:6px;background:none;font-size:11px;color:#94a3b8;cursor:pointer" onmouseover="this.style.background='#f8fafc'" onmouseout="this.style.background='none'">— Limpar registro</button>`;
-  document.body.appendChild(popup);
-  const rect = el.getBoundingClientRect();
-  const top  = rect.bottom + 4;
-  const left = Math.min(rect.left, window.innerWidth - 170);
-  popup.style.top  = top + 'px';
-  popup.style.left = left + 'px';
-  setTimeout(() => document.addEventListener('click', function h(e) {
-    if (!popup.contains(e.target)) { popup.remove(); document.removeEventListener('click', h); }
-  }, { once: true }), 100);
-};
-
-window.salvarSnapDia = async (equipId, date, status) => {
-  document.querySelectorAll('.snap-day-popup').forEach(p => p.remove());
-  const eq = (window._equipsRel || []).find(e => e.id === equipId);
-  if (!eq) return;
-
-  // Sempre remove o registro existente antes (evita conflito de PK)
-  const { error: delErr } = await supabase.from('equipamentos_snapshot').delete()
-    .eq('semana', date).eq('equipamento_id', equipId);
-  if (delErr) { console.error('Erro ao deletar:', delErr); }
-
-  if (status) {
-    const { error: insErr } = await supabase.from('equipamentos_snapshot').insert({
-      semana: date, equipamento_id: equipId,
-      equipamento_nome: eq.nome, equipamento_frota: eq.frota || '',
-      status
-    });
-    if (insErr) {
-      console.error('Erro ao inserir:', insErr);
-      alert('Erro ao salvar: ' + insErr.message);
-      return;
-    }
-  }
-  await carregar();
 };
 
 // ── Filtro categoria balanço ──────────────────────────────────────────────────
