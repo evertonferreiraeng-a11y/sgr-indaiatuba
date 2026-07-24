@@ -1,0 +1,27 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(awk '{ print length, NR }' relatorio.html)",
+      "Bash(npx --version)",
+      "PowerShell(node --version)",
+      "PowerShell(npm --version)",
+      "PowerShell(npx --version)",
+      "PowerShell(foreach \\($cmd in @\\('php','ruby','dotnet','py'\\)\\) { $c = Get-Command $cmd -ErrorAction SilentlyContinue; if \\($c\\) { Write-Output \"$cmd -> $\\($c.Source\\)\" } else { Write-Output \"$cmd -> not found\" } })",
+      "Bash(powershell -Command \"\\(Get-Content 'C:\\\\Users\\\\everton.ferreira\\\\Desktop\\\\Claude - Ever\\\\sgr-indaiatuba\\\\notas-fiscais.html' -Raw\\) -replace 'Promise\\\\.all\\\\\\(\\\\[carregarKPIs\\\\\\(\\\\\\), carregarPedidos\\\\\\(\\\\\\)\\\\]\\\\\\)', 'carregarPedidos\\(\\)' | Set-Content -Encoding utf8 'C:\\\\Users\\\\everton.ferreira\\\\Desktop\\\\Claude - Ever\\\\sgr-indaiatuba\\\\notas-fiscais.html'\")",
+      "Bash(find /c/Users/everton.ferreira/AppData/Roaming -newermt '-20 minutes' \\\\\\( -iname '*.png' -o -iname '*.jpg' \\\\\\) 2>/dev/null | head -50 *)",
+      "Bash(find /c/Users/everton.ferreira/AppData/Local/Temp/claude -newermt '-10 minutes' -type f 2>/dev/null *)",
+      "Bash(find /c/Users/everton.ferreira/Downloads -iname \"*corpus*\" -o -iname \"*logo*\" 2>/dev/null | head -30)",
+      "Bash(cp \"/c/Users/everton.ferreira/Downloads/Corpus_Logo_2.png\" \"/c/Users/everton.ferreira/Desktop/Claude - Ever/sgr-indaiatuba/img/logo-corpus.png\" && ls -la \"/c/Users/everton.ferreira/Desktop/Claude - Ever/sgr-indaiatuba/img/logo-corpus.png\")",
+      "Bash(base64 -w0 img/logo-corpus.png)",
+      "Bash(python3)",
+      "Bash(python3 -c \"print\\('hello'\\)\")",
+      "Bash(echo \"exit=$?\")",
+      "Bash(mkdir -p \"/c/Users/EVERTO~1.FER/AppData/Local/Temp/claude/C--Users-everton-ferreira-Desktop-Claude---Ever-sgr-indaiatuba/43d602ec-6c29-4fd4-b196-3e52b39f87e4/scratchpad\" 2>/dev/null *)",
+      "Bash(node -e ' *)",
+      "Bash(grep -n \"^  \\\\`;\\\\|rel-body'\\\\\\).innerHTML\" \"C:\\\\Users\\\\everton.ferreira\\\\Desktop\\\\Claude - Ever\\\\sgr-indaiatuba\\\\relatorio.html\")",
+      "Bash(cp dashboard.html dashboard-kpis.old.html)",
+      "Bash(cp relatorio.html dashboard.html)",
+      "Bash(rm relatorio.html)"
+    ]
+  }
+}
