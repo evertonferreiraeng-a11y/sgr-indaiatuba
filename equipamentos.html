@@ -166,6 +166,24 @@ async function carregar() {
   eqData = data || [];
   renderKPIs();
   renderTabela();
+  registrarSnapshotHoje();
+}
+
+// ── Snapshot automático do dia — alimenta a Disponibilidade no Período do Dashboard ──
+async function registrarSnapshotHoje() {
+  if (!eqData.length) return;
+  const hoje = new Date().toISOString().split('T')[0];
+  const rows = eqData.map(e => ({
+    semana: hoje,
+    equipamento_id:    e.id,
+    equipamento_nome:  e.nome,
+    equipamento_frota: e.frota || null,
+    status: e.status,
+  }));
+  try {
+    await supabase.from('equipamentos_snapshot').delete().eq('semana', hoje);
+    await supabase.from('equipamentos_snapshot').insert(rows);
+  } catch (_) { /* tabela ainda não criada */ }
 }
 
 function renderKPIs() {
