@@ -81,6 +81,22 @@
         </div>
       </div>
 
+      <!-- Disponibilidade do Dia — alimenta a barra do Dashboard -->
+      <div class="card mb-16" style="padding:16px">
+        <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;margin-bottom:14px">
+          <div>
+            <span style="font-size:13px;font-weight:600;color:#374151">📅 Disponibilidade do Dia</span>
+            <div style="font-size:11px;color:#94a3b8;margin-top:2px">Registre o status de cada equipamento no dia selecionado — isso alimenta a barra de disponibilidade do Dashboard.</div>
+          </div>
+          <div style="display:flex;align-items:center;gap:8px">
+            <input type="date" id="snap-data" style="padding:6px 10px;border-radius:6px;border:1px solid #D1D5DB;font-size:13px" />
+            <button type="button" class="btn btn-outline" id="btn-snap-hoje" style="padding:6px 12px;font-size:12px">Hoje</button>
+            <button type="button" class="btn btn-primary" id="btn-snap-salvar" style="padding:6px 14px;font-size:12px">💾 Salvar dia</button>
+          </div>
+        </div>
+        <div id="snap-dia-lista"></div>
+      </div>
+
       <!-- Tabela -->
       <div class="table-card">
         <div class="table-scroll">
@@ -166,25 +182,81 @@ async function carregar() {
   eqData = data || [];
   renderKPIs();
   renderTabela();
-  registrarSnapshotHoje();
+  await carregarSnapDia();
 }
 
-// ── Snapshot automático do dia — alimenta a Disponibilidade no Período do Dashboard ──
-async function registrarSnapshotHoje() {
-  if (!eqData.length) return;
-  const hoje = new Date().toISOString().split('T')[0];
+// ── Disponibilidade do Dia — alimenta a barra "Disponibilidade no Período" do Dashboard ──
+const hojeStr = () => new Date().toISOString().split('T')[0];
+let snapData = hojeStr();
+let snapSelecao = {};
+
+const STATUS_OPCOES = [
+  { v:'operando',  label:'✅ Operando',   cls:'status-operando'  },
+  { v:'restricao', label:'⚠️ Restrição',  cls:'status-restricao' },
+  { v:'parado',    label:'❌ Parado',     cls:'status-parado'    },
+];
+
+async function carregarSnapDia() {
+  const dataInput = document.getElementById('snap-data');
+  if (dataInput) { dataInput.max = hojeStr(); dataInput.value = snapData; }
+
+  let existentes = {};
+  try {
+    const { data } = await supabase.from('equipamentos_snapshot').select('equipamento_id, status').eq('semana', snapData);
+    (data || []).forEach(s => { existentes[s.equipamento_id] = s.status; });
+  } catch (_) { /* tabela ainda não criada */ }
+
+  snapSelecao = {};
+  eqData.forEach(e => { snapSelecao[e.id] = existentes[e.id] || e.status; });
+  renderSnapDia();
+}
+
+function renderSnapDia() {
+  const cont = document.getElementById('snap-dia-lista');
+  if (!cont) return;
+  if (!eqData.length) { cont.innerHTML = '<span style="color:#94a3b8;font-size:13px">Nenhum equipamento cadastrado</span>'; return; }
+
+  cont.innerHTML = eqData.map(e => {
+    const atual = snapSelecao[e.id];
+    const btns = STATUS_OPCOES.map(o => `
+      <button type="button" class="status-btn ${o.cls}" style="${atual===o.v?'':'opacity:.35'}" onclick="window._setSnapDia('${e.id}','${o.v}')">${o.label}</button>
+    `).join('');
+    return `<div style="display:flex;align-items:center;justify-content:space-between;gap:10px;padding:7px 0;border-bottom:1px solid #f1f5f9">
+      <span style="font-size:13px;font-weight:600;color:#334155">${e.nome}${e.frota ? ` <span style="color:#94a3b8;font-weight:400">(${e.frota})</span>` : ''}</span>
+      <div style="display:flex;gap:6px">${btns}</div>
+    </div>`;
+  }).join('');
+}
+
+window._setSnapDia = (id, status) => { snapSelecao[id] = status; renderSnapDia(); };
+
+document.getElementById('snap-data').addEventListener('change', async e => {
+  snapData = e.target.value || hojeStr();
+  await carregarSnapDia();
+});
+
+document.getElementById('btn-snap-hoje').addEventListener('click', async () => {
+  snapData = hojeStr();
+  await carregarSnapDia();
+});
+
+document.getElementById('btn-snap-salvar').addEventListener('click', async () => {
+  const btn = document.getElementById('btn-snap-salvar');
+  btn.disabled = true; btn.textContent = 'Salvando…';
   const rows = eqData.map(e => ({
-    semana: hoje,
+    semana: snapData,
     equipamento_id:    e.id,
     equipamento_nome:  e.nome,
     equipamento_frota: e.frota || null,
-    status: e.status,
+    status: snapSelecao[e.id],
   }));
-  try {
-    await supabase.from('equipamentos_snapshot').delete().eq('semana', hoje);
-    await supabase.from('equipamentos_snapshot').insert(rows);
-  } catch (_) { /* tabela ainda não criada */ }
-}
+  await supabase.from('equipamentos_snapshot').delete().eq('semana', snapData);
+  const { error } = await supabase.from('equipamentos_snapshot').insert(rows);
+  btn.disabled = false; btn.textContent = '💾 Salvar dia';
+  if (error) { toast('Erro ao salvar: ' + error.message, 'error'); return; }
+  const [a,m,d] = snapData.split('-');
+  toast(`Disponibilidade de ${d}/${m}/${a} registrada!`);
+});
 
 function renderKPIs() {
   const total = eqData.length;
