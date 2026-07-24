@@ -1,4 +1,5 @@
 import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm';
+import { icon } from './icons.js';
 
 const SUPABASE_URL  = 'https://skcfiorztsqzraulqmuj.supabase.co';
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNrY2Zpb3J6dHNxenJhdWxxbXVqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODIxNDg2OTgsImV4cCI6MjA5NzcyNDY5OH0.UEzcpwVnnXOb4qV1oZRVkT5VHVIXVGnkKZH2f_gatWw';
@@ -220,15 +221,15 @@ const _ROTINA_TODAY = new Date().toISOString().split('T')[0];
 const _ROTINA_KEY   = 'sgr_rotina_' + _ROTINA_TODAY;
 
 const MODULOS_ROTINA = [
-  { id:'entradas',      label:'Entradas',          href:'entradas.html',          icon:'📥', desc:'Registrar entradas de materiais' },
-  { id:'producao',      label:'Produção',           href:'producao.html',          icon:'⚙️', desc:'Atualizar dados de produção' },
-  { id:'estoque',       label:'Estoque',            href:'estoque.html',           icon:'📦', desc:'Verificar e atualizar estoque' },
-  { id:'equipamentos',  label:'Equipamentos',       href:'equipamentos.html',      icon:'🔧', desc:'Status dos equipamentos' },
-  { id:'comercial',     label:'Comercial',          href:'comercial.html',         icon:'🛒', desc:'Dados comerciais e metas' },
-  { id:'rh',            label:'RH',                 href:'rh.html',                icon:'👥', desc:'Recursos humanos' },
-  { id:'tarefas',       label:'Tarefas',            href:'tarefas.html',           icon:'✅', desc:'Gerenciar tarefas do dia' },
-  { id:'relatorio',     label:'Relatório Comitê',   href:'dashboard.html',         icon:'📊', desc:'Relatório para diretoria' },
-  { id:'rel-diario',    label:'Relatório Diário',   href:'relatorio-diario.html',  icon:'📋', desc:'Relatório diário de operações' },
+  { id:'entradas',      label:'Entradas',          href:'entradas.html',          icon:'inbox',         desc:'Registrar entradas de materiais' },
+  { id:'producao',      label:'Produção',           href:'producao.html',          icon:'bar-chart',     desc:'Atualizar dados de produção' },
+  { id:'estoque',       label:'Estoque',            href:'estoque.html',           icon:'package',       desc:'Verificar e atualizar estoque' },
+  { id:'equipamentos',  label:'Equipamentos',       href:'equipamentos.html',      icon:'wrench',        desc:'Status dos equipamentos' },
+  { id:'comercial',     label:'Comercial',          href:'comercial.html',         icon:'cart',          desc:'Dados comerciais e metas' },
+  { id:'rh',            label:'RH',                 href:'rh.html',                icon:'users',         desc:'Recursos humanos' },
+  { id:'tarefas',       label:'Tarefas',            href:'tarefas.html',           icon:'check-circle',  desc:'Gerenciar tarefas do dia' },
+  { id:'relatorio',     label:'Relatório Comitê',   href:'dashboard.html',         icon:'bar-chart',     desc:'Relatório para diretoria' },
+  { id:'rel-diario',    label:'Relatório Diário',   href:'relatorio-diario.html',  icon:'list',          desc:'Relatório diário de operações' },
 ];
 
 function _rotinaGetState()  { try { return JSON.parse(localStorage.getItem(_ROTINA_KEY)); } catch { return null; } }
@@ -275,7 +276,7 @@ function _showSelecao() {
           ${MODULOS_ROTINA.map(m => `
             <label class="rotina-mod-item" id="lbl-${m.id}">
               <input type="checkbox" class="rotina-cb" value="${m.id}" onchange="rotinaToggle(this,'${m.id}')" />
-              <span class="rotina-mod-icon">${m.icon}</span>
+              <span class="rotina-mod-icon">${icon(m.icon, { size: 20 })}</span>
               <div class="rotina-mod-info">
                 <div class="rotina-mod-label">${m.label}</div>
                 <div class="rotina-mod-desc">${m.desc}</div>
