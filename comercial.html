@@ -391,75 +391,32 @@
         <div class="kpi-grid mb-16" style="grid-template-columns:repeat(auto-fill,minmax(170px,1fr))">
           <div class="kpi-card"><div class="kpi-label">Faturamento (Período)</div><div class="kpi-value" id="pa-kpi-fat">—</div></div>
           <div class="kpi-card"><div class="kpi-label">Meta do Período</div><div class="kpi-value" id="pa-kpi-meta">—</div><div class="kpi-sub" id="pa-kpi-atingido">% atingido</div></div>
-          <div class="kpi-card"><div class="kpi-label">Concentração Top 5</div><div class="kpi-value" id="pa-kpi-concentracao">—</div><div class="kpi-sub">% do faturamento</div></div>
-          <div class="kpi-card"><div class="kpi-label">Clientes em Risco</div><div class="kpi-value" id="pa-kpi-risco">—</div><div class="kpi-sub">sem compra há 90+ dias</div></div>
+          <div class="kpi-card"><div class="kpi-label">Gap para a Meta</div><div class="kpi-value" id="pa-kpi-gap">—</div></div>
           <div class="kpi-card"><div class="kpi-label">Ticket Médio Geral</div><div class="kpi-value" id="pa-kpi-ticket">—</div><div class="kpi-sub">R$/ton</div></div>
-          <div class="kpi-card"><div class="kpi-label">Mês Mais Fraco</div><div class="kpi-value" id="pa-kpi-mes-fraco" style="font-size:18px">—</div></div>
         </div>
 
-        <div id="pa-planos" style="display:flex;flex-direction:column;gap:14px"></div>
+        <div class="card mb-16" style="padding:16px" id="pa-resumo"></div>
 
-        <div class="table-card-header" style="margin-top:24px;margin-bottom:8px;padding:0">
-          <h3 style="margin:0">Oportunidades de Reajuste de Preço (Cliente × Material)</h3>
-          <span id="pa-repre-total" class="text-muted" style="font-size:12px"></span>
+        <div class="table-card-header" style="margin-top:8px;margin-bottom:8px;padding:0">
+          <h3 style="margin:0">Ações Prioritárias para Bater a Meta</h3>
+          <span id="pa-acoes-total" class="text-muted" style="font-size:12px"></span>
         </div>
-        <p class="text-muted" style="font-size:12px;margin:0 0 8px">Compara o ticket médio de cada cliente por material com o melhor preço já praticado para o mesmo material dentro do período — a diferença é o ganho potencial ao alinhar o preço.</p>
-        <div class="table-card mb-16">
-          <div class="table-scroll">
-            <table style="font-size:12px">
-              <thead>
-                <tr>
-                  <th>Cliente</th>
-                  <th>Material</th>
-                  <th class="text-right">Volume (ton)</th>
-                  <th class="text-right">Ticket Atual</th>
-                  <th class="text-right">Melhor Ticket do Material</th>
-                  <th class="text-right">Ganho Potencial</th>
-                  <th>Ação Recomendada</th>
-                </tr>
-              </thead>
-              <tbody id="tb-pa-reprecificacao"></tbody>
-            </table>
-          </div>
-        </div>
-
-        <div class="table-card-header" style="margin-top:24px;margin-bottom:8px;padding:0">
-          <h3 style="margin:0">Plano de Ação por Cliente</h3>
-          <span id="pa-cli-total" class="text-muted" style="font-size:12px"></span>
-        </div>
+        <p class="text-muted" style="font-size:12px;margin:0 0 8px">Apenas ações com ganho real e quantificável: reajuste de preço (cliente pagando abaixo do melhor preço já praticado para o mesmo material) e reativação de clientes inativos. Ordenadas por impacto — a coluna "Meta coberta" mostra o efeito acumulado.</p>
         <div class="table-card mb-16">
           <div class="table-scroll">
             <table style="font-size:12px">
               <thead>
                 <tr>
                   <th>#</th>
-                  <th>Cliente</th>
-                  <th class="text-right">Faturamento</th>
-                  <th>Status</th>
-                  <th>Ação Recomendada</th>
+                  <th>Ação</th>
+                  <th>Detalhe</th>
                   <th class="text-right">Ganho Potencial</th>
+                  <th class="text-right">Meta Coberta (acum.)</th>
                 </tr>
               </thead>
-              <tbody id="tb-pa-clientes"></tbody>
+              <tbody id="tb-pa-acoes"></tbody>
             </table>
           </div>
-        </div>
-
-        <div class="table-card-header" style="margin-top:24px;margin-bottom:8px;padding:0">
-          <h3 style="margin:0">Simulações de Melhoria no Faturamento</h3>
-        </div>
-        <div id="pa-simulacoes" style="display:flex;flex-direction:column;gap:14px;margin-bottom:16px"></div>
-
-        <div class="card" style="padding:16px">
-          <h4 style="margin:0 0 4px">Simulador de Meta de Crescimento</h4>
-          <p class="text-muted" style="font-size:12px;margin:0 0 12px">Informe a meta de aumento percentual no faturamento do período selecionado para ver quanto isso representa em R$ e comparar com o potencial já identificado nas simulações acima.</p>
-          <div class="filters-row" style="align-items:flex-end;gap:14px">
-            <div class="form-group" style="max-width:160px">
-              <label>Meta de aumento (%)</label>
-              <input type="number" id="pa-sim-pct" value="10" min="1" max="200" step="1" />
-            </div>
-          </div>
-          <div id="pa-sim-resultado" style="margin-top:14px;font-size:13px"></div>
         </div>
 
       </div>
@@ -1569,7 +1526,6 @@ document.getElementById('btn-an-exportar').addEventListener('click', () => {
 // ── Planos de Ações ────────────────────────────────────────────────────────────
 let paData = [];
 let paPeriodo = { ini: null, fim: null };
-let paCalc = null; // últimos números calculados, usados pelo simulador de meta
 let paMetas = {}; // periodo ('YYYY-MM') -> { id, valor_meta }
 let paMesesPeriodo = [];
 const MES_ABREV_PA = ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
@@ -1690,13 +1646,6 @@ function renderPlanosAcao() {
   const atingidoPct = metaPeriodo > 0 ? (fatTotalPeriodo / metaPeriodo * 100) : null;
   const gapMeta = metaPeriodo > 0 ? Math.max(0, metaPeriodo - fatTotalPeriodo) : 0;
 
-  // Concentração de clientes (Top 5)
-  const porClientePeriodo = anaAgrupar(dadosPeriodo, r => r.clientes?.nome || 'Desconhecido');
-  const rankCli = Object.entries(porClientePeriodo).sort((a, b) => b[1].fat - a[1].fat);
-  const top5Fat = rankCli.slice(0, 5).reduce((s, [, v]) => s + v.fat, 0);
-  const concentracao = fatTotalPeriodo > 0 ? (top5Fat / fatTotalPeriodo * 100) : 0;
-  const fatForaTop5 = fatTotalPeriodo - top5Fat;
-
   // Clientes em risco: já compraram antes, mas nenhuma venda nos últimos 90 dias (relativos ao fim do período)
   const porClienteId = {};
   paData.forEach(r => {
@@ -1708,7 +1657,6 @@ function renderPlanosAcao() {
   const clientesRisco = Object.values(porClienteId)
     .filter(c => c.ultimaData && c.ultimaData < corte90)
     .sort((a, b) => b.fatHist - a.fatHist);
-  const mediaMensalRisco = clientesRisco.reduce((s, c) => s + c.fatHist / 24, 0);
 
   // Ticket por Cliente x Material — compara cada cliente com o melhor preço já
   // praticado para o MESMO material, em vez de uma média geral que mistura materiais
@@ -1733,7 +1681,8 @@ function renderPlanosAcao() {
       melhorTicketPorMaterial[cm.material] = cm.ticket;
     }
   });
-  const VOL_MIN_OPORTUNIDADE = 0.3; // ton — ignora combos residuais/ruído
+  const VOL_MIN_OPORTUNIDADE = 0.3;   // ton — ignora combos residuais/ruído
+  const GANHO_MIN_OPORTUNIDADE = 200; // R$ — só entram ações com impacto real
   const oportunidadesReprecificacao = combosClienteMaterial
     .filter(cm => clientesPorMaterial[cm.material] >= 2 && cm.vol / 1000 >= VOL_MIN_OPORTUNIDADE)
     .map(cm => {
@@ -1741,49 +1690,30 @@ function renderPlanosAcao() {
       const gap = benchmark > cm.ticket ? (benchmark - cm.ticket) * (cm.vol / 1000) : 0;
       return { ...cm, benchmark, gap };
     })
-    .filter(o => o.gap > 0)
-    .sort((a, b) => b.gap - a.gap);
-  const ganhoReprecificacaoPeriodo = oportunidadesReprecificacao.reduce((s, o) => s + o.gap, 0);
-  const ganhoReprecificacaoMensal = ganhoReprecificacaoPeriodo / mesesPeriodo;
+    .filter(o => o.gap >= GANHO_MIN_OPORTUNIDADE);
 
-  // Plano de ação por cliente: combina risco de inatividade, oportunidade de
-  // reprecificação e, na ausência das duas, uma sugestão genérica de cross-sell/volume.
-  const nomesRisco = new Set(clientesRisco.map(c => c.nome));
-  const ganhoReprecificacaoPorCliente = {};
+  // ── Lista única de ações reais e quantificáveis (sem sugestões genéricas)
+  const acoes = [];
   oportunidadesReprecificacao.forEach(o => {
-    ganhoReprecificacaoPorCliente[o.cliente] = (ganhoReprecificacaoPorCliente[o.cliente] || 0) + o.gap;
+    acoes.push({
+      tipo: 'Reajustar preço',
+      detalhe: `${o.cliente} — ${o.material}: ${moeda(o.ticket)}/ton → ${moeda(o.benchmark)}/ton (${ton(o.vol)})`,
+      ganho: o.gap,
+    });
   });
-  const acoesPorCliente = rankCli.map(([nome, v], idx) => {
-    const emRisco = nomesRisco.has(nome);
-    const ganhoRepre = ganhoReprecificacaoPorCliente[nome] || 0;
-    let acao, ganho;
-    if (emRisco) {
-      const cRisco = clientesRisco.find(c => c.nome === nome);
-      const mediaMensalCliente = cRisco ? cRisco.fatHist / 24 : 0;
-      acao = 'Reativar — contato comercial direto';
-      ganho = mediaMensalCliente * mesesPeriodo;
-    } else if (ganhoRepre > 0) {
-      acao = 'Renegociar preço (ver tabela de reajuste)';
-      ganho = ganhoRepre;
-    } else if (idx < 5 && concentracao >= 40) {
-      acao = 'Cliente estratégico — diversificar risco, manter relação';
-      ganho = 0;
-    } else {
-      acao = 'Explorar aumento de volume / cross-sell';
-      ganho = v.fat * 0.10;
+  clientesRisco.forEach(c => {
+    const ganho = (c.fatHist / 24) * mesesPeriodo;
+    if (ganho >= GANHO_MIN_OPORTUNIDADE) {
+      acoes.push({
+        tipo: 'Reativar cliente',
+        detalhe: `${c.nome} — sem compras desde ${dataBR(c.ultimaData)}`,
+        ganho,
+      });
     }
-    return { nome, fat: v.fat, emRisco, acao, ganho };
-  }).sort((a, b) => b.ganho - a.ganho);
-
-  // Sazonalidade: faturamento por mês
-  const porMes = {};
-  dadosPeriodo.forEach(r => {
-    const mk = r.data.slice(0, 7);
-    porMes[mk] = (porMes[mk] || 0) + (r.valor_total || 0);
   });
-  const mesesArr = Object.entries(porMes).sort((a, b) => a[0].localeCompare(b[0]));
-  const mesFraco = mesesArr.length ? mesesArr.reduce((min, cur) => cur[1] < min[1] ? cur : min) : null;
-  const labelMes = mk => { const [y, m] = mk.split('-'); return `${MES_ABREV_PA[+m - 1]}/${y.slice(2)}`; };
+  acoes.sort((a, b) => b.ganho - a.ganho);
+  const acoesLimitadas = acoes.slice(0, 12);
+  const ganhoTotalAcoes = acoesLimitadas.reduce((s, a) => s + a.ganho, 0);
 
   // ── KPIs
   document.getElementById('pa-kpi-fat').textContent = moeda(fatTotalPeriodo);
@@ -1791,263 +1721,48 @@ function renderPlanosAcao() {
   document.getElementById('pa-kpi-atingido').textContent = atingidoPct !== null
     ? `${atingidoPct.toFixed(1)}% atingido`
     : 'sem meta cadastrada';
-  document.getElementById('pa-kpi-concentracao').textContent = concentracao.toFixed(1) + '%';
-  document.getElementById('pa-kpi-risco').textContent = clientesRisco.length;
+  document.getElementById('pa-kpi-gap').textContent = metaPeriodo > 0 ? moeda(gapMeta) : '—';
   document.getElementById('pa-kpi-ticket').textContent = moeda(ticketGeral);
-  document.getElementById('pa-kpi-mes-fraco').textContent = mesFraco ? labelMes(mesFraco[0]) : '—';
 
-  // ── Planos de ação
-  const planos = [];
-
-  if (metaPeriodo > 0 && atingidoPct < 100) {
-    planos.push({
-      titulo: 'Fechar o gap para a meta de faturamento',
-      prioridade: atingidoPct < 80 ? 'Alta' : 'Média',
-      diagnostico: `A meta de faturamento cadastrada para o período é ${moeda(metaPeriodo)}, e o realizado foi ${moeda(fatTotalPeriodo)} (${atingidoPct.toFixed(1)}% atingido). Faltam ${moeda(gapMeta)} para bater a meta.`,
-      acoes: [
-        'Priorizar as demais ações deste diagnóstico (reativação de clientes, reajuste de preço, crescimento fora do Top 5) para cobrir o gap.',
-        'Revisar se a meta cadastrada ainda é realista frente ao cenário atual de mercado.',
-      ],
-    });
-  }
-
-  if (rankCli.length && concentracao >= 40) {
-    const top5Nomes = rankCli.slice(0, 5).map(([n]) => n).join(', ');
-    planos.push({
-      titulo: 'Reduzir a dependência de poucos clientes',
-      prioridade: concentracao >= 60 ? 'Alta' : 'Média',
-      diagnostico: `Os 5 maiores clientes (${top5Nomes}) respondem por ${concentracao.toFixed(1)}% do faturamento do período selecionado. Essa concentração eleva o risco de perda de receita caso um deles reduza as compras.`,
-      acoes: [
-        'Mapear clientes de médio porte com potencial de crescimento e priorizar visitas comerciais.',
-        'Criar condições comerciais (prazo, desconto por volume) para aumentar o ticket de clientes fora do Top 5.',
-        'Definir uma meta de redução da concentração Top 5 para os próximos períodos.',
-      ],
-    });
-  }
-
-  if (clientesRisco.length) {
-    const top5Risco = clientesRisco.slice(0, 5);
-    const fatPerdido = top5Risco.reduce((s, c) => s + c.fatHist, 0);
-    planos.push({
-      titulo: 'Reativar clientes inativos',
-      prioridade: clientesRisco.length >= 5 ? 'Alta' : 'Média',
-      diagnostico: `${clientesRisco.length} cliente(s) que já compraram nos 24 meses anteriores ao fim do período estão sem pedidos há mais de 90 dias. Os 5 com maior histórico somam ${moeda(fatPerdido)}: ${top5Risco.map(c => c.nome).join(', ')}.`,
-      acoes: [
-        'Acionar o time comercial para contato direto com os clientes listados, priorizando os de maior histórico.',
-        'Entender o motivo da pausa (preço, concorrência, redução de operação) e oferecer condições de retomada.',
-        'Monitorar mensalmente a lista de clientes inativos para evitar perdas silenciosas.',
-      ],
-    });
-  }
-
-  if (oportunidadesReprecificacao.length) {
-    const top3 = oportunidadesReprecificacao.slice(0, 3);
-    planos.push({
-      titulo: 'Alinhar preços entre clientes do mesmo material',
-      prioridade: ganhoReprecificacaoPeriodo >= gapMeta && gapMeta > 0 ? 'Alta' : 'Média',
-      diagnostico: `${oportunidadesReprecificacao.length} combinação(ões) cliente × material estão pagando abaixo do melhor preço já praticado para o mesmo material no período, somando ${moeda(ganhoReprecificacaoPeriodo)} de ganho potencial. Maiores oportunidades: ${top3.map(o => `${o.cliente} em ${o.material} (${moeda(o.ticket)}/ton vs. ${moeda(o.benchmark)}/ton praticado)`).join(', ')}.`,
-      acoes: [
-        'Ver a tabela "Oportunidades de Reajuste de Preço" abaixo para a lista completa, ordenada pelo maior ganho.',
-        'Priorizar a renegociação nos próximos contratos com os clientes no topo da lista.',
-      ],
-    });
-  }
-
-  if (mesFraco && mesesArr.length > 1) {
-    planos.push({
-      titulo: 'Atenuar a sazonalidade do faturamento',
-      prioridade: 'Baixa',
-      diagnostico: `${labelMes(mesFraco[0])} foi o mês de menor faturamento dentro do período selecionado (${moeda(mesFraco[1])}).`,
-      acoes: [
-        'Planejar ações comerciais (promoções, contratos antecipados) para reforçar esse período no próximo ciclo.',
-        'Avaliar diversificação de materiais/clientes que sofrem menos com a sazonalidade.',
-      ],
-    });
-  }
-
-  const cont = document.getElementById('pa-planos');
-  if (!planos.length) {
-    cont.innerHTML = '<div class="card" style="padding:20px;text-align:center;color:var(--text-muted)">Sem dados suficientes no período selecionado para gerar planos de ação.</div>';
+  // ── Resumo
+  const resumo = document.getElementById('pa-resumo');
+  if (metaPeriodo > 0 && gapMeta > 0) {
+    const cobertura = Math.min(100, (ganhoTotalAcoes / gapMeta) * 100);
+    resumo.innerHTML = `<p style="margin:0;font-size:13px">Faltam <strong>${moeda(gapMeta)}</strong> para bater a meta do período. As ações prioritárias abaixo somam <strong>${moeda(ganhoTotalAcoes)}</strong> de ganho potencial, cobrindo aproximadamente <strong>${cobertura.toFixed(0)}%</strong> desse gap.</p>`;
+  } else if (metaPeriodo > 0) {
+    resumo.innerHTML = `<p style="margin:0;font-size:13px;color:#16a34a"><strong>Meta do período já atingida</strong> (${atingidoPct.toFixed(1)}%). As ações abaixo ajudam a consolidar e ampliar esse resultado.</p>`;
   } else {
-    const corPrio = { Alta: '#dc2626', 'Média': '#d97706', Baixa: '#2563eb' };
-    const bgPrio  = { Alta: '#fee2e2', 'Média': '#fef3c7', Baixa: '#dbeafe' };
-    cont.innerHTML = planos.map(p => `
-      <div class="card" style="padding:16px;border-left:4px solid ${corPrio[p.prioridade]}">
-        <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:10px;margin-bottom:8px;flex-wrap:wrap">
-          <h4 style="margin:0">${p.titulo}</h4>
-          <span style="font-size:11px;font-weight:700;padding:3px 10px;border-radius:10px;color:${corPrio[p.prioridade]};background:${bgPrio[p.prioridade]};white-space:nowrap">Prioridade ${p.prioridade}</span>
-        </div>
-        <p style="font-size:13px;color:var(--text-muted);margin:0 0 10px"><strong>Diagnóstico:</strong> ${p.diagnostico}</p>
-        <ul style="margin:0;padding-left:18px;font-size:13px;display:flex;flex-direction:column;gap:4px">
-          ${p.acoes.map(a => `<li>${a}</li>`).join('')}
-        </ul>
-      </div>
-    `).join('');
+    resumo.innerHTML = `<p style="margin:0;font-size:13px">Nenhuma meta cadastrada para este período — informe a previsão de faturamento acima para calcular o gap. As ações abaixo já somam <strong>${moeda(ganhoTotalAcoes)}</strong> de ganho potencial identificado.</p>`;
   }
 
-  renderTabelaReprecificacao(oportunidadesReprecificacao);
-  renderTabelaAcoesCliente(acoesPorCliente);
-
-  // ── Simulações de melhoria no faturamento
-  paCalc = { fatTotalPeriodo, mesesPeriodo, mediaMensalRisco, ganhoReprecificacaoMensal, fatForaTop5, metaPeriodo, atingidoPct, gapMeta };
-  renderSimulacoes();
-  renderSimuladorMeta();
+  renderTabelaAcoes(acoesLimitadas, gapMeta > 0 ? gapMeta : ganhoTotalAcoes);
 }
 
-function renderTabelaReprecificacao(oportunidades) {
-  const tb = document.getElementById('tb-pa-reprecificacao');
-  const totalGanho = oportunidades.reduce((s, o) => s + o.gap, 0);
-  document.getElementById('pa-repre-total').textContent = oportunidades.length
-    ? `${oportunidades.length} oportunidade(s) · ${moeda(totalGanho)} de potencial`
+function renderTabelaAcoes(acoes, base) {
+  const tb = document.getElementById('tb-pa-acoes');
+  const total = acoes.reduce((s, a) => s + a.ganho, 0);
+  document.getElementById('pa-acoes-total').textContent = acoes.length
+    ? `${acoes.length} ação(ões) · ${moeda(total)} de potencial`
     : '';
-  if (!oportunidades.length) {
-    tb.innerHTML = '<tr><td colspan="7" class="table-empty">Nenhuma oportunidade identificada — é necessário ao menos 2 clientes comprando o mesmo material no período para comparar preços.</td></tr>';
-    return;
-  }
-  tb.innerHTML = oportunidades.slice(0, 20).map(o => `
-    <tr>
-      <td><strong>${o.cliente}</strong></td>
-      <td>${o.material}</td>
-      <td class="text-right">${ton(o.vol)}</td>
-      <td class="text-right">${moeda(o.ticket)}</td>
-      <td class="text-right">${moeda(o.benchmark)}</td>
-      <td class="text-right" style="color:#16a34a;font-weight:600">${moeda(o.gap)}</td>
-      <td>Elevar preço até ${moeda(o.benchmark)}/ton</td>
-    </tr>
-  `).join('');
-}
-
-function renderTabelaAcoesCliente(acoes) {
-  const tb = document.getElementById('tb-pa-clientes');
-  document.getElementById('pa-cli-total').textContent = `${acoes.length} cliente(s)`;
   if (!acoes.length) {
-    tb.innerHTML = '<tr><td colspan="6" class="table-empty">Nenhum dado encontrado</td></tr>';
+    tb.innerHTML = '<tr><td colspan="5" class="table-empty">Nenhuma ação com ganho relevante identificada no período selecionado.</td></tr>';
     return;
   }
-  tb.innerHTML = acoes.slice(0, 20).map((a, i) => {
-    const medalha = i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : (i + 1);
-    const statusColor = a.emRisco ? '#dc2626' : '#16a34a';
-    const statusBg    = a.emRisco ? '#fee2e2' : '#dcfce7';
-    const statusLabel = a.emRisco ? 'Em risco' : 'Ativo';
+  let acumulado = 0;
+  tb.innerHTML = acoes.map((a, i) => {
+    acumulado += a.ganho;
+    const coberturaAcum = base > 0 ? Math.min(100, (acumulado / base) * 100) : 0;
     return `<tr>
-      <td class="rank-medal">${medalha}</td>
-      <td><strong>${a.nome}</strong></td>
-      <td class="text-right">${moeda(a.fat)}</td>
-      <td><span style="font-size:11px;font-weight:700;padding:2px 8px;border-radius:10px;color:${statusColor};background:${statusBg}">${statusLabel}</span></td>
-      <td>${a.acao}</td>
-      <td class="text-right">${a.ganho > 0 ? moeda(a.ganho) : '—'}</td>
+      <td class="rank-medal">${i + 1}</td>
+      <td><strong>${a.tipo}</strong></td>
+      <td>${a.detalhe}</td>
+      <td class="text-right" style="color:#16a34a;font-weight:600">${moeda(a.ganho)}</td>
+      <td class="text-right">${coberturaAcum.toFixed(0)}%</td>
     </tr>`;
   }).join('');
 }
 
-function renderSimulacoes() {
-  const { fatTotalPeriodo, mediaMensalRisco, ganhoReprecificacaoMensal, fatForaTop5, metaPeriodo, atingidoPct, gapMeta } = paCalc;
-  const simCont = document.getElementById('pa-simulacoes');
-  const blocos = [];
-
-  if (metaPeriodo > 0) {
-    const potencialTotal = mediaMensalRisco * paCalc.mesesPeriodo + ganhoReprecificacaoMensal * paCalc.mesesPeriodo;
-    const coberturaGap = gapMeta > 0 ? Math.min(100, (potencialTotal / gapMeta) * 100) : 100;
-    blocos.push(`
-      <div class="card" style="padding:16px;border-left:4px solid ${atingidoPct >= 100 ? '#16a34a' : '#dc2626'}">
-        <h4 style="margin:0 0 8px">Baseado na sua previsão de faturamento</h4>
-        <p style="font-size:12px;color:var(--text-muted);margin:0 0 10px">
-          Meta cadastrada: <strong>${moeda(metaPeriodo)}</strong> · Realizado: <strong>${moeda(fatTotalPeriodo)}</strong> (${atingidoPct.toFixed(1)}%).
-          ${gapMeta > 0
-            ? ` Faltam <strong>${moeda(gapMeta)}</strong> para bater a meta do período — as oportunidades de reativação e reajuste de preço identificadas acima cobririam cerca de ${coberturaGap.toFixed(0)}% desse gap.`
-            : ' Meta do período já foi atingida.'}
-        </p>
-      </div>`);
-  }
-
-  if (mediaMensalRisco > 0) {
-    const cenarios = [0.25, 0.5, 1].map(pct => ({
-      pct, mensal: mediaMensalRisco * pct, anual: mediaMensalRisco * pct * 12,
-    }));
-    blocos.push(`
-      <div class="card" style="padding:16px">
-        <h4 style="margin:0 0 8px">Reativação de clientes em risco</h4>
-        <p style="font-size:12px;color:var(--text-muted);margin:0 0 10px">Média mensal histórica de compra dos clientes em risco: <strong>${moeda(mediaMensalRisco)}</strong>. Se parte dela for recuperada:</p>
-        <div class="table-scroll">
-          <table style="font-size:12px">
-            <thead><tr><th>Cenário</th><th class="text-right">Ganho/mês</th><th class="text-right">Ganho/ano</th></tr></thead>
-            <tbody>
-              ${cenarios.map(c => `<tr><td>Recuperar ${(c.pct*100).toFixed(0)}%</td><td class="text-right">${moeda(c.mensal)}</td><td class="text-right">${moeda(c.anual)}</td></tr>`).join('')}
-            </tbody>
-          </table>
-        </div>
-      </div>`);
-  }
-
-  if (ganhoReprecificacaoMensal > 0) {
-    blocos.push(`
-      <div class="card" style="padding:16px">
-        <h4 style="margin:0 0 8px">Reajuste de preço nos materiais abaixo da média</h4>
-        <p style="font-size:12px;color:var(--text-muted);margin:0 0 10px">Elevando o ticket desses materiais até a média geral do período, mantendo o mesmo volume:</p>
-        <div class="table-scroll">
-          <table style="font-size:12px">
-            <thead><tr><th>Cenário</th><th class="text-right">Ganho/mês</th><th class="text-right">Ganho/ano</th></tr></thead>
-            <tbody>
-              <tr><td>Reajuste até a média geral</td><td class="text-right">${moeda(ganhoReprecificacaoMensal)}</td><td class="text-right">${moeda(ganhoReprecificacaoMensal*12)}</td></tr>
-            </tbody>
-          </table>
-        </div>
-      </div>`);
-  }
-
-  if (fatForaTop5 > 0) {
-    const cenarios = [0.1, 0.2, 0.3].map(pct => ({ pct, ganho: fatForaTop5 * pct }));
-    blocos.push(`
-      <div class="card" style="padding:16px">
-        <h4 style="margin:0 0 8px">Crescimento da carteira fora do Top 5</h4>
-        <p style="font-size:12px;color:var(--text-muted);margin:0 0 10px">Faturamento fora do Top 5 no período: <strong>${moeda(fatForaTop5)}</strong>. Simulando crescimento desses clientes:</p>
-        <div class="table-scroll">
-          <table style="font-size:12px">
-            <thead><tr><th>Cenário</th><th class="text-right">Ganho no período</th></tr></thead>
-            <tbody>
-              ${cenarios.map(c => `<tr><td>Crescer ${(c.pct*100).toFixed(0)}%</td><td class="text-right">${moeda(c.ganho)}</td></tr>`).join('')}
-            </tbody>
-          </table>
-        </div>
-      </div>`);
-  }
-
-  simCont.innerHTML = blocos.length
-    ? blocos.join('')
-    : '<div class="card" style="padding:20px;text-align:center;color:var(--text-muted)">Nenhuma oportunidade quantificável identificada no período selecionado.</div>';
-}
-
-function renderSimuladorMeta() {
-  const { fatTotalPeriodo, mediaMensalRisco, ganhoReprecificacaoMensal, mesesPeriodo, metaPeriodo } = paCalc;
-  const pct = parseFloat(document.getElementById('pa-sim-pct').value) || 0;
-  const el = document.getElementById('pa-sim-resultado');
-
-  if (!fatTotalPeriodo || pct <= 0) {
-    el.innerHTML = '<span style="color:var(--text-muted)">Informe uma meta válida para simular.</span>';
-    return;
-  }
-
-  const ganhoNecessario = fatTotalPeriodo * (pct / 100);
-  const metaTotal = fatTotalPeriodo + ganhoNecessario;
-  const potencialIdentificadoPeriodo = (mediaMensalRisco + ganhoReprecificacaoMensal) * mesesPeriodo;
-  const coberturaPct = ganhoNecessario > 0 ? Math.min(100, (potencialIdentificadoPeriodo / ganhoNecessario) * 100) : 0;
-  const notaMeta = metaPeriodo > 0
-    ? `<p style="margin:8px 0 0;color:var(--text-muted);font-size:12px">Para referência, a previsão de faturamento cadastrada para este período é ${moeda(metaPeriodo)} (equivalente a ${(((metaPeriodo/fatTotalPeriodo)-1)*100).toFixed(1)}% de crescimento sobre o realizado).</p>`
-    : '';
-
-  el.innerHTML = `
-    <div style="display:flex;flex-wrap:wrap;gap:20px;margin-bottom:10px">
-      <div><div style="font-size:11px;color:var(--text-muted);text-transform:uppercase">Faturamento atual</div><div style="font-size:16px;font-weight:700">${moeda(fatTotalPeriodo)}</div></div>
-      <div><div style="font-size:11px;color:var(--text-muted);text-transform:uppercase">Meta (+${pct.toFixed(0)}%)</div><div style="font-size:16px;font-weight:700;color:#006636">${moeda(metaTotal)}</div></div>
-      <div><div style="font-size:11px;color:var(--text-muted);text-transform:uppercase">Ganho necessário</div><div style="font-size:16px;font-weight:700">${moeda(ganhoNecessario)}</div></div>
-    </div>
-    <p style="margin:0">As oportunidades já identificadas (reativação de clientes + reajuste de preço) cobririam aproximadamente <strong>${coberturaPct.toFixed(0)}%</strong> dessa meta no período, somando ${moeda(potencialIdentificadoPeriodo)}. O restante precisa vir de novos clientes, aumento de volume ou de vendas dos clientes fora do Top 5.</p>
-    ${notaMeta}
-  `;
-}
-
 document.getElementById('btn-pa-atualizar').addEventListener('click', carregarPlanosAcao);
-document.getElementById('pa-sim-pct').addEventListener('input', () => { if (paCalc) renderSimuladorMeta(); });
 
 await init();
 </script>
