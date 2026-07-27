@@ -92,7 +92,19 @@
         <div class="kpi-card"><div class="kpi-label">Em Experiência</div><div class="kpi-value" id="kpi-exp">—</div><div class="kpi-sub">1º ou 2º período</div></div>
         <div class="kpi-card"><div class="kpi-label">Nota Média Geral</div><div class="kpi-value" id="kpi-nota-media">—</div><div class="kpi-sub">ativos + experiência</div></div>
         <div class="kpi-card"><div class="kpi-label">Faltas (mês)</div><div class="kpi-value" id="kpi-faltas">—</div><div class="kpi-sub">marcadas como falta</div></div>
-        <div class="kpi-card kpi-turnover"><div class="kpi-label">Turnover</div><div class="kpi-value" id="kpi-turnover">—</div><div class="kpi-sub" id="kpi-turnover-sub">no ano</div></div>
+        <div class="kpi-card kpi-turnover" style="padding:14px 16px">
+          <div class="kpi-label">Turnover</div>
+          <div style="display:flex;gap:20px;margin-top:4px">
+            <div>
+              <div class="kpi-value" id="kpi-turnover" style="font-size:26px">—</div>
+              <div class="kpi-sub" id="kpi-turnover-sub">anual</div>
+            </div>
+            <div style="border-left:1px solid rgba(255,255,255,.3);padding-left:20px">
+              <div class="kpi-value" id="kpi-turnover-mensal" style="font-size:26px">—</div>
+              <div class="kpi-sub" id="kpi-turnover-mensal-sub">mensal</div>
+            </div>
+          </div>
+        </div>
       </div>
 
       <!-- Filtros -->
@@ -407,6 +419,10 @@ function renderKPIs() {
   const hc     = ativos.length + demAno;
   const tv     = hc ? ((demAno / hc) * 100).toFixed(1) : '0';
 
+  const demMes = colabData.filter(c => c.demissao && c.demissao >= iniMes && c.demissao <= fimMes).length;
+  const hcMes  = ativos.length + demMes;
+  const tvMes  = hcMes ? ((demMes / hcMes) * 100).toFixed(1) : '0';
+
   const emFerias = ativos.filter(c => c.em_ferias);
   const ativosTrabalho = ativos.filter(c => !c.em_ferias);
   document.getElementById('kpi-total').textContent   = ativos.length;
@@ -416,6 +432,8 @@ function renderKPIs() {
   document.getElementById('kpi-faltas').textContent    = ocMes.filter(r => r.conta_como_falta).length;
   document.getElementById('kpi-turnover').textContent  = tv + '%';
   document.getElementById('kpi-turnover-sub').textContent = `${demAno} demissão(ões) em ${anoAtualVal}`;
+  document.getElementById('kpi-turnover-mensal').textContent = tvMes + '%';
+  document.getElementById('kpi-turnover-mensal-sub').textContent = `${demMes} demissão(ões) em ${String(mesAtualVal).padStart(2,'0')}/${anoAtualVal}`;
 
   // Nota média geral: ativos + em experiência com pelo menos uma avaliação
   const idsAtivos = new Set(ativos.map(c => c.id));
