@@ -388,11 +388,11 @@
           </div>
         </div>
 
-        <div class="kpi-grid mb-16" style="grid-template-columns:repeat(auto-fill,minmax(170px,1fr))">
-          <div class="kpi-card"><div class="kpi-label">Faturamento (Período)</div><div class="kpi-value" id="pa-kpi-fat">—</div></div>
-          <div class="kpi-card"><div class="kpi-label">Meta do Período</div><div class="kpi-value" id="pa-kpi-meta">—</div><div class="kpi-sub" id="pa-kpi-atingido">% atingido</div></div>
-          <div class="kpi-card"><div class="kpi-label">Gap para a Meta</div><div class="kpi-value" id="pa-kpi-gap">—</div></div>
-          <div class="kpi-card"><div class="kpi-label">Ticket Médio Geral</div><div class="kpi-value" id="pa-kpi-ticket">—</div><div class="kpi-sub">R$/ton</div></div>
+        <div class="kpi-grid mb-16" style="grid-template-columns:repeat(auto-fill,minmax(200px,1fr))">
+          <div class="kpi-card"><div class="kpi-label">Faturamento (Período)</div><div class="kpi-value" id="pa-kpi-fat" style="font-size:21px">—</div></div>
+          <div class="kpi-card"><div class="kpi-label">Meta do Período</div><div class="kpi-value" id="pa-kpi-meta" style="font-size:21px">—</div><div class="kpi-sub" id="pa-kpi-atingido">% atingido</div></div>
+          <div class="kpi-card"><div class="kpi-label">Gap para a Meta</div><div class="kpi-value" id="pa-kpi-gap" style="font-size:21px">—</div></div>
+          <div class="kpi-card"><div class="kpi-label">Ticket Médio Geral</div><div class="kpi-value" id="pa-kpi-ticket" style="font-size:21px">—</div><div class="kpi-sub">R$/ton</div></div>
         </div>
 
         <div class="card mb-16" style="padding:16px" id="pa-resumo"></div>
@@ -424,6 +424,12 @@
           <h3 style="margin:0">Simulações — O Que Pode Acontecer</h3>
         </div>
         <p class="text-muted" style="font-size:12px;margin:0 0 8px">Cenários de quanto o faturamento cresce em cada frente e o efeito combinado sobre a meta do período.</p>
+        <div class="filters-row" style="align-items:flex-end;gap:10px;margin-bottom:10px">
+          <div class="form-group" style="max-width:160px">
+            <label>Crescimento de volume a simular (%)</label>
+            <input type="number" id="pa-sim-vol-pct" value="10" min="0" max="200" step="1" />
+          </div>
+        </div>
         <div id="pa-simulacoes" style="display:flex;flex-direction:column;gap:12px;margin-bottom:16px"></div>
 
       </div>
@@ -1535,6 +1541,7 @@ let paData = [];
 let paPeriodo = { ini: null, fim: null };
 let paMetas = {}; // periodo ('YYYY-MM') -> { id, valor_meta }
 let paMesesPeriodo = [];
+let paSimBase = null; // últimos números do diagnóstico, usados pelo campo de % de crescimento de volume
 const MES_ABREV_PA = ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
 
 function mesesEntre(ini, fim) {
@@ -1713,7 +1720,6 @@ function renderPlanosAcao() {
   const ganhoTotalAcoes = acoesLimitadas.reduce((s, a) => s + a.ganho, 0);
   const ganhoTicketTotal  = oportunidadesReprecificacao.reduce((s, o) => s + o.gap, 0);
   const ganhoEstoqueTotal = oportunidadesEstoque.reduce((s, o) => s + o.ganho, 0);
-  const ganhoVolumeGeral  = fatTotalPeriodo * 0.10; // hipótese de crescimento geral de volume, além do estoque parado
 
   // ── KPIs
   document.getElementById('pa-kpi-fat').textContent = moeda(fatTotalPeriodo);
@@ -1736,7 +1742,9 @@ function renderPlanosAcao() {
   }
 
   renderTabelaAcoes(acoesLimitadas, gapMeta > 0 ? gapMeta : ganhoTotalAcoes, fatTotalPeriodo);
-  renderSimulacoes({ fatTotalPeriodo, metaPeriodo, atingidoPct, ganhoTicketTotal, ganhoEstoqueTotal, ganhoVolumeGeral });
+
+  paSimBase = { fatTotalPeriodo, metaPeriodo, atingidoPct, ganhoTicketTotal, ganhoEstoqueTotal };
+  renderSimulacoes();
 }
 
 function renderTabelaAcoes(acoes, base, fatTotalPeriodo) {
@@ -1765,8 +1773,11 @@ function renderTabelaAcoes(acoes, base, fatTotalPeriodo) {
   }).join('');
 }
 
-function renderSimulacoes(d) {
-  const { fatTotalPeriodo, metaPeriodo, atingidoPct, ganhoTicketTotal, ganhoEstoqueTotal, ganhoVolumeGeral } = d;
+function renderSimulacoes() {
+  if (!paSimBase) return;
+  const { fatTotalPeriodo, metaPeriodo, atingidoPct, ganhoTicketTotal, ganhoEstoqueTotal } = paSimBase;
+  const volPct = parseFloat(document.getElementById('pa-sim-vol-pct').value) || 0;
+  const ganhoVolumeGeral = fatTotalPeriodo * (volPct / 100);
   const cont = document.getElementById('pa-simulacoes');
   const pct = v => fatTotalPeriodo > 0 ? (v / fatTotalPeriodo * 100) : 0;
 
@@ -1787,7 +1798,7 @@ function renderSimulacoes(d) {
   blocos += linha('Aplicar todos os reajustes de preço identificados (ticket médio)', ganhoTicketTotal);
   blocos += linha('Vender todo o estoque parado identificado (volume)', ganhoEstoqueTotal);
   blocos += linha('Combinado: preço + estoque (ações já identificadas nesta tabela)', ganhoCombinado, true);
-  blocos += linha('E se, além disso, o volume geral vendido crescer 10% (hipótese)', ganhoVolumeGeral);
+  blocos += linha(`E se, além disso, o volume geral vendido crescer ${volPct.toFixed(0)}% (simulação)`, ganhoVolumeGeral);
 
   let statusMeta = '';
   if (metaPeriodo > 0) {
@@ -1798,7 +1809,7 @@ function renderSimulacoes(d) {
         <p style="margin:0;font-size:13px">
           Hoje: <strong>${atingidoPct.toFixed(1)}%</strong> da meta.
           Aplicando reajuste de preço + venda de estoque: <strong>${atingidoComAcoes.toFixed(1)}%</strong> da meta (${moeda(fatComAcoesReais)}).
-          ${ganhoVolumeGeral > 0 ? ` Somando ainda +10% de volume geral: <strong>${atingidoComTudo.toFixed(1)}%</strong> da meta (${moeda(fatComTudo)}).` : ''}
+          ${ganhoVolumeGeral > 0 ? ` Somando ainda +${volPct.toFixed(0)}% de volume geral: <strong>${atingidoComTudo.toFixed(1)}%</strong> da meta (${moeda(fatComTudo)}).` : ''}
         </p>
       </div>`;
   }
@@ -1807,6 +1818,7 @@ function renderSimulacoes(d) {
 }
 
 document.getElementById('btn-pa-atualizar').addEventListener('click', carregarPlanosAcao);
+document.getElementById('pa-sim-vol-pct').addEventListener('input', renderSimulacoes);
 
 await init();
 </script>
