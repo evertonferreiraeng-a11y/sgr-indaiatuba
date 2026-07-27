@@ -421,15 +421,43 @@
         </div>
 
         <div class="table-card-header" style="margin-top:24px;margin-bottom:8px;padding:0">
+          <h3 style="margin:0">Simulador de Aumento de Volume por Material</h3>
+        </div>
+        <p class="text-muted" style="font-size:12px;margin:0 0 8px">Adicione um ou mais materiais e informe o quanto pretende aumentar o volume vendido de cada um. O ganho é calculado sobre o volume e o ticket médio já praticados no período selecionado.</p>
+        <div id="pa-vol-linhas" style="display:flex;flex-direction:column;gap:8px;margin-bottom:10px"></div>
+        <button type="button" class="btn btn-outline" id="btn-pa-vol-add" style="margin-bottom:16px">+ Adicionar Material</button>
+
+        <div class="table-card mb-16">
+          <div class="table-scroll">
+            <table style="font-size:12px">
+              <thead>
+                <tr>
+                  <th>Material</th>
+                  <th class="text-right">Volume Médio Mensal</th>
+                  <th class="text-right">Volume no Período</th>
+                  <th class="text-right">% Aumento</th>
+                  <th class="text-right">Volume Adicional</th>
+                  <th class="text-right">Ganho (R$)</th>
+                </tr>
+              </thead>
+              <tbody id="tb-pa-vol-resultado">
+                <tr><td colspan="6" class="table-empty">Clique em "+ Adicionar Material" para simular.</td></tr>
+              </tbody>
+              <tfoot>
+                <tr style="font-weight:700;background:#f8fafc">
+                  <td colspan="4">Total</td>
+                  <td class="text-right" id="pa-vol-total-vol">—</td>
+                  <td class="text-right" id="pa-vol-total-ganho">—</td>
+                </tr>
+              </tfoot>
+            </table>
+          </div>
+        </div>
+
+        <div class="table-card-header" style="margin-top:24px;margin-bottom:8px;padding:0">
           <h3 style="margin:0">Simulações — O Que Pode Acontecer</h3>
         </div>
         <p class="text-muted" style="font-size:12px;margin:0 0 8px">Cenários de quanto o faturamento cresce em cada frente e o efeito combinado sobre a meta do período.</p>
-        <div class="filters-row" style="align-items:flex-end;gap:10px;margin-bottom:10px">
-          <div class="form-group" style="max-width:160px">
-            <label>Crescimento de volume a simular (%)</label>
-            <input type="number" id="pa-sim-vol-pct" value="10" min="0" max="200" step="1" />
-          </div>
-        </div>
         <div id="pa-simulacoes" style="display:flex;flex-direction:column;gap:12px;margin-bottom:16px"></div>
 
       </div>
@@ -1542,6 +1570,9 @@ let paPeriodo = { ini: null, fim: null };
 let paMetas = {}; // periodo ('YYYY-MM') -> { id, valor_meta }
 let paMesesPeriodo = [];
 let paSimBase = null; // últimos números do diagnóstico, usados pelo campo de % de crescimento de volume
+let paMaterialStats = {}; // nome do material -> { volTon, fat, ticket, volMedioMensal } no período
+let paVolLinhas = [{ id: 1, material: '', pct: 10 }]; // linhas do simulador de aumento de volume por material
+let paVolNextId = 2;
 const MES_ABREV_PA = ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
 
 function mesesEntre(ini, fim) {
@@ -1637,6 +1668,9 @@ document.getElementById('btn-pa-meta-salvar').addEventListener('click', async ()
 
 function renderPlanosAcao() {
   const { ini, fim } = paPeriodo;
+  const fimDate = new Date(fim + 'T00:00:00');
+  const diasPeriodo = Math.max(1, Math.round((fimDate - new Date(ini + 'T00:00:00')) / 86400000) + 1);
+  const mesesPeriodo = Math.max(diasPeriodo / 30.44, 1 / 30.44);
 
   const dadosPeriodo = paData.filter(r => r.data >= ini && r.data <= fim);
 
@@ -1699,6 +1733,19 @@ function renderPlanosAcao() {
     .filter(Boolean)
     .filter(o => o.ganho >= GANHO_MIN_OPORTUNIDADE);
 
+  // Estatísticas por material no período — base do simulador de aumento de volume
+  paMaterialStats = {};
+  Object.entries(porMaterialPeriodo).forEach(([nome, v]) => {
+    const volTon = v.vol / 1000;
+    if (volTon <= 0) return;
+    paMaterialStats[nome] = {
+      volTon,
+      fat: v.fat,
+      ticket: v.fat / volTon,
+      volMedioMensal: volTon / mesesPeriodo,
+    };
+  });
+
   // ── Lista única de ações reais e quantificáveis (sem sugestões genéricas)
   const acoes = [];
   oportunidadesReprecificacao.forEach(o => {
@@ -1743,6 +1790,12 @@ function renderPlanosAcao() {
 
   renderTabelaAcoes(acoesLimitadas, gapMeta > 0 ? gapMeta : ganhoTotalAcoes, fatTotalPeriodo);
 
+  // Remove do simulador de volume linhas de materiais que não têm mais referência no período
+  paVolLinhas = paVolLinhas.filter(l => !l.material || paMaterialStats[l.material]);
+  if (!paVolLinhas.length) paVolLinhas.push({ id: paVolNextId++, material: '', pct: 10 });
+  renderVolBuilder();
+  renderVolResultado();
+
   paSimBase = { fatTotalPeriodo, metaPeriodo, atingidoPct, ganhoTicketTotal, ganhoEstoqueTotal };
   renderSimulacoes();
 }
@@ -1773,11 +1826,108 @@ function renderTabelaAcoes(acoes, base, fatTotalPeriodo) {
   }).join('');
 }
 
+// ── Simulador de aumento de volume por material ───────────────────────────────
+function calcVolLinha(linha) {
+  const info = paMaterialStats[linha.material];
+  if (!info || !linha.pct) return null;
+  const volAdicional = info.volTon * (linha.pct / 100);
+  const ganho = volAdicional * info.ticket;
+  return { ...linha, info, volAdicional, ganho };
+}
+
+function calcVolumeSimuladoTotal() {
+  return paVolLinhas.reduce((s, l) => {
+    const c = calcVolLinha(l);
+    return s + (c ? c.ganho : 0);
+  }, 0);
+}
+
+function renderVolBuilder() {
+  const cont = document.getElementById('pa-vol-linhas');
+  const materiaisOpts = Object.keys(paMaterialStats).sort();
+  cont.innerHTML = paVolLinhas.map(l => `
+    <div class="pa-vol-row" data-id="${l.id}" style="display:flex;gap:10px;align-items:flex-end">
+      <div class="form-group" style="flex:1;min-width:180px">
+        <label>Material</label>
+        <select class="pa-vol-material" data-id="${l.id}">
+          <option value="">Selecione…</option>
+          ${materiaisOpts.map(m => `<option value="${m}"${m === l.material ? ' selected' : ''}>${m}</option>`).join('')}
+        </select>
+      </div>
+      <div class="form-group" style="max-width:140px">
+        <label>% Aumento</label>
+        <input type="number" class="pa-vol-pct" data-id="${l.id}" value="${l.pct}" min="0" max="500" step="1" />
+      </div>
+      <button type="button" class="btn-icon danger pa-vol-remove" data-id="${l.id}" title="Remover">${icon('trash', { size: 15 })}</button>
+    </div>
+  `).join('');
+}
+
+function renderVolResultado() {
+  const tb = document.getElementById('tb-pa-vol-resultado');
+  const linhasCalc = paVolLinhas.map(calcVolLinha).filter(Boolean);
+
+  if (!linhasCalc.length) {
+    tb.innerHTML = '<tr><td colspan="6" class="table-empty">Selecione um material e informe a % de aumento para simular.</td></tr>';
+    document.getElementById('pa-vol-total-vol').textContent = '—';
+    document.getElementById('pa-vol-total-ganho').textContent = '—';
+    return;
+  }
+
+  tb.innerHTML = linhasCalc.map(c => `
+    <tr>
+      <td><strong>${c.material}</strong></td>
+      <td class="text-right">${ton(c.info.volMedioMensal * 1000)}/mês</td>
+      <td class="text-right">${ton(c.info.volTon * 1000)}</td>
+      <td class="text-right">+${c.pct}%</td>
+      <td class="text-right">+${ton(c.volAdicional * 1000)}</td>
+      <td class="text-right" style="color:#16a34a;font-weight:600">+${moeda(c.ganho)}</td>
+    </tr>
+  `).join('');
+
+  const totalVol   = linhasCalc.reduce((s, c) => s + c.volAdicional, 0);
+  const totalGanho = linhasCalc.reduce((s, c) => s + c.ganho, 0);
+  document.getElementById('pa-vol-total-vol').textContent   = `+${ton(totalVol * 1000)}`;
+  document.getElementById('pa-vol-total-ganho').textContent = `+${moeda(totalGanho)}`;
+}
+
+document.getElementById('btn-pa-vol-add').addEventListener('click', () => {
+  paVolLinhas.push({ id: paVolNextId++, material: '', pct: 10 });
+  renderVolBuilder();
+  renderVolResultado();
+  renderSimulacoes();
+});
+
+document.getElementById('pa-vol-linhas').addEventListener('change', e => {
+  const id = parseInt(e.target.dataset.id, 10); if (!id) return;
+  const linha = paVolLinhas.find(l => l.id === id); if (!linha) return;
+  if (e.target.classList.contains('pa-vol-material')) linha.material = e.target.value;
+  if (e.target.classList.contains('pa-vol-pct')) linha.pct = parseFloat(e.target.value) || 0;
+  renderVolResultado();
+  renderSimulacoes();
+});
+document.getElementById('pa-vol-linhas').addEventListener('input', e => {
+  if (!e.target.classList.contains('pa-vol-pct')) return;
+  const id = parseInt(e.target.dataset.id, 10); if (!id) return;
+  const linha = paVolLinhas.find(l => l.id === id); if (!linha) return;
+  linha.pct = parseFloat(e.target.value) || 0;
+  renderVolResultado();
+  renderSimulacoes();
+});
+document.getElementById('pa-vol-linhas').addEventListener('click', e => {
+  const btn = e.target.closest('.pa-vol-remove'); if (!btn) return;
+  const id = parseInt(btn.dataset.id, 10);
+  paVolLinhas = paVolLinhas.filter(l => l.id !== id);
+  if (!paVolLinhas.length) paVolLinhas.push({ id: paVolNextId++, material: '', pct: 10 });
+  renderVolBuilder();
+  renderVolResultado();
+  renderSimulacoes();
+});
+
 function renderSimulacoes() {
   if (!paSimBase) return;
   const { fatTotalPeriodo, metaPeriodo, atingidoPct, ganhoTicketTotal, ganhoEstoqueTotal } = paSimBase;
-  const volPct = parseFloat(document.getElementById('pa-sim-vol-pct').value) || 0;
-  const ganhoVolumeGeral = fatTotalPeriodo * (volPct / 100);
+  const ganhoVolumeSimulado = calcVolumeSimuladoTotal();
   const cont = document.getElementById('pa-simulacoes');
   const pct = v => fatTotalPeriodo > 0 ? (v / fatTotalPeriodo * 100) : 0;
 
@@ -1792,13 +1942,13 @@ function renderSimulacoes() {
 
   const ganhoCombinado    = ganhoTicketTotal + ganhoEstoqueTotal;
   const fatComAcoesReais  = fatTotalPeriodo + ganhoCombinado;
-  const fatComTudo        = fatComAcoesReais + ganhoVolumeGeral;
+  const fatComTudo        = fatComAcoesReais + ganhoVolumeSimulado;
 
   let blocos = '';
   blocos += linha('Aplicar todos os reajustes de preço identificados (ticket médio)', ganhoTicketTotal);
   blocos += linha('Vender todo o estoque parado identificado (volume)', ganhoEstoqueTotal);
   blocos += linha('Combinado: preço + estoque (ações já identificadas nesta tabela)', ganhoCombinado, true);
-  blocos += linha(`E se, além disso, o volume geral vendido crescer ${volPct.toFixed(0)}% (simulação)`, ganhoVolumeGeral);
+  blocos += linha('+ aumento de volume simulado por material (tabela acima)', ganhoVolumeSimulado);
 
   let statusMeta = '';
   if (metaPeriodo > 0) {
@@ -1809,7 +1959,7 @@ function renderSimulacoes() {
         <p style="margin:0;font-size:13px">
           Hoje: <strong>${atingidoPct.toFixed(1)}%</strong> da meta.
           Aplicando reajuste de preço + venda de estoque: <strong>${atingidoComAcoes.toFixed(1)}%</strong> da meta (${moeda(fatComAcoesReais)}).
-          ${ganhoVolumeGeral > 0 ? ` Somando ainda +${volPct.toFixed(0)}% de volume geral: <strong>${atingidoComTudo.toFixed(1)}%</strong> da meta (${moeda(fatComTudo)}).` : ''}
+          ${ganhoVolumeSimulado > 0 ? ` Somando ainda o aumento de volume simulado: <strong>${atingidoComTudo.toFixed(1)}%</strong> da meta (${moeda(fatComTudo)}).` : ''}
         </p>
       </div>`;
   }
@@ -1818,7 +1968,6 @@ function renderSimulacoes() {
 }
 
 document.getElementById('btn-pa-atualizar').addEventListener('click', carregarPlanosAcao);
-document.getElementById('pa-sim-vol-pct').addEventListener('input', renderSimulacoes);
 
 await init();
 </script>
