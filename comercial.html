@@ -337,16 +337,7 @@
           <div class="table-scroll">
             <table style="font-size:12px">
               <thead>
-                <tr>
-                  <th>#</th>
-                  <th>Material</th>
-                  <th class="text-right">Nº Vendas</th>
-                  <th class="text-right">Volume (ton)</th>
-                  <th class="text-right">Faturamento</th>
-                  <th class="text-right">% Participação</th>
-                  <th class="text-right">Preço Médio/ton</th>
-                  <th>Principal Cliente</th>
-                </tr>
+                <tr id="tr-an-materiais-head"></tr>
               </thead>
               <tbody id="tb-an-materiais"></tbody>
             </table>
@@ -1343,7 +1334,8 @@ function renderTabelaAnaClientes() {
     const materiais = Object.entries(matPorCliente[nome] || {}).sort((a, b) => b[1].fat - a[1].fat);
     const materiaisHtml = materiais.map(([mat, mv]) => {
       const pctMat = v.fat > 0 ? (mv.fat / v.fat * 100).toFixed(0) : '0';
-      return `<div style="white-space:nowrap"><strong>${mat}</strong> — ${ton(mv.vol)} <span style="color:#94a3b8">(${pctMat}%)</span></div>`;
+      const ticketMat = mv.vol > 0 ? moeda(mv.fat / (mv.vol / 1000)) : '—';
+      return `<div style="white-space:nowrap"><strong>${mat}</strong> — ${ton(mv.vol)} <span style="color:#94a3b8">(${pctMat}%)</span> · ${ticketMat}/ton</div>`;
     }).join('');
     const medalha = i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : (i + 1);
     return `<tr>
@@ -1363,18 +1355,45 @@ function renderTabelaAnaClientes() {
 function renderTabelaAnaMateriais() {
   const map = anaAgrupar(anaData, r => r.materiais?.nome || r.codigo_material || 'Sem material');
   const cliPorMaterial = {};
+  const volPorMesMaterial = {};
+  const mesesSet = new Set();
   anaData.forEach(r => {
     const mat = r.materiais?.nome || r.codigo_material || 'Sem material';
     const cli = r.clientes?.nome || 'Desconhecido';
     if (!cliPorMaterial[mat]) cliPorMaterial[mat] = {};
     cliPorMaterial[mat][cli] = (cliPorMaterial[mat][cli] || 0) + (r.valor_total || 0);
+
+    const mesKey = (r.data || '').slice(0, 7);
+    if (mesKey) {
+      mesesSet.add(mesKey);
+      if (!volPorMesMaterial[mat]) volPorMesMaterial[mat] = {};
+      volPorMesMaterial[mat][mesKey] = (volPorMesMaterial[mat][mesKey] || 0) + parseFloat(r.peso_kg || 0);
+    }
   });
+  const meses = [...mesesSet].sort();
+
+  const baseHeaders = `
+    <th>#</th>
+    <th>Material</th>
+    <th class="text-right">Nº Vendas</th>
+    <th class="text-right">Volume (ton)</th>
+    <th class="text-right">Faturamento</th>
+    <th class="text-right">% Participação</th>
+    <th class="text-right">Preço Médio/ton</th>
+    <th>Principal Cliente</th>`;
+  const mesHeaders = meses.map(mk => {
+    const [y, m] = mk.split('-');
+    const label = new Date(+y, +m - 1, 1).toLocaleDateString('pt-BR', { month: 'short', year: '2-digit' });
+    return `<th class="text-right" style="white-space:nowrap">${label}</th>`;
+  }).join('');
+  document.getElementById('tr-an-materiais-head').innerHTML = baseHeaders + mesHeaders;
+
   const totalFat = Object.values(map).reduce((s, v) => s + v.fat, 0);
   const linhas = Object.entries(map).sort((a, b) => b[1].fat - a[1].fat);
 
   const tb = document.getElementById('tb-an-materiais');
   if (!linhas.length) {
-    tb.innerHTML = '<tr><td colspan="8" class="table-empty">Nenhum dado encontrado</td></tr>';
+    tb.innerHTML = `<tr><td colspan="${8 + meses.length}" class="table-empty">Nenhum dado encontrado</td></tr>`;
     document.getElementById('an-mat-total').textContent = '';
     return;
   }
@@ -1384,6 +1403,10 @@ function renderTabelaAnaMateriais() {
     const precoMedio = v.vol > 0 ? moeda(v.fat / (v.vol / 1000)) : '—';
     const principal = Object.entries(cliPorMaterial[nome] || {}).sort((a, b) => b[1] - a[1])[0]?.[0] || '—';
     const medalha = i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : (i + 1);
+    const mesCells = meses.map(mk => {
+      const volMes = (volPorMesMaterial[nome] && volPorMesMaterial[nome][mk]) || 0;
+      return `<td class="text-right">${volMes > 0 ? ton(volMes) : '—'}</td>`;
+    }).join('');
     return `<tr>
       <td class="rank-medal">${medalha}</td>
       <td><strong>${nome}</strong></td>
@@ -1393,6 +1416,7 @@ function renderTabelaAnaMateriais() {
       <td class="text-right">${pct}%</td>
       <td class="text-right">${precoMedio}</td>
       <td>${principal}</td>
+      ${mesCells}
     </tr>`;
   }).join('');
   document.getElementById('an-mat-total').textContent = `${linhas.length} materiais`;
