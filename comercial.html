@@ -401,7 +401,7 @@
           <h3 style="margin:0">Ações Prioritárias para Bater a Meta</h3>
           <span id="pa-acoes-total" class="text-muted" style="font-size:12px"></span>
         </div>
-        <p class="text-muted" style="font-size:12px;margin:0 0 8px">Apenas ações com ganho real e quantificável: reajuste de preço (cliente pagando abaixo do melhor preço já praticado para o mesmo material) e reativação de clientes inativos. Ordenadas por impacto — a coluna "Meta coberta" mostra o efeito acumulado.</p>
+        <p class="text-muted" style="font-size:12px;margin:0 0 8px">Apenas ações com ganho real e quantificável, sobre os dois alavancadores de faturamento — <strong>ticket médio</strong> (cliente pagando abaixo do melhor preço já praticado para o mesmo material) e <strong>volume</strong> (material com estoque parado que pode virar venda). Ordenadas por impacto — a coluna "Meta coberta" mostra o efeito acumulado.</p>
         <div class="table-card mb-16">
           <div class="table-scroll">
             <table style="font-size:12px">
@@ -1567,16 +1567,10 @@ async function carregarPlanosAcao() {
   paPeriodo = { ini, fim };
   paMesesPeriodo = mesesEntre(ini, fim);
 
-  // Busca uma janela histórica de 24 meses terminando no fim do período,
-  // para conseguir identificar clientes que compravam antes e sumiram.
-  const fimDate = new Date(fim + 'T00:00:00');
-  const hist24 = new Date(fimDate); hist24.setMonth(hist24.getMonth() - 24);
-  const histIni = hist24.toISOString().slice(0, 10);
-
   const [{ data }, { data: metasData }] = await Promise.all([
     supabase.from('vendas')
       .select('*, clientes(nome), materiais(nome)')
-      .gte('data', histIni)
+      .gte('data', ini)
       .lte('data', fim)
       .order('data'),
     supabase.from('metas')
@@ -1629,13 +1623,8 @@ document.getElementById('btn-pa-meta-salvar').addEventListener('click', async ()
 
 function renderPlanosAcao() {
   const { ini, fim } = paPeriodo;
-  const fimDate = new Date(fim + 'T00:00:00');
-  const d90  = new Date(fimDate); d90.setDate(d90.getDate() - 90);
-  const corte90 = d90.toISOString().slice(0, 10);
 
   const dadosPeriodo = paData.filter(r => r.data >= ini && r.data <= fim);
-  const diasPeriodo = Math.max(1, Math.round((fimDate - new Date(ini + 'T00:00:00')) / 86400000) + 1);
-  const mesesPeriodo = Math.max(diasPeriodo / 30.44, 1 / 30.44);
 
   const fatTotalPeriodo = dadosPeriodo.reduce((s, r) => s + (r.valor_total || 0), 0);
   const volTotalPeriodo = dadosPeriodo.reduce((s, r) => s + parseFloat(r.peso_kg || 0), 0);
@@ -1645,18 +1634,6 @@ function renderPlanosAcao() {
   const metaPeriodo = paMesesPeriodo.reduce((s, mk) => s + (paMetas[mk]?.valor_meta || 0), 0);
   const atingidoPct = metaPeriodo > 0 ? (fatTotalPeriodo / metaPeriodo * 100) : null;
   const gapMeta = metaPeriodo > 0 ? Math.max(0, metaPeriodo - fatTotalPeriodo) : 0;
-
-  // Clientes em risco: já compraram antes, mas nenhuma venda nos últimos 90 dias (relativos ao fim do período)
-  const porClienteId = {};
-  paData.forEach(r => {
-    const id = r.cliente_id; if (!id) return;
-    if (!porClienteId[id]) porClienteId[id] = { nome: r.clientes?.nome || 'Desconhecido', fatHist: 0, ultimaData: null };
-    porClienteId[id].fatHist += (r.valor_total || 0);
-    if (!porClienteId[id].ultimaData || r.data > porClienteId[id].ultimaData) porClienteId[id].ultimaData = r.data;
-  });
-  const clientesRisco = Object.values(porClienteId)
-    .filter(c => c.ultimaData && c.ultimaData < corte90)
-    .sort((a, b) => b.fatHist - a.fatHist);
 
   // Ticket por Cliente x Material — compara cada cliente com o melhor preço já
   // praticado para o MESMO material, em vez de uma média geral que mistura materiais
@@ -1692,24 +1669,37 @@ function renderPlanosAcao() {
     })
     .filter(o => o.gap >= GANHO_MIN_OPORTUNIDADE);
 
+  // Volume parado em estoque — material com estoque disponível e preço de
+  // referência no período é uma oportunidade real de vender mais volume,
+  // sem depender de suposições arbitrárias de crescimento.
+  const porMaterialPeriodo = anaAgrupar(dadosPeriodo, r => r.materiais?.nome || r.codigo_material || 'Sem material');
+  const oportunidadesEstoque = matData
+    .map(m => {
+      const estoqueKg = parseFloat(m.estoque_kg || 0);
+      const info = porMaterialPeriodo[m.nome];
+      if (estoqueKg <= 0 || !info || info.vol <= 0) return null;
+      const ticketMaterial = info.fat / (info.vol / 1000);
+      const ganho = (estoqueKg / 1000) * ticketMaterial;
+      return { nome: m.nome, estoqueKg, ticketMaterial, ganho };
+    })
+    .filter(Boolean)
+    .filter(o => o.ganho >= GANHO_MIN_OPORTUNIDADE);
+
   // ── Lista única de ações reais e quantificáveis (sem sugestões genéricas)
   const acoes = [];
   oportunidadesReprecificacao.forEach(o => {
     acoes.push({
-      tipo: 'Reajustar preço',
+      tipo: 'Reajustar preço (ticket)',
       detalhe: `${o.cliente} — ${o.material}: ${moeda(o.ticket)}/ton → ${moeda(o.benchmark)}/ton (${ton(o.vol)})`,
       ganho: o.gap,
     });
   });
-  clientesRisco.forEach(c => {
-    const ganho = (c.fatHist / 24) * mesesPeriodo;
-    if (ganho >= GANHO_MIN_OPORTUNIDADE) {
-      acoes.push({
-        tipo: 'Reativar cliente',
-        detalhe: `${c.nome} — sem compras desde ${dataBR(c.ultimaData)}`,
-        ganho,
-      });
-    }
+  oportunidadesEstoque.forEach(o => {
+    acoes.push({
+      tipo: 'Vender estoque parado (volume)',
+      detalhe: `${o.nome} — ${ton(o.estoqueKg)} em estoque, ao preço médio praticado (${moeda(o.ticketMaterial)}/ton)`,
+      ganho: o.ganho,
+    });
   });
   acoes.sort((a, b) => b.ganho - a.ganho);
   const acoesLimitadas = acoes.slice(0, 12);
