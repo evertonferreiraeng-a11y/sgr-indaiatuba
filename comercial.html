@@ -411,6 +411,7 @@
                   <th>Ação</th>
                   <th>Detalhe</th>
                   <th class="text-right">Ganho Potencial</th>
+                  <th class="text-right">% do Faturamento</th>
                   <th class="text-right">Meta Coberta (acum.)</th>
                 </tr>
               </thead>
@@ -418,6 +419,12 @@
             </table>
           </div>
         </div>
+
+        <div class="table-card-header" style="margin-top:24px;margin-bottom:8px;padding:0">
+          <h3 style="margin:0">Simulações — O Que Pode Acontecer</h3>
+        </div>
+        <p class="text-muted" style="font-size:12px;margin:0 0 8px">Cenários de quanto o faturamento cresce em cada frente e o efeito combinado sobre a meta do período.</p>
+        <div id="pa-simulacoes" style="display:flex;flex-direction:column;gap:12px;margin-bottom:16px"></div>
 
       </div>
       <!-- ══ FIM TAB: PLANOS DE AÇÕES ══ -->
@@ -1704,6 +1711,9 @@ function renderPlanosAcao() {
   acoes.sort((a, b) => b.ganho - a.ganho);
   const acoesLimitadas = acoes.slice(0, 12);
   const ganhoTotalAcoes = acoesLimitadas.reduce((s, a) => s + a.ganho, 0);
+  const ganhoTicketTotal  = oportunidadesReprecificacao.reduce((s, o) => s + o.gap, 0);
+  const ganhoEstoqueTotal = oportunidadesEstoque.reduce((s, o) => s + o.ganho, 0);
+  const ganhoVolumeGeral  = fatTotalPeriodo * 0.10; // hipótese de crescimento geral de volume, além do estoque parado
 
   // ── KPIs
   document.getElementById('pa-kpi-fat').textContent = moeda(fatTotalPeriodo);
@@ -1725,31 +1735,75 @@ function renderPlanosAcao() {
     resumo.innerHTML = `<p style="margin:0;font-size:13px">Nenhuma meta cadastrada para este período — informe a previsão de faturamento acima para calcular o gap. As ações abaixo já somam <strong>${moeda(ganhoTotalAcoes)}</strong> de ganho potencial identificado.</p>`;
   }
 
-  renderTabelaAcoes(acoesLimitadas, gapMeta > 0 ? gapMeta : ganhoTotalAcoes);
+  renderTabelaAcoes(acoesLimitadas, gapMeta > 0 ? gapMeta : ganhoTotalAcoes, fatTotalPeriodo);
+  renderSimulacoes({ fatTotalPeriodo, metaPeriodo, atingidoPct, ganhoTicketTotal, ganhoEstoqueTotal, ganhoVolumeGeral });
 }
 
-function renderTabelaAcoes(acoes, base) {
+function renderTabelaAcoes(acoes, base, fatTotalPeriodo) {
   const tb = document.getElementById('tb-pa-acoes');
   const total = acoes.reduce((s, a) => s + a.ganho, 0);
   document.getElementById('pa-acoes-total').textContent = acoes.length
     ? `${acoes.length} ação(ões) · ${moeda(total)} de potencial`
     : '';
   if (!acoes.length) {
-    tb.innerHTML = '<tr><td colspan="5" class="table-empty">Nenhuma ação com ganho relevante identificada no período selecionado.</td></tr>';
+    tb.innerHTML = '<tr><td colspan="6" class="table-empty">Nenhuma ação com ganho relevante identificada no período selecionado.</td></tr>';
     return;
   }
   let acumulado = 0;
   tb.innerHTML = acoes.map((a, i) => {
     acumulado += a.ganho;
     const coberturaAcum = base > 0 ? Math.min(100, (acumulado / base) * 100) : 0;
+    const pctFat = fatTotalPeriodo > 0 ? (a.ganho / fatTotalPeriodo * 100) : 0;
     return `<tr>
       <td class="rank-medal">${i + 1}</td>
       <td><strong>${a.tipo}</strong></td>
       <td>${a.detalhe}</td>
       <td class="text-right" style="color:#16a34a;font-weight:600">${moeda(a.ganho)}</td>
+      <td class="text-right">+${pctFat.toFixed(1)}%</td>
       <td class="text-right">${coberturaAcum.toFixed(0)}%</td>
     </tr>`;
   }).join('');
+}
+
+function renderSimulacoes(d) {
+  const { fatTotalPeriodo, metaPeriodo, atingidoPct, ganhoTicketTotal, ganhoEstoqueTotal, ganhoVolumeGeral } = d;
+  const cont = document.getElementById('pa-simulacoes');
+  const pct = v => fatTotalPeriodo > 0 ? (v / fatTotalPeriodo * 100) : 0;
+
+  const linha = (label, ganho, destaque) => `
+    <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;padding:10px 14px;background:${destaque ? '#f0fdf4' : '#f8fafc'};border-radius:8px;border:1px solid ${destaque ? '#86efac' : '#e2e8f0'}">
+      <span style="font-size:13px">${label}</span>
+      <span style="text-align:right;white-space:nowrap">
+        <strong style="color:#16a34a">+${moeda(ganho)}</strong>
+        <span style="color:var(--text-muted);font-size:12px"> (+${pct(ganho).toFixed(1)}%)</span>
+      </span>
+    </div>`;
+
+  const ganhoCombinado    = ganhoTicketTotal + ganhoEstoqueTotal;
+  const fatComAcoesReais  = fatTotalPeriodo + ganhoCombinado;
+  const fatComTudo        = fatComAcoesReais + ganhoVolumeGeral;
+
+  let blocos = '';
+  blocos += linha('Aplicar todos os reajustes de preço identificados (ticket médio)', ganhoTicketTotal);
+  blocos += linha('Vender todo o estoque parado identificado (volume)', ganhoEstoqueTotal);
+  blocos += linha('Combinado: preço + estoque (ações já identificadas nesta tabela)', ganhoCombinado, true);
+  blocos += linha('E se, além disso, o volume geral vendido crescer 10% (hipótese)', ganhoVolumeGeral);
+
+  let statusMeta = '';
+  if (metaPeriodo > 0) {
+    const atingidoComAcoes = fatComAcoesReais / metaPeriodo * 100;
+    const atingidoComTudo  = fatComTudo / metaPeriodo * 100;
+    statusMeta = `
+      <div style="margin-top:4px;padding:12px 14px;background:${atingidoComAcoes >= 100 ? '#f0fdf4' : '#fff5f5'};border-radius:8px;border:1px solid ${atingidoComAcoes >= 100 ? '#86efac' : '#fca5a5'}">
+        <p style="margin:0;font-size:13px">
+          Hoje: <strong>${atingidoPct.toFixed(1)}%</strong> da meta.
+          Aplicando reajuste de preço + venda de estoque: <strong>${atingidoComAcoes.toFixed(1)}%</strong> da meta (${moeda(fatComAcoesReais)}).
+          ${ganhoVolumeGeral > 0 ? ` Somando ainda +10% de volume geral: <strong>${atingidoComTudo.toFixed(1)}%</strong> da meta (${moeda(fatComTudo)}).` : ''}
+        </p>
+      </div>`;
+  }
+
+  cont.innerHTML = `<div style="display:flex;flex-direction:column;gap:8px">${blocos}</div>${statusMeta}`;
 }
 
 document.getElementById('btn-pa-atualizar').addEventListener('click', carregarPlanosAcao);
