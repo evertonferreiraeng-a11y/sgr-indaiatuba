@@ -94,15 +94,11 @@
         <div class="kpi-card"><div class="kpi-label">Faltas (mês)</div><div class="kpi-value" id="kpi-faltas">—</div><div class="kpi-sub">marcadas como falta</div></div>
         <div class="kpi-card kpi-turnover" style="padding:14px 16px">
           <div class="kpi-label">Turnover</div>
-          <div style="display:flex;gap:20px;margin-top:4px;align-items:flex-start">
-            <div>
-              <div class="kpi-value" id="kpi-turnover" style="font-size:26px">—</div>
-              <div class="kpi-sub" id="kpi-turnover-sub">anual</div>
-            </div>
-            <div style="border-left:1px solid rgba(255,255,255,.3);padding-left:20px;flex:1;min-width:0">
-              <div id="kpi-turnover-meses" style="font-size:12px;font-weight:600;line-height:1.7">—</div>
-            </div>
+          <div style="display:flex;align-items:baseline;gap:8px;margin:2px 0 8px">
+            <div class="kpi-value" id="kpi-turnover" style="font-size:26px">—</div>
+            <span class="kpi-sub" id="kpi-turnover-sub" style="font-size:11px">anual</span>
           </div>
+          <div id="kpi-turnover-meses" style="display:flex;flex-wrap:wrap;gap:6px"></div>
         </div>
       </div>
 
@@ -432,9 +428,10 @@ function renderKPIs() {
         const count = porMes[mm];
         const hcMes = ativos.length + count;
         const pct   = hcMes ? ((count / hcMes) * 100).toFixed(1) : '0';
-        return `${pct}% · ${MES_ABREV[mm - 1]}/${String(anoAtualVal).slice(2)} · ${count}`;
-      }).join('<br>')
-    : 'Nenhuma saída no ano';
+        return `<span style="background:rgba(255,255,255,.16);border-radius:6px;padding:4px 9px;font-size:11px;font-weight:600;white-space:nowrap">`
+          + `${MES_ABREV[mm - 1]}/${String(anoAtualVal).slice(2)} · ${count} · ${pct}%</span>`;
+      }).join('')
+    : '<span style="font-size:12px;font-weight:600;opacity:.85">Nenhuma saída no ano</span>';
 
   const emFerias = ativos.filter(c => c.em_ferias);
   const ativosTrabalho = ativos.filter(c => !c.em_ferias);
