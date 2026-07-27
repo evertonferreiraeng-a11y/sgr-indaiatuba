@@ -100,8 +100,7 @@
               <div class="kpi-sub" id="kpi-turnover-sub">anual</div>
             </div>
             <div style="border-left:1px solid rgba(255,255,255,.3);padding-left:20px;flex:1;min-width:0">
-              <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:#fca5a5;margin-bottom:4px">Meses com saída</div>
-              <div id="kpi-turnover-meses" style="font-size:12px;font-weight:600;line-height:1.6">—</div>
+              <div id="kpi-turnover-meses" style="font-size:12px;font-weight:600;line-height:1.7">—</div>
             </div>
           </div>
         </div>
@@ -429,7 +428,12 @@ function renderKPIs() {
   });
   const mesesComSaida = Object.keys(porMes).map(Number).sort((a, b) => a - b);
   const listaMesesHtml = mesesComSaida.length
-    ? mesesComSaida.map(mm => `${MES_ABREV[mm - 1]}/${String(anoAtualVal).slice(2)}: ${porMes[mm]}`).join(' · ')
+    ? mesesComSaida.map(mm => {
+        const count = porMes[mm];
+        const hcMes = ativos.length + count;
+        const pct   = hcMes ? ((count / hcMes) * 100).toFixed(1) : '0';
+        return `${pct}% · ${MES_ABREV[mm - 1]}/${String(anoAtualVal).slice(2)} · ${count}`;
+      }).join('<br>')
     : 'Nenhuma saída no ano';
 
   const emFerias = ativos.filter(c => c.em_ferias);
@@ -441,7 +445,7 @@ function renderKPIs() {
   document.getElementById('kpi-faltas').textContent    = ocMes.filter(r => r.conta_como_falta).length;
   document.getElementById('kpi-turnover').textContent  = tv + '%';
   document.getElementById('kpi-turnover-sub').textContent = `${demAno} demissão(ões) em ${anoAtualVal}`;
-  document.getElementById('kpi-turnover-meses').textContent = listaMesesHtml;
+  document.getElementById('kpi-turnover-meses').innerHTML = listaMesesHtml;
 
   // Nota média geral: ativos + em experiência com pelo menos uma avaliação
   const idsAtivos = new Set(ativos.map(c => c.id));
