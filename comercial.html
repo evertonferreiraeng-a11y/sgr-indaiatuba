@@ -400,6 +400,52 @@
         <div id="pa-planos" style="display:flex;flex-direction:column;gap:14px"></div>
 
         <div class="table-card-header" style="margin-top:24px;margin-bottom:8px;padding:0">
+          <h3 style="margin:0">Oportunidades de Reajuste de Preço (Cliente × Material)</h3>
+          <span id="pa-repre-total" class="text-muted" style="font-size:12px"></span>
+        </div>
+        <p class="text-muted" style="font-size:12px;margin:0 0 8px">Compara o ticket médio de cada cliente por material com o melhor preço já praticado para o mesmo material dentro do período — a diferença é o ganho potencial ao alinhar o preço.</p>
+        <div class="table-card mb-16">
+          <div class="table-scroll">
+            <table style="font-size:12px">
+              <thead>
+                <tr>
+                  <th>Cliente</th>
+                  <th>Material</th>
+                  <th class="text-right">Volume (ton)</th>
+                  <th class="text-right">Ticket Atual</th>
+                  <th class="text-right">Melhor Ticket do Material</th>
+                  <th class="text-right">Ganho Potencial</th>
+                  <th>Ação Recomendada</th>
+                </tr>
+              </thead>
+              <tbody id="tb-pa-reprecificacao"></tbody>
+            </table>
+          </div>
+        </div>
+
+        <div class="table-card-header" style="margin-top:24px;margin-bottom:8px;padding:0">
+          <h3 style="margin:0">Plano de Ação por Cliente</h3>
+          <span id="pa-cli-total" class="text-muted" style="font-size:12px"></span>
+        </div>
+        <div class="table-card mb-16">
+          <div class="table-scroll">
+            <table style="font-size:12px">
+              <thead>
+                <tr>
+                  <th>#</th>
+                  <th>Cliente</th>
+                  <th class="text-right">Faturamento</th>
+                  <th>Status</th>
+                  <th>Ação Recomendada</th>
+                  <th class="text-right">Ganho Potencial</th>
+                </tr>
+              </thead>
+              <tbody id="tb-pa-clientes"></tbody>
+            </table>
+          </div>
+        </div>
+
+        <div class="table-card-header" style="margin-top:24px;margin-bottom:8px;padding:0">
           <h3 style="margin:0">Simulações de Melhoria no Faturamento</h3>
         </div>
         <div id="pa-simulacoes" style="display:flex;flex-direction:column;gap:14px;margin-bottom:16px"></div>
@@ -1664,16 +1710,70 @@ function renderPlanosAcao() {
     .sort((a, b) => b.fatHist - a.fatHist);
   const mediaMensalRisco = clientesRisco.reduce((s, c) => s + c.fatHist / 24, 0);
 
-  // Materiais com volume relevante e ticket abaixo da média geral
-  const porMaterialPeriodo = anaAgrupar(dadosPeriodo, r => r.materiais?.nome || r.codigo_material || 'Sem material');
-  const materiaisTicket = Object.entries(porMaterialPeriodo).map(([nome, v]) => ({
-    nome, vol: v.vol, fat: v.fat, ticket: v.vol > 0 ? v.fat / (v.vol / 1000) : 0,
+  // Ticket por Cliente x Material — compara cada cliente com o melhor preço já
+  // praticado para o MESMO material, em vez de uma média geral que mistura materiais
+  // com preços muito diferentes entre si.
+  const porClienteMaterial = {};
+  dadosPeriodo.forEach(r => {
+    const cliente  = r.clientes?.nome || 'Desconhecido';
+    const material = r.materiais?.nome || r.codigo_material || 'Sem material';
+    const key = `${cliente}||${material}`;
+    if (!porClienteMaterial[key]) porClienteMaterial[key] = { cliente, material, vol: 0, fat: 0 };
+    porClienteMaterial[key].vol += parseFloat(r.peso_kg || 0);
+    porClienteMaterial[key].fat += (r.valor_total || 0);
+  });
+  const combosClienteMaterial = Object.values(porClienteMaterial).map(cm => ({
+    ...cm, ticket: cm.vol > 0 ? cm.fat / (cm.vol / 1000) : 0,
   }));
-  const abaixoMedia = materiaisTicket
-    .filter(m => m.ticket > 0 && m.ticket < ticketGeral)
-    .sort((a, b) => b.vol - a.vol);
-  const ganhoReprecificacaoPeriodo = abaixoMedia.reduce((s, m) => s + (m.vol / 1000) * (ticketGeral - m.ticket), 0);
+  const clientesPorMaterial = {};
+  combosClienteMaterial.forEach(cm => { clientesPorMaterial[cm.material] = (clientesPorMaterial[cm.material] || 0) + 1; });
+  const melhorTicketPorMaterial = {};
+  combosClienteMaterial.forEach(cm => {
+    if (cm.ticket > 0 && (!melhorTicketPorMaterial[cm.material] || cm.ticket > melhorTicketPorMaterial[cm.material])) {
+      melhorTicketPorMaterial[cm.material] = cm.ticket;
+    }
+  });
+  const VOL_MIN_OPORTUNIDADE = 0.3; // ton — ignora combos residuais/ruído
+  const oportunidadesReprecificacao = combosClienteMaterial
+    .filter(cm => clientesPorMaterial[cm.material] >= 2 && cm.vol / 1000 >= VOL_MIN_OPORTUNIDADE)
+    .map(cm => {
+      const benchmark = melhorTicketPorMaterial[cm.material] || 0;
+      const gap = benchmark > cm.ticket ? (benchmark - cm.ticket) * (cm.vol / 1000) : 0;
+      return { ...cm, benchmark, gap };
+    })
+    .filter(o => o.gap > 0)
+    .sort((a, b) => b.gap - a.gap);
+  const ganhoReprecificacaoPeriodo = oportunidadesReprecificacao.reduce((s, o) => s + o.gap, 0);
   const ganhoReprecificacaoMensal = ganhoReprecificacaoPeriodo / mesesPeriodo;
+
+  // Plano de ação por cliente: combina risco de inatividade, oportunidade de
+  // reprecificação e, na ausência das duas, uma sugestão genérica de cross-sell/volume.
+  const nomesRisco = new Set(clientesRisco.map(c => c.nome));
+  const ganhoReprecificacaoPorCliente = {};
+  oportunidadesReprecificacao.forEach(o => {
+    ganhoReprecificacaoPorCliente[o.cliente] = (ganhoReprecificacaoPorCliente[o.cliente] || 0) + o.gap;
+  });
+  const acoesPorCliente = rankCli.map(([nome, v], idx) => {
+    const emRisco = nomesRisco.has(nome);
+    const ganhoRepre = ganhoReprecificacaoPorCliente[nome] || 0;
+    let acao, ganho;
+    if (emRisco) {
+      const cRisco = clientesRisco.find(c => c.nome === nome);
+      const mediaMensalCliente = cRisco ? cRisco.fatHist / 24 : 0;
+      acao = 'Reativar — contato comercial direto';
+      ganho = mediaMensalCliente * mesesPeriodo;
+    } else if (ganhoRepre > 0) {
+      acao = 'Renegociar preço (ver tabela de reajuste)';
+      ganho = ganhoRepre;
+    } else if (idx < 5 && concentracao >= 40) {
+      acao = 'Cliente estratégico — diversificar risco, manter relação';
+      ganho = 0;
+    } else {
+      acao = 'Explorar aumento de volume / cross-sell';
+      ganho = v.fat * 0.10;
+    }
+    return { nome, fat: v.fat, emRisco, acao, ganho };
+  }).sort((a, b) => b.ganho - a.ganho);
 
   // Sazonalidade: faturamento por mês
   const porMes = {};
@@ -1740,15 +1840,15 @@ function renderPlanosAcao() {
     });
   }
 
-  if (abaixoMedia.length) {
-    const top3 = abaixoMedia.slice(0, 3);
+  if (oportunidadesReprecificacao.length) {
+    const top3 = oportunidadesReprecificacao.slice(0, 3);
     planos.push({
-      titulo: 'Revisar preços de materiais de alto volume e ticket baixo',
-      prioridade: 'Média',
-      diagnostico: `O ticket médio geral do período é ${moeda(ticketGeral)}/ton. Os materiais ${top3.map(m => `${m.nome} (${moeda(m.ticket)}/ton, ${ton(m.vol)})`).join(', ')} vendem volumes relevantes abaixo dessa média.`,
+      titulo: 'Alinhar preços entre clientes do mesmo material',
+      prioridade: ganhoReprecificacaoPeriodo >= gapMeta && gapMeta > 0 ? 'Alta' : 'Média',
+      diagnostico: `${oportunidadesReprecificacao.length} combinação(ões) cliente × material estão pagando abaixo do melhor preço já praticado para o mesmo material no período, somando ${moeda(ganhoReprecificacaoPeriodo)} de ganho potencial. Maiores oportunidades: ${top3.map(o => `${o.cliente} em ${o.material} (${moeda(o.ticket)}/ton vs. ${moeda(o.benchmark)}/ton praticado)`).join(', ')}.`,
       acoes: [
-        'Reavaliar a tabela de preços desses materiais junto à área comercial.',
-        'Verificar espaço para renegociação nos próximos contratos com os maiores compradores desses materiais.',
+        'Ver a tabela "Oportunidades de Reajuste de Preço" abaixo para a lista completa, ordenada pelo maior ganho.',
+        'Priorizar a renegociação nos próximos contratos com os clientes no topo da lista.',
       ],
     });
   }
@@ -1785,10 +1885,59 @@ function renderPlanosAcao() {
     `).join('');
   }
 
+  renderTabelaReprecificacao(oportunidadesReprecificacao);
+  renderTabelaAcoesCliente(acoesPorCliente);
+
   // ── Simulações de melhoria no faturamento
   paCalc = { fatTotalPeriodo, mesesPeriodo, mediaMensalRisco, ganhoReprecificacaoMensal, fatForaTop5, metaPeriodo, atingidoPct, gapMeta };
   renderSimulacoes();
   renderSimuladorMeta();
+}
+
+function renderTabelaReprecificacao(oportunidades) {
+  const tb = document.getElementById('tb-pa-reprecificacao');
+  const totalGanho = oportunidades.reduce((s, o) => s + o.gap, 0);
+  document.getElementById('pa-repre-total').textContent = oportunidades.length
+    ? `${oportunidades.length} oportunidade(s) · ${moeda(totalGanho)} de potencial`
+    : '';
+  if (!oportunidades.length) {
+    tb.innerHTML = '<tr><td colspan="7" class="table-empty">Nenhuma oportunidade identificada — é necessário ao menos 2 clientes comprando o mesmo material no período para comparar preços.</td></tr>';
+    return;
+  }
+  tb.innerHTML = oportunidades.slice(0, 20).map(o => `
+    <tr>
+      <td><strong>${o.cliente}</strong></td>
+      <td>${o.material}</td>
+      <td class="text-right">${ton(o.vol)}</td>
+      <td class="text-right">${moeda(o.ticket)}</td>
+      <td class="text-right">${moeda(o.benchmark)}</td>
+      <td class="text-right" style="color:#16a34a;font-weight:600">${moeda(o.gap)}</td>
+      <td>Elevar preço até ${moeda(o.benchmark)}/ton</td>
+    </tr>
+  `).join('');
+}
+
+function renderTabelaAcoesCliente(acoes) {
+  const tb = document.getElementById('tb-pa-clientes');
+  document.getElementById('pa-cli-total').textContent = `${acoes.length} cliente(s)`;
+  if (!acoes.length) {
+    tb.innerHTML = '<tr><td colspan="6" class="table-empty">Nenhum dado encontrado</td></tr>';
+    return;
+  }
+  tb.innerHTML = acoes.slice(0, 20).map((a, i) => {
+    const medalha = i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : (i + 1);
+    const statusColor = a.emRisco ? '#dc2626' : '#16a34a';
+    const statusBg    = a.emRisco ? '#fee2e2' : '#dcfce7';
+    const statusLabel = a.emRisco ? 'Em risco' : 'Ativo';
+    return `<tr>
+      <td class="rank-medal">${medalha}</td>
+      <td><strong>${a.nome}</strong></td>
+      <td class="text-right">${moeda(a.fat)}</td>
+      <td><span style="font-size:11px;font-weight:700;padding:2px 8px;border-radius:10px;color:${statusColor};background:${statusBg}">${statusLabel}</span></td>
+      <td>${a.acao}</td>
+      <td class="text-right">${a.ganho > 0 ? moeda(a.ganho) : '—'}</td>
+    </tr>`;
+  }).join('');
 }
 
 function renderSimulacoes() {
