@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="pt-BR">
 <head>
   <meta charset="UTF-8" />
@@ -377,6 +377,21 @@ async function carregar() {
   const demAno    = colaboradores.filter(c=>c.demissao && c.demissao.startsWith(ano)).length;
   const hc        = ativos.length + demAno;
   const turnover  = hc ? ((demAno/hc)*100).toFixed(1) : '0.0';
+
+  const MES_ABREV_RH = ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
+  const porMesDem = {};
+  colaboradores.forEach(c => {
+    if (c.demissao && c.demissao.startsWith(ano)) {
+      const mm = parseInt(c.demissao.slice(5, 7), 10);
+      porMesDem[mm] = (porMesDem[mm] || 0) + 1;
+    }
+  });
+  const chipsTurnoverMes = Object.keys(porMesDem).map(Number).sort((a,b)=>a-b).map(mm => {
+    const count = porMesDem[mm];
+    const hcMes = ativos.length + count;
+    const pct   = hcMes ? ((count/hcMes)*100).toFixed(1) : '0';
+    return `<span style="background:rgba(0,0,0,.06);border-radius:6px;padding:3px 7px;font-size:10px;font-weight:600;white-space:nowrap">${MES_ABREV_RH[mm-1]}/${ano.slice(2)} · ${count} · ${pct}%</span>`;
+  }).join('');
 
   // Mesma fórmula do módulo RH: média de todas as avaliações do colaborador
   const notasAtivos = ativos.map(c => {
@@ -993,7 +1008,9 @@ async function carregar() {
         <div style="background:${parseFloat(turnover)<=5?'#f0fdf4':parseFloat(turnover)<=10?'#fffbeb':'#fff5f5'};border-radius:10px;border:1px solid ${parseFloat(turnover)<=5?'#86efac':parseFloat(turnover)<=10?'#fde68a':'#fca5a5'};padding:14px">
           <div style="font-size:10px;font-weight:700;text-transform:uppercase;color:${parseFloat(turnover)<=5?'#166534':parseFloat(turnover)<=10?'#92400e':'#991b1b'};margin-bottom:5px">Turnover (ano)</div>
           <div style="font-size:22px;font-weight:900;color:${parseFloat(turnover)<=5?'#15803d':parseFloat(turnover)<=10?'#d97706':'#dc2626'};letter-spacing:-.5px">${turnover}%</div>
-          <div style="font-size:10px;color:#94a3b8;margin-top:4px">${demAno} saída(s) em ${ano}</div>
+          ${chipsTurnoverMes
+            ? `<div style="display:flex;flex-wrap:wrap;gap:5px;margin-top:6px">${chipsTurnoverMes}</div>`
+            : `<div style="font-size:10px;color:#94a3b8;margin-top:4px">Nenhuma saída em ${ano}</div>`}
         </div>
       </div>
       ${(() => {
