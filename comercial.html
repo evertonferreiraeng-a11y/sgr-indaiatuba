@@ -49,6 +49,7 @@
       <div class="com-tabs">
         <button class="com-tab active" data-tab="vendas"><span class="icon" style="width:13px;height:13px"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg></span> Vendas</button>
         <button class="com-tab" data-tab="analises"><span class="icon" style="width:13px;height:13px"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="20" x2="12" y2="10"/><line x1="18" y1="20" x2="18" y2="4"/><line x1="6" y1="20" x2="6" y2="16"/></svg></span> Análises Comerciais</button>
+        <button class="com-tab" data-tab="planos"><span class="icon" style="width:13px;height:13px"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 11H3v11h6z"/><path d="M15 22h6V11h-6z"/><path d="M9 22V2h6v20"/></svg></span> Planos de Ações</button>
       </div>
 
       <!-- ══ TAB: VENDAS ══ -->
@@ -347,6 +348,32 @@
       </div>
       <!-- ══ FIM TAB: ANÁLISES COMERCIAIS ══ -->
 
+      <!-- ══ TAB: PLANOS DE AÇÕES ══ -->
+      <div class="tab-pane" id="tab-planos">
+
+        <div class="card mb-16" style="padding:16px">
+          <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px">
+            <div>
+              <h3 style="margin:0 0 2px">Planos de Ação — Faturamento</h3>
+              <p class="text-muted" style="font-size:12px;margin:0">Recomendações geradas automaticamente a partir das vendas dos últimos 12 meses</p>
+            </div>
+            <button class="btn btn-outline" id="btn-pa-atualizar">⟳ Atualizar</button>
+          </div>
+        </div>
+
+        <div class="kpi-grid mb-16" style="grid-template-columns:repeat(auto-fill,minmax(170px,1fr))">
+          <div class="kpi-card"><div class="kpi-label">Faturamento (12m)</div><div class="kpi-value" id="pa-kpi-fat">—</div></div>
+          <div class="kpi-card"><div class="kpi-label">Concentração Top 5</div><div class="kpi-value" id="pa-kpi-concentracao">—</div><div class="kpi-sub">% do faturamento</div></div>
+          <div class="kpi-card"><div class="kpi-label">Clientes em Risco</div><div class="kpi-value" id="pa-kpi-risco">—</div><div class="kpi-sub">sem compra há 90+ dias</div></div>
+          <div class="kpi-card"><div class="kpi-label">Ticket Médio Geral</div><div class="kpi-value" id="pa-kpi-ticket">—</div><div class="kpi-sub">R$/ton</div></div>
+          <div class="kpi-card"><div class="kpi-label">Mês Mais Fraco</div><div class="kpi-value" id="pa-kpi-mes-fraco" style="font-size:18px">—</div></div>
+        </div>
+
+        <div id="pa-planos" style="display:flex;flex-direction:column;gap:14px"></div>
+
+      </div>
+      <!-- ══ FIM TAB: PLANOS DE AÇÕES ══ -->
+
     </div>
   </div>
 </div>
@@ -403,10 +430,11 @@ document.querySelectorAll('.com-tab').forEach(tab => {
     document.querySelectorAll('.tab-pane').forEach(p => p.classList.remove('active'));
     tab.classList.add('active');
     document.getElementById('tab-' + tab.dataset.tab).classList.add('active');
-    const isAnalises = tab.dataset.tab === 'analises';
-    document.getElementById('btn-nova-venda').style.display = isAnalises ? 'none' : '';
-    document.getElementById('btn-importar-excel').style.display = isAnalises ? 'none' : '';
-    if (isAnalises) carregarAnalises();
+    const isVendasTab = tab.dataset.tab === 'vendas';
+    document.getElementById('btn-nova-venda').style.display = isVendasTab ? '' : 'none';
+    document.getElementById('btn-importar-excel').style.display = isVendasTab ? '' : 'none';
+    if (tab.dataset.tab === 'analises') carregarAnalises();
+    if (tab.dataset.tab === 'planos') carregarPlanosAcao();
   });
 });
 
@@ -1442,6 +1470,163 @@ document.getElementById('btn-an-exportar').addEventListener('click', () => {
   XLSX.utils.book_append_sheet(wb, ws, 'Análises');
   XLSX.writeFile(wb, `analises-comercial-${new Date().toISOString().split('T')[0]}.xlsx`);
 });
+
+// ── Planos de Ações ────────────────────────────────────────────────────────────
+let paData = [];
+const MES_ABREV_PA = ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
+
+async function carregarPlanosAcao() {
+  const hoje = new Date();
+  const d24  = new Date(hoje); d24.setMonth(d24.getMonth() - 24);
+  const ini24 = d24.toISOString().slice(0, 10);
+
+  const { data } = await supabase.from('vendas')
+    .select('*, clientes(nome), materiais(nome)')
+    .gte('data', ini24)
+    .order('data');
+  paData = data || [];
+
+  renderPlanosAcao();
+}
+
+function renderPlanosAcao() {
+  const hoje = new Date();
+  const iso  = d => d.toISOString().slice(0, 10);
+  const d12  = new Date(hoje); d12.setMonth(d12.getMonth() - 12);
+  const d90  = new Date(hoje); d90.setDate(d90.getDate() - 90);
+  const ini12   = iso(d12);
+  const corte90 = iso(d90);
+
+  const dados12m = paData.filter(r => r.data >= ini12);
+
+  const fatTotal12 = dados12m.reduce((s, r) => s + (r.valor_total || 0), 0);
+  const volTotal12 = dados12m.reduce((s, r) => s + parseFloat(r.peso_kg || 0), 0);
+  const ticketGeral = volTotal12 > 0 ? fatTotal12 / (volTotal12 / 1000) : 0;
+
+  // Concentração de clientes (Top 5)
+  const porCliente12 = anaAgrupar(dados12m, r => r.clientes?.nome || 'Desconhecido');
+  const rankCli = Object.entries(porCliente12).sort((a, b) => b[1].fat - a[1].fat);
+  const top5Fat = rankCli.slice(0, 5).reduce((s, [, v]) => s + v.fat, 0);
+  const concentracao = fatTotal12 > 0 ? (top5Fat / fatTotal12 * 100) : 0;
+
+  // Clientes em risco: já compraram antes, mas nenhuma venda nos últimos 90 dias
+  const porClienteId = {};
+  paData.forEach(r => {
+    const id = r.cliente_id; if (!id) return;
+    if (!porClienteId[id]) porClienteId[id] = { nome: r.clientes?.nome || 'Desconhecido', fatHist: 0, ultimaData: null };
+    porClienteId[id].fatHist += (r.valor_total || 0);
+    if (!porClienteId[id].ultimaData || r.data > porClienteId[id].ultimaData) porClienteId[id].ultimaData = r.data;
+  });
+  const clientesRisco = Object.values(porClienteId)
+    .filter(c => c.ultimaData && c.ultimaData < corte90)
+    .sort((a, b) => b.fatHist - a.fatHist);
+
+  // Materiais com volume relevante e ticket abaixo da média geral
+  const porMaterial12 = anaAgrupar(dados12m, r => r.materiais?.nome || r.codigo_material || 'Sem material');
+  const materiaisTicket = Object.entries(porMaterial12).map(([nome, v]) => ({
+    nome, vol: v.vol, fat: v.fat, ticket: v.vol > 0 ? v.fat / (v.vol / 1000) : 0,
+  }));
+  const abaixoMedia = materiaisTicket
+    .filter(m => m.ticket > 0 && m.ticket < ticketGeral)
+    .sort((a, b) => b.vol - a.vol);
+
+  // Sazonalidade: faturamento por mês
+  const porMes = {};
+  dados12m.forEach(r => {
+    const mk = r.data.slice(0, 7);
+    porMes[mk] = (porMes[mk] || 0) + (r.valor_total || 0);
+  });
+  const mesesArr = Object.entries(porMes).sort((a, b) => a[0].localeCompare(b[0]));
+  const mesFraco = mesesArr.length ? mesesArr.reduce((min, cur) => cur[1] < min[1] ? cur : min) : null;
+  const labelMes = mk => { const [y, m] = mk.split('-'); return `${MES_ABREV_PA[+m - 1]}/${y.slice(2)}`; };
+
+  // ── KPIs
+  document.getElementById('pa-kpi-fat').textContent = moeda(fatTotal12);
+  document.getElementById('pa-kpi-concentracao').textContent = concentracao.toFixed(1) + '%';
+  document.getElementById('pa-kpi-risco').textContent = clientesRisco.length;
+  document.getElementById('pa-kpi-ticket').textContent = moeda(ticketGeral);
+  document.getElementById('pa-kpi-mes-fraco').textContent = mesFraco ? labelMes(mesFraco[0]) : '—';
+
+  // ── Planos de ação
+  const planos = [];
+
+  if (rankCli.length && concentracao >= 40) {
+    const top5Nomes = rankCli.slice(0, 5).map(([n]) => n).join(', ');
+    planos.push({
+      titulo: 'Reduzir a dependência de poucos clientes',
+      prioridade: concentracao >= 60 ? 'Alta' : 'Média',
+      diagnostico: `Os 5 maiores clientes (${top5Nomes}) respondem por ${concentracao.toFixed(1)}% do faturamento dos últimos 12 meses. Essa concentração eleva o risco de perda de receita caso um deles reduza as compras.`,
+      acoes: [
+        'Mapear clientes de médio porte com potencial de crescimento e priorizar visitas comerciais.',
+        'Criar condições comerciais (prazo, desconto por volume) para aumentar o ticket de clientes fora do Top 5.',
+        'Definir uma meta de redução da concentração Top 5 para os próximos trimestres.',
+      ],
+    });
+  }
+
+  if (clientesRisco.length) {
+    const top5Risco = clientesRisco.slice(0, 5);
+    const fatPerdido = top5Risco.reduce((s, c) => s + c.fatHist, 0);
+    planos.push({
+      titulo: 'Reativar clientes inativos',
+      prioridade: clientesRisco.length >= 5 ? 'Alta' : 'Média',
+      diagnostico: `${clientesRisco.length} cliente(s) que já compraram nos últimos 24 meses estão sem pedidos há mais de 90 dias. Os 5 com maior histórico somam ${moeda(fatPerdido)}: ${top5Risco.map(c => c.nome).join(', ')}.`,
+      acoes: [
+        'Acionar o time comercial para contato direto com os clientes listados, priorizando os de maior histórico.',
+        'Entender o motivo da pausa (preço, concorrência, redução de operação) e oferecer condições de retomada.',
+        'Monitorar mensalmente a lista de clientes inativos para evitar perdas silenciosas.',
+      ],
+    });
+  }
+
+  if (abaixoMedia.length) {
+    const top3 = abaixoMedia.slice(0, 3);
+    planos.push({
+      titulo: 'Revisar preços de materiais de alto volume e ticket baixo',
+      prioridade: 'Média',
+      diagnostico: `O ticket médio geral é ${moeda(ticketGeral)}/ton. Os materiais ${top3.map(m => `${m.nome} (${moeda(m.ticket)}/ton, ${ton(m.vol)})`).join(', ')} vendem volumes relevantes abaixo dessa média.`,
+      acoes: [
+        'Reavaliar a tabela de preços desses materiais junto à área comercial.',
+        'Verificar espaço para renegociação nos próximos contratos com os maiores compradores desses materiais.',
+      ],
+    });
+  }
+
+  if (mesFraco) {
+    planos.push({
+      titulo: 'Atenuar a sazonalidade do faturamento',
+      prioridade: 'Baixa',
+      diagnostico: `${labelMes(mesFraco[0])} foi o mês de menor faturamento nos últimos 12 meses (${moeda(mesFraco[1])}).`,
+      acoes: [
+        'Planejar ações comerciais (promoções, contratos antecipados) para reforçar esse período no próximo ciclo.',
+        'Avaliar diversificação de materiais/clientes que sofrem menos com a sazonalidade.',
+      ],
+    });
+  }
+
+  const cont = document.getElementById('pa-planos');
+  if (!planos.length) {
+    cont.innerHTML = '<div class="card" style="padding:20px;text-align:center;color:var(--text-muted)">Sem dados suficientes nos últimos 12 meses para gerar planos de ação.</div>';
+    return;
+  }
+
+  const corPrio = { Alta: '#dc2626', 'Média': '#d97706', Baixa: '#2563eb' };
+  const bgPrio  = { Alta: '#fee2e2', 'Média': '#fef3c7', Baixa: '#dbeafe' };
+  cont.innerHTML = planos.map(p => `
+    <div class="card" style="padding:16px;border-left:4px solid ${corPrio[p.prioridade]}">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:10px;margin-bottom:8px;flex-wrap:wrap">
+        <h4 style="margin:0">${p.titulo}</h4>
+        <span style="font-size:11px;font-weight:700;padding:3px 10px;border-radius:10px;color:${corPrio[p.prioridade]};background:${bgPrio[p.prioridade]};white-space:nowrap">Prioridade ${p.prioridade}</span>
+      </div>
+      <p style="font-size:13px;color:var(--text-muted);margin:0 0 10px"><strong>Diagnóstico:</strong> ${p.diagnostico}</p>
+      <ul style="margin:0;padding-left:18px;font-size:13px;display:flex;flex-direction:column;gap:4px">
+        ${p.acoes.map(a => `<li>${a}</li>`).join('')}
+      </ul>
+    </div>
+  `).join('');
+}
+
+document.getElementById('btn-pa-atualizar').addEventListener('click', carregarPlanosAcao);
 
 await init();
 </script>
