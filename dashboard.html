@@ -97,6 +97,15 @@
     .crit-tag.volume      { background:#dcfce7; color:#166534; }
     .crit-close { flex-shrink:0; background:none; border:none; color:#94a3b8; cursor:pointer; font-size:16px; line-height:1; padding:2px 4px; border-radius:4px; }
     .crit-close:hover { color:#dc2626; background:rgba(220,38,38,.08); }
+    .crit-comment-input {
+      width:100%; margin-top:8px; padding:6px 10px; font-size:12px;
+      border:1px solid #e2e8f0; border-radius:6px; background:#fff; color:#334155;
+    }
+    .crit-comment-input::placeholder { color:#b6c0cc; }
+    .crit-comment-input:focus { outline:none; border-color:#94a3b8; }
+    .crit-comment-saved { font-size:10.5px; color:#94a3b8; margin-top:3px; display:none; }
+    .sec-hd.sec-hd-toggle { cursor:pointer; user-select:none; }
+    .sec-chevron { flex-shrink:0; color:#94a3b8; transition:transform .15s; }
 
     /* ── Impressão ── */
     @media print {
@@ -294,10 +303,42 @@ window.critMostrar = (id) => {
   carregar();
 };
 let critPainelOcultosAberto = false;
-window.critTogglePainelOcultos = () => {
+window.critTogglePainelOcultos = (ev) => {
+  ev?.stopPropagation();
   critPainelOcultosAberto = !critPainelOcultosAberto;
   carregar();
 };
+
+// ── Pontos Críticos: recolher/expandir o painel inteiro ──────────────────────
+const CRIT_COLAPSADO_KEY = 'sgr_dash_criticos_colapsado';
+let critPainelColapsado = localStorage.getItem(CRIT_COLAPSADO_KEY) === '1';
+window.critToggleColapso = () => {
+  critPainelColapsado = !critPainelColapsado;
+  localStorage.setItem(CRIT_COLAPSADO_KEY, critPainelColapsado ? '1' : '0');
+  carregar();
+};
+
+// ── Pontos Críticos: comentário por alerta ("em que pé está") ────────────────
+const CRIT_COMENTARIOS_KEY = 'sgr_dash_criticos_comentarios';
+function critComentariosGet() {
+  try { return JSON.parse(localStorage.getItem(CRIT_COMENTARIOS_KEY)) || {}; }
+  catch { return {}; }
+}
+document.addEventListener('change', e => {
+  if (!e.target.classList?.contains('crit-comment-input')) return;
+  const id = e.target.dataset.id;
+  const comentarios = critComentariosGet();
+  const texto = e.target.value.trim();
+  if (texto) comentarios[id] = texto; else delete comentarios[id];
+  localStorage.setItem(CRIT_COMENTARIOS_KEY, JSON.stringify(comentarios));
+  const aviso = e.target.parentElement.querySelector('.crit-comment-saved');
+  if (aviso) {
+    aviso.style.display = 'block';
+    aviso.textContent = texto ? `Salvo ${new Date().toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'})}` : 'Comentário removido';
+    clearTimeout(aviso._t);
+    aviso._t = setTimeout(() => { aviso.style.display = 'none'; }, 2500);
+  }
+});
 
 async function carregar() {
   const { inicio, fim, label } = getPeriodo();
@@ -629,17 +670,21 @@ async function carregar() {
     })()}
 
     <!-- ══ PONTOS CRÍTICOS & PLANO DE AÇÃO ══ -->
-    ${criticosAlertas.length ? `
+    ${criticosAlertas.length ? (() => {
+      const comentarios = critComentariosGet();
+      return `
     <div class="card rel-section" style="border:1px solid #fecaca">
-      <div class="sec-hd">
+      <div class="sec-hd sec-hd-toggle" onclick="critToggleColapso()">
+        <span class="sec-chevron">${critPainelColapsado ? '▸' : '▾'}</span>
         <div class="sec-dot" style="background:#dc2626"></div>
         <div class="sec-title">Pontos Críticos &amp; Plano de Ação</div>
         <div class="sec-line"></div>
-        ${criticosOcultados.length ? `<button onclick="critTogglePainelOcultos()" style="font-size:11px;font-weight:700;padding:3px 12px;border-radius:20px;border:1px solid #e2e8f0;background:#f8fafc;color:#64748b;cursor:pointer;white-space:nowrap">${criticosOcultados.length} ocultado(s) ${critPainelOcultosAberto?'▴':'▾'}</button>` : ''}
+        ${criticosOcultados.length ? `<button onclick="critTogglePainelOcultos(event)" style="font-size:11px;font-weight:700;padding:3px 12px;border-radius:20px;border:1px solid #e2e8f0;background:#f8fafc;color:#64748b;cursor:pointer;white-space:nowrap">${criticosOcultados.length} ocultado(s) ${critPainelOcultosAberto?'▴':'▾'}</button>` : ''}
         <span class="sec-badge" style="color:#dc2626;background:#fee2e2">${criticosVisiveis.length} ponto(s) de atenção</span>
       </div>
+      ${critPainelColapsado ? '' : `
       <div style="font-size:11.5px;color:#94a3b8;margin:-8px 0 14px">
-        Faturamento: comparação com a meta e com clientes fora do padrão de compra. Volume: comparação até o dia ${diaCorteVol} de cada mês, para não confundir mês em andamento com queda real. Clique no ✕ para ocultar um ponto que não se aplica mais (ex.: cliente que saiu da carteira).
+        Faturamento: comparação com a meta e com clientes fora do padrão de compra. Volume: comparação até o dia ${diaCorteVol} de cada mês, para não confundir mês em andamento com queda real. Clique no ✕ para ocultar um ponto que não se aplica mais (ex.: cliente que saiu da carteira) e use o campo de comentário para registrar o andamento.
       </div>
       ${critPainelOcultosAberto && criticosOcultados.length ? `
       <div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:10px;padding:10px 14px;margin-bottom:14px">
@@ -657,10 +702,14 @@ async function carregar() {
             <span class="crit-title">${a.title}</span>
             <span class="crit-tag ${a.area}">${a.area === 'faturamento' ? 'Faturamento' : 'Volume'}</span>
             <div class="crit-desc">${a.desc}</div>
+            <input type="text" class="crit-comment-input" data-id="${a.id.replace(/"/g,'&quot;')}" placeholder="Comentário — em que pé está isso? (ex.: cliente contatado dia 29, aguardando retorno)" value="${(comentarios[a.id]||'').replace(/"/g,'&quot;')}" />
+            <div class="crit-comment-saved"></div>
           </div>
           <button class="crit-close" onclick="critOcultar('${a.id.replace(/'/g,"\\'")}')" title="Ocultar este ponto">✕</button>
         </div>`).join('') : `<div style="font-size:12.5px;color:#94a3b8;padding:8px 0">Nenhum ponto de atenção visível — ${criticosOcultados.length} oculto(s).</div>`}
-    </div>` : ''}
+      `}
+    </div>`;
+    })() : ''}
 
     <!-- ══ 1. BALANÇO DE MASSA ══ -->
     <div class="card rel-section">
