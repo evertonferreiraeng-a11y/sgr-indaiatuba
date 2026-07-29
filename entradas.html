@@ -378,10 +378,11 @@
     </div>
     <div class="modal-body">
       <p class="text-muted" style="font-size:12px;margin-bottom:14px">
-        Selecione o mês e, se quiser, restrinja por tipo de movimentação ou fornecedor. Busque para conferir o que será afetado antes de excluir — a ação é permanente.
+        Selecione um mês, ou um intervalo "De / Até" para excluir vários meses juntos. Restrinja por tipo de movimentação ou fornecedor se quiser. Busque para conferir o que será afetado antes de excluir — a ação é permanente.
       </p>
       <div class="form-grid" style="grid-template-columns:1fr 1fr">
-        <div class="form-group"><label>Mês *</label><input type="month" id="excl-mes" /></div>
+        <div class="form-group"><label>Mês (de) *</label><input type="month" id="excl-mes-de" /></div>
+        <div class="form-group"><label>Mês (até, opcional)</label><input type="month" id="excl-mes-ate" /></div>
         <div class="form-group"><label>Tipo</label>
           <select id="excl-tipo">
             <option value="">Todos (entrada + saída)</option>
@@ -389,11 +390,12 @@
             <option value="saida">Somente Saída / Rejeito</option>
           </select>
         </div>
-        <div class="form-group full"><label>Fornecedor (opcional)</label>
+        <div class="form-group"><label>Fornecedor (opcional)</label>
           <select id="excl-forn"><option value="">Todos os fornecedores</option></select>
         </div>
       </div>
-      <button class="btn btn-outline" id="btn-excl-buscar" style="width:100%;margin-top:8px">Buscar registros</button>
+      <div style="font-size:10.5px;color:#94a3b8;margin:-6px 0 8px">Deixe "Até" em branco para excluir apenas o mês selecionado em "De".</div>
+      <button class="btn btn-outline" id="btn-excl-buscar" style="width:100%">Buscar registros</button>
 
       <div id="excl-resultado" style="display:none;margin-top:16px">
         <div style="background:#fef2f2;border:1px solid #fecaca;border-radius:8px;padding:12px 14px;margin-bottom:12px">
@@ -1321,12 +1323,29 @@ document.getElementById('btn-del-sel').addEventListener('click', async () => {
   carregar();
 });
 
-// ── Excluir Mês ───────────────────────────────────────────────────────────────
+// ── Excluir Mês (um ou vários meses juntos) ──────────────────────────────────
 let exclRegistrosAlvo = [];
 const MESES_PT_LONGO = ['janeiro','fevereiro','março','abril','maio','junho','julho','agosto','setembro','outubro','novembro','dezembro'];
 
+function periodoRangeMeses(mesDe, mesAte) {
+  const de  = periodoRange(mesDe);
+  const ate = mesAte ? periodoRange(mesAte) : de;
+  return { ini: de.ini <= ate.ini ? de.ini : ate.ini, fim: de.fim >= ate.fim ? de.fim : ate.fim };
+}
+
+function listarMesesRotulo(mesDe, mesAte) {
+  const [y1, m1] = mesDe.split('-').map(Number);
+  const [y2, m2] = (mesAte || mesDe).split('-').map(Number);
+  let ini = y1 * 12 + (m1 - 1), fim = y2 * 12 + (m2 - 1);
+  if (ini > fim) [ini, fim] = [fim, ini];
+  const labels = [];
+  for (let k = ini; k <= fim; k++) labels.push(`${MESES_PT_LONGO[k % 12]}/${Math.floor(k / 12)}`);
+  return labels.length <= 4 ? labels.join(', ') : `${labels[0]} até ${labels[labels.length - 1]} (${labels.length} meses)`;
+}
+
 document.getElementById('btn-excluir-mes').addEventListener('click', () => {
-  document.getElementById('excl-mes').value = '';
+  document.getElementById('excl-mes-de').value = '';
+  document.getElementById('excl-mes-ate').value = '';
   document.getElementById('excl-tipo').value = '';
   document.getElementById('excl-forn').value = '';
   document.getElementById('excl-resultado').style.display = 'none';
@@ -1337,9 +1356,10 @@ document.getElementById('btn-excluir-mes').addEventListener('click', () => {
 });
 
 document.getElementById('btn-excl-buscar').addEventListener('click', async () => {
-  const mes = document.getElementById('excl-mes').value;
-  if (!mes) { toast('Selecione um mês', 'error'); return; }
-  const { ini, fim } = periodoRange(mes);
+  const mesDe  = document.getElementById('excl-mes-de').value;
+  const mesAte = document.getElementById('excl-mes-ate').value;
+  if (!mesDe) { toast('Selecione ao menos o mês "de"', 'error'); return; }
+  const { ini, fim } = periodoRangeMeses(mesDe, mesAte);
   const tipo = document.getElementById('excl-tipo').value;
   const forn = document.getElementById('excl-forn').value;
 
@@ -1353,8 +1373,7 @@ document.getElementById('btn-excl-buscar').addEventListener('click', async () =>
 
   exclRegistrosAlvo = data || [];
   const totalKg = exclRegistrosAlvo.reduce((s,r)=> s + parseFloat(r.peso_liquido_descontos ?? r.peso_kg ?? r.peso_liquido ?? 0), 0);
-  const [y, m] = mes.split('-');
-  const mesLabel = `${MESES_PT_LONGO[+m-1]}/${y}`;
+  const mesLabel = listarMesesRotulo(mesDe, mesAte);
 
   document.getElementById('excl-resultado').style.display = 'block';
   document.getElementById('excl-confirma').checked = false;
