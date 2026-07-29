@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="pt-BR">
 <head>
   <meta charset="UTF-8" />
@@ -18,6 +18,36 @@
     .inline-input { width:100%; border:1px solid var(--primary,#2563eb); border-radius:4px; padding:2px 6px; font-size:13px; }
     .chart-grid { display:grid; grid-template-columns:1fr 1fr; gap:16px; margin-bottom:16px; }
     @media(max-width:900px){ .chart-grid{ grid-template-columns:1fr; } }
+
+    /* Abas do módulo Entrada */
+    .ent-tabs{display:flex;gap:0;border-bottom:2px solid var(--border);margin-bottom:20px}
+    .ent-tab{padding:10px 28px;font-size:14px;font-weight:600;cursor:pointer;border-bottom:3px solid transparent;margin-bottom:-2px;color:var(--text-muted);transition:.15s;background:none;border-top:none;border-left:none;border-right:none;display:flex;align-items:center;gap:6px}
+    .ent-tab.active{color:var(--primary,#006636);border-bottom-color:var(--primary,#006636)}
+    .ent-tab:hover:not(.active){color:var(--text)}
+    .tab-pane{display:none}.tab-pane.active{display:block}
+
+    /* Aba de Análises */
+    .an-kpi-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:12px;margin-bottom:20px}
+    @media(max-width:1200px){ .an-kpi-grid{grid-template-columns:repeat(3,1fr)} }
+    @media(max-width:700px){ .an-kpi-grid{grid-template-columns:repeat(2,1fr)} }
+    .an-kpi{background:#fff;border:1px solid var(--border,#e2e8f0);border-radius:10px;padding:14px 16px;position:relative;overflow:hidden}
+    .an-kpi-label{font-size:10.5px;font-weight:700;color:#6b7280;text-transform:uppercase;letter-spacing:.05em;margin-bottom:6px}
+    .an-kpi-value{font-size:22px;font-weight:800;color:#111827;line-height:1.15}
+    .an-kpi-sub{font-size:11px;color:#9ca3af;margin-top:4px}
+    .an-kpi-trend{font-size:11px;font-weight:700;margin-top:4px;display:inline-flex;align-items:center;gap:3px}
+    .an-kpi-trend.up{color:#166534}
+    .an-kpi-trend.down{color:#991b1b}
+    .an-kpi-trend.flat{color:#6b7280}
+    .an-kpi.alert{border-color:#fecaca;background:#fff7f7}
+    .an-charts-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:20px}
+    @media(max-width:1000px){ .an-charts-grid{grid-template-columns:1fr} }
+    .an-alert-row{display:flex;align-items:flex-start;gap:10px;padding:10px 14px;border-bottom:1px solid #f1f5f9}
+    .an-alert-row:last-child{border-bottom:none}
+    .an-alert-sev{width:8px;height:8px;border-radius:50%;margin-top:5px;flex-shrink:0}
+    .an-alert-sev.high{background:#dc2626}
+    .an-alert-sev.med{background:#f59e0b}
+    .an-alert-title{font-size:13px;font-weight:600;color:#111827}
+    .an-alert-desc{font-size:12px;color:#6b7280;margin-top:2px}
   </style>
 </head>
 <body>
@@ -39,6 +69,15 @@
       </div>
     </div>
     <div class="page-body">
+
+      <!-- Abas -->
+      <div class="ent-tabs">
+        <button class="ent-tab active" data-tab="registro"><span class="icon" style="width:13px;height:13px"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12l7 7 7-7"/></svg></span> Registro de Entradas</button>
+        <button class="ent-tab" data-tab="analises"><span class="icon" style="width:13px;height:13px"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><path d="M18.7 8l-5.1 5.1-2.8-2.8L7 14"/></svg></span> Análises de Entrada de Materiais</button>
+      </div>
+
+      <!-- ══ ABA: REGISTRO ══ -->
+      <div class="tab-pane active" id="tab-registro">
 
       <!-- KPIs -->
       <div class="kpi-grid" style="grid-template-columns:repeat(2,1fr);max-width:480px">
@@ -196,6 +235,50 @@
           </table>
         </div>
       </div>
+      </div><!-- /tab-registro -->
+
+      <!-- ══ ABA: ANÁLISES DE ENTRADA DE MATERIAIS ══ -->
+      <div class="tab-pane" id="tab-analises">
+        <p class="text-muted" style="font-size:12px;margin-bottom:16px">
+          Os indicadores abaixo refletem o período e os filtros aplicados na aba "Registro de Entradas".
+        </p>
+
+        <!-- KPIs de gestão -->
+        <div class="an-kpi-grid" id="an-kpis"></div>
+
+        <!-- Gráficos -->
+        <div class="an-charts-grid">
+          <div class="card" style="padding:16px">
+            <h4 style="margin-bottom:4px">Evolução Mensal — Recebido vs Rejeito UVR</h4>
+            <p class="text-muted" style="font-size:11px;margin-bottom:10px">Últimos 12 meses com movimento</p>
+            <div style="height:280px;position:relative"><canvas id="chart-an-mensal"></canvas></div>
+          </div>
+          <div class="card" style="padding:16px">
+            <h4 style="margin-bottom:4px">Distribuição por Tipo de Material</h4>
+            <p class="text-muted" style="font-size:11px;margin-bottom:10px">% do volume recebido no período</p>
+            <div style="height:280px;position:relative"><canvas id="chart-an-tipo"></canvas></div>
+          </div>
+          <div class="card" style="padding:16px">
+            <h4 style="margin-bottom:4px">Qualidade por Fornecedor — Impureza x Umidade</h4>
+            <p class="text-muted" style="font-size:11px;margin-bottom:10px">Top 10 fornecedores com maior % médio (impureza + umidade)</p>
+            <div style="height:300px;position:relative"><canvas id="chart-an-qualidade"></canvas></div>
+          </div>
+          <div class="card" style="padding:16px">
+            <h4 style="margin-bottom:4px">Concentração de Fornecedores (Curva de Pareto)</h4>
+            <p class="text-muted" style="font-size:11px;margin-bottom:10px">Volume por fornecedor e % acumulado</p>
+            <div style="height:300px;position:relative"><canvas id="chart-an-pareto"></canvas></div>
+          </div>
+        </div>
+
+        <!-- Pontos de atenção -->
+        <div class="table-card">
+          <div class="table-card-header">
+            <h3>Pontos de Atenção para o Gestor</h3>
+            <span id="an-alert-count" class="text-muted" style="font-size:12px"></span>
+          </div>
+          <div id="an-alertas"></div>
+        </div>
+      </div><!-- /tab-analises -->
     </div>
   </div>
 </div>
@@ -253,7 +336,19 @@ await initPage();
 
 let perfil, entData = [], fornData = [], matData = [];
 let chartForn = null, chartMedia = null, fornViewMode = 'consolidado';
+let chartAnMensal = null, chartAnTipo = null, chartAnQualidade = null, chartAnPareto = null;
 const hoje = new Date();
+
+// ── Abas ─────────────────────────────────────────────────────────────────────
+document.querySelectorAll('.ent-tab').forEach(tab => {
+  tab.addEventListener('click', () => {
+    document.querySelectorAll('.ent-tab').forEach(t => t.classList.remove('active'));
+    document.querySelectorAll('.tab-pane').forEach(p => p.classList.remove('active'));
+    tab.classList.add('active');
+    document.getElementById('tab-' + tab.dataset.tab).classList.add('active');
+    if (tab.dataset.tab === 'analises') renderAnalises();
+  });
+});
 
 // Sem filtro de período por padrão — mostra todos os dados
 
@@ -362,6 +457,7 @@ async function carregar() {
   renderKPIs();
   renderTabela();
   await renderGraficos(mes);
+  if (document.getElementById('tab-analises').classList.contains('active')) renderAnalises();
 }
 
 function renderKPIs() {
@@ -732,6 +828,244 @@ async function calcularMediaHistorica() {
   });
 
   document.getElementById('media-legenda').style.display = 'block';
+}
+
+// ── Análises de Entrada de Materiais ─────────────────────────────────────────
+function renderAnalises() {
+  const rows = entData;
+  const entradas = rows.filter(r => r.tipo_movimentacao !== 'saida');
+
+  const totalRecebidoKg  = entradas.reduce((s,r)=> s + parseFloat(r.peso_liquido_descontos ?? r.peso_kg ?? 0), 0);
+  const totalBrutoKg     = entradas.reduce((s,r)=> s + parseFloat(r.peso_liquido ?? 0), 0);
+  const totalDescontosKg = entradas.reduce((s,r)=> s + parseFloat(r.total_descontos ?? 0), 0);
+  const totalRejeitoKg   = entradas.reduce((s,r)=> s + parseFloat(r.rejeito_uvr ?? 0), 0);
+  const nEntradas = entradas.length;
+  const fornSet = new Set(entradas.map(r=>r.fornecedores?.nome || 'Desconhecido'));
+
+  // Impureza/umidade médias ponderadas pelo peso bruto
+  let somaImpPond=0, somaUmiPond=0, pesoPondTotal=0;
+  entradas.forEach(r=>{
+    const p = parseFloat(r.peso_liquido||0);
+    somaImpPond += (parseFloat(r.impureza||0))*p;
+    somaUmiPond += (parseFloat(r.umidade||0))*p;
+    pesoPondTotal += p;
+  });
+  const impurezaMedia = pesoPondTotal>0 ? somaImpPond/pesoPondTotal : 0;
+  const umidadeMedia  = pesoPondTotal>0 ? somaUmiPond/pesoPondTotal : 0;
+  const taxaRejeito  = totalRecebidoKg>0 ? (totalRejeitoKg/totalRecebidoKg*100) : 0;
+  const taxaDesconto = totalBrutoKg>0 ? (totalDescontosKg/totalBrutoKg*100) : 0;
+  const volMedioEntrada = nEntradas>0 ? totalRecebidoKg/nEntradas : 0;
+
+  // Agregação por fornecedor
+  const fornMap = {};
+  entradas.forEach(r=>{
+    const nome = r.fornecedores?.nome || 'Desconhecido';
+    if(!fornMap[nome]) fornMap[nome] = { vol:0, impPond:0, umiPond:0, pesoPond:0, n:0 };
+    const pld = parseFloat(r.peso_liquido_descontos ?? r.peso_kg ?? 0);
+    const pl  = parseFloat(r.peso_liquido||0);
+    fornMap[nome].vol += pld;
+    fornMap[nome].impPond += (parseFloat(r.impureza||0))*pl;
+    fornMap[nome].umiPond += (parseFloat(r.umidade||0))*pl;
+    fornMap[nome].pesoPond += pl;
+    fornMap[nome].n += 1;
+  });
+  const fornArr = Object.entries(fornMap).map(([nome,d])=>({
+    nome, vol:d.vol, n:d.n,
+    impMedia: d.pesoPond>0 ? d.impPond/d.pesoPond : 0,
+    umiMedia: d.pesoPond>0 ? d.umiPond/d.pesoPond : 0,
+  })).sort((a,b)=>b.vol-a.vol);
+
+  const top3Vol = fornArr.slice(0,3).reduce((s,f)=>s+f.vol,0);
+  const concentracaoTop3 = totalRecebidoKg>0 ? (top3Vol/totalRecebidoKg*100) : 0;
+  const maiorForn = fornArr[0];
+
+  // Tendência mensal (a partir dos dados carregados)
+  const mesMap = {}, rejMesMap = {};
+  entradas.forEach(r=>{
+    const mes = (r.data||'').substring(0,7);
+    if (!mes) return;
+    mesMap[mes] = (mesMap[mes]||0) + parseFloat(r.peso_liquido_descontos ?? r.peso_kg ?? 0);
+    rejMesMap[mes] = (rejMesMap[mes]||0) + parseFloat(r.rejeito_uvr||0);
+  });
+  const mesesOrdenados = Object.keys(mesMap).sort();
+  const ultimosMeses = mesesOrdenados.slice(-12);
+  let tendenciaPct = null;
+  if (mesesOrdenados.length >= 2) {
+    const atual    = mesMap[mesesOrdenados[mesesOrdenados.length-1]];
+    const anterior = mesMap[mesesOrdenados[mesesOrdenados.length-2]];
+    if (anterior > 0) tendenciaPct = ((atual-anterior)/anterior*100);
+  }
+
+  const fmtTon = kg => (kg/1000).toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2});
+  const fmtPct = v => v.toLocaleString('pt-BR',{minimumFractionDigits:1,maximumFractionDigits:1});
+
+  // ── KPIs ──
+  const kpis = [
+    { label:'Volume Total Recebido',         value: fmtTon(totalRecebidoKg)+' ton', sub:`${nEntradas} entrada(s) no período` },
+    { label:'Rejeito UVR',                    value: fmtTon(totalRejeitoKg)+' ton',  sub:`${fmtPct(taxaRejeito)}% do recebido`, alert: taxaRejeito>10 },
+    { label:'Impureza Média',                 value: fmtPct(impurezaMedia)+'%',      sub:'ponderada pelo peso bruto' },
+    { label:'Umidade Média',                  value: fmtPct(umidadeMedia)+'%',       sub:'ponderada pelo peso bruto' },
+    { label:'Perda por Descontos',            value: fmtTon(totalDescontosKg)+' ton',sub:`${fmtPct(taxaDesconto)}% do peso bruto` },
+    { label:'Fornecedores Ativos',            value: fornSet.size,                   sub:'com entregas no período' },
+    { label:'Volume Médio / Entrada',         value: fmtTon(volMedioEntrada)+' ton', sub:'por lançamento' },
+    { label:'Concentração Top 3 Fornecedores',value: fmtPct(concentracaoTop3)+'%',   sub: maiorForn ? `líder: ${maiorForn.nome}` : '—', alert: concentracaoTop3>60 },
+    { label:'Maior Fornecedor',               value: maiorForn ? fmtTon(maiorForn.vol)+' ton' : '—', sub: maiorForn ? maiorForn.nome : 'sem dados' },
+    { label:'Tendência vs Mês Anterior',      value: tendenciaPct===null ? '—' : (tendenciaPct>=0?'▲ ':'▼ ')+fmtPct(Math.abs(tendenciaPct))+'%', sub:'variação de volume mensal', alert: tendenciaPct!==null && tendenciaPct<=-15 },
+  ];
+  document.getElementById('an-kpis').innerHTML = kpis.map(k => `
+    <div class="an-kpi ${k.alert?'alert':''}">
+      <div class="an-kpi-label">${k.label}</div>
+      <div class="an-kpi-value">${k.value}</div>
+      <div class="an-kpi-sub">${k.sub}</div>
+    </div>
+  `).join('');
+
+  // ── Gráfico: Evolução Mensal ──
+  const MESES_PT = ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
+  const labelsMes = ultimosMeses.map(m => { const [y,mo]=m.split('-'); return `${MESES_PT[+mo-1]}/${y.slice(2)}`; });
+  const volMensal = ultimosMeses.map(m => (mesMap[m]||0)/1000);
+  const rejMensal = ultimosMeses.map(m => (rejMesMap[m]||0)/1000);
+
+  if (chartAnMensal) chartAnMensal.destroy();
+  chartAnMensal = new Chart(document.getElementById('chart-an-mensal').getContext('2d'), {
+    data: {
+      labels: labelsMes,
+      datasets: [
+        { type:'bar',  label:'Recebido (ton)',    data: volMensal, backgroundColor:'#006636', borderRadius:4, order:2 },
+        { type:'line', label:'Rejeito UVR (ton)',  data: rejMensal, borderColor:'#ef4444', backgroundColor:'transparent', borderWidth:2, pointRadius:3, pointBackgroundColor:'#ef4444', tension:.15, order:1 },
+      ]
+    },
+    options: {
+      responsive:true, maintainAspectRatio:false,
+      plugins:{ legend:{position:'bottom'}, tooltip:{mode:'index',intersect:false} },
+      scales:{ y:{ beginAtZero:true, ticks:{ callback:v=>v.toLocaleString('pt-BR')+' ton' } } }
+    }
+  });
+
+  // ── Gráfico: Distribuição por Tipo de Material ──
+  const tipoMap = {};
+  entradas.forEach(r=>{
+    const tipo = r.tipo_material || 'Não informado';
+    tipoMap[tipo] = (tipoMap[tipo]||0) + parseFloat(r.peso_liquido_descontos ?? r.peso_kg ?? 0);
+  });
+  const tipoLabels = Object.keys(tipoMap).sort((a,b)=>tipoMap[b]-tipoMap[a]);
+  const tipoVals   = tipoLabels.map(t=>tipoMap[t]/1000);
+  const PALETA = ['#006636','#3b82f6','#f59e0b','#ef4444','#8b5cf6','#0f766e','#d946ef','#84cc16','#0ea5e9','#f97316'];
+
+  if (chartAnTipo) chartAnTipo.destroy();
+  chartAnTipo = new Chart(document.getElementById('chart-an-tipo').getContext('2d'), {
+    type:'doughnut',
+    data:{ labels: tipoLabels, datasets:[{ data: tipoVals, backgroundColor: tipoLabels.map((_,i)=>PALETA[i%PALETA.length]) }] },
+    options:{
+      responsive:true, maintainAspectRatio:false,
+      plugins:{
+        legend:{position:'right', labels:{boxWidth:10,font:{size:10}}},
+        tooltip:{ callbacks:{ label: ctx => {
+          const total = tipoVals.reduce((a,b)=>a+b,0);
+          const pct = total>0 ? (ctx.parsed/total*100).toFixed(1) : 0;
+          return `${ctx.label}: ${ctx.parsed.toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2})} ton (${pct}%)`;
+        } } }
+      }
+    }
+  });
+
+  // ── Gráfico: Qualidade por Fornecedor ──
+  const fornQualidade = [...fornArr].filter(f=>f.n>0)
+    .sort((a,b)=>(b.impMedia+b.umiMedia)-(a.impMedia+a.umiMedia)).slice(0,10);
+
+  if (chartAnQualidade) chartAnQualidade.destroy();
+  chartAnQualidade = new Chart(document.getElementById('chart-an-qualidade').getContext('2d'), {
+    type:'bar',
+    data:{
+      labels: fornQualidade.map(f=>f.nome),
+      datasets:[
+        { label:'Impureza (%)', data: fornQualidade.map(f=>f.impMedia), backgroundColor:'#f59e0b' },
+        { label:'Umidade (%)',  data: fornQualidade.map(f=>f.umiMedia), backgroundColor:'#3b82f6' },
+      ]
+    },
+    options:{
+      indexAxis:'y', responsive:true, maintainAspectRatio:false,
+      plugins:{ legend:{position:'bottom'} },
+      scales:{ x:{ beginAtZero:true, ticks:{ callback:v=>v+'%' } }, y:{ ticks:{ font:{size:10} } } }
+    }
+  });
+
+  // ── Gráfico: Pareto de Fornecedores ──
+  const paretoArr = fornArr.slice(0,15);
+  const totalTop = fornArr.reduce((s,f)=>s+f.vol,0);
+  let acumulado = 0;
+  const cumulativo = paretoArr.map(f => { acumulado += f.vol; return totalTop>0 ? (acumulado/totalTop*100) : 0; });
+
+  if (chartAnPareto) chartAnPareto.destroy();
+  chartAnPareto = new Chart(document.getElementById('chart-an-pareto').getContext('2d'), {
+    data:{
+      labels: paretoArr.map(f=>f.nome),
+      datasets:[
+        { type:'bar',  label:'Volume (ton)',  data: paretoArr.map(f=>f.vol/1000), backgroundColor:'#006636', yAxisID:'y',  order:2 },
+        { type:'line', label:'% Acumulado',   data: cumulativo, borderColor:'#ef4444', backgroundColor:'transparent', borderWidth:2, pointRadius:3, pointBackgroundColor:'#ef4444', yAxisID:'y1', order:1 },
+      ]
+    },
+    options:{
+      responsive:true, maintainAspectRatio:false,
+      plugins:{ legend:{position:'bottom'} },
+      scales:{
+        x:{ ticks:{ maxRotation:45, minRotation:45, font:{size:10} } },
+        y:{ beginAtZero:true, position:'left', title:{display:true,text:'ton'} },
+        y1:{ beginAtZero:true, max:100, position:'right', grid:{drawOnChartArea:false}, ticks:{ callback:v=>v+'%' } },
+      }
+    }
+  });
+
+  // ── Pontos de atenção ──
+  const IMP_ALERTA = impurezaMedia + 5;
+  const UMI_ALERTA = umidadeMedia + 5;
+  const alertas = [];
+
+  fornArr.forEach(f=>{
+    if (f.impMedia > IMP_ALERTA || f.umiMedia > UMI_ALERTA) {
+      const diffImp = f.impMedia - impurezaMedia;
+      const diffUmi = f.umiMedia - umidadeMedia;
+      alertas.push({
+        sev: (diffImp>10 || diffUmi>10) ? 'high' : 'med',
+        title: `${f.nome} — qualidade fora do padrão`,
+        desc: `Impureza ${fmtPct(f.impMedia)}% (média geral ${fmtPct(impurezaMedia)}%) · Umidade ${fmtPct(f.umiMedia)}% (média geral ${fmtPct(umidadeMedia)}%). Considerar contato com o fornecedor.`,
+      });
+    }
+  });
+  if (concentracaoTop3 > 60 && maiorForn) {
+    alertas.push({
+      sev:'med',
+      title:'Alta dependência de poucos fornecedores',
+      desc:`Os 3 maiores fornecedores respondem por ${fmtPct(concentracaoTop3)}% do volume recebido. Avaliar diversificação da base para reduzir risco de abastecimento.`,
+    });
+  }
+  if (taxaRejeito > 10) {
+    alertas.push({
+      sev:'high',
+      title:'Taxa de rejeito UVR elevada',
+      desc:`${fmtPct(taxaRejeito)}% do volume recebido virou rejeito no período. Revisar triagem e qualidade de entrada.`,
+    });
+  }
+  if (tendenciaPct !== null && tendenciaPct <= -15) {
+    alertas.push({
+      sev:'med',
+      title:'Queda no volume recebido',
+      desc:`Volume do último mês caiu ${fmtPct(Math.abs(tendenciaPct))}% em relação ao mês anterior. Investigar causa (sazonalidade, perda de fornecedor, etc.).`,
+    });
+  }
+
+  alertas.sort((a,b)=> (a.sev==='high'?0:1) - (b.sev==='high'?0:1));
+  document.getElementById('an-alert-count').textContent = alertas.length ? `${alertas.length} ponto(s)` : '';
+  document.getElementById('an-alertas').innerHTML = alertas.length
+    ? alertas.map(a => `
+      <div class="an-alert-row">
+        <span class="an-alert-sev ${a.sev}"></span>
+        <div>
+          <div class="an-alert-title">${a.title}</div>
+          <div class="an-alert-desc">${a.desc}</div>
+        </div>
+      </div>`).join('')
+    : `<div class="table-empty">Nenhum ponto de atenção identificado no período selecionado.</div>`;
 }
 
 // ── CRUD ──────────────────────────────────────────────────────────────────────
