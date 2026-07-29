@@ -1195,7 +1195,17 @@ function renderAnalises() {
     },
     options:{
       responsive:true, maintainAspectRatio:false,
-      plugins:{ legend:{position:'bottom'} },
+      plugins:{
+        legend:{position:'bottom'},
+        tooltip:{
+          mode:'index', intersect:false,
+          callbacks:{
+            label: ctx => ctx.dataset.type === 'line'
+              ? `% Acumulado: ${ctx.parsed.y.toLocaleString('pt-BR',{minimumFractionDigits:1,maximumFractionDigits:1})}%`
+              : `Volume: ${ctx.parsed.y.toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2})} ton`
+          }
+        }
+      },
       scales:{
         x:{ ticks:{ maxRotation:45, minRotation:45, font:{size:10} } },
         y:{ beginAtZero:true, position:'left', title:{display:true,text:'ton'} },
