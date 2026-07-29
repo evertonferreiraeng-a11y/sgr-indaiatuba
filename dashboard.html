@@ -82,6 +82,20 @@
     .nota-amarelo { background:#fef3c7; color:#92400e; }
     .nota-vermelho{ background:#fee2e2; color:#991b1b; }
 
+    /* ── Pontos Críticos & Plano de Ação ── */
+    .crit-row { display:flex; align-items:flex-start; gap:12px; padding:12px 14px; border-radius:10px; margin-bottom:8px; border:1px solid; }
+    .crit-row:last-child { margin-bottom:0; }
+    .crit-row.high { background:#fef2f2; border-color:#fecaca; }
+    .crit-row.med  { background:#fffbeb; border-color:#fde68a; }
+    .crit-row .crit-ic { flex-shrink:0; margin-top:1px; }
+    .crit-row.high .crit-ic { color:#dc2626; }
+    .crit-row.med  .crit-ic { color:#d97706; }
+    .crit-title { font-size:13px; font-weight:700; color:#0f172a; }
+    .crit-desc  { font-size:12px; color:#475569; margin-top:3px; line-height:1.5; }
+    .crit-tag   { display:inline-block; font-size:9.5px; font-weight:700; text-transform:uppercase; letter-spacing:.05em; padding:2px 8px; border-radius:10px; margin-left:8px; vertical-align:1px; }
+    .crit-tag.faturamento { background:#dbeafe; color:#1e40af; }
+    .crit-tag.volume      { background:#dcfce7; color:#166534; }
+
     /* ── Impressão ── */
     @media print {
       @page { size: A4 landscape; margin: 10mm 12mm; }
@@ -221,6 +235,45 @@ function notaClass(n) {
   return n >= 7 ? 'nota-verde' : n >= 5 ? 'nota-amarelo' : 'nota-vermelho';
 }
 
+// Tendência por cliente vs. média histórica, com data de corte por dia do mês
+// (ex.: hoje é dia 29 → meses anteriores também entram só até o dia 29,
+// para comparar de forma justa com o mês em andamento). Usada tanto para
+// faturamento quanto para volume de entrada por cliente/fornecedor.
+function calcularTendenciaPorCliente(rows, getNome, getValor) {
+  const datas = rows.map(r => r.data).filter(Boolean).sort();
+  const diaCorte = datas.length ? parseInt(datas[datas.length - 1].slice(8, 10), 10) : 31;
+
+  const porClienteMes = {};
+  rows.forEach(r => {
+    if (!r.data) return;
+    const dia = parseInt(r.data.slice(8, 10), 10);
+    if (dia > diaCorte) return;
+    const nome = getNome(r) || 'Desconhecido';
+    const mes  = r.data.slice(0, 7);
+    if (!porClienteMes[nome]) porClienteMes[nome] = {};
+    porClienteMes[nome][mes] = (porClienteMes[nome][mes] || 0) + getValor(r);
+  });
+
+  const tendencias = Object.entries(porClienteMes).map(([nome, meses]) => {
+    const mesesCli = Object.keys(meses).sort();
+    if (mesesCli.length < 2) return null;
+    const ultimoMes       = mesesCli[mesesCli.length - 1];
+    const volUltimo        = meses[ultimoMes];
+    const historicoMeses  = mesesCli.slice(0, -1);
+    const mediaHistorica  = historicoMeses.reduce((s, m) => s + meses[m], 0) / historicoMeses.length;
+    const variacaoPct     = mediaHistorica > 0 ? ((volUltimo - mediaHistorica) / mediaHistorica * 100) : null;
+    let status = 'estavel';
+    if (variacaoPct === null)     status = 'insuficiente';
+    else if (variacaoPct <= -20)  status = 'queda_forte';
+    else if (variacaoPct <= -10)  status = 'queda';
+    else if (variacaoPct >= 15)   status = 'crescimento';
+    return { nome, volUltimo, mediaHistorica, variacaoPct, status };
+  }).filter(Boolean).filter(t => t.status !== 'insuficiente')
+    .sort((a, b) => (a.variacaoPct ?? 0) - (b.variacaoPct ?? 0));
+
+  return { diaCorte, tendencias };
+}
+
 async function carregar() {
   const { inicio, fim, label } = getPeriodo();
   document.getElementById('rel-periodo-label').textContent = label;
@@ -229,7 +282,7 @@ async function carregar() {
   const ano = inicio.slice(0, 4);
   const hojeStr = new Date().toISOString().split('T')[0];
 
-  const [ents, vends, mats, equipamentos, colaboradores, avaliacoes, ocorrencias, producoes, metas, vendsAno, cargosAll, presencaHoje] = await Promise.all([
+  const [ents, vends, mats, equipamentos, colaboradores, avaliacoes, ocorrencias, producoes, metas, vendsAno, cargosAll, presencaHoje, entsAnoCli] = await Promise.all([
     fetchAll('entradas', 'peso_liquido, peso_liquido_descontos, tipo_movimentacao, tipo_material, data', [['gte','data',inicio],['lte','data',fim]]),
     fetchAll('vendas', 'peso_kg, valor_total, data, clientes(nome)', [['gte','data',inicio],['lte','data',fim]]),
     fetchAll('materiais', 'nome, estoque_kg, valor_unitario, no_estoque, observacao', [['eq','no_estoque',true]]),
@@ -239,9 +292,10 @@ async function carregar() {
     fetchAll('ocorrencias', 'tipo, data, colaborador_id', [['gte','data',inicio],['lte','data',fim]]),
     fetchAll('producao', 'peso_kg, data', [['gte','data',inicio],['lte','data',fim]]),
     fetchAll('metas', 'periodo, valor_meta', [['eq','indicador','faturamento'],['gte','periodo',`${ano}-01`],['lte','periodo',`${ano}-12`]]),
-    fetchAll('vendas', 'peso_kg, valor_total, data', [['gte','data',`${ano}-01-01`],['lte','data',`${ano}-12-31`]]),
+    fetchAll('vendas', 'peso_kg, valor_total, data, clientes(nome)', [['gte','data',`${ano}-01-01`],['lte','data',`${ano}-12-31`]]),
     fetchAll('cargos', 'nome, vagas', []),
     fetchAll('presenca_diaria', 'colaborador_id, presente', [['eq','data',hojeStr]]),
+    fetchAll('entradas', 'peso_liquido, peso_liquido_descontos, peso_kg, tipo_movimentacao, fornecedor_id, fornecedores(nome), data', [['gte','data',`${ano}-01-01`],['lte','data',`${ano}-12-31`]]),
   ]);
 
   // Snapshot de referência — carregado separadamente para não travar se tabela não existir
@@ -415,6 +469,66 @@ async function carregar() {
   // ── Materiais em estoque ─────────────────────────────────────────────────
   const matsEstoque = mats.filter(m=>parseFloat(m.estoque_kg||0)>0).sort((a,b)=>b.estoque_kg-a.estoque_kg);
 
+  // ── Pontos Críticos & Plano de Ação ───────────────────────────────────────
+  const miCrit      = new Date().getMonth();
+  const atMesCrit   = fatPrev[miCrit] > 0 ? fatReal[miCrit] / fatPrev[miCrit] * 100 : null;
+  const metaMesCrit = fatPrev[miCrit] || 0;
+
+  const fatPorCliente = {};
+  vends.forEach(r => {
+    const nome = r.clientes?.nome || 'Desconhecido';
+    fatPorCliente[nome] = (fatPorCliente[nome] || 0) + (r.valor_total || 0);
+  });
+  const clientesFatOrdenados = Object.entries(fatPorCliente).sort((a,b) => b[1]-a[1]);
+  const top3FatVal = clientesFatOrdenados.slice(0,3).reduce((s,[,v]) => s+v, 0);
+  const concentracaoFatTop3 = faturamento > 0 ? (top3FatVal / faturamento * 100) : 0;
+
+  const { diaCorte: diaCorteFat, tendencias: tendClientesFat } =
+    calcularTendenciaPorCliente(vendsAno, r => r.clientes?.nome, r => r.valor_total || 0);
+  const entradasClientesAno = entsAnoCli.filter(r => r.tipo_movimentacao !== 'saida');
+  const { diaCorte: diaCorteVol, tendencias: tendClientesVol } =
+    calcularTendenciaPorCliente(entradasClientesAno, r => r.fornecedores?.nome,
+      r => parseFloat(r.peso_liquido_descontos ?? r.peso_kg ?? r.peso_liquido ?? 0));
+
+  const criticosAlertas = [];
+
+  if (atMesCrit !== null && atMesCrit < 100) {
+    criticosAlertas.push({
+      sev: atMesCrit < 80 ? 'high' : 'med',
+      area: 'faturamento',
+      title: `Faturamento ${atMesCrit < 80 ? 'muito abaixo' : 'abaixo'} da meta do mês`,
+      desc: `Realizado ${moeda(fatReal[miCrit])} de uma meta de ${moeda(metaMesCrit)} (${atMesCrit.toFixed(1)}%). Plano de ação: priorizar clientes com maior ticket médio, revisar o pipeline comercial e acelerar negociações em andamento antes do fechamento do mês.`,
+    });
+  }
+
+  if (concentracaoFatTop3 > 60 && clientesFatOrdenados.length) {
+    criticosAlertas.push({
+      sev:'med', area:'faturamento',
+      title:'Alta concentração de faturamento em poucos clientes',
+      desc:`Os 3 maiores clientes respondem por ${concentracaoFatTop3.toFixed(1)}% do faturamento do período (líder: ${clientesFatOrdenados[0][0]}). Plano de ação: prospectar novos clientes e diversificar a carteira para reduzir a dependência de poucos contratos.`,
+    });
+  }
+
+  tendClientesFat.filter(t => t.status==='queda_forte' || t.status==='queda').slice(0,6).forEach(t => {
+    criticosAlertas.push({
+      sev: t.status==='queda_forte' ? 'high' : 'med',
+      area:'faturamento',
+      title:`${t.nome} — faturamento em queda`,
+      desc:`Até o dia ${diaCorteFat}: ${moeda(t.volUltimo)} vs. média histórica de ${moeda(t.mediaHistorica)}/mês no mesmo intervalo (${Math.abs(t.variacaoPct).toFixed(1)}% abaixo). Plano de ação: contatar o cliente para entender o motivo da retração e negociar a retomada de volume ou preço.`,
+    });
+  });
+
+  tendClientesVol.filter(t => t.status==='queda_forte' || t.status==='queda').slice(0,6).forEach(t => {
+    criticosAlertas.push({
+      sev: t.status==='queda_forte' ? 'high' : 'med',
+      area:'volume',
+      title:`${t.nome} — volume de entrada de materiais em queda`,
+      desc:`Até o dia ${diaCorteVol}: ${ton(t.volUltimo)} vs. média histórica de ${ton(t.mediaHistorica)}/mês no mesmo intervalo (${Math.abs(t.variacaoPct).toFixed(1)}% abaixo). Plano de ação: contatar o cliente/fornecedor para entender a redução e evitar a perda definitiva do volume.`,
+    });
+  });
+
+  criticosAlertas.sort((a,b) => (a.sev==='high'?0:1) - (b.sev==='high'?0:1));
+
   // ── Expõe dados globalmente para gerarPPTX() ─────────────────────────────
   window.relData = {
     label, inicio, fim, ano,
@@ -492,6 +606,29 @@ async function carregar() {
         </div>
       </div>`;
     })()}
+
+    <!-- ══ PONTOS CRÍTICOS & PLANO DE AÇÃO ══ -->
+    ${criticosAlertas.length ? `
+    <div class="card rel-section" style="border:1px solid #fecaca">
+      <div class="sec-hd">
+        <div class="sec-dot" style="background:#dc2626"></div>
+        <div class="sec-title">Pontos Críticos &amp; Plano de Ação</div>
+        <div class="sec-line"></div>
+        <span class="sec-badge" style="color:#dc2626;background:#fee2e2">${criticosAlertas.length} ponto(s) de atenção</span>
+      </div>
+      <div style="font-size:11.5px;color:#94a3b8;margin:-8px 0 14px">
+        Faturamento: comparação com a meta e com clientes fora do padrão de compra. Volume: comparação até o dia ${diaCorteVol} de cada mês, para não confundir mês em andamento com queda real.
+      </div>
+      ${criticosAlertas.map(a => `
+        <div class="crit-row ${a.sev}">
+          <span class="crit-ic">${icon('alert-triangle', { size: 16 })}</span>
+          <div>
+            <span class="crit-title">${a.title}</span>
+            <span class="crit-tag ${a.area}">${a.area === 'faturamento' ? 'Faturamento' : 'Volume'}</span>
+            <div class="crit-desc">${a.desc}</div>
+          </div>
+        </div>`).join('')}
+    </div>` : ''}
 
     <!-- ══ 1. BALANÇO DE MASSA ══ -->
     <div class="card rel-section">
