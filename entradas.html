@@ -53,8 +53,10 @@
     .forn-picker-btn{display:flex;align-items:center;justify-content:space-between;gap:6px;width:100%;min-width:200px;padding:7px 10px;border:1px solid #d1d5db;border-radius:6px;background:#fff;font-size:13px;color:#111827;text-align:left;cursor:pointer;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
     .forn-picker-btn:hover{border-color:#9ca3af}
     .forn-picker-btn::after{content:'▾';color:#9ca3af;flex-shrink:0}
-    .fp-item{display:flex;align-items:center;gap:8px;padding:8px 10px;border-radius:6px;font-size:13px;color:#111827;cursor:pointer}
+    .fp-item{display:flex;align-items:center;gap:10px;padding:9px 10px;border-radius:6px;font-size:13px;font-weight:500;text-transform:none;letter-spacing:normal;color:#111827;cursor:pointer}
     .fp-item:hover{background:#f8fafc}
+    .fp-item input[type="checkbox"]{width:16px;height:16px;min-width:16px;flex-shrink:0;padding:0;accent-color:#006636;cursor:pointer}
+    .fp-item span{flex:1;min-width:0}
   </style>
 </head>
 <body>
@@ -1687,7 +1689,7 @@ function renderFornPickerLista() {
     ? lista.map(f => `
       <label class="fp-item">
         <input type="checkbox" value="${f.id}" ${fpSelecionados.has(f.id) ? 'checked' : ''} />
-        ${f.nome}
+        <span>${f.nome}</span>
       </label>`).join('')
     : `<div class="table-empty" style="padding:24px">Nenhum fornecedor encontrado</div>`;
   atualizarFpCount();
