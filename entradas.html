@@ -309,9 +309,12 @@
 
         <!-- Tendência de volume por cliente vs. média histórica -->
         <div class="table-card">
-          <div class="table-card-header">
-            <h3>Tendência de Volume por Cliente — vs. Média Histórica</h3>
-            <span id="an-tendencia-count" class="text-muted" style="font-size:12px"></span>
+          <div class="table-card-header" style="flex-direction:column;align-items:flex-start">
+            <div style="display:flex;width:100%;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap">
+              <h3>Tendência de Volume por Cliente — vs. Média Histórica</h3>
+              <span id="an-tendencia-count" class="text-muted" style="font-size:12px"></span>
+            </div>
+            <p class="text-muted" style="font-size:11.5px;margin-top:2px" id="an-tendencia-subtitulo"></p>
           </div>
           <div class="table-scroll">
             <table style="font-size:12.5px">
@@ -319,7 +322,7 @@
                 <tr>
                   <th>Cliente</th>
                   <th class="text-right">Média Histórica (ton/mês)</th>
-                  <th class="text-right">Último Mês (ton)</th>
+                  <th class="text-right" id="an-tendencia-th-ultimo">Último Mês (ton)</th>
                   <th class="text-right">Variação</th>
                   <th>Tendência</th>
                 </tr>
@@ -1021,9 +1024,21 @@ function renderAnalises() {
   const concentracaoTop3 = totalRecebidoKg>0 ? (top3Vol/totalRecebidoKg*100) : 0;
   const maiorForn = fornArr[0];
 
-  // Volume mensal por cliente — para comparar o último mês com a média histórica
+  // Data de corte (dia do mês) para comparações justas mês a mês: usa o
+  // último dia com lançamento no período filtrado — ex.: hoje é dia 29 →
+  // os meses anteriores também entram só até o dia 29, evitando comparar
+  // um mês incompleto (em andamento) com meses já fechados.
+  const datasEntradas = entradas.map(r=>r.data).filter(Boolean).sort();
+  const diaCorte = datasEntradas.length
+    ? parseInt(datasEntradas[datasEntradas.length-1].slice(8,10), 10)
+    : 31;
+
+  // Volume mensal por cliente (até o dia de corte) — para comparar o
+  // último mês com a média histórica no mesmo intervalo de dias
   const fornMesMap = {};
   entradas.forEach(r=>{
+    const dia = parseInt((r.data||'').slice(8,10), 10);
+    if (dia > diaCorte) return;
     const nome = r.fornecedores?.nome || 'Desconhecido';
     const mes  = (r.data||'').substring(0,7);
     if (!mes) return;
@@ -1061,15 +1076,25 @@ function renderAnalises() {
   });
   const mesesOrdenados = Object.keys(mesMap).sort();
   const ultimosMeses = mesesOrdenados.slice(-12);
+
+  // Tendência vs. mês anterior, também até o dia de corte (comparação justa
+  // com o mês em andamento)
+  const mesMapCorte = {};
+  entradas.forEach(r=>{
+    const dia = parseInt((r.data||'').slice(8,10), 10);
+    if (dia > diaCorte) return;
+    const mes = (r.data||'').substring(0,7);
+    if (!mes) return;
+    mesMapCorte[mes] = (mesMapCorte[mes]||0) + parseFloat(r.peso_liquido_descontos ?? r.peso_kg ?? 0);
+  });
   let tendenciaPct = null;
   if (mesesOrdenados.length >= 2) {
-    const atual    = mesMap[mesesOrdenados[mesesOrdenados.length-1]];
-    const anterior = mesMap[mesesOrdenados[mesesOrdenados.length-2]];
+    const atual    = mesMapCorte[mesesOrdenados[mesesOrdenados.length-1]] || 0;
+    const anterior = mesMapCorte[mesesOrdenados[mesesOrdenados.length-2]] || 0;
     if (anterior > 0) tendenciaPct = ((atual-anterior)/anterior*100);
   }
 
   // Médias de recebimento por dia / mês / ano (a partir do período filtrado)
-  const datasEntradas = entradas.map(r=>r.data).filter(Boolean).sort();
   let nDiasPeriodo = 0;
   if (datasEntradas.length) {
     const d0 = new Date(datasEntradas[0]);
@@ -1095,7 +1120,7 @@ function renderAnalises() {
     { label:'Volume Médio / Entrada',         value: fmtTon(volMedioEntrada)+' ton', sub:'por lançamento' },
     { label:'Concentração Top 3 Fornecedores',value: fmtPct(concentracaoTop3)+'%',   sub: maiorForn ? `líder: ${maiorForn.nome}` : '—', alert: concentracaoTop3>60 },
     { label:'Maior Fornecedor',               value: maiorForn ? fmtTon(maiorForn.vol)+' ton' : '—', sub: maiorForn ? maiorForn.nome : 'sem dados' },
-    { label:'Tendência vs Mês Anterior',      value: tendenciaPct===null ? '—' : (tendenciaPct>=0?'▲ ':'▼ ')+fmtPct(Math.abs(tendenciaPct))+'%', sub:'variação de volume mensal', alert: tendenciaPct!==null && tendenciaPct<=-15 },
+    { label:'Tendência vs Mês Anterior',      value: tendenciaPct===null ? '—' : (tendenciaPct>=0?'▲ ':'▼ ')+fmtPct(Math.abs(tendenciaPct))+'%', sub:`ambos até o dia ${diaCorte} do mês`, alert: tendenciaPct!==null && tendenciaPct<=-15 },
     { label:'Média por Dia',                  value: fmtTon(mediaDiaria)+' ton',     sub:`${nDiasPeriodo} dia(s) corrido(s) no período` },
     { label:'Média por Mês',                  value: fmtTon(mediaMensal)+' ton',     sub:`${nMesesComDado} mês(es) com lançamento` },
     { label:'Média por Ano (projeção)',       value: fmtTon(mediaAnual)+' ton',      sub:'projeção anualizada (média mensal × 12)' },
@@ -1248,7 +1273,7 @@ function renderAnalises() {
     alertas.push({
       sev:'med',
       title:'Queda no volume recebido',
-      desc:`Volume do último mês caiu ${fmtPct(Math.abs(tendenciaPct))}% em relação ao mês anterior. Investigar causa (sazonalidade, perda de fornecedor, etc.).`,
+      desc:`Volume do último mês (até o dia ${diaCorte}) caiu ${fmtPct(Math.abs(tendenciaPct))}% em relação ao mesmo intervalo do mês anterior. Investigar causa (sazonalidade, perda de fornecedor, etc.).`,
     });
   }
   tendenciaClientes.forEach(t => {
@@ -1256,7 +1281,7 @@ function renderAnalises() {
       alertas.push({
         sev: t.status === 'queda_forte' ? 'high' : 'med',
         title: `${t.nome} — volume abaixo da média histórica`,
-        desc: `Último mês: ${fmtTon(t.volUltimo)} ton vs. média histórica de ${fmtTon(t.mediaHistorica)} ton/mês (${fmtPct(Math.abs(t.variacaoPct))}% ${t.variacaoPct<0?'abaixo':'acima'}). Vale checar se o cliente reduziu o volume por algum motivo.`,
+        desc: `Até o dia ${diaCorte}: ${fmtTon(t.volUltimo)} ton vs. média histórica de ${fmtTon(t.mediaHistorica)} ton/mês no mesmo intervalo (${fmtPct(Math.abs(t.variacaoPct))}% ${t.variacaoPct<0?'abaixo':'acima'}). Vale checar se o cliente reduziu o volume por algum motivo.`,
       });
     }
   });
@@ -1283,6 +1308,9 @@ function renderAnalises() {
   };
   document.getElementById('an-tendencia-count').textContent =
     tendenciaClientes.length ? `${tendenciaClientes.length} cliente(s) com histórico` : '';
+  document.getElementById('an-tendencia-subtitulo').textContent =
+    `Cada mês (inclusive os históricos) considera só os lançamentos até o dia ${diaCorte}, para comparar de forma justa com o mês em andamento.`;
+  document.getElementById('an-tendencia-th-ultimo').textContent = `Último Mês (ton, até dia ${diaCorte})`;
   document.getElementById('an-tendencia-tb').innerHTML = tendenciaClientes.length
     ? tendenciaClientes.map(t => {
         const info = STATUS_INFO[t.status];
