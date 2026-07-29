@@ -152,9 +152,25 @@
 
       <!-- ══ ABA: ANÁLISES DE ENTRADA DE MATERIAIS ══ -->
       <div class="tab-pane" id="tab-analises">
-        <p class="text-muted" style="font-size:12px;margin-bottom:16px">
-          Os indicadores abaixo refletem o período e os filtros aplicados na aba "Registro de Entradas".
+        <p class="text-muted" style="font-size:12px;margin-bottom:12px">
+          Filtro independente da aba "Registro de Entradas" — aplica-se somente aos indicadores abaixo.
         </p>
+
+        <!-- Filtro próprio da aba Análises -->
+        <div class="card mb-16" style="padding:16px">
+          <div class="filters-row" style="flex-wrap:wrap;gap:12px">
+            <div class="form-group"><label>De</label><input type="date" id="an-f-de" /></div>
+            <div class="form-group"><label>Até</label><input type="date" id="an-f-ate" /></div>
+            <div class="form-group"><label>Mês rápido</label><input type="month" id="an-f-mes" /></div>
+            <div class="form-group"><label>Fornecedor</label><select id="an-f-forn" multiple style="height:72px"><option value="">Todos</option></select><div style="font-size:10px;color:#94a3b8;margin-top:2px">Ctrl+clique para vários</div></div>
+            <div class="form-group"><label>Material</label><select id="an-f-mat"><option value="">Todos</option></select></div>
+            <div class="form-group"><label>Tipo Material</label><select id="an-f-tipo-mat"><option value="">Todos</option></select></div>
+            <div class="form-group" style="justify-content:flex-end"><label>&nbsp;</label>
+              <button class="btn btn-primary" id="an-btn-filtrar">Filtrar</button>
+              <button class="btn btn-outline" id="an-btn-limpar" style="margin-left:6px">Limpar</button>
+            </div>
+          </div>
+        </div>
 
         <!-- KPIs de gestão -->
         <div class="an-kpi-grid" id="an-kpis"></div>
@@ -270,6 +286,28 @@
           </div>
         </div>
 
+        <!-- Tendência de volume por cliente vs. média histórica -->
+        <div class="table-card">
+          <div class="table-card-header">
+            <h3>Tendência de Volume por Cliente — vs. Média Histórica</h3>
+            <span id="an-tendencia-count" class="text-muted" style="font-size:12px"></span>
+          </div>
+          <div class="table-scroll">
+            <table style="font-size:12.5px">
+              <thead>
+                <tr>
+                  <th>Cliente</th>
+                  <th class="text-right">Média Histórica (ton/mês)</th>
+                  <th class="text-right">Último Mês (ton)</th>
+                  <th class="text-right">Variação</th>
+                  <th>Tendência</th>
+                </tr>
+              </thead>
+              <tbody id="an-tendencia-tb"></tbody>
+            </table>
+          </div>
+        </div>
+
         <!-- Pontos de atenção -->
         <div class="table-card">
           <div class="table-card-header">
@@ -334,9 +372,10 @@ import { icon } from './js/icons.js';
 
 await initPage();
 
-let perfil, entData = [], fornData = [], matData = [];
+let perfil, entData = [], entDataAn = [], fornData = [], matData = [];
 let chartForn = null, chartMedia = null, fornViewMode = 'consolidado';
 let chartAnMensal = null, chartAnTipo = null, chartAnQualidade = null, chartAnPareto = null;
+let analisesCarregada = false;
 const hoje = new Date();
 
 // ── Abas ─────────────────────────────────────────────────────────────────────
@@ -346,7 +385,10 @@ document.querySelectorAll('.ent-tab').forEach(tab => {
     document.querySelectorAll('.tab-pane').forEach(p => p.classList.remove('active'));
     tab.classList.add('active');
     document.getElementById('tab-' + tab.dataset.tab).classList.add('active');
-    if (tab.dataset.tab === 'analises') { renderAnalises(); renderChartForn(); }
+    if (tab.dataset.tab === 'analises') {
+      if (!analisesCarregada) { analisesCarregada = true; carregarAnalises(); }
+      else { renderAnalises(); renderChartForn(); }
+    }
   });
 });
 
@@ -400,12 +442,14 @@ async function init() {
 
   document.getElementById('f-forn').innerHTML = '<option value="">Todos</option>' + fornOpts;
   document.getElementById('f-mat').innerHTML  = '<option value="">Todos</option>' + matFiltroOpts;
+  document.getElementById('an-f-forn').innerHTML = '<option value="">Todos</option>' + fornOpts;
+  document.getElementById('an-f-mat').innerHTML  = '<option value="">Todos</option>' + matFiltroOpts;
 
   const { data: tiposDB } = await supabase.from('entradas').select('tipo_material').not('tipo_material','is',null);
   const tiposUnicos = [...new Set((tiposDB||[]).map(r=>r.tipo_material).filter(Boolean))].sort();
-  document.getElementById('f-tipo-mat').innerHTML =
-    '<option value="">Todos</option>' +
-    tiposUnicos.map(t=>`<option value="${t}">${t}</option>`).join('');
+  const tipoOptsHTML = '<option value="">Todos</option>' + tiposUnicos.map(t=>`<option value="${t}">${t}</option>`).join('');
+  document.getElementById('f-tipo-mat').innerHTML    = tipoOptsHTML;
+  document.getElementById('an-f-tipo-mat').innerHTML = tipoOptsHTML;
   document.querySelector('#form-entrada [name="fornecedor_id"]').innerHTML = '<option value="">Selecione…</option>' + fornOpts;
   document.querySelector('#form-entrada [name="material_id"]').innerHTML   = '<option value="">Selecione…</option>' + matOpts;
 
@@ -419,21 +463,8 @@ function periodoRange(mes) {
   return { ini: `${y}-${m}-01`, fim, y: +y, m: +m };
 }
 
-async function carregar() {
-  const mes  = document.getElementById('f-mes').value;
-  const fornSel = [...document.getElementById('f-forn').selectedOptions].map(o=>o.value).filter(v=>v!=='');
-  const mat      = document.getElementById('f-mat').value;
-  const tipoMat  = document.getElementById('f-tipo-mat').value;
-  let ini = document.getElementById('f-de').value;
-  let fim = document.getElementById('f-ate').value;
-
-  // Mês rápido sobrescreve intervalo
-  if (mes) {
-    const { ini: i, fim: f } = periodoRange(mes);
-    ini = i; fim = f;
-  }
-
-  // Busca paginada para superar limite de 1000 linhas do Supabase
+// Busca paginada para superar limite de 1000 linhas do Supabase
+async function fetchEntradasPaginado({ ini, fim, fornSel = [], mat = '', tipoMat = '' } = {}) {
   const PAGE = 1000;
   let page = 0, todos = [], done = false;
   while (!done) {
@@ -453,11 +484,33 @@ async function carregar() {
     if (!data || data.length === 0) { done = true; }
     else { todos = todos.concat(data); page++; if (data.length < PAGE) done = true; }
   }
-  entData = todos;
+  return todos;
+}
+
+function lerFiltro(prefix) {
+  const mes = document.getElementById(`${prefix}-mes`).value;
+  const fornSel = [...document.getElementById(`${prefix}-forn`).selectedOptions].map(o=>o.value).filter(v=>v!=='');
+  const mat     = document.getElementById(`${prefix}-mat`).value;
+  const tipoMat = document.getElementById(`${prefix}-tipo-mat`).value;
+  let ini = document.getElementById(`${prefix}-de`).value;
+  let fim = document.getElementById(`${prefix}-ate`).value;
+  if (mes) { const { ini: i, fim: f } = periodoRange(mes); ini = i; fim = f; }
+  return { mes, ini, fim, fornSel, mat, tipoMat };
+}
+
+async function carregar() {
+  const { ini, fim, fornSel, mat, tipoMat } = lerFiltro('f');
+  entData = await fetchEntradasPaginado({ ini, fim, fornSel, mat, tipoMat });
   renderKPIs();
   renderTabela();
-  await renderGraficos(mes);
-  if (document.getElementById('tab-analises').classList.contains('active')) renderAnalises();
+}
+
+// ── Aba Análises: filtro independente ─────────────────────────────────────────
+async function carregarAnalises() {
+  const { ini, fim, fornSel, mat, tipoMat } = lerFiltro('an-f');
+  entDataAn = await fetchEntradasPaginado({ ini, fim, fornSel, mat, tipoMat });
+  renderAnalises();
+  renderChartForn();
 }
 
 function renderKPIs() {
@@ -565,19 +618,15 @@ function iniciarEdicaoInline(cell) {
   });
 }
 
-// ── Gráficos ──────────────────────────────────────────────────────────────────
-async function renderGraficos(mes) {
-  await renderChartForn();
-}
-
+// ── Gráficos (aba Análises) ─────────────────────────────────────────────────────
 async function renderChartForn() {
   const de   = document.getElementById('forn-de').value;
   const ate  = document.getElementById('forn-ate').value;
   const sel  = document.getElementById('forn-sel').value;
 
   // Buscar dados com filtro de período se informado
-  const tipoMatFiltro = document.getElementById('f-tipo-mat').value;
-  let rows = entData;
+  const tipoMatFiltro = document.getElementById('an-f-tipo-mat').value;
+  let rows = entDataAn;
   if (de || ate) {
     let q = supabase.from('entradas').select('*, fornecedores(nome)');
     if (de)  q = q.gte('data', de);
@@ -589,7 +638,7 @@ async function renderChartForn() {
   if (tipoMatFiltro && !(de || ate)) rows = rows.filter(r => r.tipo_material === tipoMatFiltro);
 
   // Popular select de fornecedores
-  const todosForns = [...new Set(entData.map(r => r.fornecedores?.nome || 'Desconhecido'))].sort();
+  const todosForns = [...new Set(entDataAn.map(r => r.fornecedores?.nome || 'Desconhecido'))].sort();
   const selEl = document.getElementById('forn-sel');
   const selAtual = selEl.value;
   selEl.innerHTML = '<option value="">Todos os fornecedores</option>' +
@@ -697,7 +746,7 @@ async function calcularMediaHistorica() {
 
   // Busca dados históricos paginados
   const PAGE = 1000;
-  const tipoMatMedia = document.getElementById('f-tipo-mat').value;
+  const tipoMatMedia = document.getElementById('an-f-tipo-mat').value;
   let page = 0, histRows = [], done = false;
   while (!done) {
     let q = supabase.from('entradas')
@@ -832,7 +881,7 @@ async function calcularMediaHistorica() {
 
 // ── Análises de Entrada de Materiais ─────────────────────────────────────────
 function renderAnalises() {
-  const rows = entData;
+  const rows = entDataAn;
   const entradas = rows.filter(r => r.tipo_movimentacao !== 'saida');
 
   const totalRecebidoKg  = entradas.reduce((s,r)=> s + parseFloat(r.peso_liquido_descontos ?? r.peso_kg ?? 0), 0);
@@ -878,6 +927,32 @@ function renderAnalises() {
   const top3Vol = fornArr.slice(0,3).reduce((s,f)=>s+f.vol,0);
   const concentracaoTop3 = totalRecebidoKg>0 ? (top3Vol/totalRecebidoKg*100) : 0;
   const maiorForn = fornArr[0];
+
+  // Volume mensal por cliente — para comparar o último mês com a média histórica
+  const fornMesMap = {};
+  entradas.forEach(r=>{
+    const nome = r.fornecedores?.nome || 'Desconhecido';
+    const mes  = (r.data||'').substring(0,7);
+    if (!mes) return;
+    if (!fornMesMap[nome]) fornMesMap[nome] = {};
+    fornMesMap[nome][mes] = (fornMesMap[nome][mes]||0) + parseFloat(r.peso_liquido_descontos ?? r.peso_kg ?? 0);
+  });
+  const tendenciaClientes = Object.entries(fornMesMap).map(([nome, meses]) => {
+    const mesesCli = Object.keys(meses).sort();
+    if (mesesCli.length < 2) return { nome, insuficiente: true };
+    const ultimoMes   = mesesCli[mesesCli.length-1];
+    const volUltimo    = meses[ultimoMes];
+    const historicoMeses = mesesCli.slice(0, -1);
+    const mediaHistorica = historicoMeses.reduce((s,m)=>s+meses[m],0) / historicoMeses.length;
+    const variacaoPct = mediaHistorica>0 ? ((volUltimo-mediaHistorica)/mediaHistorica*100) : null;
+    let status = 'estavel';
+    if (variacaoPct === null) status = 'insuficiente';
+    else if (variacaoPct <= -20) status = 'queda_forte';
+    else if (variacaoPct <= -10) status = 'queda';
+    else if (variacaoPct >= 15)  status = 'crescimento';
+    return { nome, volUltimo, mediaHistorica, variacaoPct, status };
+  }).filter(t => !t.insuficiente)
+    .sort((a,b) => (a.variacaoPct ?? 0) - (b.variacaoPct ?? 0));
 
   // Tendência mensal (a partir dos dados carregados)
   const mesMap = {}, rejMesMap = {};
@@ -1053,6 +1128,15 @@ function renderAnalises() {
       desc:`Volume do último mês caiu ${fmtPct(Math.abs(tendenciaPct))}% em relação ao mês anterior. Investigar causa (sazonalidade, perda de fornecedor, etc.).`,
     });
   }
+  tendenciaClientes.forEach(t => {
+    if (t.status === 'queda_forte' || t.status === 'queda') {
+      alertas.push({
+        sev: t.status === 'queda_forte' ? 'high' : 'med',
+        title: `${t.nome} — volume abaixo da média histórica`,
+        desc: `Último mês: ${fmtTon(t.volUltimo)} ton vs. média histórica de ${fmtTon(t.mediaHistorica)} ton/mês (${fmtPct(Math.abs(t.variacaoPct))}% ${t.variacaoPct<0?'abaixo':'acima'}). Vale checar se o cliente reduziu o volume por algum motivo.`,
+      });
+    }
+  });
 
   alertas.sort((a,b)=> (a.sev==='high'?0:1) - (b.sev==='high'?0:1));
   document.getElementById('an-alert-count').textContent = alertas.length ? `${alertas.length} ponto(s)` : '';
@@ -1066,6 +1150,29 @@ function renderAnalises() {
         </div>
       </div>`).join('')
     : `<div class="table-empty">Nenhum ponto de atenção identificado no período selecionado.</div>`;
+
+  // ── Tendência de volume por cliente vs. média histórica ──
+  const STATUS_INFO = {
+    queda_forte: { badge:'badge-red',    texto:'▼▼ Queda forte' },
+    queda:       { badge:'badge-orange', texto:'▼ Em queda' },
+    estavel:     { badge:'badge-gray',   texto:'→ Estável' },
+    crescimento: { badge:'badge-green',  texto:'▲ Crescendo' },
+  };
+  document.getElementById('an-tendencia-count').textContent =
+    tendenciaClientes.length ? `${tendenciaClientes.length} cliente(s) com histórico` : '';
+  document.getElementById('an-tendencia-tb').innerHTML = tendenciaClientes.length
+    ? tendenciaClientes.map(t => {
+        const info = STATUS_INFO[t.status];
+        const variacaoTxt = t.variacaoPct===null ? '—' : `${t.variacaoPct>=0?'+':''}${fmtPct(t.variacaoPct)}%`;
+        return `<tr>
+          <td>${t.nome}</td>
+          <td class="text-right">${fmtTon(t.mediaHistorica)}</td>
+          <td class="text-right">${fmtTon(t.volUltimo)}</td>
+          <td class="text-right">${variacaoTxt}</td>
+          <td><span class="badge ${info.badge}">${info.texto}</span></td>
+        </tr>`;
+      }).join('')
+    : `<tr><td colspan="5" class="table-empty">Sem histórico suficiente (mín. 2 meses) para calcular tendência no período selecionado.</td></tr>`;
 }
 
 // ── CRUD ──────────────────────────────────────────────────────────────────────
@@ -1349,6 +1456,24 @@ document.getElementById('f-mes').addEventListener('change', function() {
   const { ini, fim } = periodoRange(this.value);
   document.getElementById('f-de').value  = ini;
   document.getElementById('f-ate').value = fim;
+});
+
+// ── Filtro próprio da aba Análises ────────────────────────────────────────────
+document.getElementById('an-btn-filtrar').addEventListener('click', carregarAnalises);
+document.getElementById('an-btn-limpar').addEventListener('click', () => {
+  document.getElementById('an-f-de').value  = '';
+  document.getElementById('an-f-ate').value = '';
+  document.getElementById('an-f-mes').value = '';
+  [...document.getElementById('an-f-forn').options].forEach(o => o.selected = false);
+  document.getElementById('an-f-mat').value      = '';
+  document.getElementById('an-f-tipo-mat').value = '';
+  carregarAnalises();
+});
+document.getElementById('an-f-mes').addEventListener('change', function() {
+  if (!this.value) return;
+  const { ini, fim } = periodoRange(this.value);
+  document.getElementById('an-f-de').value  = ini;
+  document.getElementById('an-f-ate').value = fim;
 });
 document.querySelectorAll('[data-close]').forEach(btn=>btn.addEventListener('click',()=>fecharModal(btn.dataset.close)));
 document.querySelectorAll('.modal-backdrop').forEach(m=>m.addEventListener('click',e=>{if(e.target===m)fecharModal(m.id);}));
