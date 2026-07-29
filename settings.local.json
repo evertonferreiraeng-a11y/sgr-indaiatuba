@@ -21,7 +21,13 @@
       "Bash(grep -n \"^  \\\\`;\\\\|rel-body'\\\\\\).innerHTML\" \"C:\\\\Users\\\\everton.ferreira\\\\Desktop\\\\Claude - Ever\\\\sgr-indaiatuba\\\\relatorio.html\")",
       "Bash(cp dashboard.html dashboard-kpis.old.html)",
       "Bash(cp relatorio.html dashboard.html)",
-      "Bash(rm relatorio.html)"
+      "Bash(rm relatorio.html)",
+      "Bash(node --check _tmp_check.mjs)",
+      "Bash(rm -f _tmp_check.mjs)",
+      "PowerShell(Set-Location \"C:\\\\Users\\\\everton.ferreira\\\\Desktop\\\\Claude - Ever\\\\sgr-indaiatuba\"; Start-Process -FilePath python -ArgumentList \"-m\",\"http.server\",\"8765\" -WindowStyle Hidden; Start-Sleep -Seconds 2; try { $r = Invoke-WebRequest -Uri \"http://localhost:8765/comercial.html\" -UseBasicParsing -TimeoutSec 5; $r.StatusCode } catch { $_.Exception.Message })",
+      "PowerShell(Get-NetTCPConnection -LocalPort 8765 -ErrorAction SilentlyContinue | ForEach-Object { Stop-Process -Id $_.OwningProcess -Force -ErrorAction SilentlyContinue })",
+      "Bash(node --check /tmp/entradas_script.mjs)",
+      "PowerShell(Get-Command node -ErrorAction SilentlyContinue)"
     ]
   }
 }
