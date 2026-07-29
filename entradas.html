@@ -66,6 +66,10 @@
           <span class="icon" style="width:14px;height:14px"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg></span>
           Nova Entrada
         </button>
+        <button class="btn btn-outline" id="btn-excluir-mes" style="display:none;border-color:#fecaca;color:#dc2626">
+          <span class="icon" style="width:14px;height:14px"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg></span>
+          Excluir Mês
+        </button>
       </div>
     </div>
     <div class="page-body">
@@ -365,6 +369,50 @@
   </div>
 </div>
 
+<!-- Modal: Excluir Mês -->
+<div class="modal-backdrop" id="modal-excluir-mes">
+  <div class="modal" style="max-width:480px">
+    <div class="modal-header">
+      <h3>Excluir Registros por Mês</h3>
+      <button class="modal-close" data-close="modal-excluir-mes">✕</button>
+    </div>
+    <div class="modal-body">
+      <p class="text-muted" style="font-size:12px;margin-bottom:14px">
+        Selecione o mês e, se quiser, restrinja por tipo de movimentação ou fornecedor. Busque para conferir o que será afetado antes de excluir — a ação é permanente.
+      </p>
+      <div class="form-grid" style="grid-template-columns:1fr 1fr">
+        <div class="form-group"><label>Mês *</label><input type="month" id="excl-mes" /></div>
+        <div class="form-group"><label>Tipo</label>
+          <select id="excl-tipo">
+            <option value="">Todos (entrada + saída)</option>
+            <option value="entrada">Somente Entrada</option>
+            <option value="saida">Somente Saída / Rejeito</option>
+          </select>
+        </div>
+        <div class="form-group full"><label>Fornecedor (opcional)</label>
+          <select id="excl-forn"><option value="">Todos os fornecedores</option></select>
+        </div>
+      </div>
+      <button class="btn btn-outline" id="btn-excl-buscar" style="width:100%;margin-top:8px">Buscar registros</button>
+
+      <div id="excl-resultado" style="display:none;margin-top:16px">
+        <div style="background:#fef2f2;border:1px solid #fecaca;border-radius:8px;padding:12px 14px;margin-bottom:12px">
+          <div style="font-size:13px;font-weight:700;color:#991b1b" id="excl-resumo-titulo"></div>
+          <div style="font-size:12px;color:#7f1d1d;margin-top:4px" id="excl-resumo-detalhe"></div>
+        </div>
+        <label style="display:flex;align-items:center;gap:8px;font-size:12.5px;color:#374151;cursor:pointer">
+          <input type="checkbox" id="excl-confirma" />
+          Confirmo que quero excluir permanentemente esses registros
+        </label>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-outline" data-close="modal-excluir-mes">Cancelar</button>
+      <button class="btn" id="btn-excl-confirmar" style="background:#dc2626;color:#fff" disabled>Excluir Registros</button>
+    </div>
+  </div>
+</div>
+
 <div id="toast-container"></div>
 <script type="module">
 import { initPage, supabase, peso, ton, dataBR, toast, abrirModal, fecharModal, mesAtual, anoAtual } from './js/config.js?v=2';
@@ -417,6 +465,7 @@ async function init() {
   const { data: { user } } = await supabase.auth.getUser();
   const { data: p } = await supabase.from('profiles').select('*').eq('id', user.id).single();
   perfil = p;
+  document.getElementById('btn-excluir-mes').style.display = perfil?.role === 'admin' ? '' : 'none';
 
   const [{ data: forns }, { data: mats }, { data: matsEntradas }] = await Promise.all([
     supabase.from('fornecedores').select('*').order('nome'),
@@ -444,6 +493,7 @@ async function init() {
   document.getElementById('f-mat').innerHTML  = '<option value="">Todos</option>' + matFiltroOpts;
   document.getElementById('an-f-forn').innerHTML = '<option value="">Todos</option>' + fornOpts;
   document.getElementById('an-f-mat').innerHTML  = '<option value="">Todos</option>' + matFiltroOpts;
+  document.getElementById('excl-forn').innerHTML = '<option value="">Todos os fornecedores</option>' + fornOpts;
 
   const { data: tiposDB } = await supabase.from('entradas').select('tipo_material').not('tipo_material','is',null);
   const tiposUnicos = [...new Set((tiposDB||[]).map(r=>r.tipo_material).filter(Boolean))].sort();
@@ -1269,6 +1319,84 @@ document.getElementById('btn-del-sel').addEventListener('click', async () => {
   document.getElementById('cb-all').checked=false;
   atualizarBulk();
   carregar();
+});
+
+// ── Excluir Mês ───────────────────────────────────────────────────────────────
+let exclRegistrosAlvo = [];
+const MESES_PT_LONGO = ['janeiro','fevereiro','março','abril','maio','junho','julho','agosto','setembro','outubro','novembro','dezembro'];
+
+document.getElementById('btn-excluir-mes').addEventListener('click', () => {
+  document.getElementById('excl-mes').value = '';
+  document.getElementById('excl-tipo').value = '';
+  document.getElementById('excl-forn').value = '';
+  document.getElementById('excl-resultado').style.display = 'none';
+  document.getElementById('excl-confirma').checked = false;
+  document.getElementById('btn-excl-confirmar').disabled = true;
+  exclRegistrosAlvo = [];
+  abrirModal('modal-excluir-mes');
+});
+
+document.getElementById('btn-excl-buscar').addEventListener('click', async () => {
+  const mes = document.getElementById('excl-mes').value;
+  if (!mes) { toast('Selecione um mês', 'error'); return; }
+  const { ini, fim } = periodoRange(mes);
+  const tipo = document.getElementById('excl-tipo').value;
+  const forn = document.getElementById('excl-forn').value;
+
+  let q = supabase.from('entradas')
+    .select('id, peso_liquido, peso_liquido_descontos, peso_kg')
+    .gte('data', ini).lte('data', fim);
+  if (tipo) q = q.eq('tipo_movimentacao', tipo);
+  if (forn) q = q.eq('fornecedor_id', forn);
+  const { data, error } = await q;
+  if (error) { toast('Erro ao buscar registros', 'error'); return; }
+
+  exclRegistrosAlvo = data || [];
+  const totalKg = exclRegistrosAlvo.reduce((s,r)=> s + parseFloat(r.peso_liquido_descontos ?? r.peso_kg ?? r.peso_liquido ?? 0), 0);
+  const [y, m] = mes.split('-');
+  const mesLabel = `${MESES_PT_LONGO[+m-1]}/${y}`;
+
+  document.getElementById('excl-resultado').style.display = 'block';
+  document.getElementById('excl-confirma').checked = false;
+  if (!exclRegistrosAlvo.length) {
+    document.getElementById('excl-resumo-titulo').textContent = 'Nenhum registro encontrado';
+    document.getElementById('excl-resumo-detalhe').textContent = `Não há lançamentos em ${mesLabel} com os filtros selecionados.`;
+  } else {
+    document.getElementById('excl-resumo-titulo').textContent = `${exclRegistrosAlvo.length} registro(s) serão excluídos — ${mesLabel}`;
+    document.getElementById('excl-resumo-detalhe').textContent = `Total: ${ton(totalKg)}. Essa ação é permanente e não pode ser desfeita.`;
+  }
+  document.getElementById('btn-excl-confirmar').disabled = true;
+});
+
+document.getElementById('excl-confirma').addEventListener('change', function() {
+  document.getElementById('btn-excl-confirmar').disabled = !this.checked || !exclRegistrosAlvo.length;
+});
+
+document.getElementById('btn-excl-confirmar').addEventListener('click', async () => {
+  if (!exclRegistrosAlvo.length) return;
+  if (!confirm(`Confirmar exclusão permanente de ${exclRegistrosAlvo.length} registro(s)? Essa ação não pode ser desfeita.`)) return;
+
+  const btn = document.getElementById('btn-excl-confirmar');
+  btn.disabled = true;
+  const textoOriginal = btn.textContent;
+  btn.textContent = 'Excluindo…';
+
+  const ids = exclRegistrosAlvo.map(r => r.id);
+  const LOTE = 300;
+  let ok = 0;
+  for (let i = 0; i < ids.length; i += LOTE) {
+    const lote = ids.slice(i, i + LOTE);
+    const { error } = await supabase.from('entradas').delete().in('id', lote);
+    if (!error) ok += lote.length;
+    await supabase.from('estoque_movimentacoes').delete().in('origem_id', lote).eq('origem_tipo', 'entrada');
+  }
+
+  toast(`${ok} registro(s) excluído(s)!`);
+  btn.textContent = textoOriginal;
+  fecharModal('modal-excluir-mes');
+  exclRegistrosAlvo = [];
+  analisesCarregada = false;
+  await carregar();
 });
 
 // ── Importar CSV ─────────────────────────────────────────────────────────────
