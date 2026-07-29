@@ -95,6 +95,8 @@
     .crit-tag   { display:inline-block; font-size:9.5px; font-weight:700; text-transform:uppercase; letter-spacing:.05em; padding:2px 8px; border-radius:10px; margin-left:8px; vertical-align:1px; }
     .crit-tag.faturamento { background:#dbeafe; color:#1e40af; }
     .crit-tag.volume      { background:#dcfce7; color:#166534; }
+    .crit-close { flex-shrink:0; background:none; border:none; color:#94a3b8; cursor:pointer; font-size:16px; line-height:1; padding:2px 4px; border-radius:4px; }
+    .crit-close:hover { color:#dc2626; background:rgba(220,38,38,.08); }
 
     /* ── Impressão ── */
     @media print {
@@ -141,18 +143,14 @@
     </div>
     <div class="rel-controls">
       <span style="font-size:13px;color:var(--text-muted)">Período:</span>
-      <select id="rel-ano" style="padding:7px 10px;border-radius:6px;border:1px solid #D1D5DB;font-size:13px"></select>
-      <input type="month" id="rel-mes" style="width:150px" />
       <button id="rel-btn-mes" style="padding:6px 12px;border-radius:6px;border:1px solid #D1D5DB;background:#fff;cursor:pointer;font-size:12px">Mês</button>
       <button id="rel-btn-ano" style="padding:6px 12px;border-radius:6px;border:1px solid #D1D5DB;background:#fff;cursor:pointer;font-size:12px">Ano</button>
+      <input type="month" id="rel-mes" style="width:150px" />
+      <select id="rel-ano" style="padding:7px 10px;border-radius:6px;border:1px solid #D1D5DB;font-size:13px;display:none"></select>
       <span style="font-size:13px;color:var(--text-muted);margin-left:8px">Balanço:</span>
       <button class="rel-cat-btn" id="rel-cat-todos"     style="padding:6px 12px;border-radius:20px;border:1px solid #D1D5DB;background:var(--primary);color:#fff;cursor:pointer;font-size:12px;font-weight:600">Todos</button>
       <button class="rel-cat-btn" id="rel-cat-reciclavel" style="padding:6px 12px;border-radius:20px;border:1px solid #D1D5DB;background:#fff;color:#374151;cursor:pointer;font-size:12px">♻ Recicláveis</button>
       <button class="rel-cat-btn" id="rel-cat-nao"        style="padding:6px 12px;border-radius:20px;border:1px solid #D1D5DB;background:#fff;color:#374151;cursor:pointer;font-size:12px">🚫 Não Recicláveis</button>
-      <select id="snap-ref-select" onchange="window._snapRefData=this.value;carregar()"
-        style="font-size:12px;padding:5px 10px;border-radius:8px;border:1px solid #D1D5DB;background:#fff;color:#374151;cursor:pointer;font-weight:600">
-        <option value="">— Comparar com… —</option>
-      </select>
       <button class="btn-pdf" id="btn-gerar-pdf" onclick="window.print()">
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 01-2-2v-5a2 2 0 012-2v5a2 2 0 01-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>
         Imprimir / PDF
@@ -274,6 +272,33 @@ function calcularTendenciaPorCliente(rows, getNome, getValor) {
   return { diaCorte, tendencias };
 }
 
+// ── Pontos Críticos: ocultar / mostrar novamente ─────────────────────────────
+const CRIT_OCULTOS_KEY = 'sgr_dash_criticos_ocultos';
+function critOcultosGet() {
+  try { return new Set(JSON.parse(localStorage.getItem(CRIT_OCULTOS_KEY)) || []); }
+  catch { return new Set(); }
+}
+function critOcultosSalvar(set) {
+  localStorage.setItem(CRIT_OCULTOS_KEY, JSON.stringify([...set]));
+}
+window.critOcultar = (id) => {
+  const set = critOcultosGet();
+  set.add(id);
+  critOcultosSalvar(set);
+  carregar();
+};
+window.critMostrar = (id) => {
+  const set = critOcultosGet();
+  set.delete(id);
+  critOcultosSalvar(set);
+  carregar();
+};
+let critPainelOcultosAberto = false;
+window.critTogglePainelOcultos = () => {
+  critPainelOcultosAberto = !critPainelOcultosAberto;
+  carregar();
+};
+
 async function carregar() {
   const { inicio, fim, label } = getPeriodo();
   document.getElementById('rel-periodo-label').textContent = label;
@@ -310,20 +335,9 @@ async function carregar() {
       .order('semana', { ascending: false });
     const datasDisp = [...new Set((snapDatas||[]).map(s=>s.semana))];
 
-    const sel = document.getElementById('snap-ref-select');
-    if (sel) {
-      const prev = window._snapRefData;
-      sel.innerHTML = '<option value="">— Comparar com… —</option>';
-      datasDisp.forEach(d => {
-        const [a,m,dia] = d.split('-');
-        const label = `${dia}/${m}/${a}`;
-        sel.innerHTML += `<option value="${d}" ${d===prev?'selected':''}>${label}</option>`;
-      });
-      // Se não havia seleção, usa a data mais recente
-      if (!window._snapRefData && datasDisp.length) {
-        window._snapRefData = datasDisp[0];
-        sel.value = datasDisp[0];
-      }
+    // Sem filtro manual — compara sempre com o snapshot mais recente disponível
+    if (!window._snapRefData && datasDisp.length) {
+      window._snapRefData = datasDisp[0];
     }
 
     // Carrega snapshot da data de referência
@@ -494,6 +508,7 @@ async function carregar() {
 
   if (atMesCrit !== null && atMesCrit < 100) {
     criticosAlertas.push({
+      id: 'faturamento::meta-mes',
       sev: atMesCrit < 80 ? 'high' : 'med',
       area: 'faturamento',
       title: `Faturamento ${atMesCrit < 80 ? 'muito abaixo' : 'abaixo'} da meta do mês`,
@@ -503,6 +518,7 @@ async function carregar() {
 
   if (concentracaoFatTop3 > 60 && clientesFatOrdenados.length) {
     criticosAlertas.push({
+      id: 'faturamento::concentracao-top3',
       sev:'med', area:'faturamento',
       title:'Alta concentração de faturamento em poucos clientes',
       desc:`Os 3 maiores clientes respondem por ${concentracaoFatTop3.toFixed(1)}% do faturamento do período (líder: ${clientesFatOrdenados[0][0]}). Plano de ação: prospectar novos clientes e diversificar a carteira para reduzir a dependência de poucos contratos.`,
@@ -511,6 +527,7 @@ async function carregar() {
 
   tendClientesFat.filter(t => t.status==='queda_forte' || t.status==='queda').slice(0,6).forEach(t => {
     criticosAlertas.push({
+      id: `faturamento::${t.nome}`,
       sev: t.status==='queda_forte' ? 'high' : 'med',
       area:'faturamento',
       title:`${t.nome} — faturamento em queda`,
@@ -520,6 +537,7 @@ async function carregar() {
 
   tendClientesVol.filter(t => t.status==='queda_forte' || t.status==='queda').slice(0,6).forEach(t => {
     criticosAlertas.push({
+      id: `volume::${t.nome}`,
       sev: t.status==='queda_forte' ? 'high' : 'med',
       area:'volume',
       title:`${t.nome} — volume de entrada de materiais em queda`,
@@ -527,7 +545,10 @@ async function carregar() {
     });
   });
 
-  criticosAlertas.sort((a,b) => (a.sev==='high'?0:1) - (b.sev==='high'?0:1));
+  const critOcultosAtual  = critOcultosGet();
+  const criticosOcultados = criticosAlertas.filter(a => critOcultosAtual.has(a.id));
+  const criticosVisiveis  = criticosAlertas.filter(a => !critOcultosAtual.has(a.id))
+    .sort((a,b) => (a.sev==='high'?0:1) - (b.sev==='high'?0:1));
 
   // ── Expõe dados globalmente para gerarPPTX() ─────────────────────────────
   window.relData = {
@@ -614,20 +635,31 @@ async function carregar() {
         <div class="sec-dot" style="background:#dc2626"></div>
         <div class="sec-title">Pontos Críticos &amp; Plano de Ação</div>
         <div class="sec-line"></div>
-        <span class="sec-badge" style="color:#dc2626;background:#fee2e2">${criticosAlertas.length} ponto(s) de atenção</span>
+        ${criticosOcultados.length ? `<button onclick="critTogglePainelOcultos()" style="font-size:11px;font-weight:700;padding:3px 12px;border-radius:20px;border:1px solid #e2e8f0;background:#f8fafc;color:#64748b;cursor:pointer;white-space:nowrap">${criticosOcultados.length} ocultado(s) ${critPainelOcultosAberto?'▴':'▾'}</button>` : ''}
+        <span class="sec-badge" style="color:#dc2626;background:#fee2e2">${criticosVisiveis.length} ponto(s) de atenção</span>
       </div>
       <div style="font-size:11.5px;color:#94a3b8;margin:-8px 0 14px">
-        Faturamento: comparação com a meta e com clientes fora do padrão de compra. Volume: comparação até o dia ${diaCorteVol} de cada mês, para não confundir mês em andamento com queda real.
+        Faturamento: comparação com a meta e com clientes fora do padrão de compra. Volume: comparação até o dia ${diaCorteVol} de cada mês, para não confundir mês em andamento com queda real. Clique no ✕ para ocultar um ponto que não se aplica mais (ex.: cliente que saiu da carteira).
       </div>
-      ${criticosAlertas.map(a => `
+      ${critPainelOcultosAberto && criticosOcultados.length ? `
+      <div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:10px;padding:10px 14px;margin-bottom:14px">
+        <div style="font-size:11px;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px">Ocultados</div>
+        ${criticosOcultados.map(a => `
+          <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;padding:6px 0;border-bottom:1px solid #eef2f7">
+            <span style="font-size:12.5px;color:#475569">${a.title}</span>
+            <button onclick="critMostrar('${a.id.replace(/'/g,"\\'")}')" style="font-size:11px;font-weight:700;padding:3px 10px;border-radius:6px;border:1px solid #D1D5DB;background:#fff;color:#374151;cursor:pointer;white-space:nowrap">Mostrar novamente</button>
+          </div>`).join('')}
+      </div>` : ''}
+      ${criticosVisiveis.length ? criticosVisiveis.map(a => `
         <div class="crit-row ${a.sev}">
           <span class="crit-ic">${icon('alert-triangle', { size: 16 })}</span>
-          <div>
+          <div style="flex:1;min-width:0">
             <span class="crit-title">${a.title}</span>
             <span class="crit-tag ${a.area}">${a.area === 'faturamento' ? 'Faturamento' : 'Volume'}</span>
             <div class="crit-desc">${a.desc}</div>
           </div>
-        </div>`).join('')}
+          <button class="crit-close" onclick="critOcultar('${a.id.replace(/'/g,"\\'")}')" title="Ocultar este ponto">✕</button>
+        </div>`).join('') : `<div style="font-size:12.5px;color:#94a3b8;padding:8px 0">Nenhum ponto de atenção visível — ${criticosOcultados.length} oculto(s).</div>`}
     </div>` : ''}
 
     <!-- ══ 1. BALANÇO DE MASSA ══ -->
@@ -1347,6 +1379,8 @@ function setModo(modo) {
   const inativo = 'background:#fff;color:#374151;border:1px solid #D1D5DB';
   document.getElementById('rel-btn-mes').style.cssText = (modo==='mes'?ativo:inativo) + ';padding:6px 12px;border-radius:6px;cursor:pointer;font-size:12px';
   document.getElementById('rel-btn-ano').style.cssText = (modo==='ano'?ativo:inativo) + ';padding:6px 12px;border-radius:6px;cursor:pointer;font-size:12px';
+  document.getElementById('rel-mes').style.display = modo === 'mes' ? '' : 'none';
+  document.getElementById('rel-ano').style.display = modo === 'ano' ? '' : 'none';
   carregar();
 }
 
