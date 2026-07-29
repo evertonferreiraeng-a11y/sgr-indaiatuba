@@ -935,11 +935,12 @@ async function calcularMediaHistorica() {
 function renderAnalises() {
   const rows = entDataAn;
   const entradas = rows.filter(r => r.tipo_movimentacao !== 'saida');
+  const saidas   = rows.filter(r => r.tipo_movimentacao === 'saida');
 
   const totalRecebidoKg  = entradas.reduce((s,r)=> s + parseFloat(r.peso_liquido_descontos ?? r.peso_kg ?? 0), 0);
   const totalBrutoKg     = entradas.reduce((s,r)=> s + parseFloat(r.peso_liquido ?? 0), 0);
   const totalDescontosKg = entradas.reduce((s,r)=> s + parseFloat(r.total_descontos ?? 0), 0);
-  const totalRejeitoKg   = entradas.reduce((s,r)=> s + parseFloat(r.rejeito_uvr ?? 0), 0);
+  const totalRejeitoKg   = saidas.reduce((s,r)=> s + parseFloat(r.peso_liquido_descontos ?? r.peso_kg ?? r.peso_liquido ?? 0), 0);
   const nEntradas = entradas.length;
   const fornSet = new Set(entradas.map(r=>r.fornecedores?.nome || 'Desconhecido'));
 
@@ -1012,7 +1013,11 @@ function renderAnalises() {
     const mes = (r.data||'').substring(0,7);
     if (!mes) return;
     mesMap[mes] = (mesMap[mes]||0) + parseFloat(r.peso_liquido_descontos ?? r.peso_kg ?? 0);
-    rejMesMap[mes] = (rejMesMap[mes]||0) + parseFloat(r.rejeito_uvr||0);
+  });
+  saidas.forEach(r=>{
+    const mes = (r.data||'').substring(0,7);
+    if (!mes) return;
+    rejMesMap[mes] = (rejMesMap[mes]||0) + parseFloat(r.peso_liquido_descontos ?? r.peso_kg ?? r.peso_liquido ?? 0);
   });
   const mesesOrdenados = Object.keys(mesMap).sort();
   const ultimosMeses = mesesOrdenados.slice(-12);
@@ -1022,6 +1027,19 @@ function renderAnalises() {
     const anterior = mesMap[mesesOrdenados[mesesOrdenados.length-2]];
     if (anterior > 0) tendenciaPct = ((atual-anterior)/anterior*100);
   }
+
+  // Médias de recebimento por dia / mês / ano (a partir do período filtrado)
+  const datasEntradas = entradas.map(r=>r.data).filter(Boolean).sort();
+  let nDiasPeriodo = 0;
+  if (datasEntradas.length) {
+    const d0 = new Date(datasEntradas[0]);
+    const d1 = new Date(datasEntradas[datasEntradas.length-1]);
+    nDiasPeriodo = Math.round((d1 - d0) / 86400000) + 1;
+  }
+  const nMesesComDado = mesesOrdenados.length;
+  const mediaDiaria  = nDiasPeriodo>0    ? totalRecebidoKg/nDiasPeriodo   : 0;
+  const mediaMensal  = nMesesComDado>0   ? totalRecebidoKg/nMesesComDado : 0;
+  const mediaAnual   = mediaMensal * 12;
 
   const fmtTon = kg => (kg/1000).toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2});
   const fmtPct = v => v.toLocaleString('pt-BR',{minimumFractionDigits:1,maximumFractionDigits:1});
@@ -1038,6 +1056,9 @@ function renderAnalises() {
     { label:'Concentração Top 3 Fornecedores',value: fmtPct(concentracaoTop3)+'%',   sub: maiorForn ? `líder: ${maiorForn.nome}` : '—', alert: concentracaoTop3>60 },
     { label:'Maior Fornecedor',               value: maiorForn ? fmtTon(maiorForn.vol)+' ton' : '—', sub: maiorForn ? maiorForn.nome : 'sem dados' },
     { label:'Tendência vs Mês Anterior',      value: tendenciaPct===null ? '—' : (tendenciaPct>=0?'▲ ':'▼ ')+fmtPct(Math.abs(tendenciaPct))+'%', sub:'variação de volume mensal', alert: tendenciaPct!==null && tendenciaPct<=-15 },
+    { label:'Média por Dia',                  value: fmtTon(mediaDiaria)+' ton',     sub:`${nDiasPeriodo} dia(s) corrido(s) no período` },
+    { label:'Média por Mês',                  value: fmtTon(mediaMensal)+' ton',     sub:`${nMesesComDado} mês(es) com lançamento` },
+    { label:'Média por Ano (projeção)',       value: fmtTon(mediaAnual)+' ton',      sub:'projeção anualizada (média mensal × 12)' },
   ];
   document.getElementById('an-kpis').innerHTML = kpis.map(k => `
     <div class="an-kpi ${k.alert?'alert':''}">
@@ -1621,6 +1642,11 @@ document.getElementById('an-f-mes').addEventListener('change', function() {
   const { ini, fim } = periodoRange(this.value);
   document.getElementById('an-f-de').value  = ini;
   document.getElementById('an-f-ate').value = fim;
+  carregarAnalises();
+});
+// Atualiza automaticamente ao selecionar período, fornecedor, material ou tipo
+['an-f-de','an-f-ate','an-f-forn','an-f-mat','an-f-tipo-mat'].forEach(id => {
+  document.getElementById(id).addEventListener('change', carregarAnalises);
 });
 document.querySelectorAll('[data-close]').forEach(btn=>btn.addEventListener('click',()=>fecharModal(btn.dataset.close)));
 document.querySelectorAll('.modal-backdrop').forEach(m=>m.addEventListener('click',e=>{if(e.target===m)fecharModal(m.id);}));
