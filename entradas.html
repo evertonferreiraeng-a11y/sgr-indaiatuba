@@ -48,6 +48,13 @@
     .an-alert-sev.med{background:#f59e0b}
     .an-alert-title{font-size:13px;font-weight:600;color:#111827}
     .an-alert-desc{font-size:12px;color:#6b7280;margin-top:2px}
+
+    /* Seletor de fornecedores (botão que abre modal) */
+    .forn-picker-btn{display:flex;align-items:center;justify-content:space-between;gap:6px;width:100%;min-width:200px;padding:7px 10px;border:1px solid #d1d5db;border-radius:6px;background:#fff;font-size:13px;color:#111827;text-align:left;cursor:pointer;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+    .forn-picker-btn:hover{border-color:#9ca3af}
+    .forn-picker-btn::after{content:'▾';color:#9ca3af;flex-shrink:0}
+    .fp-item{display:flex;align-items:center;gap:8px;padding:8px 10px;border-radius:6px;font-size:13px;color:#111827;cursor:pointer}
+    .fp-item:hover{background:#f8fafc}
   </style>
 </head>
 <body>
@@ -103,7 +110,11 @@
           <div class="form-group"><label>De</label><input type="date" id="f-de" /></div>
           <div class="form-group"><label>Até</label><input type="date" id="f-ate" /></div>
           <div class="form-group"><label>Mês rápido</label><input type="month" id="f-mes" /></div>
-          <div class="form-group"><label>Fornecedor</label><select id="f-forn" multiple style="height:72px"><option value="">Todos</option></select><div style="font-size:10px;color:#94a3b8;margin-top:2px">Ctrl+clique para vários</div></div>
+          <div class="form-group">
+            <label>Fornecedor</label>
+            <select id="f-forn" multiple style="display:none"><option value="">Todos</option></select>
+            <button type="button" class="forn-picker-btn" id="f-forn-btn">Todos os fornecedores</button>
+          </div>
           <div class="form-group"><label>Material</label><select id="f-mat"><option value="">Todos</option></select></div>
           <div class="form-group"><label>Tipo Material</label><select id="f-tipo-mat"><option value="">Todos</option></select></div>
           <div class="form-group" style="justify-content:flex-end"><label>&nbsp;</label>
@@ -166,7 +177,11 @@
             <div class="form-group"><label>De</label><input type="date" id="an-f-de" /></div>
             <div class="form-group"><label>Até</label><input type="date" id="an-f-ate" /></div>
             <div class="form-group"><label>Mês rápido</label><input type="month" id="an-f-mes" /></div>
-            <div class="form-group"><label>Fornecedor</label><select id="an-f-forn" multiple style="height:72px"><option value="">Todos</option></select><div style="font-size:10px;color:#94a3b8;margin-top:2px">Ctrl+clique para vários</div></div>
+            <div class="form-group">
+              <label>Fornecedor</label>
+              <select id="an-f-forn" multiple style="display:none"><option value="">Todos</option></select>
+              <button type="button" class="forn-picker-btn" id="an-f-forn-btn">Todos os fornecedores</button>
+            </div>
             <div class="form-group"><label>Material</label><select id="an-f-mat"><option value="">Todos</option></select></div>
             <div class="form-group"><label>Tipo Material</label><select id="an-f-tipo-mat"><option value="">Todos</option></select></div>
             <div class="form-group" style="justify-content:flex-end"><label>&nbsp;</label>
@@ -411,6 +426,29 @@
     <div class="modal-footer">
       <button class="btn btn-outline" data-close="modal-excluir-mes">Cancelar</button>
       <button class="btn" id="btn-excl-confirmar" style="background:#dc2626;color:#fff" disabled>Excluir Registros</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal: Selecionar Fornecedores -->
+<div class="modal-backdrop" id="modal-forn-picker">
+  <div class="modal" style="max-width:420px">
+    <div class="modal-header">
+      <h3>Selecionar Fornecedores</h3>
+      <button class="modal-close" data-close="modal-forn-picker">✕</button>
+    </div>
+    <div class="modal-body">
+      <input type="text" id="fp-busca" placeholder="Buscar fornecedor…" style="width:100%;padding:8px 10px;border:1px solid #d1d5db;border-radius:6px;font-size:13px;margin-bottom:10px" />
+      <div style="display:flex;gap:8px;margin-bottom:10px">
+        <button type="button" class="btn btn-sm btn-outline" id="fp-todos" style="flex:1">Selecionar todos</button>
+        <button type="button" class="btn btn-sm btn-outline" id="fp-nenhum" style="flex:1">Limpar seleção</button>
+      </div>
+      <div id="fp-lista" style="max-height:360px;overflow-y:auto;border:1px solid #f1f5f9;border-radius:8px;padding:4px"></div>
+    </div>
+    <div class="modal-footer">
+      <span id="fp-count" class="text-muted" style="font-size:12px;margin-right:auto"></span>
+      <button class="btn btn-outline" data-close="modal-forn-picker">Cancelar</button>
+      <button class="btn btn-primary" id="fp-aplicar">Aplicar</button>
     </div>
   </div>
 </div>
@@ -1614,6 +1652,7 @@ document.getElementById('btn-limpar').addEventListener('click', () => {
   document.getElementById('f-ate').value = '';
   document.getElementById('f-mes').value = '';
   [...document.getElementById('f-forn').options].forEach(o => o.selected = false);
+  atualizarFornBtnLabel('f-forn');
   document.getElementById('f-mat').value      = '';
   document.getElementById('f-tipo-mat').value = '';
   carregar();
@@ -1626,6 +1665,75 @@ document.getElementById('f-mes').addEventListener('change', function() {
   document.getElementById('f-ate').value = fim;
 });
 
+// ── Seletor de Fornecedores (modal com busca) ────────────────────────────────
+let fornPickerTargetId = null;
+let fpSelecionados = new Set();
+
+function abrirFornPicker(targetSelectId) {
+  fornPickerTargetId = targetSelectId;
+  const select = document.getElementById(targetSelectId);
+  fpSelecionados = new Set([...select.selectedOptions].map(o => o.value).filter(v => v !== ''));
+  document.getElementById('fp-busca').value = '';
+  renderFornPickerLista();
+  abrirModal('modal-forn-picker');
+}
+
+function renderFornPickerLista() {
+  const termo = document.getElementById('fp-busca').value.trim().toLowerCase();
+  const lista = [...fornData]
+    .filter(f => !termo || f.nome.toLowerCase().includes(termo))
+    .sort((a,b) => a.nome.localeCompare(b.nome));
+  document.getElementById('fp-lista').innerHTML = lista.length
+    ? lista.map(f => `
+      <label class="fp-item">
+        <input type="checkbox" value="${f.id}" ${fpSelecionados.has(f.id) ? 'checked' : ''} />
+        ${f.nome}
+      </label>`).join('')
+    : `<div class="table-empty" style="padding:24px">Nenhum fornecedor encontrado</div>`;
+  atualizarFpCount();
+}
+
+function atualizarFpCount() {
+  document.getElementById('fp-count').textContent =
+    fpSelecionados.size ? `${fpSelecionados.size} selecionado(s)` : 'Nenhum selecionado (= todos)';
+}
+
+function atualizarFornBtnLabel(selectId) {
+  const btn = document.getElementById(selectId + '-btn');
+  if (!btn) return;
+  const select = document.getElementById(selectId);
+  const sel = [...select.selectedOptions].map(o => o.value).filter(v => v !== '');
+  if (!sel.length) btn.textContent = 'Todos os fornecedores';
+  else if (sel.length === 1) btn.textContent = fornData.find(f => f.id === sel[0])?.nome || '1 selecionado';
+  else btn.textContent = `${sel.length} fornecedores selecionados`;
+}
+
+document.getElementById('f-forn-btn').addEventListener('click', () => abrirFornPicker('f-forn'));
+document.getElementById('an-f-forn-btn').addEventListener('click', () => abrirFornPicker('an-f-forn'));
+
+document.getElementById('fp-busca').addEventListener('input', renderFornPickerLista);
+document.getElementById('fp-lista').addEventListener('change', e => {
+  if (e.target.type !== 'checkbox') return;
+  if (e.target.checked) fpSelecionados.add(e.target.value);
+  else fpSelecionados.delete(e.target.value);
+  atualizarFpCount();
+});
+document.getElementById('fp-todos').addEventListener('click', () => {
+  fpSelecionados = new Set(fornData.map(f => f.id));
+  renderFornPickerLista();
+});
+document.getElementById('fp-nenhum').addEventListener('click', () => {
+  fpSelecionados = new Set();
+  renderFornPickerLista();
+});
+document.getElementById('fp-aplicar').addEventListener('click', () => {
+  const select = document.getElementById(fornPickerTargetId);
+  [...select.options].forEach(o => { o.selected = fpSelecionados.has(o.value); });
+  atualizarFornBtnLabel(fornPickerTargetId);
+  fecharModal('modal-forn-picker');
+  select.dispatchEvent(new Event('change'));
+});
+
 // ── Filtro próprio da aba Análises ────────────────────────────────────────────
 document.getElementById('an-btn-filtrar').addEventListener('click', carregarAnalises);
 document.getElementById('an-btn-limpar').addEventListener('click', () => {
@@ -1633,6 +1741,7 @@ document.getElementById('an-btn-limpar').addEventListener('click', () => {
   document.getElementById('an-f-ate').value = '';
   document.getElementById('an-f-mes').value = '';
   [...document.getElementById('an-f-forn').options].forEach(o => o.selected = false);
+  atualizarFornBtnLabel('an-f-forn');
   document.getElementById('an-f-mat').value      = '';
   document.getElementById('an-f-tipo-mat').value = '';
   carregarAnalises();
