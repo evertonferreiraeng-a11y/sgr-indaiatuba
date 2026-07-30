@@ -507,7 +507,7 @@ function cardHtml(p) {
 
   return `
     <div class="task-card ${atrasado?'atrasado':''}" draggable="true" data-id="${p.id}"
-      ondragstart="dragStart(event,'${p.id}')" ondragend="dragEnd(event)">
+      ondragstart="dragStart(event,'${p.id}')" ondragend="dragEnd(event)" onclick="abrirDetalhe('${p.id}')">
       <div class="task-card-top">
         <div class="task-card-title">${escHtml(p.titulo)}</div>
         <button class="task-card-menu" onclick="ctxMenu(event,'${p.id}')">⋯</button>
@@ -587,7 +587,7 @@ function renderGantt() {
 
     return `
       <div class="gantt-row">
-        <div class="gantt-label" onclick="abrirPlano('${p.id}')">
+        <div class="gantt-label" onclick="abrirDetalhe('${p.id}')">
           <div class="gantt-label-title">${escHtml(p.titulo)}</div>
           <div class="gantt-label-tags">
             <span class="task-tag ${pri.cls}">${pri.label}</span>
@@ -597,7 +597,7 @@ function renderGantt() {
         <div class="gantt-track">
           ${gridlinesHtml}
           <div class="gantt-bar ${atrasado?'atrasado':''}" style="left:${leftPct}%;width:${widthPct}%;background:${cor}"
-            title="${escHtml(p.titulo)} — ${dataBR(p.data_inicio)} a ${dataBR(p.data_fim)}" onclick="abrirPlano('${p.id}')">
+            title="${escHtml(p.titulo)} — ${dataBR(p.data_inicio)} a ${dataBR(p.data_fim)}" onclick="abrirDetalhe('${p.id}')">
             <div class="gantt-bar-fill" style="width:${ePct}%"></div>
             <span style="position:relative">${dataBR(p.data_inicio)} – ${dataBR(p.data_fim)}</span>
           </div>
@@ -693,6 +693,11 @@ window.drop = async (e, newStatus) => {
   renderAll();
   await supabase.from('planos_acao').update({ status: newStatus }).eq('id', dragId);
   dragId = null;
+};
+
+// ── Abrir detalhe (nova aba) ────────────────────────────────────────────────────
+window.abrirDetalhe = (id) => {
+  window.open('plano-acao-detalhe.html?id=' + id, '_blank');
 };
 
 // ── Context menu ──────────────────────────────────────────────────────────────
