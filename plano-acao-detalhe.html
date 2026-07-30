@@ -76,8 +76,6 @@
     .cenario-body { padding:14px 16px; }
     .cenario-conteudo { width:100%; box-sizing:border-box; border:1px solid #e2e8f0; border-radius:8px; padding:10px 12px; font-size:13px; color:#1e293b; font-family:inherit; resize:vertical; outline:none; }
     .cenario-conteudo:focus { border-color:#006636; box-shadow:0 0 0 3px #d1fae5; }
-    .cenario-fin-row { display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-top:10px; }
-    .cenario-fin-row .field-group { margin-bottom:0; }
     .cenarios-empty { font-size:12px; color:#cbd5e1; padding:6px 0; }
     .cenario-add-wrap { display:flex; gap:8px; margin-top:12px; }
     .cenario-add-input { flex:1; font-size:13px; padding:8px 10px; border:1px dashed #cbd5e1; border-radius:6px; outline:none; }
@@ -299,20 +297,8 @@ function renderCenarios() {
       </div>
       ${c._collapsed ? '' : `
       <div class="cenario-body">
-        <textarea class="cenario-conteudo" rows="8" placeholder="Descreva esse cenário: situação, cálculo, equipamentos, conclusão…"
+        <textarea class="cenario-conteudo" rows="3" placeholder="Descreva esse cenário: situação, cálculo, equipamentos, conclusão…"
           onblur="window.salvarCenarioCampo('${c.id}','conteudo',this.value)">${escHtml(c.conteudo)}</textarea>
-        <div class="cenario-fin-row">
-          <div class="field-group">
-            <label>Ganho Estimado (R$)</label>
-            <input type="number" min="0" step="0.01" value="${c.ganho_estimado||''}"
-              onblur="window.salvarCenarioCampo('${c.id}','ganho_estimado', parseFloat(this.value)||0)" />
-          </div>
-          <div class="field-group">
-            <label>Investimento (R$)</label>
-            <input type="number" min="0" step="0.01" value="${c.investimento||''}"
-              onblur="window.salvarCenarioCampo('${c.id}','investimento', parseFloat(this.value)||0)" />
-          </div>
-        </div>
         <div class="cenario-arquivo" id="cenario-arquivo-${c.id}">
           ${arquivoHtml(c)}
         </div>
