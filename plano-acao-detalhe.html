@@ -82,6 +82,18 @@
     .cenario-add-wrap { display:flex; gap:8px; margin-top:12px; }
     .cenario-add-input { flex:1; font-size:13px; padding:8px 10px; border:1px dashed #cbd5e1; border-radius:6px; outline:none; }
     .cenario-add-input:focus { border-color:#006636; border-style:solid; }
+
+    .cenario-arquivo { margin-top:10px; padding-top:10px; border-top:1px solid #f1f5f9; }
+    .cenario-arquivo-vazio { display:inline-flex; align-items:center; gap:6px; padding:8px 14px; border:1px dashed #cbd5e1; border-radius:8px; background:#fff; color:#64748b; font-size:12px; font-weight:600; cursor:pointer; }
+    .cenario-arquivo-vazio:hover { border-color:#006636; color:#006636; background:#f0fdf4; }
+    .cenario-arquivo-vazio.enviando { opacity:.6; pointer-events:none; }
+    .cenario-arquivo-preenchido { display:flex; align-items:center; gap:10px; padding:9px 14px; border:1px solid #d1fae5; border-radius:8px; background:#f0fdf4; }
+    .cenario-arquivo-link { flex:1; display:flex; align-items:center; gap:8px; color:#065f46; font-size:12px; font-weight:700; text-decoration:none; overflow:hidden; }
+    .cenario-arquivo-link:hover { text-decoration:underline; }
+    .cenario-arquivo-link span.nome { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+    .cenario-arquivo-trocar, .cenario-arquivo-remover { background:none; border:none; cursor:pointer; font-size:11px; font-weight:700; padding:2px 6px; flex-shrink:0; }
+    .cenario-arquivo-trocar { color:#006636; }
+    .cenario-arquivo-remover { color:#dc2626; }
   </style>
 </head>
 <body>
@@ -112,6 +124,10 @@ if (!planoId) {
   document.getElementById('pd-content').innerHTML = '<div class="pd-loading">Plano não informado.</div>';
   throw new Error('missing id');
 }
+
+const BUCKET = 'planos-acao';
+function publicUrl(path) { return supabase.storage.from(BUCKET).getPublicUrl(path).data.publicUrl; }
+function slug(name) { return name.replace(/[^a-zA-Z0-9.\-_]/g, '_'); }
 
 let plano = null;
 let etapas = [];
@@ -232,7 +248,7 @@ function render() {
 
     <div class="pd-card">
       <h3>Cenários</h3>
-      <p class="text-muted" style="font-size:12px;margin:-10px 0 14px">Crie um cenário separado para cada alternativa que quiser comparar dentro deste plano (ex: "Mantendo o que já existe", "Investindo em X"). Cada um salva sozinho, sem precisar do botão Salvar alterações.</p>
+      <p class="text-muted" style="font-size:12px;margin:-10px 0 14px">Crie um cenário separado para cada alternativa que quiser comparar dentro deste plano (ex: "Mantendo o que já existe", "Investindo em X"). Anexe um arquivo (Word, PDF, etc.) pra abrir com um clique, e/ou use o campo de texto pra anotações rápidas. Tudo salva sozinho, sem precisar do botão Salvar alterações.</p>
       <div id="pd-cenarios"></div>
       <div class="cenario-add-wrap">
         <input class="cenario-add-input" id="f-novo-cenario" placeholder="+ Adicionar cenário… (nome)"
@@ -297,8 +313,26 @@ function renderCenarios() {
               onblur="window.salvarCenarioCampo('${c.id}','investimento', parseFloat(this.value)||0)" />
           </div>
         </div>
+        <div class="cenario-arquivo" id="cenario-arquivo-${c.id}">
+          ${arquivoHtml(c)}
+        </div>
+        <input type="file" id="cenario-file-${c.id}" style="display:none" onchange="window.enviarArquivoCenario('${c.id}', this)" />
       </div>`}
     </div>`).join('');
+}
+
+function arquivoHtml(c) {
+  if (!c.arquivo_path) {
+    return `<label class="cenario-arquivo-vazio" for="cenario-file-${c.id}">📎 Anexar arquivo (Word, PDF, etc.)</label>`;
+  }
+  return `
+    <div class="cenario-arquivo-preenchido">
+      <a class="cenario-arquivo-link" href="${publicUrl(c.arquivo_path)}" target="_blank" rel="noopener">
+        📄 <span class="nome">${escHtml(c.arquivo_nome || 'arquivo')}</span>
+      </a>
+      <label class="cenario-arquivo-trocar" for="cenario-file-${c.id}" style="cursor:pointer">Trocar</label>
+      <button class="cenario-arquivo-remover" onclick="window.removerArquivoCenario('${c.id}')">Remover</button>
+    </div>`;
 }
 
 window.toggleCenarioCollapse = (id) => {
@@ -334,6 +368,41 @@ window.deletarCenario = async (id) => {
   cenarios = cenarios.filter(c => c.id !== id);
   renderCenarios();
   await supabase.from('planos_acao_cenarios').delete().eq('id', id);
+};
+
+window.enviarArquivoCenario = async (id, input) => {
+  const file = input.files[0];
+  if (!file) return;
+  const c = cenarios.find(x => x.id === id);
+  if (!c) return;
+  const wrap = document.getElementById(`cenario-arquivo-${id}`);
+  wrap.innerHTML = `<span class="cenario-arquivo-vazio enviando">Enviando…</span>`;
+
+  const path = `${id}/${Date.now()}-${slug(file.name)}`;
+  const { error } = await supabase.storage.from(BUCKET).upload(path, file);
+  if (error) {
+    alert('Erro ao enviar arquivo: ' + error.message);
+    wrap.innerHTML = arquivoHtml(c);
+    return;
+  }
+  if (c.arquivo_path) await supabase.storage.from(BUCKET).remove([c.arquivo_path]);
+
+  c.arquivo_path = path;
+  c.arquivo_nome = file.name;
+  await supabase.from('planos_acao_cenarios').update({ arquivo_path: path, arquivo_nome: file.name }).eq('id', id);
+  input.value = '';
+  wrap.innerHTML = arquivoHtml(c);
+};
+
+window.removerArquivoCenario = async (id) => {
+  const c = cenarios.find(x => x.id === id);
+  if (!c || !c.arquivo_path) return;
+  if (!confirm('Remover o arquivo anexado a este cenário?')) return;
+  await supabase.storage.from(BUCKET).remove([c.arquivo_path]);
+  c.arquivo_path = null;
+  c.arquivo_nome = null;
+  await supabase.from('planos_acao_cenarios').update({ arquivo_path: null, arquivo_nome: null }).eq('id', id);
+  document.getElementById(`cenario-arquivo-${id}`).innerHTML = arquivoHtml(c);
 };
 
 function atualizarRoi() {
