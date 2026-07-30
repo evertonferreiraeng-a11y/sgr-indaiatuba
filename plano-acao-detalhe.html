@@ -1,0 +1,324 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Plano de Ação — SGR Indaiatuba</title>
+  <link rel="stylesheet" href="css/style.css" />
+  <style>
+    .pd-breadcrumb { display:flex; align-items:center; gap:6px; font-size:13px; color:#64748b; margin-bottom:14px; }
+    .pd-breadcrumb a { color:#006636; font-weight:600; text-decoration:none; }
+    .pd-breadcrumb a:hover { text-decoration:underline; }
+
+    .pd-title-row { display:flex; align-items:flex-start; gap:14px; margin-bottom:22px; flex-wrap:wrap; }
+    .pd-title-input { flex:1; min-width:260px; font-size:24px; font-weight:900; color:#0f172a; border:none; outline:none; background:transparent; padding:4px 0; border-bottom:2px solid transparent; }
+    .pd-title-input:focus { border-bottom-color:#006636; }
+    .pd-badges { display:flex; gap:8px; flex-wrap:wrap; align-items:center; }
+    .pd-badge { font-size:11px; font-weight:700; padding:4px 12px; border-radius:20px; }
+    .pri-alta  { background:#fee2e2; color:#991b1b; }
+    .pri-media { background:#fef3c7; color:#92400e; }
+    .pri-baixa { background:#f0fdf4; color:#166534; }
+    .st-planejado    { background:#f1f5f9; color:#475569; }
+    .st-em_andamento { background:#dbeafe; color:#1d4ed8; }
+    .st-concluido     { background:#d1fae5; color:#065f46; }
+    .st-cancelado     { background:#fee2e2; color:#991b1b; }
+
+    .pd-grid { display:grid; grid-template-columns:2fr 1fr; gap:20px; align-items:start; }
+    @media(max-width:900px) { .pd-grid { grid-template-columns:1fr; } }
+
+    .pd-card { background:#fff; border:1px solid #e2e8f0; border-radius:12px; padding:20px 22px; margin-bottom:20px; }
+    .pd-card h3 { font-size:13px; font-weight:800; text-transform:uppercase; letter-spacing:.06em; color:#334155; margin-bottom:16px; }
+
+    .field-group { display:flex; flex-direction:column; gap:5px; margin-bottom:14px; }
+    .field-group:last-child { margin-bottom:0; }
+    .field-group label { font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:.05em; color:#64748b; }
+    .field-group input, .field-group textarea, .field-group select { padding:9px 12px; border:1px solid #e2e8f0; border-radius:8px; font-size:13px; color:#1e293b; outline:none; background:#fff; font-family:inherit; width:100%; box-sizing:border-box; }
+    .field-group input:focus, .field-group textarea:focus, .field-group select:focus { border-color:#006636; box-shadow:0 0 0 3px #d1fae5; }
+    .field-group textarea { resize:vertical; }
+    .field-row { display:grid; grid-template-columns:1fr 1fr; gap:12px; }
+
+    .pd-roi { font-size:12px; color:#64748b; padding:10px 12px; background:#f8fafc; border-radius:8px; border:1px dashed #e2e8f0; margin-top:4px; }
+    .pd-roi strong { color:#0f172a; }
+
+    .pd-save-bar { position:sticky; bottom:0; background:#fff; border-top:1px solid #e2e8f0; padding:14px 0; margin-top:4px; display:flex; justify-content:flex-end; gap:10px; }
+    .btn-save   { padding:10px 26px; border:none; border-radius:8px; background:#006636; color:#fff; font-size:13px; font-weight:700; cursor:pointer; }
+    .btn-save:hover { background:#005229; }
+    .btn-save:disabled { background:#94a3b8; cursor:default; }
+    .btn-delete { padding:10px 18px; border:1px solid #fee2e2; border-radius:8px; background:#fff; color:#dc2626; font-size:13px; font-weight:600; cursor:pointer; }
+    .btn-delete:hover { background:#fee2e2; }
+
+    /* Etapas */
+    .etapa-item { display:flex; align-items:center; gap:8px; padding:6px 0; }
+    .etapa-cb { width:16px; height:16px; border:2px solid #cbd5e1; border-radius:4px; cursor:pointer; appearance:none; flex-shrink:0; background:#fff; }
+    .etapa-cb:checked { background:#10b981; border-color:#10b981; }
+    .etapa-cb:checked::after { content:'✓'; display:block; color:#fff; font-size:11px; font-weight:800; text-align:center; line-height:1.15; }
+    .etapa-label { font-size:13px; color:#334155; flex:1; }
+    .etapa-label.done { text-decoration:line-through; color:#94a3b8; }
+    .etapa-del { background:none; border:none; color:#fca5a5; cursor:pointer; font-size:15px; padding:0 4px; }
+    .etapa-del:hover { color:#dc2626; }
+    .etapa-add-wrap { display:flex; gap:8px; margin-top:10px; }
+    .etapa-add-input { flex:1; font-size:13px; padding:8px 10px; border:1px dashed #cbd5e1; border-radius:6px; outline:none; }
+    .etapa-add-input:focus { border-color:#006636; border-style:solid; }
+    .etapas-empty { font-size:12px; color:#cbd5e1; padding:6px 0; }
+
+    .pd-loading { padding:60px; text-align:center; color:#94a3b8; }
+  </style>
+</head>
+<body>
+<div class="app-layout">
+  <div id="sidebar-root"></div>
+  <div class="main-content">
+    <div class="page-body">
+      <div class="pd-breadcrumb">
+        <a href="planos-acao.html">← Planos de Ação</a>
+      </div>
+
+      <div id="pd-content">
+        <div class="pd-loading">Carregando…</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script type="module">
+import { supabase, initPage, moeda, dataBR } from './js/config.js';
+
+await initPage();
+
+const params = new URLSearchParams(location.search);
+const planoId = params.get('id');
+
+if (!planoId) {
+  document.getElementById('pd-content').innerHTML = '<div class="pd-loading">Plano não informado.</div>';
+  throw new Error('missing id');
+}
+
+let plano = null;
+let etapas = [];
+
+async function carregar() {
+  const [{ data: p, error }, { data: eData }] = await Promise.all([
+    supabase.from('planos_acao').select('*').eq('id', planoId).single(),
+    supabase.from('planos_acao_etapas').select('*').eq('plano_id', planoId).order('ordem', { ascending: true }),
+  ]);
+  if (error || !p) {
+    document.getElementById('pd-content').innerHTML = '<div class="pd-loading">Plano não encontrado.</div>';
+    return;
+  }
+  plano = p;
+  etapas = eData || [];
+  render();
+}
+
+const PRI_LABEL = { alta:'Alta', media:'Média', baixa:'Baixa' };
+const ST_LABEL  = { planejado:'Planejado', em_andamento:'Em Andamento', concluido:'Concluído', cancelado:'Cancelado' };
+
+function render() {
+  document.title = plano.titulo + ' — SGR Indaiatuba';
+
+  document.getElementById('pd-content').innerHTML = `
+    <div class="pd-title-row">
+      <input type="text" id="f-titulo" class="pd-title-input" value="${escAttr(plano.titulo)}" />
+      <div class="pd-badges">
+        <span class="pd-badge pri-${plano.prioridade}">${PRI_LABEL[plano.prioridade]||'—'}</span>
+        <span class="pd-badge st-${plano.status}">${ST_LABEL[plano.status]||'—'}</span>
+      </div>
+    </div>
+
+    <div class="pd-grid">
+      <div>
+        <div class="pd-card">
+          <h3>Informações Gerais</h3>
+          <div class="field-group">
+            <label>Descrição</label>
+            <textarea id="f-descricao" rows="3">${escHtml(plano.descricao)}</textarea>
+          </div>
+          <div class="field-row">
+            <div class="field-group">
+              <label>Categoria</label>
+              <input type="text" id="f-categoria" value="${escAttr(plano.categoria)}" />
+            </div>
+            <div class="field-group">
+              <label>Responsável</label>
+              <input type="text" id="f-responsavel" value="${escAttr(plano.responsavel)}" />
+            </div>
+          </div>
+          <div class="field-row">
+            <div class="field-group">
+              <label>Prioridade</label>
+              <select id="f-prioridade">
+                <option value="baixa" ${plano.prioridade==='baixa'?'selected':''}>Baixa</option>
+                <option value="media" ${plano.prioridade==='media'?'selected':''}>Média</option>
+                <option value="alta" ${plano.prioridade==='alta'?'selected':''}>Alta</option>
+              </select>
+            </div>
+            <div class="field-group">
+              <label>Status</label>
+              <select id="f-status">
+                <option value="planejado" ${plano.status==='planejado'?'selected':''}>Planejado</option>
+                <option value="em_andamento" ${plano.status==='em_andamento'?'selected':''}>Em Andamento</option>
+                <option value="concluido" ${plano.status==='concluido'?'selected':''}>Concluído</option>
+                <option value="cancelado" ${plano.status==='cancelado'?'selected':''}>Cancelado</option>
+              </select>
+            </div>
+          </div>
+          <div class="field-row">
+            <div class="field-group">
+              <label>Data Início</label>
+              <input type="date" id="f-data-inicio" value="${plano.data_inicio||''}" />
+            </div>
+            <div class="field-group">
+              <label>Data Fim (prazo)</label>
+              <input type="date" id="f-data-fim" value="${plano.data_fim||''}" />
+            </div>
+          </div>
+        </div>
+
+        <div class="pd-card">
+          <h3>Anotações e Cálculos</h3>
+          <div class="field-group">
+            <textarea id="f-anotacoes" rows="12" placeholder="Espaço livre para anotações, memória de cálculo, links, decisões tomadas etc. — cada plano é diferente, use como precisar.">${escHtml(plano.anotacoes)}</textarea>
+          </div>
+        </div>
+      </div>
+
+      <div>
+        <div class="pd-card">
+          <h3>Financeiro</h3>
+          <div class="field-group">
+            <label>Ganho Estimado (R$)</label>
+            <input type="number" id="f-ganho" min="0" step="0.01" value="${plano.ganho_estimado||''}" />
+          </div>
+          <div class="field-group">
+            <label>Investimento Necessário (R$)</label>
+            <input type="number" id="f-investimento" min="0" step="0.01" value="${plano.investimento||''}" />
+          </div>
+          <div class="pd-roi" id="pd-roi"></div>
+        </div>
+
+        <div class="pd-card">
+          <h3>Etapas</h3>
+          <div id="pd-etapas"></div>
+          <div class="etapa-add-wrap">
+            <input class="etapa-add-input" id="f-nova-etapa" placeholder="+ Adicionar etapa…"
+              onkeydown="if(event.key==='Enter'){event.preventDefault();window.adicionarEtapa()}" />
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="pd-save-bar">
+      <button class="btn-delete" onclick="window.excluirPlano()">Excluir plano</button>
+      <button class="btn-save" id="btn-save" onclick="window.salvarTudo()">Salvar alterações</button>
+    </div>
+  `;
+
+  renderEtapas();
+  atualizarRoi();
+  document.getElementById('f-ganho').addEventListener('input', atualizarRoi);
+  document.getElementById('f-investimento').addEventListener('input', atualizarRoi);
+}
+
+function renderEtapas() {
+  const wrap = document.getElementById('pd-etapas');
+  if (!etapas.length) {
+    wrap.innerHTML = '<div class="etapas-empty">Nenhuma etapa cadastrada ainda.</div>';
+    return;
+  }
+  wrap.innerHTML = etapas.map(e => `
+    <div class="etapa-item">
+      <input type="checkbox" class="etapa-cb" id="ecb-${e.id}" ${e.concluida?'checked':''} onchange="window.toggleEtapa('${e.id}', this.checked)" />
+      <label for="ecb-${e.id}" class="etapa-label ${e.concluida?'done':''}">${escHtml(e.descricao)}</label>
+      <button class="etapa-del" onclick="window.deletarEtapa('${e.id}')" title="Remover">×</button>
+    </div>`).join('');
+}
+
+function atualizarRoi() {
+  const ganho  = parseFloat(document.getElementById('f-ganho').value)||0;
+  const invest = parseFloat(document.getElementById('f-investimento').value)||0;
+  const el = document.getElementById('pd-roi');
+  if (!ganho && !invest) { el.textContent = 'Preencha ganho estimado e/ou investimento para ver o retorno projetado.'; return; }
+  if (invest > 0) {
+    const roi = ((ganho - invest) / invest) * 100;
+    el.innerHTML = `Retorno líquido estimado: <strong>${moeda(ganho - invest)}</strong> · ROI: <strong>${roi.toFixed(0)}%</strong>`;
+  } else {
+    el.innerHTML = `Ganho estimado sem investimento identificado: <strong>${moeda(ganho)}</strong>`;
+  }
+}
+
+function escHtml(s) {
+  return (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+function escAttr(s) {
+  return (s||'').replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;');
+}
+
+window.toggleEtapa = async (id, concluida) => {
+  const eta = etapas.find(e => e.id === id);
+  if (eta) eta.concluida = concluida;
+  await supabase.from('planos_acao_etapas').update({ concluida }).eq('id', id);
+};
+
+window.adicionarEtapa = async () => {
+  const input = document.getElementById('f-nova-etapa');
+  const descricao = input.value.trim();
+  if (!descricao) return;
+  input.value = '';
+  input.disabled = true;
+  const ordem = etapas.length;
+  const { data, error } = await supabase.from('planos_acao_etapas')
+    .insert({ plano_id: planoId, descricao, ordem }).select().single();
+  input.disabled = false;
+  if (error) { alert('Erro: ' + error.message); return; }
+  etapas.push(data);
+  renderEtapas();
+  input.focus();
+};
+
+window.deletarEtapa = async (id) => {
+  etapas = etapas.filter(e => e.id !== id);
+  renderEtapas();
+  await supabase.from('planos_acao_etapas').delete().eq('id', id);
+};
+
+window.salvarTudo = async () => {
+  const btn = document.getElementById('btn-save');
+  const titulo = document.getElementById('f-titulo').value.trim();
+  if (!titulo) { document.getElementById('f-titulo').focus(); return; }
+
+  btn.disabled = true;
+  btn.textContent = 'Salvando…';
+
+  const payload = {
+    titulo,
+    descricao:      document.getElementById('f-descricao').value.trim() || null,
+    categoria:      document.getElementById('f-categoria').value.trim() || null,
+    responsavel:    document.getElementById('f-responsavel').value.trim() || null,
+    prioridade:     document.getElementById('f-prioridade').value,
+    status:         document.getElementById('f-status').value,
+    data_inicio:    document.getElementById('f-data-inicio').value || null,
+    data_fim:       document.getElementById('f-data-fim').value || null,
+    ganho_estimado: parseFloat(document.getElementById('f-ganho').value) || 0,
+    investimento:   parseFloat(document.getElementById('f-investimento').value) || 0,
+    anotacoes:      document.getElementById('f-anotacoes').value || null,
+  };
+
+  const { error } = await supabase.from('planos_acao').update(payload).eq('id', planoId);
+  btn.disabled = false;
+  btn.textContent = 'Salvar alterações';
+  if (error) { alert('Erro ao salvar: ' + error.message); return; }
+
+  plano = { ...plano, ...payload };
+  render();
+};
+
+window.excluirPlano = async () => {
+  if (!confirm('Excluir este plano de ação? Essa ação não pode ser desfeita.')) return;
+  await supabase.from('planos_acao').delete().eq('id', planoId);
+  location.href = 'planos-acao.html';
+};
+
+carregar();
+</script>
+</body>
+</html>
