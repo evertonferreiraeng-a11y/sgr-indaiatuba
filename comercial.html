@@ -478,7 +478,12 @@
       <form id="form-venda">
         <input type="hidden" name="id" />
         <div class="form-grid">
-          <div class="form-group"><label>Cliente *</label><select name="cliente_id" required><option value="">Selecione…</option></select></div>
+          <div class="form-group"><label>Cliente *</label>
+            <div style="display:flex;gap:6px">
+              <select name="cliente_id" required style="flex:1"><option value="">Selecione…</option></select>
+              <button type="button" class="btn btn-outline" id="btn-novo-cliente-venda" title="Cadastrar novo cliente" style="padding:0 12px">+</button>
+            </div>
+          </div>
           <div class="form-group"><label>Data *</label><input type="date" name="data" required /></div>
           <div class="form-group"><label>Cód. Material</label><input type="text" name="codigo_material" /></div>
           <div class="form-group"><label>Tipo de Material *</label><select name="material_id" required><option value="">Selecione…</option></select></div>
@@ -497,6 +502,29 @@
     <div class="modal-footer">
       <button class="btn btn-outline" data-close="modal-venda">Cancelar</button>
       <button class="btn btn-primary" id="btn-salvar-venda">Salvar</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal: Novo Cliente (a partir da Venda) -->
+<div class="modal-backdrop" id="modal-cliente">
+  <div class="modal">
+    <div class="modal-header">
+      <h3>Novo Cliente</h3>
+      <button class="modal-close" data-close="modal-cliente">✕</button>
+    </div>
+    <div class="modal-body">
+      <form id="form-cliente">
+        <div class="form-grid">
+          <div class="form-group full"><label>Nome *</label><input type="text" name="nome" required /></div>
+          <div class="form-group"><label>Documento</label><input type="text" name="documento" /></div>
+          <div class="form-group"><label>Contato</label><input type="text" name="contato" /></div>
+        </div>
+      </form>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-outline" data-close="modal-cliente">Cancelar</button>
+      <button class="btn btn-primary" id="btn-salvar-cliente-venda">Salvar</button>
     </div>
   </div>
 </div>
@@ -543,6 +571,38 @@ function recalcVenda() {
   document.querySelector(`#form-venda [name="${n}"]`).addEventListener('input', recalcVenda)
 );
 
+// ── clientes ──────────────────────────────────────────────────────────────────
+async function carregarClientesDropdowns(selecionarId) {
+  const { data: clientes } = await supabase.from('clientes').select('*').order('nome');
+  clienteData = clientes || [];
+  const cliOpts = clienteData.map(c=>`<option value="${c.id}">${c.nome}</option>`).join('');
+
+  document.getElementById('f-cliente').innerHTML    = '<option value="">Todos</option>' + cliOpts;
+  document.getElementById('sel-cliente-chart').innerHTML = '<option value="">Todos os clientes</option>' + cliOpts;
+  document.querySelector('#form-venda [name="cliente_id"]').innerHTML = '<option value="">Selecione…</option>' + cliOpts;
+  initMultiSelect('cliente', clienteData);
+
+  if (selecionarId) document.querySelector('#form-venda [name="cliente_id"]').value = selecionarId;
+}
+
+document.getElementById('btn-novo-cliente-venda').addEventListener('click', () => {
+  const f = document.getElementById('form-cliente');
+  f.reset();
+  abrirModal('modal-cliente');
+});
+
+document.getElementById('btn-salvar-cliente-venda').addEventListener('click', async () => {
+  const f = document.getElementById('form-cliente');
+  if (!f.checkValidity()) { f.reportValidity(); return; }
+  const fd = Object.fromEntries(new FormData(f));
+  const payload = { nome: fd.nome, documento: fd.documento || null, contato: fd.contato || null };
+  const { data: novo, error } = await supabase.from('clientes').insert(payload).select().single();
+  if (error) { toast('Erro ao salvar cliente', 'error'); return; }
+  toast('Cliente cadastrado!');
+  fecharModal('modal-cliente');
+  await carregarClientesDropdowns(novo.id);
+});
+
 // ── init ─────────────────────────────────────────────────────────────────────
 async function init() {
   const { data: { user } } = await supabase.auth.getUser();
@@ -550,24 +610,14 @@ async function init() {
   perfil = p;
 
 
-  const [{ data: clientes }, { data: mats }] = await Promise.all([
-    supabase.from('clientes').select('*').order('nome'),
-    supabase.from('materiais').select('*').order('nome'),
-  ]);
-  clienteData = clientes || [];
-  matData     = mats     || [];
-
-  const cliOpts = clienteData.map(c=>`<option value="${c.id}">${c.nome}</option>`).join('');
+  const { data: mats } = await supabase.from('materiais').select('*').order('nome');
+  matData = mats || [];
   const matOpts = matData.map(m=>`<option value="${m.id}">${m.nome}</option>`).join('');
-
-  document.getElementById('f-cliente').innerHTML    = '<option value="">Todos</option>' + cliOpts;
-  document.getElementById('sel-cliente-chart').innerHTML = '<option value="">Todos os clientes</option>' + cliOpts;
-  document.querySelector('#form-venda [name="cliente_id"]').innerHTML = '<option value="">Selecione…</option>' + cliOpts;
   document.querySelector('#form-venda [name="material_id"]').innerHTML = '<option value="">Selecione…</option>' + matOpts;
   document.getElementById('f-mat').innerHTML = '<option value="">Todos</option>' + matOpts;
-
-  initMultiSelect('cliente', clienteData);
   initMultiSelect('material', matData);
+
+  await carregarClientesDropdowns();
   const anoN = anoAtual();
   document.getElementById('an-ano').innerHTML = Array.from({length:5}, (_,i)=>anoN-i)
     .map(y=>`<option value="${y}"${y===anoN?' selected':''}>${y}</option>`).join('');
