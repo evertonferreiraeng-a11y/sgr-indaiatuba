@@ -1773,6 +1773,7 @@ function renderPlanosAcao() {
   const porMaterialPeriodo = anaAgrupar(dadosPeriodo, r => r.materiais?.nome || r.codigo_material || 'Sem material');
   const oportunidadesEstoque = matData
     .map(m => {
+      if (!m.no_estoque) return null; // fora do estoque ativo — não considerar valor residual
       const estoqueKg = parseFloat(m.estoque_kg || 0);
       const info = porMaterialPeriodo[m.nome];
       if (estoqueKg <= 0 || !info || info.vol <= 0) return null;
