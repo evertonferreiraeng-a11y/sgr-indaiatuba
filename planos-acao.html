@@ -1,0 +1,826 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Planos de Ação — SGR Indaiatuba</title>
+  <link rel="stylesheet" href="css/style.css" />
+  <style>
+    /* ── KPI bar ── */
+    .pa-kpis { display:grid; grid-template-columns:repeat(5,1fr); gap:12px; margin-bottom:24px; }
+    .pa-kpi  { background:#fff; border:1px solid #e2e8f0; border-radius:12px; padding:16px 18px; position:relative; overflow:hidden; }
+    .pa-kpi::before { content:''; position:absolute; top:0; left:0; right:0; height:3px; background:var(--strip,#006636); }
+    .pa-kpi-label { font-size:10px; font-weight:800; text-transform:uppercase; letter-spacing:.07em; color:#94a3b8; margin-bottom:6px; }
+    .pa-kpi-val   { font-size:26px; font-weight:900; color:#0f172a; letter-spacing:-1px; line-height:1; }
+    .pa-kpi-sub   { font-size:11px; color:#94a3b8; margin-top:4px; }
+
+    /* ── Toolbar ── */
+    .pa-toolbar { display:flex; align-items:center; gap:10px; margin-bottom:20px; flex-wrap:wrap; }
+    .pa-search  { flex:1; min-width:200px; position:relative; }
+    .pa-search input { width:100%; padding:8px 12px 8px 36px; border:1px solid #e2e8f0; border-radius:8px; font-size:13px; outline:none; box-sizing:border-box; background:#fff; }
+    .pa-search input:focus { border-color:#006636; box-shadow:0 0 0 3px #d1fae5; }
+    .pa-search-icon { position:absolute; left:11px; top:50%; transform:translateY(-50%); color:#94a3b8; pointer-events:none; }
+    .pa-filter { padding:8px 12px; border:1px solid #e2e8f0; border-radius:8px; font-size:12px; background:#fff; color:#334155; cursor:pointer; outline:none; width:auto !important; flex-shrink:0; }
+    .pa-filter:focus { border-color:#006636; }
+    .pa-view-toggle { display:flex; border:1px solid #e2e8f0; border-radius:8px; overflow:hidden; flex-shrink:0; }
+    .pa-view-btn { display:flex; align-items:center; gap:6px; padding:8px 14px; border:none; background:#fff; color:#64748b; font-size:12px; font-weight:700; cursor:pointer; }
+    .pa-view-btn.active { background:#006636; color:#fff; }
+    .btn-novo-plano { display:flex; align-items:center; gap:6px; background:#006636; color:#fff; border:none; border-radius:8px; padding:9px 18px; font-size:13px; font-weight:700; cursor:pointer; white-space:nowrap; transition:background .15s; }
+    .btn-novo-plano:hover { background:#005229; }
+
+    /* ── Kanban ── */
+    .kanban { display:grid; grid-template-columns:repeat(4,1fr); gap:14px; align-items:start; }
+    .kanban-col { background:#f8fafc; border:1px solid #e2e8f0; border-radius:12px; padding:14px; min-height:400px; }
+    .kanban-col-hd { display:flex; align-items:center; gap:8px; margin-bottom:14px; }
+    .kanban-col-dot { width:10px; height:10px; border-radius:50%; flex-shrink:0; }
+    .kanban-col-title { font-size:12px; font-weight:800; text-transform:uppercase; letter-spacing:.07em; color:#334155; flex:1; }
+    .kanban-col-count { font-size:11px; font-weight:700; background:#e2e8f0; color:#64748b; border-radius:20px; padding:2px 8px; }
+    .kanban-col.drag-over { background:#eff6ff; border-color:#93c5fd; }
+
+    /* ── Card ── */
+    .task-card { background:#fff; border:1px solid #e2e8f0; border-radius:10px; padding:14px; margin-bottom:10px; cursor:grab; transition:box-shadow .15s, transform .1s; user-select:none; }
+    .task-card:hover { box-shadow:0 4px 14px rgba(0,0,0,.09); }
+    .task-card.dragging { opacity:.4; transform:scale(.97); }
+    .task-card.atrasado { border-color:#fca5a5; }
+    .task-card-top { display:flex; align-items:flex-start; gap:8px; margin-bottom:8px; }
+    .task-card-title { font-size:13px; font-weight:700; color:#0f172a; flex:1; line-height:1.4; }
+    .task-card-menu  { background:none; border:none; cursor:pointer; color:#94a3b8; font-size:18px; line-height:1; padding:0 2px; flex-shrink:0; }
+    .task-card-menu:hover { color:#334155; }
+    .task-desc { font-size:12px; color:#64748b; margin-bottom:10px; line-height:1.5; }
+    .task-tags { display:flex; gap:6px; flex-wrap:wrap; margin-bottom:10px; }
+    .task-tag  { font-size:10px; font-weight:700; padding:2px 8px; border-radius:20px; }
+    .task-financeiro { display:flex; gap:10px; margin-bottom:10px; font-size:11px; }
+    .task-fin-item { display:flex; flex-direction:column; }
+    .task-fin-label { color:#94a3b8; font-size:9px; font-weight:800; text-transform:uppercase; letter-spacing:.05em; }
+    .task-fin-val   { font-weight:700; color:#0f172a; }
+    .task-fin-val.ganho { color:#16a34a; }
+    .task-footer { display:flex; align-items:center; gap:8px; }
+    .task-resp { display:flex; align-items:center; gap:5px; font-size:11px; color:#64748b; flex:1; }
+    .task-resp-avatar { width:22px; height:22px; border-radius:50%; background:#006636; color:#fff; font-size:9px; font-weight:800; display:flex; align-items:center; justify-content:center; flex-shrink:0; }
+    .task-date { font-size:11px; font-weight:600; padding:3px 8px; border-radius:20px; white-space:nowrap; }
+    .task-date.ok       { background:#f0fdf4; color:#16a34a; }
+    .task-date.urgente  { background:#fff7ed; color:#c2410c; }
+    .task-date.vencida  { background:#fee2e2; color:#991b1b; }
+    .task-date.sem-data { color:#94a3b8; font-size:10px; }
+
+    .pri-alta  { background:#fee2e2; color:#991b1b; }
+    .pri-media { background:#fef3c7; color:#92400e; }
+    .pri-baixa { background:#f0fdf4; color:#166534; }
+    .cat-tag { background:#eff6ff; color:#1d4ed8; }
+
+    /* ── Modal ── */
+    .modal-overlay { position:fixed; inset:0; background:rgba(15,23,42,.45); backdrop-filter:blur(3px); z-index:1000; display:none; align-items:center; justify-content:center; padding:16px; }
+    .modal-overlay.open { display:flex; }
+    .modal { background:#fff; border-radius:16px; width:100%; max-width:580px; box-shadow:0 20px 60px rgba(0,0,0,.2); overflow:hidden; }
+    .modal-hd { padding:22px 26px 16px; border-bottom:1px solid #f1f5f9; display:flex; align-items:center; gap:10px; }
+    .modal-hd-icon { width:36px; height:36px; border-radius:10px; background:#d1fae5; color:#065f46; display:flex; align-items:center; justify-content:center; font-size:16px; flex-shrink:0; }
+    .modal-hd-title { font-size:16px; font-weight:800; color:#0f172a; flex:1; }
+    .modal-close { background:none; border:none; font-size:22px; color:#94a3b8; cursor:pointer; line-height:1; padding:0; }
+    .modal-close:hover { color:#334155; }
+    .modal-body { padding:22px 26px; display:flex; flex-direction:column; gap:16px; max-height:70vh; overflow-y:auto; }
+    .field-group { display:flex; flex-direction:column; gap:5px; }
+    .field-group label { font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:.05em; color:#64748b; }
+    .field-group input, .field-group textarea, .field-group select { padding:9px 12px; border:1px solid #e2e8f0; border-radius:8px; font-size:13px; color:#1e293b; outline:none; background:#fff; font-family:inherit; }
+    .field-group input:focus, .field-group textarea:focus, .field-group select:focus { border-color:#006636; box-shadow:0 0 0 3px #d1fae5; }
+    .field-group textarea { resize:vertical; min-height:70px; }
+    .field-row { display:grid; grid-template-columns:1fr 1fr; gap:12px; }
+    .field-row-3 { display:grid; grid-template-columns:1fr 1fr 1fr; gap:12px; }
+    .roi-preview { font-size:11px; color:#64748b; padding:8px 10px; background:#f8fafc; border-radius:8px; border:1px dashed #e2e8f0; }
+    .roi-preview strong { color:#0f172a; }
+    .modal-ft { padding:16px 26px; border-top:1px solid #f1f5f9; display:flex; justify-content:flex-end; gap:10px; }
+    .btn-cancel { padding:9px 20px; border:1px solid #e2e8f0; border-radius:8px; background:#fff; color:#64748b; font-size:13px; font-weight:600; cursor:pointer; }
+    .btn-cancel:hover { background:#f8fafc; }
+    .btn-save   { padding:9px 24px; border:none; border-radius:8px; background:#006636; color:#fff; font-size:13px; font-weight:700; cursor:pointer; }
+    .btn-save:hover { background:#005229; }
+    .btn-delete { padding:9px 16px; border:1px solid #fee2e2; border-radius:8px; background:#fff; color:#dc2626; font-size:13px; font-weight:600; cursor:pointer; margin-right:auto; }
+    .btn-delete:hover { background:#fee2e2; }
+
+    /* Context menu */
+    .ctx-menu { position:fixed; z-index:2000; background:#fff; border:1px solid #e2e8f0; border-radius:10px; box-shadow:0 8px 24px rgba(0,0,0,.15); padding:6px; min-width:170px; }
+    .ctx-item { display:block; width:100%; text-align:left; padding:8px 14px; border:none; background:none; font-size:12px; font-weight:600; color:#334155; cursor:pointer; border-radius:6px; }
+    .ctx-item:hover { background:#f1f5f9; }
+    .ctx-item.danger { color:#dc2626; }
+    .ctx-item.danger:hover { background:#fee2e2; }
+    .ctx-sep { height:1px; background:#f1f5f9; margin:4px 0; }
+
+    .kanban-empty { text-align:center; padding:32px 16px; color:#94a3b8; font-size:12px; }
+    .kanban-empty svg { width:40px; height:40px; margin-bottom:10px; opacity:.4; }
+
+    /* ── Etapas ── */
+    .etapas-wrap { margin:10px 0; border-top:1px solid #f1f5f9; padding-top:10px; }
+    .etapas-progress { margin-bottom:8px; }
+    .etapas-progress-bar { height:4px; background:#e2e8f0; border-radius:2px; margin-top:4px; overflow:hidden; }
+    .etapas-progress-fill { height:100%; background:#10b981; border-radius:2px; transition:width .3s; }
+    .etapas-progress-label { font-size:10px; font-weight:700; color:#64748b; }
+    .etapa-item { display:flex; align-items:center; gap:7px; padding:4px 0; cursor:pointer; }
+    .etapa-item:hover .etapa-del { opacity:1; }
+    .etapa-cb { width:15px; height:15px; border:2px solid #cbd5e1; border-radius:4px; cursor:pointer; appearance:none; flex-shrink:0; background:#fff; transition:all .15s; }
+    .etapa-cb:checked { background:#10b981; border-color:#10b981; }
+    .etapa-cb:checked::after { content:'✓'; display:block; color:#fff; font-size:10px; font-weight:800; text-align:center; line-height:1.1; }
+    .etapa-label { font-size:12px; color:#334155; flex:1; line-height:1.4; transition:all .15s; }
+    .etapa-label.done { text-decoration:line-through; color:#94a3b8; }
+    .etapa-del { background:none; border:none; color:#fca5a5; cursor:pointer; font-size:14px; line-height:1; padding:0 2px; opacity:0; transition:opacity .15s; }
+    .etapa-del:hover { color:#dc2626; }
+    .etapa-add-wrap { display:flex; align-items:center; gap:6px; margin-top:6px; }
+    .etapa-add-input { flex:1; font-size:12px; padding:5px 8px; border:1px dashed #cbd5e1; border-radius:6px; outline:none; background:transparent; color:#334155; font-family:inherit; }
+    .etapa-add-input:focus { border-color:#006636; background:#fff; border-style:solid; }
+    .etapa-add-input::placeholder { color:#cbd5e1; }
+
+    /* ── Cronograma (Gantt-lite) ── */
+    .gantt-wrap { background:#fff; border:1px solid #e2e8f0; border-radius:12px; overflow:hidden; }
+    .gantt-empty { text-align:center; padding:60px 16px; color:#94a3b8; font-size:13px; }
+    .gantt-header { display:flex; border-bottom:1px solid #e2e8f0; }
+    .gantt-label-col { width:260px; flex-shrink:0; padding:10px 14px; font-size:10px; font-weight:800; text-transform:uppercase; letter-spacing:.06em; color:#94a3b8; border-right:1px solid #e2e8f0; }
+    .gantt-track-header { flex:1; position:relative; height:34px; }
+    .gantt-month-label { position:absolute; top:0; height:100%; display:flex; align-items:center; font-size:10px; font-weight:800; color:#64748b; text-transform:uppercase; letter-spacing:.04em; border-left:1px solid #f1f5f9; padding-left:6px; }
+    .gantt-row { display:flex; border-bottom:1px solid #f1f5f9; }
+    .gantt-row:hover { background:#f8fafc; }
+    .gantt-label { width:260px; flex-shrink:0; padding:12px 14px; border-right:1px solid #e2e8f0; cursor:pointer; }
+    .gantt-label-title { font-size:12px; font-weight:700; color:#0f172a; margin-bottom:4px; }
+    .gantt-label-tags { display:flex; gap:5px; flex-wrap:wrap; }
+    .gantt-track { flex:1; position:relative; min-height:52px; }
+    .gantt-gridline { position:absolute; top:0; bottom:0; border-left:1px solid #f8fafc; }
+    .gantt-bar { position:absolute; top:14px; height:24px; border-radius:6px; display:flex; align-items:center; padding:0 8px; font-size:10px; font-weight:700; color:#fff; white-space:nowrap; overflow:hidden; min-width:18px; box-shadow:0 1px 3px rgba(0,0,0,.15); }
+    .gantt-bar.atrasado { outline:2px solid #dc2626; outline-offset:1px; }
+    .gantt-bar-fill { position:absolute; left:0; top:0; bottom:0; background:rgba(255,255,255,.35); border-radius:6px 0 0 6px; }
+    .gantt-nodata { padding:12px 14px; font-size:11px; color:#cbd5e1; }
+
+    @media(max-width:1000px) {
+      .kanban { grid-template-columns:1fr 1fr; }
+      .pa-kpis { grid-template-columns:repeat(3,1fr); }
+      .gantt-label-col, .gantt-label { width:170px; }
+    }
+    @media(max-width:600px) {
+      .kanban { grid-template-columns:1fr; }
+      .pa-kpis { grid-template-columns:1fr 1fr; }
+      .field-row, .field-row-3 { grid-template-columns:1fr; }
+    }
+  </style>
+</head>
+<body>
+<div class="app-layout">
+  <div id="sidebar-root"></div>
+  <div class="main-content">
+    <div class="page-header">
+      <div>
+        <h2>Planos de Ação</h2>
+        <p id="pa-subtitle">Cronograma, status e acompanhamento das ações</p>
+      </div>
+      <button class="btn-novo-plano" onclick="abrirPlano()">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+        Novo Plano
+      </button>
+    </div>
+
+    <div class="page-body">
+
+      <!-- KPI bar -->
+      <div class="pa-kpis" id="pa-kpis"></div>
+
+      <!-- Toolbar -->
+      <div class="pa-toolbar">
+        <div class="pa-search">
+          <svg class="pa-search-icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+          <input type="text" id="pa-search" placeholder="Buscar plano de ação…" oninput="renderAll()" />
+        </div>
+        <select class="pa-filter" id="fil-prioridade" onchange="renderAll()">
+          <option value="">Todas as prioridades</option>
+          <option value="alta">Alta</option>
+          <option value="media">Média</option>
+          <option value="baixa">Baixa</option>
+        </select>
+        <select class="pa-filter" id="fil-categoria" onchange="renderAll()">
+          <option value="">Todas as categorias</option>
+        </select>
+        <select class="pa-filter" id="fil-responsavel" onchange="renderAll()">
+          <option value="">Todos os responsáveis</option>
+        </select>
+        <div class="pa-view-toggle">
+          <button class="pa-view-btn active" id="btn-view-quadro" onclick="mudarView('quadro')">Quadro</button>
+          <button class="pa-view-btn" id="btn-view-cronograma" onclick="mudarView('cronograma')">Cronograma</button>
+        </div>
+      </div>
+
+      <!-- Kanban board -->
+      <div class="kanban" id="kanban-board"></div>
+
+      <!-- Cronograma (Gantt-lite) -->
+      <div class="gantt-wrap" id="gantt-wrap" style="display:none"></div>
+
+    </div>
+  </div>
+</div>
+
+<!-- ── Modal criar/editar ── -->
+<div class="modal-overlay" id="modal-overlay">
+  <div class="modal">
+    <div class="modal-hd">
+      <div class="modal-hd-icon"><span class="icon" style="width:20px;height:20px"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 21h8M12 17v4M7 4h10v6a5 5 0 0 1-10 0V4z"/><path d="M17 6h3a2 2 0 0 1-2 3.5M7 6H4a2 2 0 0 0 2 3.5"/></svg></span></div>
+      <div class="modal-hd-title" id="modal-title">Novo Plano de Ação</div>
+      <button class="modal-close" onclick="fecharPlano()">×</button>
+    </div>
+    <div class="modal-body">
+      <div class="field-group">
+        <label>Título *</label>
+        <input type="text" id="f-titulo" placeholder="Ex: Reajustar preço — Papel/Papelão…" />
+      </div>
+      <div class="field-group">
+        <label>Descrição</label>
+        <textarea id="f-descricao" placeholder="Detalhes, contexto, origem da ação…"></textarea>
+      </div>
+      <div class="field-row-3">
+        <div class="field-group">
+          <label>Prioridade</label>
+          <select id="f-prioridade">
+            <option value="baixa">Baixa</option>
+            <option value="media" selected>Média</option>
+            <option value="alta">Alta</option>
+          </select>
+        </div>
+        <div class="field-group">
+          <label>Status</label>
+          <select id="f-status">
+            <option value="planejado">Planejado</option>
+            <option value="em_andamento">Em Andamento</option>
+            <option value="concluido">Concluído</option>
+            <option value="cancelado">Cancelado</option>
+          </select>
+        </div>
+        <div class="field-group">
+          <label>Categoria</label>
+          <input type="text" id="f-categoria" placeholder="Ex: Comercial…" list="lista-categorias" />
+          <datalist id="lista-categorias">
+            <option value="Comercial"></option><option value="Operacional"></option>
+            <option value="Financeiro"></option><option value="Manutenção"></option>
+            <option value="RH"></option><option value="Qualidade"></option>
+          </datalist>
+        </div>
+      </div>
+      <div class="field-row">
+        <div class="field-group">
+          <label>Responsável</label>
+          <input type="text" id="f-responsavel" placeholder="Nome do responsável…" />
+        </div>
+        <div class="field-group"></div>
+      </div>
+      <div class="field-row">
+        <div class="field-group">
+          <label>Data Início</label>
+          <input type="date" id="f-data-inicio" />
+        </div>
+        <div class="field-group">
+          <label>Data Fim (prazo)</label>
+          <input type="date" id="f-data-fim" />
+        </div>
+      </div>
+      <div class="field-row">
+        <div class="field-group">
+          <label>Ganho Estimado (R$)</label>
+          <input type="number" id="f-ganho" min="0" step="0.01" placeholder="0,00" />
+        </div>
+        <div class="field-group">
+          <label>Investimento Necessário (R$)</label>
+          <input type="number" id="f-investimento" min="0" step="0.01" placeholder="0,00" />
+        </div>
+      </div>
+      <div class="roi-preview" id="roi-preview"></div>
+    </div>
+    <div class="modal-ft">
+      <button class="btn-delete" id="btn-delete" onclick="deletarPlano()" style="display:none">Excluir</button>
+      <button class="btn-cancel" onclick="fecharPlano()">Cancelar</button>
+      <button class="btn-save"   onclick="salvarPlano()">Salvar Plano</button>
+    </div>
+  </div>
+</div>
+
+<!-- ── Context menu ── -->
+<div class="ctx-menu" id="ctx-menu" style="display:none"></div>
+
+<script type="module">
+import { supabase, initPage, moeda, dataBR } from './js/config.js';
+import { icon } from './js/icons.js';
+
+await initPage();
+
+document.getElementById('btn-view-quadro').innerHTML      = icon('list',{size:13}) + ' Quadro';
+document.getElementById('btn-view-cronograma').innerHTML  = icon('calendar',{size:13}) + ' Cronograma';
+
+let planos    = [];
+let editingId = null;
+let view      = 'quadro';
+
+const COLS = [
+  { key:'planejado',    label:'Planejado',     dot:'#94a3b8' },
+  { key:'em_andamento', label:'Em Andamento',  dot:'#3b82f6' },
+  { key:'concluido',    label:'Concluído',     dot:'#10b981' },
+  { key:'cancelado',    label:'Cancelado',     dot:'#f43f5e' },
+];
+const STATUS_COLOR = Object.fromEntries(COLS.map(c => [c.key, c.dot]));
+
+const PRI = {
+  alta:  { label:'Alta',  cls:'pri-alta'  },
+  media: { label:'Média', cls:'pri-media' },
+  baixa: { label:'Baixa', cls:'pri-baixa' },
+};
+
+// ── Carregar ──────────────────────────────────────────────────────────────────
+async function carregar() {
+  const [{ data, error }, { data: etapasData }] = await Promise.all([
+    supabase.from('planos_acao').select('*').order('criado_em', { ascending: false }),
+    supabase.from('planos_acao_etapas').select('*').order('ordem', { ascending: true }),
+  ]);
+
+  if (error) { console.error(error); return; }
+  planos = data || [];
+
+  window._etapasMap = {};
+  (etapasData || []).forEach(e => {
+    if (!window._etapasMap[e.plano_id]) window._etapasMap[e.plano_id] = [];
+    window._etapasMap[e.plano_id].push(e);
+  });
+
+  atualizarFiltros();
+  renderAll();
+}
+
+function estaAtrasado(p) {
+  const hoje = new Date().toISOString().split('T')[0];
+  return p.data_fim && p.data_fim < hoje && p.status !== 'concluido' && p.status !== 'cancelado';
+}
+
+// ── KPIs ──────────────────────────────────────────────────────────────────────
+function renderKpis() {
+  const total      = planos.length;
+  const andamento  = planos.filter(p => p.status === 'em_andamento').length;
+  const concluidos = planos.filter(p => p.status === 'concluido').length;
+  const atrasados  = planos.filter(estaAtrasado).length;
+  const ganhoTotal = planos
+    .filter(p => p.status !== 'cancelado')
+    .reduce((s,p) => s + (parseFloat(p.ganho_estimado)||0), 0);
+
+  document.getElementById('pa-subtitle').textContent =
+    `${total} plano${total!==1?'s':''} de ação · atualizado agora`;
+
+  document.getElementById('pa-kpis').innerHTML = `
+    <div class="pa-kpi" style="--strip:#006636">
+      <div class="pa-kpi-label">Total</div>
+      <div class="pa-kpi-val">${total}</div>
+      <div class="pa-kpi-sub">planos cadastrados</div>
+    </div>
+    <div class="pa-kpi" style="--strip:#3b82f6">
+      <div class="pa-kpi-label">Em Andamento</div>
+      <div class="pa-kpi-val" style="color:#1d4ed8">${andamento}</div>
+      <div class="pa-kpi-sub">em execução agora</div>
+    </div>
+    <div class="pa-kpi" style="--strip:#10b981">
+      <div class="pa-kpi-label">Concluídos</div>
+      <div class="pa-kpi-val" style="color:#059669">${concluidos}</div>
+      <div class="pa-kpi-sub">${total?Math.round(concluidos/total*100):0}% do total</div>
+    </div>
+    <div class="pa-kpi" style="--strip:${atrasados?'#dc2626':'#94a3b8'}">
+      <div class="pa-kpi-label">Atrasados</div>
+      <div class="pa-kpi-val" style="color:${atrasados?'#dc2626':'#0f172a'}">${atrasados}</div>
+      <div class="pa-kpi-sub">${atrasados?'requer atenção':'todos no prazo'}</div>
+    </div>
+    <div class="pa-kpi" style="--strip:#f59e0b">
+      <div class="pa-kpi-label">Ganho Potencial</div>
+      <div class="pa-kpi-val" style="font-size:20px;color:#b45309">${moeda(ganhoTotal)}</div>
+      <div class="pa-kpi-sub">soma dos planos ativos</div>
+    </div>`;
+}
+
+// ── Filtros dinâmicos ─────────────────────────────────────────────────────────
+function atualizarFiltros() {
+  const cats  = [...new Set(planos.map(p=>p.categoria).filter(Boolean))].sort();
+  const resps = [...new Set(planos.map(p=>p.responsavel).filter(Boolean))].sort();
+  const selCat  = document.getElementById('fil-categoria');
+  const selResp = document.getElementById('fil-responsavel');
+  const prevCat  = selCat.value;
+  const prevResp = selResp.value;
+  selCat.innerHTML  = '<option value="">Todas as categorias</option>'  + cats.map(c=>`<option value="${c}">${c}</option>`).join('');
+  selResp.innerHTML = '<option value="">Todos os responsáveis</option>' + resps.map(r=>`<option value="${r}">${r}</option>`).join('');
+  if (prevCat)  selCat.value  = prevCat;
+  if (prevResp) selResp.value = prevResp;
+}
+
+function filtrar() {
+  const q    = (document.getElementById('pa-search').value || '').toLowerCase();
+  const pri  = document.getElementById('fil-prioridade').value;
+  const cat  = document.getElementById('fil-categoria').value;
+  const resp = document.getElementById('fil-responsavel').value;
+
+  return planos.filter(p => {
+    if (q    && !p.titulo.toLowerCase().includes(q) && !(p.descricao||'').toLowerCase().includes(q)) return false;
+    if (pri  && p.prioridade  !== pri)  return false;
+    if (cat  && p.categoria   !== cat)  return false;
+    if (resp && p.responsavel !== resp) return false;
+    return true;
+  });
+}
+
+window.renderAll = function() {
+  renderKpis();
+  if (view === 'quadro') renderKanban(); else renderGantt();
+};
+
+window.mudarView = function(v) {
+  view = v;
+  document.getElementById('btn-view-quadro').classList.toggle('active', v==='quadro');
+  document.getElementById('btn-view-cronograma').classList.toggle('active', v==='cronograma');
+  document.getElementById('kanban-board').style.display = v==='quadro' ? '' : 'none';
+  document.getElementById('gantt-wrap').style.display    = v==='cronograma' ? '' : 'none';
+  renderAll();
+};
+
+// ── Kanban ────────────────────────────────────────────────────────────────────
+function renderKanban() {
+  const filtrados = filtrar();
+  const board = document.getElementById('kanban-board');
+  board.innerHTML = COLS.map(col => {
+    const cards = filtrados.filter(p => p.status === col.key);
+    const cardsHtml = cards.length === 0
+      ? `<div class="kanban-empty"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="9" y1="9" x2="15" y2="9"/><line x1="9" y1="13" x2="12" y2="13"/></svg><br>Sem planos</div>`
+      : cards.map(p => cardHtml(p)).join('');
+
+    return `
+      <div class="kanban-col" data-status="${col.key}"
+        ondragover="dragOver(event)" ondragleave="dragLeave(event)" ondrop="drop(event,'${col.key}')">
+        <div class="kanban-col-hd">
+          <div class="kanban-col-dot" style="background:${col.dot}"></div>
+          <div class="kanban-col-title">${col.label}</div>
+          <div class="kanban-col-count">${cards.length}</div>
+        </div>
+        ${cardsHtml}
+      </div>`;
+  }).join('');
+}
+
+function cardHtml(p) {
+  const pri = PRI[p.prioridade] || PRI.media;
+  const atrasado = estaAtrasado(p);
+  const hoje = new Date().toISOString().split('T')[0];
+
+  let dateHtml = '';
+  if (p.data_fim) {
+    const cls = p.data_fim < hoje ? 'vencida' : p.data_fim === hoje ? 'urgente' : 'ok';
+    const dateIcon = p.data_fim < hoje ? icon('alert-triangle',{size:11}) : p.data_fim === hoje ? icon('bell',{size:11}) : '';
+    const label = `${dataBR(p.data_inicio) !== '—' ? dataBR(p.data_inicio)+' → ' : ''}${dataBR(p.data_fim)}`;
+    dateHtml = `<span class="task-date ${cls}">${dateIcon}${label}</span>`;
+  } else {
+    dateHtml = `<span class="task-date sem-data">Sem prazo</span>`;
+  }
+
+  const initials = (p.responsavel||'?').split(' ').map(w=>w[0]).slice(0,2).join('').toUpperCase();
+  const etapas = (window._etapasMap || {})[p.id] || [];
+  const eDone  = etapas.filter(e => e.concluida).length;
+  const eTotal = etapas.length;
+  const ePct   = eTotal ? Math.round(eDone / eTotal * 100) : 0;
+
+  const ganho = parseFloat(p.ganho_estimado)||0;
+  const invest = parseFloat(p.investimento)||0;
+  const financeiroHtml = (ganho > 0 || invest > 0) ? `
+    <div class="task-financeiro">
+      ${ganho  > 0 ? `<div class="task-fin-item"><span class="task-fin-label">Ganho</span><span class="task-fin-val ganho">${moeda(ganho)}</span></div>` : ''}
+      ${invest > 0 ? `<div class="task-fin-item"><span class="task-fin-label">Investimento</span><span class="task-fin-val">${moeda(invest)}</span></div>` : ''}
+    </div>` : '';
+
+  const etapasHtml = `
+    <div class="etapas-wrap" ondragstart="event.stopPropagation()" draggable="false">
+      ${eTotal > 0 ? `
+        <div class="etapas-progress">
+          <div class="etapas-progress-label">${eDone}/${eTotal} etapa${eTotal!==1?'s':''} · ${ePct}%</div>
+          <div class="etapas-progress-bar"><div class="etapas-progress-fill" style="width:${ePct}%"></div></div>
+        </div>` : ''}
+      ${etapas.map(e => `
+        <div class="etapa-item">
+          <input type="checkbox" class="etapa-cb" id="ecb-${e.id}" ${e.concluida?'checked':''}
+            onchange="toggleEtapa('${e.id}','${p.id}',this.checked)" onclick="event.stopPropagation()" />
+          <label for="ecb-${e.id}" class="etapa-label ${e.concluida?'done':''}" onclick="event.stopPropagation()">${escHtml(e.descricao)}</label>
+          <button class="etapa-del" onclick="event.stopPropagation();deletarEtapa('${e.id}','${p.id}')" title="Remover">×</button>
+        </div>`).join('')}
+      <div class="etapa-add-wrap">
+        <input class="etapa-add-input" placeholder="+ Adicionar etapa…"
+          onkeydown="if(event.key==='Enter'){event.preventDefault();adicionarEtapa('${p.id}',this)}"
+          onclick="event.stopPropagation()" ondragstart="event.stopPropagation()" />
+      </div>
+    </div>`;
+
+  return `
+    <div class="task-card ${atrasado?'atrasado':''}" draggable="true" data-id="${p.id}"
+      ondragstart="dragStart(event,'${p.id}')" ondragend="dragEnd(event)">
+      <div class="task-card-top">
+        <div class="task-card-title">${escHtml(p.titulo)}</div>
+        <button class="task-card-menu" onclick="ctxMenu(event,'${p.id}')">⋯</button>
+      </div>
+      ${p.descricao ? `<div class="task-desc">${escHtml(p.descricao)}</div>` : ''}
+      ${financeiroHtml}
+      ${etapasHtml}
+      <div class="task-tags" style="margin-top:10px">
+        <span class="task-tag ${pri.cls}">${pri.label}</span>
+        ${p.categoria ? `<span class="task-tag cat-tag">${escHtml(p.categoria)}</span>` : ''}
+      </div>
+      <div class="task-footer">
+        ${p.responsavel
+          ? `<div class="task-resp"><div class="task-resp-avatar">${initials}</div>${escHtml(p.responsavel)}</div>`
+          : `<div class="task-resp" style="color:#cbd5e1">Sem responsável</div>`}
+        ${dateHtml}
+      </div>
+    </div>`;
+}
+
+// ── Cronograma (Gantt-lite) ───────────────────────────────────────────────────
+function renderGantt() {
+  const filtrados = filtrar().filter(p => p.data_inicio || p.data_fim);
+  const wrap = document.getElementById('gantt-wrap');
+
+  if (!filtrados.length) {
+    wrap.innerHTML = `<div class="gantt-empty">Nenhum plano com data de início/fim cadastrada.<br>Preencha o cronograma ao criar ou editar um plano.</div>`;
+    return;
+  }
+
+  const toDate = s => new Date(s + 'T00:00:00');
+  let minD = null, maxD = null;
+  filtrados.forEach(p => {
+    const ini = p.data_inicio ? toDate(p.data_inicio) : toDate(p.data_fim);
+    const fim = p.data_fim ? toDate(p.data_fim) : toDate(p.data_inicio);
+    if (!minD || ini < minD) minD = ini;
+    if (!maxD || fim > maxD) maxD = fim;
+  });
+  // Padroniza para início/fim de mês, com folga de um mês em cada ponta
+  minD = new Date(minD.getFullYear(), minD.getMonth() - 1, 1);
+  maxD = new Date(maxD.getFullYear(), maxD.getMonth() + 2, 0);
+  const totalMs = maxD - minD;
+
+  const meses = [];
+  let cursor = new Date(minD.getFullYear(), minD.getMonth(), 1);
+  while (cursor <= maxD) {
+    meses.push(new Date(cursor));
+    cursor = new Date(cursor.getFullYear(), cursor.getMonth() + 1, 1);
+  }
+  const MES_ABREV = ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
+
+  const monthHeaderHtml = meses.map(m => {
+    const leftPct = ((m - minD) / totalMs) * 100;
+    return `<div class="gantt-month-label" style="left:${leftPct}%">${MES_ABREV[m.getMonth()]}/${String(m.getFullYear()).slice(2)}</div>`;
+  }).join('');
+
+  const gridlinesHtml = meses.map(m => {
+    const leftPct = ((m - minD) / totalMs) * 100;
+    return `<div class="gantt-gridline" style="left:${leftPct}%"></div>`;
+  }).join('');
+
+  const hoje = new Date().toISOString().split('T')[0];
+  const rowsHtml = filtrados.map(p => {
+    const iniD = p.data_inicio ? toDate(p.data_inicio) : toDate(p.data_fim);
+    const fimD = p.data_fim ? toDate(p.data_fim) : toDate(p.data_inicio);
+    const leftPct  = ((iniD - minD) / totalMs) * 100;
+    const widthPct = Math.max(((fimD - iniD) / totalMs) * 100, 0.6);
+    const cor = STATUS_COLOR[p.status] || '#94a3b8';
+    const atrasado = estaAtrasado(p);
+
+    const etapas = (window._etapasMap || {})[p.id] || [];
+    const eDone  = etapas.filter(e => e.concluida).length;
+    const eTotal = etapas.length;
+    const ePct   = eTotal ? Math.round(eDone / eTotal * 100) : (p.status === 'concluido' ? 100 : 0);
+
+    const pri = PRI[p.prioridade] || PRI.media;
+
+    return `
+      <div class="gantt-row">
+        <div class="gantt-label" onclick="abrirPlano('${p.id}')">
+          <div class="gantt-label-title">${escHtml(p.titulo)}</div>
+          <div class="gantt-label-tags">
+            <span class="task-tag ${pri.cls}">${pri.label}</span>
+            ${p.categoria ? `<span class="task-tag cat-tag">${escHtml(p.categoria)}</span>` : ''}
+          </div>
+        </div>
+        <div class="gantt-track">
+          ${gridlinesHtml}
+          <div class="gantt-bar ${atrasado?'atrasado':''}" style="left:${leftPct}%;width:${widthPct}%;background:${cor}"
+            title="${escHtml(p.titulo)} — ${dataBR(p.data_inicio)} a ${dataBR(p.data_fim)}" onclick="abrirPlano('${p.id}')">
+            <div class="gantt-bar-fill" style="width:${ePct}%"></div>
+            <span style="position:relative">${dataBR(p.data_inicio)} – ${dataBR(p.data_fim)}</span>
+          </div>
+        </div>
+      </div>`;
+  }).join('');
+
+  wrap.innerHTML = `
+    <div class="gantt-header">
+      <div class="gantt-label-col">Plano de ação</div>
+      <div class="gantt-track-header">${monthHeaderHtml}</div>
+    </div>
+    ${rowsHtml}`;
+}
+
+// ── Etapas ────────────────────────────────────────────────────────────────────
+window.toggleEtapa = async (etapaId, planoId, concluida) => {
+  const etapas = (window._etapasMap || {})[planoId] || [];
+  const eta = etapas.find(e => e.id === etapaId);
+  if (eta) eta.concluida = concluida;
+
+  const label = document.querySelector(`label[for="ecb-${etapaId}"]`);
+  if (label) label.className = `etapa-label ${concluida ? 'done' : ''}`;
+
+  const eDone = etapas.filter(e => e.concluida).length;
+  const eTotal = etapas.length;
+  const ePct = eTotal ? Math.round(eDone / eTotal * 100) : 0;
+  const card = document.querySelector(`.task-card[data-id="${planoId}"]`);
+  if (card) {
+    const fill  = card.querySelector('.etapas-progress-fill');
+    const lbl   = card.querySelector('.etapas-progress-label');
+    if (fill) fill.style.width = ePct + '%';
+    if (lbl)  lbl.textContent = `${eDone}/${eTotal} etapa${eTotal!==1?'s':''} · ${ePct}%`;
+  }
+
+  await supabase.from('planos_acao_etapas').update({ concluida }).eq('id', etapaId);
+};
+
+window.adicionarEtapa = async (planoId, input) => {
+  const descricao = input.value.trim();
+  if (!descricao) return;
+  input.value = '';
+  input.disabled = true;
+  const ordem = ((window._etapasMap || {})[planoId]?.length) || 0;
+  const { data, error } = await supabase.from('planos_acao_etapas')
+    .insert({ plano_id: planoId, descricao, ordem })
+    .select().single();
+  input.disabled = false;
+  if (error) { alert('Erro: ' + error.message); return; }
+  if (!window._etapasMap) window._etapasMap = {};
+  if (!window._etapasMap[planoId]) window._etapasMap[planoId] = [];
+  window._etapasMap[planoId].push(data);
+  renderAll();
+};
+
+window.deletarEtapa = async (etapaId, planoId) => {
+  if (!window._etapasMap?.[planoId]) return;
+  window._etapasMap[planoId] = window._etapasMap[planoId].filter(e => e.id !== etapaId);
+  renderAll();
+  await supabase.from('planos_acao_etapas').delete().eq('id', etapaId);
+};
+
+function escHtml(s) {
+  return (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+// ── Drag & Drop ───────────────────────────────────────────────────────────────
+let dragId = null;
+
+window.dragStart = (e, id) => {
+  dragId = id;
+  e.currentTarget.classList.add('dragging');
+  e.dataTransfer.effectAllowed = 'move';
+};
+window.dragEnd = (e) => {
+  e.currentTarget.classList.remove('dragging');
+  document.querySelectorAll('.kanban-col').forEach(c => c.classList.remove('drag-over'));
+};
+window.dragOver = (e) => {
+  e.preventDefault();
+  e.currentTarget.classList.add('drag-over');
+};
+window.dragLeave = (e) => {
+  e.currentTarget.classList.remove('drag-over');
+};
+window.drop = async (e, newStatus) => {
+  e.preventDefault();
+  e.currentTarget.classList.remove('drag-over');
+  if (!dragId) return;
+  const p = planos.find(x => x.id === dragId);
+  if (!p || p.status === newStatus) return;
+  p.status = newStatus;
+  renderAll();
+  await supabase.from('planos_acao').update({ status: newStatus }).eq('id', dragId);
+  dragId = null;
+};
+
+// ── Context menu ──────────────────────────────────────────────────────────────
+window.ctxMenu = (e, id) => {
+  e.stopPropagation();
+  const menu = document.getElementById('ctx-menu');
+  menu.innerHTML = `
+    <button class="ctx-item" onclick="abrirPlano('${id}');fecharCtx()">${icon('edit',{size:13})} Editar</button>
+    <div class="ctx-sep"></div>
+    <button class="ctx-item" onclick="moverStatus('${id}','planejado');fecharCtx()"><span style="display:inline-block;width:8px;height:8px;border-radius:2px;background:#94a3b8;margin-right:6px"></span>Planejado</button>
+    <button class="ctx-item" onclick="moverStatus('${id}','em_andamento');fecharCtx()"><span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:#3b82f6;margin-right:6px"></span>Em Andamento</button>
+    <button class="ctx-item" onclick="moverStatus('${id}','concluido');fecharCtx()">${icon('check',{size:13})} Concluído</button>
+    <button class="ctx-item" onclick="moverStatus('${id}','cancelado');fecharCtx()">${icon('x-circle',{size:13})} Cancelado</button>
+    <div class="ctx-sep"></div>
+    <button class="ctx-item danger" onclick="confirmarDelete('${id}');fecharCtx()">${icon('trash',{size:13})} Excluir</button>`;
+  menu.style.display = 'block';
+  const x = Math.min(e.clientX, window.innerWidth - 180);
+  const y = Math.min(e.clientY, window.innerHeight - 260);
+  menu.style.left = x + 'px';
+  menu.style.top  = y + 'px';
+  setTimeout(() => document.addEventListener('click', fecharCtx, { once:true }), 50);
+};
+window.fecharCtx = () => { document.getElementById('ctx-menu').style.display = 'none'; };
+
+window.moverStatus = async (id, status) => {
+  const p = planos.find(x => x.id === id);
+  if (!p) return;
+  p.status = status;
+  renderAll();
+  await supabase.from('planos_acao').update({ status }).eq('id', id);
+};
+
+window.confirmarDelete = async (id) => {
+  if (!confirm('Excluir este plano de ação?')) return;
+  planos = planos.filter(p => p.id !== id);
+  renderAll();
+  await supabase.from('planos_acao').delete().eq('id', id);
+};
+
+// ── ROI preview ───────────────────────────────────────────────────────────────
+function atualizarRoiPreview() {
+  const ganho  = parseFloat(document.getElementById('f-ganho').value)||0;
+  const invest = parseFloat(document.getElementById('f-investimento').value)||0;
+  const el = document.getElementById('roi-preview');
+  if (!ganho && !invest) { el.textContent = 'Preencha ganho estimado e/ou investimento para ver o retorno projetado.'; return; }
+  if (invest > 0) {
+    const roi = ((ganho - invest) / invest) * 100;
+    el.innerHTML = `Retorno líquido estimado: <strong>${moeda(ganho - invest)}</strong> · ROI: <strong>${roi.toFixed(0)}%</strong>`;
+  } else {
+    el.innerHTML = `Ganho estimado sem investimento identificado: <strong>${moeda(ganho)}</strong>`;
+  }
+}
+document.getElementById('f-ganho').addEventListener('input', atualizarRoiPreview);
+document.getElementById('f-investimento').addEventListener('input', atualizarRoiPreview);
+
+// ── Modal ─────────────────────────────────────────────────────────────────────
+window.abrirPlano = (id) => {
+  editingId = id || null;
+  const p = id ? planos.find(x => x.id === id) : null;
+  document.getElementById('modal-title').textContent   = p ? 'Editar Plano de Ação' : 'Novo Plano de Ação';
+  document.getElementById('f-titulo').value            = p?.titulo       || '';
+  document.getElementById('f-descricao').value         = p?.descricao    || '';
+  document.getElementById('f-prioridade').value        = p?.prioridade   || 'media';
+  document.getElementById('f-status').value            = p?.status       || 'planejado';
+  document.getElementById('f-categoria').value         = p?.categoria    || '';
+  document.getElementById('f-responsavel').value       = p?.responsavel  || '';
+  document.getElementById('f-data-inicio').value       = p?.data_inicio  || '';
+  document.getElementById('f-data-fim').value          = p?.data_fim     || '';
+  document.getElementById('f-ganho').value              = p?.ganho_estimado || '';
+  document.getElementById('f-investimento').value       = p?.investimento   || '';
+  document.getElementById('btn-delete').style.display  = p ? 'block' : 'none';
+  atualizarRoiPreview();
+  document.getElementById('modal-overlay').classList.add('open');
+  setTimeout(() => document.getElementById('f-titulo').focus(), 50);
+};
+
+window.fecharPlano = () => {
+  document.getElementById('modal-overlay').classList.remove('open');
+  editingId = null;
+};
+
+window.salvarPlano = async () => {
+  const titulo = document.getElementById('f-titulo').value.trim();
+  if (!titulo) { document.getElementById('f-titulo').focus(); return; }
+
+  const payload = {
+    titulo,
+    descricao:       document.getElementById('f-descricao').value.trim() || null,
+    prioridade:      document.getElementById('f-prioridade').value,
+    status:          document.getElementById('f-status').value,
+    categoria:       document.getElementById('f-categoria').value.trim() || null,
+    responsavel:     document.getElementById('f-responsavel').value.trim() || null,
+    data_inicio:     document.getElementById('f-data-inicio').value || null,
+    data_fim:        document.getElementById('f-data-fim').value || null,
+    ganho_estimado:  parseFloat(document.getElementById('f-ganho').value) || 0,
+    investimento:    parseFloat(document.getElementById('f-investimento').value) || 0,
+  };
+
+  if (editingId) {
+    const { error } = await supabase.from('planos_acao').update(payload).eq('id', editingId);
+    if (error) { alert('Erro: ' + error.message); return; }
+  } else {
+    const { error } = await supabase.from('planos_acao').insert(payload);
+    if (error) { alert('Erro: ' + error.message); return; }
+  }
+
+  fecharPlano();
+  await carregar();
+};
+
+window.deletarPlano = async () => {
+  if (!editingId || !confirm('Excluir este plano de ação?')) return;
+  await supabase.from('planos_acao').delete().eq('id', editingId);
+  fecharPlano();
+  await carregar();
+};
+
+// Fechar modal ao clicar fora
+document.getElementById('modal-overlay').addEventListener('click', e => {
+  if (e.target === e.currentTarget) fecharPlano();
+});
+
+// Atalho Escape
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape') { fecharPlano(); fecharCtx(); }
+});
+
+carregar();
+</script>
+</body>
+</html>
