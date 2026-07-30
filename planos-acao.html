@@ -143,6 +143,7 @@
     .gantt-bar { position:absolute; top:14px; height:24px; border-radius:6px; display:flex; align-items:center; padding:0 8px; font-size:10px; font-weight:700; color:#fff; white-space:nowrap; overflow:hidden; min-width:18px; box-shadow:0 1px 3px rgba(0,0,0,.15); }
     .gantt-bar.atrasado { outline:2px solid #dc2626; outline-offset:1px; }
     .gantt-bar-fill { position:absolute; left:0; top:0; bottom:0; background:rgba(255,255,255,.35); border-radius:6px 0 0 6px; }
+    .gantt-bar-date { position:absolute; top:14px; height:24px; display:flex; align-items:center; font-size:11px; font-weight:700; color:#334155; white-space:nowrap; pointer-events:none; }
     .gantt-nodata { padding:12px 14px; font-size:11px; color:#cbd5e1; }
 
     @media(max-width:1000px) {
@@ -199,6 +200,7 @@
           <button class="pa-view-btn active" id="btn-view-quadro" onclick="mudarView('quadro')">Quadro</button>
           <button class="pa-view-btn" id="btn-view-cronograma" onclick="mudarView('cronograma')">Cronograma</button>
         </div>
+        <button class="pa-filter" id="btn-export-pdf" style="display:flex;align-items:center;gap:6px;cursor:pointer;font-weight:700;color:#334155">Exportar PDF</button>
       </div>
 
       <!-- Kanban board -->
@@ -304,6 +306,7 @@ await initPage();
 
 document.getElementById('btn-view-quadro').innerHTML      = icon('list',{size:13}) + ' Quadro';
 document.getElementById('btn-view-cronograma').innerHTML  = icon('calendar',{size:13}) + ' Cronograma';
+document.getElementById('btn-export-pdf').innerHTML       = icon('download',{size:13}) + ' Exportar PDF';
 
 let planos    = [];
 let editingId = null;
@@ -432,6 +435,52 @@ window.mudarView = function(v) {
   renderAll();
 };
 
+// ── Exportar cronograma em PDF ──────────────────────────────────────────────────
+document.getElementById('btn-export-pdf').addEventListener('click', async () => {
+  const btn = document.getElementById('btn-export-pdf');
+  const htmlOriginal = btn.innerHTML;
+  btn.disabled = true;
+  btn.innerHTML = 'Gerando PDF…';
+  try {
+    if (view !== 'cronograma') { window.mudarView('cronograma'); await new Promise(r => setTimeout(r, 60)); }
+    const [{ default: html2canvas }, { jsPDF }] = await Promise.all([
+      import('https://cdn.jsdelivr.net/npm/html2canvas/+esm'),
+      import('https://cdn.jsdelivr.net/npm/jspdf/+esm'),
+    ]);
+    const el = document.getElementById('gantt-wrap');
+    const canvas = await html2canvas(el, { scale: 2, backgroundColor: '#ffffff' });
+    const imgData = canvas.toDataURL('image/png');
+
+    const pdf = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' });
+    const pageW = pdf.internal.pageSize.getWidth();
+    const pageH = pdf.internal.pageSize.getHeight();
+    const margin = 10;
+    const imgW = pageW - margin * 2;
+    const imgH = (canvas.height * imgW) / canvas.width;
+
+    pdf.setFontSize(13);
+    pdf.text('Cronograma — Planos de Ação', margin, margin - 2);
+
+    let heightLeft = imgH;
+    let position = margin + 4;
+    pdf.addImage(imgData, 'PNG', margin, position, imgW, imgH);
+    heightLeft -= (pageH - position);
+    while (heightLeft > 0) {
+      position = heightLeft - imgH + margin;
+      pdf.addPage();
+      pdf.addImage(imgData, 'PNG', margin, position, imgW, imgH);
+      heightLeft -= pageH;
+    }
+
+    pdf.save(`cronograma-planos-acao-${new Date().toISOString().split('T')[0]}.pdf`);
+  } catch (err) {
+    alert('Erro ao gerar PDF: ' + err.message);
+  } finally {
+    btn.disabled = false;
+    btn.innerHTML = htmlOriginal;
+  }
+});
+
 // ── Kanban ────────────────────────────────────────────────────────────────────
 function renderKanban() {
   const filtrados = filtrar();
@@ -529,6 +578,10 @@ function cardHtml(p) {
 }
 
 // ── Cronograma (Gantt-lite) ───────────────────────────────────────────────────
+const MES_ABREV = ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
+const diasNoMes = (ano, mes) => new Date(ano, mes + 1, 0).getDate();
+const dataCurta = s => { if (!s) return '?'; const [,m,d] = s.split('-'); return `${d}/${m}`; };
+
 function renderGantt() {
   const filtrados = filtrar().filter(p => p.data_inicio || p.data_fim);
   const wrap = document.getElementById('gantt-wrap');
@@ -539,42 +592,48 @@ function renderGantt() {
   }
 
   const toDate = s => new Date(s + 'T00:00:00');
-  let minD = null, maxD = null;
+
+  // Só entram no eixo os meses realmente tocados por algum plano (sem meses vazios)
+  const mesesSet = new Set();
   filtrados.forEach(p => {
-    const ini = p.data_inicio ? toDate(p.data_inicio) : toDate(p.data_fim);
-    const fim = p.data_fim ? toDate(p.data_fim) : toDate(p.data_inicio);
-    if (!minD || ini < minD) minD = ini;
-    if (!maxD || fim > maxD) maxD = fim;
+    const iniD = p.data_inicio ? toDate(p.data_inicio) : toDate(p.data_fim);
+    const fimD = p.data_fim ? toDate(p.data_fim) : toDate(p.data_inicio);
+    let cursor = new Date(iniD.getFullYear(), iniD.getMonth(), 1);
+    const fim  = new Date(fimD.getFullYear(), fimD.getMonth(), 1);
+    while (cursor <= fim) {
+      mesesSet.add(`${cursor.getFullYear()}-${cursor.getMonth()}`);
+      cursor = new Date(cursor.getFullYear(), cursor.getMonth() + 1, 1);
+    }
   });
-  // Padroniza para início/fim de mês, com folga de um mês em cada ponta
-  minD = new Date(minD.getFullYear(), minD.getMonth() - 1, 1);
-  maxD = new Date(maxD.getFullYear(), maxD.getMonth() + 2, 0);
-  const totalMs = maxD - minD;
+  const meses = [...mesesSet]
+    .map(k => { const [a,m] = k.split('-').map(Number); return new Date(a, m, 1); })
+    .sort((a,b) => a - b);
+  const mesIndex = new Map(meses.map((m,i) => [`${m.getFullYear()}-${m.getMonth()}`, i]));
+  const totalSeg = meses.length;
 
-  const meses = [];
-  let cursor = new Date(minD.getFullYear(), minD.getMonth(), 1);
-  while (cursor <= maxD) {
-    meses.push(new Date(cursor));
-    cursor = new Date(cursor.getFullYear(), cursor.getMonth() + 1, 1);
+  // Posição (%) de uma data dentro do eixo compactado (só meses usados)
+  function posPct(d, fim) {
+    const idx = mesIndex.get(`${d.getFullYear()}-${d.getMonth()}`);
+    const dias = diasNoMes(d.getFullYear(), d.getMonth());
+    const fracao = fim ? d.getDate() / dias : (d.getDate() - 1) / dias;
+    return ((idx + fracao) / totalSeg) * 100;
   }
-  const MES_ABREV = ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
 
-  const monthHeaderHtml = meses.map(m => {
-    const leftPct = ((m - minD) / totalMs) * 100;
+  const monthHeaderHtml = meses.map((m,i) => {
+    const leftPct = (i / totalSeg) * 100;
     return `<div class="gantt-month-label" style="left:${leftPct}%">${MES_ABREV[m.getMonth()]}/${String(m.getFullYear()).slice(2)}</div>`;
   }).join('');
 
-  const gridlinesHtml = meses.map(m => {
-    const leftPct = ((m - minD) / totalMs) * 100;
+  const gridlinesHtml = meses.map((m,i) => {
+    const leftPct = (i / totalSeg) * 100;
     return `<div class="gantt-gridline" style="left:${leftPct}%"></div>`;
   }).join('');
 
-  const hoje = new Date().toISOString().split('T')[0];
   const rowsHtml = filtrados.map(p => {
     const iniD = p.data_inicio ? toDate(p.data_inicio) : toDate(p.data_fim);
     const fimD = p.data_fim ? toDate(p.data_fim) : toDate(p.data_inicio);
-    const leftPct  = ((iniD - minD) / totalMs) * 100;
-    const widthPct = Math.max(((fimD - iniD) / totalMs) * 100, 0.6);
+    const leftPct  = posPct(iniD, false);
+    const widthPct = Math.max(posPct(fimD, true) - leftPct, Math.min(3, 100 / totalSeg * 0.3));
     const cor = STATUS_COLOR[p.status] || '#94a3b8';
     const atrasado = estaAtrasado(p);
 
@@ -584,6 +643,17 @@ function renderGantt() {
     const ePct   = eTotal ? Math.round(eDone / eTotal * 100) : (p.status === 'concluido' ? 100 : 0);
 
     const pri = PRI[p.prioridade] || PRI.media;
+    const labelDatas = `${dataCurta(p.data_inicio)} – ${dataCurta(p.data_fim)}`;
+    // Barra larga o bastante: rótulo entra dentro dela, em branco.
+    // Barra estreita: rótulo fica fora, do lado que tiver espaço — nunca é cortado.
+    let labelStyle, labelDentro = false;
+    if (widthPct >= 20) {
+      labelDentro = true;
+    } else if (leftPct + widthPct <= 80) {
+      labelStyle = `left:calc(${leftPct + widthPct}% + 8px)`;
+    } else {
+      labelStyle = `right:calc(${100 - leftPct}% + 8px);text-align:right`;
+    }
 
     return `
       <div class="gantt-row">
@@ -599,8 +669,9 @@ function renderGantt() {
           <div class="gantt-bar ${atrasado?'atrasado':''}" style="left:${leftPct}%;width:${widthPct}%;background:${cor}"
             title="${escHtml(p.titulo)} — ${dataBR(p.data_inicio)} a ${dataBR(p.data_fim)}" onclick="abrirDetalhe('${p.id}')">
             <div class="gantt-bar-fill" style="width:${ePct}%"></div>
-            <span style="position:relative">${dataBR(p.data_inicio)} – ${dataBR(p.data_fim)}</span>
+            ${labelDentro ? `<span style="position:relative">${labelDatas}</span>` : ''}
           </div>
+          ${labelDentro ? '' : `<div class="gantt-bar-date" style="${labelStyle}">${labelDatas}</div>`}
         </div>
       </div>`;
   }).join('');
