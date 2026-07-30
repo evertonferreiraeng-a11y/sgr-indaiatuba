@@ -62,6 +62,26 @@
     .etapas-empty { font-size:12px; color:#cbd5e1; padding:6px 0; }
 
     .pd-loading { padding:60px; text-align:center; color:#94a3b8; }
+
+    /* Cenários */
+    .cenario-card { border:1px solid #e2e8f0; border-radius:10px; margin-bottom:12px; overflow:hidden; }
+    .cenario-card:last-child { margin-bottom:0; }
+    .cenario-hd { display:flex; align-items:center; gap:8px; padding:10px 12px; background:#f8fafc; border-bottom:1px solid #e2e8f0; }
+    .cenario-hd.collapsed { border-bottom:none; }
+    .cenario-toggle { background:none; border:none; cursor:pointer; color:#94a3b8; font-size:13px; padding:2px 4px; flex-shrink:0; }
+    .cenario-titulo-input { flex:1; font-size:14px; font-weight:700; color:#0f172a; border:none; outline:none; background:transparent; padding:4px 6px; border-radius:6px; }
+    .cenario-titulo-input:focus { background:#fff; box-shadow:0 0 0 2px #d1fae5; }
+    .cenario-del { background:none; border:none; color:#fca5a5; cursor:pointer; font-size:16px; padding:2px 6px; flex-shrink:0; }
+    .cenario-del:hover { color:#dc2626; }
+    .cenario-body { padding:14px 16px; }
+    .cenario-conteudo { width:100%; box-sizing:border-box; border:1px solid #e2e8f0; border-radius:8px; padding:10px 12px; font-size:13px; color:#1e293b; font-family:inherit; resize:vertical; outline:none; }
+    .cenario-conteudo:focus { border-color:#006636; box-shadow:0 0 0 3px #d1fae5; }
+    .cenario-fin-row { display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-top:10px; }
+    .cenario-fin-row .field-group { margin-bottom:0; }
+    .cenarios-empty { font-size:12px; color:#cbd5e1; padding:6px 0; }
+    .cenario-add-wrap { display:flex; gap:8px; margin-top:12px; }
+    .cenario-add-input { flex:1; font-size:13px; padding:8px 10px; border:1px dashed #cbd5e1; border-radius:6px; outline:none; }
+    .cenario-add-input:focus { border-color:#006636; border-style:solid; }
   </style>
 </head>
 <body>
@@ -95,11 +115,13 @@ if (!planoId) {
 
 let plano = null;
 let etapas = [];
+let cenarios = [];
 
 async function carregar() {
-  const [{ data: p, error }, { data: eData }] = await Promise.all([
+  const [{ data: p, error }, { data: eData }, { data: cData }] = await Promise.all([
     supabase.from('planos_acao').select('*').eq('id', planoId).single(),
     supabase.from('planos_acao_etapas').select('*').eq('plano_id', planoId).order('ordem', { ascending: true }),
+    supabase.from('planos_acao_cenarios').select('*').eq('plano_id', planoId).order('ordem', { ascending: true }),
   ]);
   if (error || !p) {
     document.getElementById('pd-content').innerHTML = '<div class="pd-loading">Plano não encontrado.</div>';
@@ -107,6 +129,7 @@ async function carregar() {
   }
   plano = p;
   etapas = eData || [];
+  cenarios = cData || [];
   render();
 }
 
@@ -207,6 +230,16 @@ function render() {
       </div>
     </div>
 
+    <div class="pd-card">
+      <h3>Cenários</h3>
+      <p class="text-muted" style="font-size:12px;margin:-10px 0 14px">Crie um cenário separado para cada alternativa que quiser comparar dentro deste plano (ex: "Mantendo o que já existe", "Investindo em X"). Cada um salva sozinho, sem precisar do botão Salvar alterações.</p>
+      <div id="pd-cenarios"></div>
+      <div class="cenario-add-wrap">
+        <input class="cenario-add-input" id="f-novo-cenario" placeholder="+ Adicionar cenário… (nome)"
+          onkeydown="if(event.key==='Enter'){event.preventDefault();window.adicionarCenario()}" />
+      </div>
+    </div>
+
     <div class="pd-save-bar">
       <button class="btn-delete" onclick="window.excluirPlano()">Excluir plano</button>
       <button class="btn-save" id="btn-save" onclick="window.salvarTudo()">Salvar alterações</button>
@@ -214,6 +247,7 @@ function render() {
   `;
 
   renderEtapas();
+  renderCenarios();
   atualizarRoi();
   document.getElementById('f-ganho').addEventListener('input', atualizarRoi);
   document.getElementById('f-investimento').addEventListener('input', atualizarRoi);
@@ -232,6 +266,75 @@ function renderEtapas() {
       <button class="etapa-del" onclick="window.deletarEtapa('${e.id}')" title="Remover">×</button>
     </div>`).join('');
 }
+
+function renderCenarios() {
+  const wrap = document.getElementById('pd-cenarios');
+  if (!cenarios.length) {
+    wrap.innerHTML = '<div class="cenarios-empty">Nenhum cenário cadastrado ainda.</div>';
+    return;
+  }
+  wrap.innerHTML = cenarios.map(c => `
+    <div class="cenario-card">
+      <div class="cenario-hd ${c._collapsed ? 'collapsed' : ''}">
+        <button class="cenario-toggle" onclick="window.toggleCenarioCollapse('${c.id}')" title="${c._collapsed ? 'Expandir' : 'Recolher'}">${c._collapsed ? '▸' : '▾'}</button>
+        <input type="text" class="cenario-titulo-input" value="${escAttr(c.titulo)}" placeholder="Nome do cenário"
+          onblur="window.salvarCenarioCampo('${c.id}','titulo',this.value)" />
+        <button class="cenario-del" onclick="window.deletarCenario('${c.id}')" title="Excluir cenário">×</button>
+      </div>
+      ${c._collapsed ? '' : `
+      <div class="cenario-body">
+        <textarea class="cenario-conteudo" rows="8" placeholder="Descreva esse cenário: situação, cálculo, equipamentos, conclusão…"
+          onblur="window.salvarCenarioCampo('${c.id}','conteudo',this.value)">${escHtml(c.conteudo)}</textarea>
+        <div class="cenario-fin-row">
+          <div class="field-group">
+            <label>Ganho Estimado (R$)</label>
+            <input type="number" min="0" step="0.01" value="${c.ganho_estimado||''}"
+              onblur="window.salvarCenarioCampo('${c.id}','ganho_estimado', parseFloat(this.value)||0)" />
+          </div>
+          <div class="field-group">
+            <label>Investimento (R$)</label>
+            <input type="number" min="0" step="0.01" value="${c.investimento||''}"
+              onblur="window.salvarCenarioCampo('${c.id}','investimento', parseFloat(this.value)||0)" />
+          </div>
+        </div>
+      </div>`}
+    </div>`).join('');
+}
+
+window.toggleCenarioCollapse = (id) => {
+  const c = cenarios.find(x => x.id === id);
+  if (c) c._collapsed = !c._collapsed;
+  renderCenarios();
+};
+
+window.salvarCenarioCampo = async (id, campo, valor) => {
+  const c = cenarios.find(x => x.id === id);
+  if (c) c[campo] = valor;
+  await supabase.from('planos_acao_cenarios').update({ [campo]: valor }).eq('id', id);
+};
+
+window.adicionarCenario = async () => {
+  const input = document.getElementById('f-novo-cenario');
+  const titulo = input.value.trim();
+  if (!titulo) return;
+  input.value = '';
+  input.disabled = true;
+  const ordem = cenarios.length;
+  const { data, error } = await supabase.from('planos_acao_cenarios')
+    .insert({ plano_id: planoId, titulo, ordem }).select().single();
+  input.disabled = false;
+  if (error) { alert('Erro: ' + error.message); return; }
+  cenarios.push(data);
+  renderCenarios();
+  input.focus();
+};
+
+window.deletarCenario = async (id) => {
+  if (!confirm('Excluir este cenário? Essa ação não pode ser desfeita.')) return;
+  cenarios = cenarios.filter(c => c.id !== id);
+  renderCenarios();
+  await supabase.from('planos_acao_cenarios').delete().eq('id', id);
+};
 
 function atualizarRoi() {
   const ganho  = parseFloat(document.getElementById('f-ganho').value)||0;
