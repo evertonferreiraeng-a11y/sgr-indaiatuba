@@ -117,8 +117,16 @@
             <select id="f-forn" multiple style="display:none"><option value="">Todos</option></select>
             <button type="button" class="forn-picker-btn" id="f-forn-btn">Todos os fornecedores</button>
           </div>
-          <div class="form-group"><label>Material</label><select id="f-mat"><option value="">Todos</option></select></div>
-          <div class="form-group"><label>Tipo Material</label><select id="f-tipo-mat"><option value="">Todos</option></select></div>
+          <div class="form-group">
+            <label>Material</label>
+            <select id="f-mat" multiple style="display:none"><option value="">Todos</option></select>
+            <button type="button" class="forn-picker-btn" id="f-mat-btn">Todos os materiais</button>
+          </div>
+          <div class="form-group">
+            <label>Tipo Material</label>
+            <select id="f-tipo-mat" multiple style="display:none"><option value="">Todos</option></select>
+            <button type="button" class="forn-picker-btn" id="f-tipo-mat-btn">Todos os tipos</button>
+          </div>
           <div class="form-group" style="justify-content:flex-end"><label>&nbsp;</label>
             <button class="btn btn-primary" id="btn-filtrar">Filtrar</button>
             <button class="btn btn-outline" id="btn-limpar" style="margin-left:6px">Limpar</button>
@@ -184,8 +192,16 @@
               <select id="an-f-forn" multiple style="display:none"><option value="">Todos</option></select>
               <button type="button" class="forn-picker-btn" id="an-f-forn-btn">Todos os fornecedores</button>
             </div>
-            <div class="form-group"><label>Material</label><select id="an-f-mat"><option value="">Todos</option></select></div>
-            <div class="form-group"><label>Tipo Material</label><select id="an-f-tipo-mat"><option value="">Todos</option></select></div>
+            <div class="form-group">
+              <label>Material</label>
+              <select id="an-f-mat" multiple style="display:none"><option value="">Todos</option></select>
+              <button type="button" class="forn-picker-btn" id="an-f-mat-btn">Todos os materiais</button>
+            </div>
+            <div class="form-group">
+              <label>Tipo Material</label>
+              <select id="an-f-tipo-mat" multiple style="display:none"><option value="">Todos</option></select>
+              <button type="button" class="forn-picker-btn" id="an-f-tipo-mat-btn">Todos os tipos</button>
+            </div>
             <div class="form-group" style="justify-content:flex-end"><label>&nbsp;</label>
               <button class="btn btn-primary" id="an-btn-filtrar">Filtrar</button>
               <button class="btn btn-outline" id="an-btn-limpar" style="margin-left:6px">Limpar</button>
@@ -439,7 +455,7 @@
 <div class="modal-backdrop" id="modal-forn-picker">
   <div class="modal" style="max-width:420px">
     <div class="modal-header">
-      <h3>Selecionar Fornecedores</h3>
+      <h3 id="fp-titulo">Selecionar Fornecedores</h3>
       <button class="modal-close" data-close="modal-forn-picker">✕</button>
     </div>
     <div class="modal-body">
@@ -466,6 +482,7 @@ import { icon } from './js/icons.js';
 await initPage();
 
 let perfil, entData = [], entDataAn = [], fornData = [], matData = [];
+let matFiltroItens = [], tiposUnicos = [];
 let chartForn = null, chartMedia = null, fornViewMode = 'consolidado';
 let chartAnMensal = null, chartAnTipo = null, chartAnQualidade = null, chartAnPareto = null;
 let analisesCarregada = false;
@@ -526,9 +543,10 @@ async function init() {
     if (e.material_id && e.materiais?.nome)
       matsUsados.set(e.material_id, e.materiais.nome);
   });
-  const matFiltroOpts = [...matsUsados.entries()]
-    .sort((a,b)=>a[1].localeCompare(b[1]))
-    .map(([id,nome])=>`<option value="${id}">${nome}</option>`).join('');
+  matFiltroItens = [...matsUsados.entries()]
+    .map(([id,nome])=>({ value:id, label:nome }))
+    .sort((a,b)=>a.label.localeCompare(b.label));
+  const matFiltroOpts = matFiltroItens.map(it=>`<option value="${it.value}">${it.label}</option>`).join('');
 
   // Todos os materiais (para o formulário de novo registro)
   const matOpts  = matData.map(m=>`<option value="${m.id}">${m.nome}</option>`).join('');
@@ -541,7 +559,7 @@ async function init() {
   document.getElementById('excl-forn').innerHTML = '<option value="">Todos os fornecedores</option>' + fornOpts;
 
   const { data: tiposDB } = await supabase.from('entradas').select('tipo_material').not('tipo_material','is',null);
-  const tiposUnicos = [...new Set((tiposDB||[]).map(r=>r.tipo_material).filter(Boolean))].sort();
+  tiposUnicos = [...new Set((tiposDB||[]).map(r=>r.tipo_material).filter(Boolean))].sort();
   const tipoOptsHTML = '<option value="">Todos</option>' + tiposUnicos.map(t=>`<option value="${t}">${t}</option>`).join('');
   document.getElementById('f-tipo-mat').innerHTML    = tipoOptsHTML;
   document.getElementById('an-f-tipo-mat').innerHTML = tipoOptsHTML;
@@ -559,7 +577,7 @@ function periodoRange(mes) {
 }
 
 // Busca paginada para superar limite de 1000 linhas do Supabase
-async function fetchEntradasPaginado({ ini, fim, fornSel = [], mat = '', tipoMat = '' } = {}) {
+async function fetchEntradasPaginado({ ini, fim, fornSel = [], matSel = [], tipoMatSel = [] } = {}) {
   const PAGE = 1000;
   let page = 0, todos = [], done = false;
   while (!done) {
@@ -572,8 +590,10 @@ async function fetchEntradasPaginado({ ini, fim, fornSel = [], mat = '', tipoMat
     if (fim)  q = q.lte('data', fim);
     if (fornSel.length === 1) q = q.eq('fornecedor_id', fornSel[0]);
     else if (fornSel.length > 1) q = q.in('fornecedor_id', fornSel);
-    if (mat)     q = q.eq('material_id', mat);
-    if (tipoMat) q = q.eq('tipo_material', tipoMat);
+    if (matSel.length === 1) q = q.eq('material_id', matSel[0]);
+    else if (matSel.length > 1) q = q.in('material_id', matSel);
+    if (tipoMatSel.length === 1) q = q.eq('tipo_material', tipoMatSel[0]);
+    else if (tipoMatSel.length > 1) q = q.in('tipo_material', tipoMatSel);
 
     const { data } = await q;
     if (!data || data.length === 0) { done = true; }
@@ -584,26 +604,26 @@ async function fetchEntradasPaginado({ ini, fim, fornSel = [], mat = '', tipoMat
 
 function lerFiltro(prefix) {
   const mes = document.getElementById(`${prefix}-mes`).value;
-  const fornSel = [...document.getElementById(`${prefix}-forn`).selectedOptions].map(o=>o.value).filter(v=>v!=='');
-  const mat     = document.getElementById(`${prefix}-mat`).value;
-  const tipoMat = document.getElementById(`${prefix}-tipo-mat`).value;
+  const fornSel     = [...document.getElementById(`${prefix}-forn`).selectedOptions].map(o=>o.value).filter(v=>v!=='');
+  const matSel      = [...document.getElementById(`${prefix}-mat`).selectedOptions].map(o=>o.value).filter(v=>v!=='');
+  const tipoMatSel  = [...document.getElementById(`${prefix}-tipo-mat`).selectedOptions].map(o=>o.value).filter(v=>v!=='');
   let ini = document.getElementById(`${prefix}-de`).value;
   let fim = document.getElementById(`${prefix}-ate`).value;
   if (mes) { const { ini: i, fim: f } = periodoRange(mes); ini = i; fim = f; }
-  return { mes, ini, fim, fornSel, mat, tipoMat };
+  return { mes, ini, fim, fornSel, matSel, tipoMatSel };
 }
 
 async function carregar() {
-  const { ini, fim, fornSel, mat, tipoMat } = lerFiltro('f');
-  entData = await fetchEntradasPaginado({ ini, fim, fornSel, mat, tipoMat });
+  const { ini, fim, fornSel, matSel, tipoMatSel } = lerFiltro('f');
+  entData = await fetchEntradasPaginado({ ini, fim, fornSel, matSel, tipoMatSel });
   renderKPIs();
   renderTabela();
 }
 
 // ── Aba Análises: filtro independente ─────────────────────────────────────────
 async function carregarAnalises() {
-  const { ini, fim, fornSel, mat, tipoMat } = lerFiltro('an-f');
-  entDataAn = await fetchEntradasPaginado({ ini, fim, fornSel, mat, tipoMat });
+  const { ini, fim, fornSel, matSel, tipoMatSel } = lerFiltro('an-f');
+  entDataAn = await fetchEntradasPaginado({ ini, fim, fornSel, matSel, tipoMatSel });
   renderAnalises();
   renderChartForn();
 }
@@ -720,17 +740,18 @@ async function renderChartForn() {
   const sel  = document.getElementById('forn-sel').value;
 
   // Buscar dados com filtro de período se informado
-  const tipoMatFiltro = document.getElementById('an-f-tipo-mat').value;
+  const tipoMatSelFiltro = [...document.getElementById('an-f-tipo-mat').selectedOptions].map(o=>o.value).filter(v=>v!=='');
   let rows = entDataAn;
   if (de || ate) {
     let q = supabase.from('entradas').select('*, fornecedores(nome)');
     if (de)  q = q.gte('data', de);
     if (ate) q = q.lte('data', ate);
-    if (tipoMatFiltro) q = q.eq('tipo_material', tipoMatFiltro);
+    if (tipoMatSelFiltro.length === 1) q = q.eq('tipo_material', tipoMatSelFiltro[0]);
+    else if (tipoMatSelFiltro.length > 1) q = q.in('tipo_material', tipoMatSelFiltro);
     const { data } = await q;
     rows = data || [];
   }
-  if (tipoMatFiltro && !(de || ate)) rows = rows.filter(r => r.tipo_material === tipoMatFiltro);
+  if (tipoMatSelFiltro.length && !(de || ate)) rows = rows.filter(r => tipoMatSelFiltro.includes(r.tipo_material));
 
   // Popular select de fornecedores
   const todosForns = [...new Set(entDataAn.map(r => r.fornecedores?.nome || 'Desconhecido'))].sort();
@@ -841,7 +862,7 @@ async function calcularMediaHistorica() {
 
   // Busca dados históricos paginados
   const PAGE = 1000;
-  const tipoMatMedia = document.getElementById('an-f-tipo-mat').value;
+  const tipoMatMediaSel = [...document.getElementById('an-f-tipo-mat').selectedOptions].map(o=>o.value).filter(v=>v!=='');
   let page = 0, histRows = [], done = false;
   while (!done) {
     let q = supabase.from('entradas')
@@ -849,7 +870,8 @@ async function calcularMediaHistorica() {
       .eq('tipo_movimentacao', 'entrada')
       .gte('data', histDe).lte('data', histAte)
       .range(page * PAGE, (page+1)*PAGE - 1);
-    if (tipoMatMedia) q = q.eq('tipo_material', tipoMatMedia);
+    if (tipoMatMediaSel.length === 1) q = q.eq('tipo_material', tipoMatMediaSel[0]);
+    else if (tipoMatMediaSel.length > 1) q = q.in('tipo_material', tipoMatMediaSel);
     const { data } = await q;
     if (!data || data.length === 0) { done = true; }
     else { histRows = histRows.concat(data); page++; if (data.length < PAGE) done = true; }
@@ -884,7 +906,8 @@ async function calcularMediaHistorica() {
       .eq('tipo_movimentacao', 'entrada')
       .gte('data', atualDe).lte('data', atualAte)
       .range(page2 * PAGE, (page2+1)*PAGE - 1);
-    if (tipoMatMedia) q2 = q2.eq('tipo_material', tipoMatMedia);
+    if (tipoMatMediaSel.length === 1) q2 = q2.eq('tipo_material', tipoMatMediaSel[0]);
+    else if (tipoMatMediaSel.length > 1) q2 = q2.in('tipo_material', tipoMatMediaSel);
     const { data: d2 } = await q2;
     if (!d2 || d2.length === 0) { done2 = true; }
     else { atualRows = atualRows.concat(d2); page2++; if (d2.length < PAGE) done2 = true; }
@@ -1692,9 +1715,11 @@ document.getElementById('btn-limpar').addEventListener('click', () => {
   document.getElementById('f-ate').value = '';
   document.getElementById('f-mes').value = '';
   [...document.getElementById('f-forn').options].forEach(o => o.selected = false);
-  atualizarFornBtnLabel('f-forn');
-  document.getElementById('f-mat').value      = '';
-  document.getElementById('f-tipo-mat').value = '';
+  atualizarPickerBtnLabel('f-forn');
+  [...document.getElementById('f-mat').options].forEach(o => o.selected = false);
+  atualizarPickerBtnLabel('f-mat');
+  [...document.getElementById('f-tipo-mat').options].forEach(o => o.selected = false);
+  atualizarPickerBtnLabel('f-tipo-mat');
   carregar();
 });
 // Mês rápido sincroniza com De/Até
@@ -1705,71 +1730,90 @@ document.getElementById('f-mes').addEventListener('change', function() {
   document.getElementById('f-ate').value = fim;
 });
 
-// ── Seletor de Fornecedores (modal com busca) ────────────────────────────────
-let fornPickerTargetId = null;
-let fpSelecionados = new Set();
+// ── Seletor genérico com busca (Fornecedor / Material / Tipo Material) ────────
+let pickerTargetId = null;
+let pickerItens = [];          // [{ value, label }]
+let pickerSelecionados = new Set();
 
-function abrirFornPicker(targetSelectId) {
-  fornPickerTargetId = targetSelectId;
+function itensFornecedor()  { return fornData.map(f => ({ value: f.id, label: f.nome })); }
+function itensMaterial()    { return matFiltroItens; }
+function itensTipoMaterial(){ return tiposUnicos.map(t => ({ value: t, label: t })); }
+
+// Deduz o "tipo" de picker a partir do id do select (cuidado: checar 'tipo-mat' antes de 'mat')
+function infoPickerPara(selectId) {
+  if (selectId.endsWith('forn'))     return { itens: itensFornecedor(),   todos: 'Todos os fornecedores', plural: 'fornecedores', titulo: 'Selecionar Fornecedores', busca: 'Buscar fornecedor…' };
+  if (selectId.endsWith('tipo-mat')) return { itens: itensTipoMaterial(), todos: 'Todos os tipos',        plural: 'tipos',        titulo: 'Selecionar Tipos de Material', busca: 'Buscar tipo…' };
+  return                                     { itens: itensMaterial(),    todos: 'Todos os materiais',    plural: 'materiais',    titulo: 'Selecionar Materiais', busca: 'Buscar material…' };
+}
+
+function abrirPicker(targetSelectId) {
+  pickerTargetId = targetSelectId;
+  const info = infoPickerPara(targetSelectId);
+  pickerItens = info.itens;
   const select = document.getElementById(targetSelectId);
-  fpSelecionados = new Set([...select.selectedOptions].map(o => o.value).filter(v => v !== ''));
+  pickerSelecionados = new Set([...select.selectedOptions].map(o => o.value).filter(v => v !== ''));
+  document.getElementById('fp-titulo').textContent = info.titulo;
+  document.getElementById('fp-busca').placeholder  = info.busca;
   document.getElementById('fp-busca').value = '';
-  renderFornPickerLista();
+  renderPickerLista();
   abrirModal('modal-forn-picker');
 }
 
-function renderFornPickerLista() {
+function renderPickerLista() {
   const termo = document.getElementById('fp-busca').value.trim().toLowerCase();
-  const lista = [...fornData]
-    .filter(f => !termo || f.nome.toLowerCase().includes(termo))
-    .sort((a,b) => a.nome.localeCompare(b.nome));
+  const lista = pickerItens
+    .filter(it => !termo || it.label.toLowerCase().includes(termo))
+    .sort((a,b) => a.label.localeCompare(b.label));
   document.getElementById('fp-lista').innerHTML = lista.length
-    ? lista.map(f => `
+    ? lista.map(it => `
       <label class="fp-item">
-        <input type="checkbox" value="${f.id}" ${fpSelecionados.has(f.id) ? 'checked' : ''} />
-        <span>${f.nome}</span>
+        <input type="checkbox" value="${it.value}" ${pickerSelecionados.has(it.value) ? 'checked' : ''} />
+        <span>${it.label}</span>
       </label>`).join('')
-    : `<div class="table-empty" style="padding:24px">Nenhum fornecedor encontrado</div>`;
+    : `<div class="table-empty" style="padding:24px">Nenhum item encontrado</div>`;
   atualizarFpCount();
 }
 
 function atualizarFpCount() {
   document.getElementById('fp-count').textContent =
-    fpSelecionados.size ? `${fpSelecionados.size} selecionado(s)` : 'Nenhum selecionado (= todos)';
+    pickerSelecionados.size ? `${pickerSelecionados.size} selecionado(s)` : 'Nenhum selecionado (= todos)';
 }
 
-function atualizarFornBtnLabel(selectId) {
+function atualizarPickerBtnLabel(selectId) {
   const btn = document.getElementById(selectId + '-btn');
   if (!btn) return;
+  const info = infoPickerPara(selectId);
   const select = document.getElementById(selectId);
   const sel = [...select.selectedOptions].map(o => o.value).filter(v => v !== '');
-  if (!sel.length) btn.textContent = 'Todos os fornecedores';
-  else if (sel.length === 1) btn.textContent = fornData.find(f => f.id === sel[0])?.nome || '1 selecionado';
-  else btn.textContent = `${sel.length} fornecedores selecionados`;
+  if (!sel.length) btn.textContent = info.todos;
+  else if (sel.length === 1) btn.textContent = info.itens.find(it => it.value === sel[0])?.label || '1 selecionado';
+  else btn.textContent = `${sel.length} ${info.plural} selecionados`;
 }
 
-document.getElementById('f-forn-btn').addEventListener('click', () => abrirFornPicker('f-forn'));
-document.getElementById('an-f-forn-btn').addEventListener('click', () => abrirFornPicker('an-f-forn'));
+['f-forn-btn','an-f-forn-btn','f-mat-btn','an-f-mat-btn','f-tipo-mat-btn','an-f-tipo-mat-btn'].forEach(btnId => {
+  const selectId = btnId.replace(/-btn$/, '');
+  document.getElementById(btnId).addEventListener('click', () => abrirPicker(selectId));
+});
 
-document.getElementById('fp-busca').addEventListener('input', renderFornPickerLista);
+document.getElementById('fp-busca').addEventListener('input', renderPickerLista);
 document.getElementById('fp-lista').addEventListener('change', e => {
   if (e.target.type !== 'checkbox') return;
-  if (e.target.checked) fpSelecionados.add(e.target.value);
-  else fpSelecionados.delete(e.target.value);
+  if (e.target.checked) pickerSelecionados.add(e.target.value);
+  else pickerSelecionados.delete(e.target.value);
   atualizarFpCount();
 });
 document.getElementById('fp-todos').addEventListener('click', () => {
-  fpSelecionados = new Set(fornData.map(f => f.id));
-  renderFornPickerLista();
+  pickerSelecionados = new Set(pickerItens.map(it => it.value));
+  renderPickerLista();
 });
 document.getElementById('fp-nenhum').addEventListener('click', () => {
-  fpSelecionados = new Set();
-  renderFornPickerLista();
+  pickerSelecionados = new Set();
+  renderPickerLista();
 });
 document.getElementById('fp-aplicar').addEventListener('click', () => {
-  const select = document.getElementById(fornPickerTargetId);
-  [...select.options].forEach(o => { o.selected = fpSelecionados.has(o.value); });
-  atualizarFornBtnLabel(fornPickerTargetId);
+  const select = document.getElementById(pickerTargetId);
+  [...select.options].forEach(o => { o.selected = pickerSelecionados.has(o.value); });
+  atualizarPickerBtnLabel(pickerTargetId);
   fecharModal('modal-forn-picker');
   select.dispatchEvent(new Event('change'));
 });
@@ -1781,9 +1825,11 @@ document.getElementById('an-btn-limpar').addEventListener('click', () => {
   document.getElementById('an-f-ate').value = '';
   document.getElementById('an-f-mes').value = '';
   [...document.getElementById('an-f-forn').options].forEach(o => o.selected = false);
-  atualizarFornBtnLabel('an-f-forn');
-  document.getElementById('an-f-mat').value      = '';
-  document.getElementById('an-f-tipo-mat').value = '';
+  atualizarPickerBtnLabel('an-f-forn');
+  [...document.getElementById('an-f-mat').options].forEach(o => o.selected = false);
+  atualizarPickerBtnLabel('an-f-mat');
+  [...document.getElementById('an-f-tipo-mat').options].forEach(o => o.selected = false);
+  atualizarPickerBtnLabel('an-f-tipo-mat');
   carregarAnalises();
 });
 document.getElementById('an-f-mes').addEventListener('change', function() {
