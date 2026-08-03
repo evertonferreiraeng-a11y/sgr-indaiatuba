@@ -1,8 +1,15 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="pt-BR">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <link rel="manifest" href="manifest.json" />
+  <meta name="theme-color" content="#006636" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="SGR Indaiatuba" />
+  <link rel="apple-touch-icon" href="img/icons/apple-touch-icon.png" />
+  <link rel="icon" type="image/png" href="img/icons/icon-192.png" />
   <title>Relatório Diário — SGR Indaiatuba</title>
   <link rel="stylesheet" href="css/style.css" />
   <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
@@ -74,7 +81,7 @@
     /* ── Print / PDF ── */
     @media print {
       @page { size: A4 portrait; margin: 12mm 14mm; }
-      .sidebar,.sidebar-toggle,.mobile-menu-btn,.sidebar-overlay,.no-print,
+      .sidebar,.sidebar-toggle,.bottom-nav,.sidebar-overlay,.no-print,
       .page-header,button,select,input { display:none !important; }
       body { background:#fff !important; font-size:11px !important; -webkit-print-color-adjust:exact !important; print-color-adjust:exact !important; }
       .main-content { margin:0 !important; padding:0 !important; }

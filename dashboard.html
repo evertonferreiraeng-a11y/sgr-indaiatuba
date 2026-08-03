@@ -1,8 +1,15 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="pt-BR">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <link rel="manifest" href="manifest.json" />
+  <meta name="theme-color" content="#006636" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="SGR Indaiatuba" />
+  <link rel="apple-touch-icon" href="img/icons/apple-touch-icon.png" />
+  <link rel="icon" type="image/png" href="img/icons/icon-192.png" />
   <title>Dashboard — SGR Indaiatuba</title>
   <link rel="stylesheet" href="css/style.css" />
   <script src="https://cdn.jsdelivr.net/npm/pptxgenjs@3/dist/pptxgen.bundle.js"></script>
@@ -110,7 +117,7 @@
     /* ── Impressão ── */
     @media print {
       @page { size: A4 landscape; margin: 10mm 12mm; }
-      .sidebar,.sidebar-overlay,.sidebar-toggle,.mobile-menu-btn,.rel-controls,.btn-pdf { display:none !important; }
+      .sidebar,.sidebar-overlay,.sidebar-toggle,.bottom-nav,.rel-controls,.btn-pdf { display:none !important; }
       body { background:#fff !important; font-size:10px !important; }
       .main-content { margin-left:0 !important; padding:0 !important; }
       .page-header { margin-bottom:8px !important; padding-bottom:5px !important; border-bottom:2px solid #006636; }

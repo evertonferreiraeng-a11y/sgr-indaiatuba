@@ -1,0 +1,18 @@
+{
+  "name": "SGR Indaiatuba — Sistema de Gestão de Resíduos",
+  "short_name": "SGR Indaiatuba",
+  "description": "Sistema de Gestão de Resíduos — UVRR Indaiatuba",
+  "start_url": "dashboard.html",
+  "scope": ".",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "background_color": "#0d1f14",
+  "theme_color": "#006636",
+  "lang": "pt-BR",
+  "icons": [
+    { "src": "img/icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "img/icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "img/icons/icon-maskable-192.png", "sizes": "192x192", "type": "image/png", "purpose": "maskable" },
+    { "src": "img/icons/icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}
