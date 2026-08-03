@@ -82,27 +82,33 @@ export function fecharModal(id) {
 /* ── Active nav ── */
 export function setActiveNav() {
   const page = location.pathname.split('/').pop() || 'index.html';
-  document.querySelectorAll('.sidebar-nav a').forEach(a => {
+  document.querySelectorAll('.sidebar-nav a, .bottom-nav a').forEach(a => {
     const href = a.getAttribute('href');
     if (href === page) a.classList.add('active');
   });
 }
 
-/* ── Mobile menu ── */
+/* ── Mobile menu (drawer aberto pela aba "Mais" da bottom-nav) ── */
 export function initMobileMenu() {
-  const btn     = document.getElementById('mobile-menu-btn');
+  const btn     = document.getElementById('bottom-nav-more');
   const sidebar = document.querySelector('.sidebar');
   const overlay = document.getElementById('sidebar-overlay');
   if (!btn || !sidebar || !overlay) return;
 
-  btn.addEventListener('click', () => {
-    sidebar.classList.toggle('open');
-    overlay.classList.toggle('open');
-  });
-  overlay.addEventListener('click', () => {
+  const fechar = () => {
     sidebar.classList.remove('open');
     overlay.classList.remove('open');
+    btn.classList.remove('active');
+  };
+
+  btn.addEventListener('click', () => {
+    const abrindo = !sidebar.classList.contains('open');
+    sidebar.classList.toggle('open', abrindo);
+    overlay.classList.toggle('open', abrindo);
+    btn.classList.toggle('active', abrindo);
   });
+  overlay.addEventListener('click', fechar);
+  sidebar.querySelectorAll('.sidebar-nav a').forEach(a => a.addEventListener('click', fechar));
 }
 
 /* ── Guard: redirect to login if not authenticated ── */
@@ -121,7 +127,6 @@ export async function redirectIfAuth() {
 /* ── Sidebar HTML ── */
 export function sidebarHTML() {
   return `
-    <button class="mobile-menu-btn" id="mobile-menu-btn">☰</button>
     <div class="sidebar-overlay" id="sidebar-overlay"></div>
     <aside class="sidebar">
       <div class="sidebar-logo">
@@ -208,10 +213,39 @@ export function sidebarHTML() {
   `;
 }
 
+/* ── Bottom nav (barra de abas estilo app, visível só no mobile) ── */
+export function bottomNavHTML() {
+  return `
+    <nav class="bottom-nav" id="bottom-nav">
+      <a href="dashboard.html">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>
+        Início
+      </a>
+      <a href="entradas.html">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 12 16 12 14 15 10 15 8 12 2 12"/><path d="M5.45 5.11L2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z"/></svg>
+        Entradas
+      </a>
+      <a href="producao.html">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2l2 7h7l-5.5 4 2 7L12 16l-5.5 4 2-7L3 9h7z"/></svg>
+        Produção
+      </a>
+      <a href="estoque.html">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 7V5a2 2 0 00-8 0v2"/></svg>
+        Estoque
+      </a>
+      <button type="button" class="bn-item" id="bottom-nav-more">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="5" cy="12" r="1.8"/><circle cx="12" cy="12" r="1.8"/><circle cx="19" cy="12" r="1.8"/></svg>
+        Mais
+      </button>
+    </nav>
+  `;
+}
+
 /* ── Init common page stuff ── */
 export async function initPage() {
   await requireAuth();
   document.body.insertAdjacentHTML('afterbegin', sidebarHTML());
+  document.body.insertAdjacentHTML('beforeend', bottomNavHTML());
   setActiveNav();
   renderUserInfo();
   initMobileMenu();
