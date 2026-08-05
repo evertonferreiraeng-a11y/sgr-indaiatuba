@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="pt-BR">
 <head>
   <meta charset="UTF-8" />
@@ -1742,20 +1742,52 @@ let pickerTargetId = null;
 let pickerItens = [];          // [{ value, label }]
 let pickerSelecionados = new Set();
 
-function itensFornecedor()  { return fornData.map(f => ({ value: f.id, label: f.nome })); }
+function itensFornecedor(idsPermitidos)  {
+  let itens = fornData.map(f => ({ value: f.id, label: f.nome }));
+  if (idsPermitidos) itens = itens.filter(it => idsPermitidos.has(it.value));
+  return itens;
+}
 function itensMaterial()    { return matFiltroItens; }
 function itensTipoMaterial(){ return tiposUnicos.map(t => ({ value: t, label: t })); }
 
 // Deduz o "tipo" de picker a partir do id do select (cuidado: checar 'tipo-mat' antes de 'mat')
-function infoPickerPara(selectId) {
-  if (selectId.endsWith('forn'))     return { itens: itensFornecedor(),   todos: 'Todos os fornecedores', plural: 'fornecedores', titulo: 'Selecionar Fornecedores', busca: 'Buscar fornecedor…' };
+function infoPickerPara(selectId, idsPermitidos) {
+  if (selectId.endsWith('forn'))     return { itens: itensFornecedor(idsPermitidos), todos: 'Todos os fornecedores', plural: 'fornecedores', titulo: 'Selecionar Fornecedores', busca: 'Buscar fornecedor…' };
   if (selectId.endsWith('tipo-mat')) return { itens: itensTipoMaterial(), todos: 'Todos os tipos',        plural: 'tipos',        titulo: 'Selecionar Tipos de Material', busca: 'Buscar tipo…' };
   return                                     { itens: itensMaterial(),    todos: 'Todos os materiais',    plural: 'materiais',    titulo: 'Selecionar Materiais', busca: 'Buscar material…' };
 }
 
-function abrirPicker(targetSelectId) {
+// Busca (paginada) os ids de fornecedores que tiveram entradas dentro do período informado.
+// Retorna null quando não há período definido (nesse caso, não há restrição — mostra todos).
+async function fetchFornecedorIdsPeriodo(ini, fim) {
+  if (!ini && !fim) return null;
+  const PAGE = 1000;
+  let page = 0, ids = new Set(), done = false;
+  while (!done) {
+    let q = supabase.from('entradas').select('fornecedor_id').range(page * PAGE, (page + 1) * PAGE - 1);
+    if (ini) q = q.gte('data', ini);
+    if (fim) q = q.lte('data', fim);
+    const { data } = await q;
+    if (!data || data.length === 0) { done = true; }
+    else {
+      data.forEach(r => { if (r.fornecedor_id) ids.add(r.fornecedor_id); });
+      page++;
+      if (data.length < PAGE) done = true;
+    }
+  }
+  return ids;
+}
+
+async function abrirPicker(targetSelectId) {
   pickerTargetId = targetSelectId;
-  const info = infoPickerPara(targetSelectId);
+  let idsPermitidos = null;
+  if (targetSelectId.endsWith('forn')) {
+    const prefix = targetSelectId.replace(/-forn$/, '');
+    const ini = document.getElementById(`${prefix}-de`)?.value;
+    const fim = document.getElementById(`${prefix}-ate`)?.value;
+    idsPermitidos = await fetchFornecedorIdsPeriodo(ini, fim);
+  }
+  const info = infoPickerPara(targetSelectId, idsPermitidos);
   pickerItens = info.itens;
   const select = document.getElementById(targetSelectId);
   pickerSelecionados = new Set([...select.selectedOptions].map(o => o.value).filter(v => v !== ''));
