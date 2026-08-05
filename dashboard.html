@@ -226,10 +226,13 @@ function getPeriodo() {
 }
 
 // Fornecedores marcados com conta_como_rejeito (ex.: clientes municipais cujo
-// material não é reciclável) têm todo o volume contado como Rejeito, e não
-// como Recebido — mesmo quando o lançamento foi feito como "entrada".
-function ehRejeito(r) {
-  return r.tipo_movimentacao === 'saida' || r.fornecedores?.conta_como_rejeito === true;
+// material não é reciclável): o volume de entrada deles não conta como
+// Recebido, e é abatido (subtraído) do Rejeito real — não é somado.
+function contaComoRejeito(r) {
+  return r.fornecedores?.conta_como_rejeito === true;
+}
+function contaComoRecebido(r) {
+  return r.tipo_movimentacao !== 'saida' && !contaComoRejeito(r);
 }
 
 async function fetchAll(table, fields, filters = []) {
@@ -435,8 +438,10 @@ async function carregar() {
     return true;
   }
   const entsFilt = ents.filter(r => matchCatRel(r.tipo_material));
-  const recebido = entsFilt.filter(r=>!ehRejeito(r)).reduce((s,r)=>s+parseFloat(r.peso_liquido_descontos||r.peso_liquido||0),0);
-  const rejeito  = entsFilt.filter(r=>ehRejeito(r)).reduce((s,r)=>s+parseFloat(r.peso_liquido||r.peso_liquido_descontos||0),0);
+  const recebido = entsFilt.filter(contaComoRecebido).reduce((s,r)=>s+parseFloat(r.peso_liquido_descontos||r.peso_liquido||0),0);
+  const rejeitoSaida  = entsFilt.filter(r=>r.tipo_movimentacao==='saida').reduce((s,r)=>s+parseFloat(r.peso_liquido||r.peso_liquido_descontos||0),0);
+  const rejeitoAbater = entsFilt.filter(r=>r.tipo_movimentacao!=='saida' && contaComoRejeito(r)).reduce((s,r)=>s+parseFloat(r.peso_liquido_descontos||r.peso_liquido||0),0);
+  const rejeito  = Math.max(0, rejeitoSaida - rejeitoAbater);
   const expedido = vends.reduce((s,r)=>s+(r.peso_kg||0),0);
   const estoque  = mats.reduce((s,r)=>s+parseFloat(r.estoque_kg||0),0);
   const passivo  = Math.max(0, recebido - expedido - rejeito - estoque);
@@ -554,7 +559,7 @@ async function carregar() {
 
   const { diaCorte: diaCorteFat, tendencias: tendClientesFat } =
     calcularTendenciaPorCliente(vendsAno, r => r.clientes?.nome, r => r.valor_total || 0);
-  const entradasClientesAno = entsAnoCli.filter(r => !ehRejeito(r));
+  const entradasClientesAno = entsAnoCli.filter(contaComoRecebido);
   const { diaCorte: diaCorteVol, tendencias: tendClientesVol } =
     calcularTendenciaPorCliente(entradasClientesAno, r => r.fornecedores?.nome,
       r => parseFloat(r.peso_liquido_descontos ?? r.peso_kg ?? r.peso_liquido ?? 0));
