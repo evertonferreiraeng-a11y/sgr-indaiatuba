@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="pt-BR">
 <head>
   <meta charset="UTF-8" />
@@ -85,6 +85,10 @@
         <button class="btn btn-outline" id="btn-excluir-mes" style="display:none;border-color:#fecaca;color:#dc2626">
           <span class="icon" style="width:14px;height:14px"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg></span>
           Excluir Mês
+        </button>
+        <button class="btn btn-outline" id="btn-forn-rejeito" style="display:none">
+          <span class="icon" style="width:14px;height:14px"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg></span>
+          Fornecedor = Rejeito
         </button>
       </div>
     </div>
@@ -481,6 +485,27 @@
   </div>
 </div>
 
+<!-- Modal: Fornecedores Contabilizados como Rejeito -->
+<div class="modal-backdrop" id="modal-forn-rejeito">
+  <div class="modal" style="max-width:440px">
+    <div class="modal-header">
+      <h3>Fornecedores Contabilizados como Rejeito</h3>
+      <button class="modal-close" data-close="modal-forn-rejeito">✕</button>
+    </div>
+    <div class="modal-body">
+      <p class="text-muted" style="font-size:12px;margin-bottom:10px">
+        Marque os fornecedores cujo volume recebido deve ser contabilizado inteiramente como Rejeito UVR (ex.: clientes municipais cujo material não é reciclável). O volume desses fornecedores deixa de contar como "Recebido" e passa a contar como "Rejeito" em todos os indicadores — inclusive quando o fornecedor é removido do filtro.
+      </p>
+      <input type="text" id="fr-busca" placeholder="Buscar fornecedor…" style="width:100%;padding:8px 10px;border:1px solid #d1d5db;border-radius:6px;font-size:13px;margin-bottom:10px" />
+      <div id="fr-lista" style="max-height:360px;overflow-y:auto;border:1px solid #f1f5f9;border-radius:8px;padding:4px"></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-outline" data-close="modal-forn-rejeito">Cancelar</button>
+      <button class="btn btn-primary" id="fr-salvar">Salvar</button>
+    </div>
+  </div>
+</div>
+
 <div id="toast-container"></div>
 <script type="module">
 import { initPage, supabase, peso, ton, dataBR, toast, abrirModal, fecharModal, mesAtual, anoAtual } from './js/config.js?v=2';
@@ -535,6 +560,7 @@ async function init() {
   const { data: p } = await supabase.from('profiles').select('*').eq('id', user.id).single();
   perfil = p;
   document.getElementById('btn-excluir-mes').style.display = perfil?.role === 'admin' ? '' : 'none';
+  document.getElementById('btn-forn-rejeito').style.display = perfil?.role === 'admin' ? '' : 'none';
 
   const [{ data: forns }, { data: mats }, { data: matsEntradas }] = await Promise.all([
     supabase.from('fornecedores').select('*').order('nome'),
@@ -576,6 +602,13 @@ async function init() {
   await carregar();
 }
 
+// Fornecedores marcados com conta_como_rejeito (ex.: clientes municipais cujo
+// material não é reciclável) têm todo o volume contado como Rejeito UVR, e não
+// como Volume Recebido — mesmo quando o lançamento foi feito como "entrada".
+function ehRejeito(r) {
+  return r.tipo_movimentacao === 'saida' || r.fornecedores?.conta_como_rejeito === true;
+}
+
 function periodoRange(mes) {
   if (!mes) return {};
   const [y,m] = mes.split('-');
@@ -589,7 +622,7 @@ async function fetchEntradasPaginado({ ini, fim, fornSel = [], matSel = [], tipo
   let page = 0, todos = [], done = false;
   while (!done) {
     let q = supabase.from('entradas')
-      .select('*, fornecedores(nome), materiais(nome)')
+      .select('*, fornecedores(nome, conta_como_rejeito), materiais(nome)')
       .order('data', { ascending: false })
       .range(page * PAGE, (page + 1) * PAGE - 1);
 
@@ -639,7 +672,7 @@ function renderKPIs() {
   let rec = 0, rej = 0;
   entData.forEach(r => {
     const pl = parseFloat(r.peso_liquido ?? r.peso_liquido_descontos ?? r.peso_kg ?? 0);
-    if (r.tipo_movimentacao === 'saida') rej += pl;
+    if (ehRejeito(r)) rej += pl;
     else rec += pl;
   });
   document.getElementById('kpi-rec').textContent  = ton(rec);
@@ -750,7 +783,7 @@ async function renderChartForn() {
   const tipoMatSelFiltro = [...document.getElementById('an-f-tipo-mat').selectedOptions].map(o=>o.value).filter(v=>v!=='');
   let rows = entDataAn;
   if (de || ate) {
-    let q = supabase.from('entradas').select('*, fornecedores(nome)');
+    let q = supabase.from('entradas').select('*, fornecedores(nome, conta_como_rejeito)');
     if (de)  q = q.gte('data', de);
     if (ate) q = q.lte('data', ate);
     if (tipoMatSelFiltro.length === 1) q = q.eq('tipo_material', tipoMatSelFiltro[0]);
@@ -760,8 +793,8 @@ async function renderChartForn() {
   }
   if (tipoMatSelFiltro.length && !(de || ate)) rows = rows.filter(r => tipoMatSelFiltro.includes(r.tipo_material));
 
-  // Popular select de fornecedores
-  const todosForns = [...new Set(entDataAn.map(r => r.fornecedores?.nome || 'Desconhecido'))].sort();
+  // Popular select de fornecedores (exclui fornecedores contabilizados como rejeito)
+  const todosForns = [...new Set(entDataAn.filter(r => !ehRejeito(r)).map(r => r.fornecedores?.nome || 'Desconhecido'))].sort();
   const selEl = document.getElementById('forn-sel');
   const selAtual = selEl.value;
   selEl.innerHTML = '<option value="">Todos os fornecedores</option>' +
@@ -771,7 +804,7 @@ async function renderChartForn() {
   if (sel) rows = rows.filter(r => (r.fornecedores?.nome || 'Desconhecido') === sel);
 
   const fornMap = {};
-  rows.filter(r => r.tipo_movimentacao !== 'saida').forEach(r => {
+  rows.filter(r => !ehRejeito(r)).forEach(r => {
     const nome = r.fornecedores?.nome || 'Desconhecido';
     fornMap[nome] = (fornMap[nome]||0) + parseFloat(r.peso_liquido_descontos ?? r.peso_kg ?? 0);
   });
@@ -808,7 +841,7 @@ async function renderChartForn() {
 
   if (fornViewMode === 'mensal') {
     const mesesMap = {};
-    rows.filter(r => r.tipo_movimentacao !== 'saida').forEach(r => {
+    rows.filter(r => !ehRejeito(r)).forEach(r => {
       const nome = r.fornecedores?.nome || 'Desconhecido';
       if (sel && nome !== sel) return;
       const mes = (r.data||'').substring(0,7);
@@ -873,7 +906,7 @@ async function calcularMediaHistorica() {
   let page = 0, histRows = [], done = false;
   while (!done) {
     let q = supabase.from('entradas')
-      .select('data, peso_liquido, fornecedores(nome)')
+      .select('data, peso_liquido, fornecedores(nome, conta_como_rejeito)')
       .eq('tipo_movimentacao', 'entrada')
       .gte('data', histDe).lte('data', histAte)
       .range(page * PAGE, (page+1)*PAGE - 1);
@@ -883,6 +916,8 @@ async function calcularMediaHistorica() {
     if (!data || data.length === 0) { done = true; }
     else { histRows = histRows.concat(data); page++; if (data.length < PAGE) done = true; }
   }
+  // Fornecedores contabilizados como rejeito não entram na comparação de volume por fornecedor
+  histRows = histRows.filter(r => !r.fornecedores?.conta_como_rejeito);
 
   // Calcula média mensal por fornecedor no período histórico — filtra pelo dia limite
   const porFornMes = {};
@@ -909,7 +944,7 @@ async function calcularMediaHistorica() {
   let page2 = 0, atualRows = [], done2 = false;
   while (!done2) {
     let q2 = supabase.from('entradas')
-      .select('data, peso_liquido, fornecedores(nome)')
+      .select('data, peso_liquido, fornecedores(nome, conta_como_rejeito)')
       .eq('tipo_movimentacao', 'entrada')
       .gte('data', atualDe).lte('data', atualAte)
       .range(page2 * PAGE, (page2+1)*PAGE - 1);
@@ -919,6 +954,8 @@ async function calcularMediaHistorica() {
     if (!d2 || d2.length === 0) { done2 = true; }
     else { atualRows = atualRows.concat(d2); page2++; if (d2.length < PAGE) done2 = true; }
   }
+  // Fornecedores contabilizados como rejeito não entram na comparação de volume por fornecedor
+  atualRows = atualRows.filter(r => !r.fornecedores?.conta_como_rejeito);
 
   const atualMap = {};
   atualRows.forEach(r => {
@@ -1007,8 +1044,8 @@ async function calcularMediaHistorica() {
 // ── Análises de Entrada de Materiais ─────────────────────────────────────────
 function renderAnalises() {
   const rows = entDataAn;
-  const entradas = rows.filter(r => r.tipo_movimentacao !== 'saida');
-  const saidas   = rows.filter(r => r.tipo_movimentacao === 'saida');
+  const entradas = rows.filter(r => !ehRejeito(r));
+  const saidas   = rows.filter(r => ehRejeito(r));
 
   const totalRecebidoKg  = entradas.reduce((s,r)=> s + parseFloat(r.peso_liquido_descontos ?? r.peso_kg ?? 0), 0);
   const totalBrutoKg     = entradas.reduce((s,r)=> s + parseFloat(r.peso_liquido ?? 0), 0);
@@ -1855,6 +1892,57 @@ document.getElementById('fp-aplicar').addEventListener('click', () => {
   atualizarPickerBtnLabel(pickerTargetId);
   fecharModal('modal-forn-picker');
   select.dispatchEvent(new Event('change'));
+});
+
+// ── Gerenciar fornecedores contabilizados como Rejeito (admin) ────────────────
+let frOriginal = new Set(), frSelecionados = new Set();
+
+function abrirFornRejeito() {
+  frOriginal = new Set(fornData.filter(f => f.conta_como_rejeito).map(f => f.id));
+  frSelecionados = new Set(frOriginal);
+  document.getElementById('fr-busca').value = '';
+  renderFornRejeitoLista();
+  abrirModal('modal-forn-rejeito');
+}
+
+function renderFornRejeitoLista() {
+  const termo = document.getElementById('fr-busca').value.trim().toLowerCase();
+  const lista = fornData
+    .filter(f => !termo || f.nome.toLowerCase().includes(termo))
+    .sort((a,b) => a.nome.localeCompare(b.nome));
+  document.getElementById('fr-lista').innerHTML = lista.length
+    ? lista.map(f => `
+      <label class="fp-item">
+        <input type="checkbox" value="${f.id}" ${frSelecionados.has(f.id) ? 'checked' : ''} />
+        <span>${f.nome}</span>
+      </label>`).join('')
+    : `<div class="table-empty" style="padding:24px">Nenhum fornecedor encontrado</div>`;
+}
+
+document.getElementById('btn-forn-rejeito').addEventListener('click', abrirFornRejeito);
+document.getElementById('fr-busca').addEventListener('input', renderFornRejeitoLista);
+document.getElementById('fr-lista').addEventListener('change', e => {
+  if (e.target.type !== 'checkbox') return;
+  if (e.target.checked) frSelecionados.add(e.target.value);
+  else frSelecionados.delete(e.target.value);
+});
+document.getElementById('fr-salvar').addEventListener('click', async () => {
+  const toMark   = [...frSelecionados].filter(id => !frOriginal.has(id));
+  const toUnmark = [...frOriginal].filter(id => !frSelecionados.has(id));
+  if (!toMark.length && !toUnmark.length) { fecharModal('modal-forn-rejeito'); return; }
+  const btn = document.getElementById('fr-salvar');
+  btn.disabled = true; btn.textContent = 'Salvando…';
+  try {
+    if (toMark.length)   await supabase.from('fornecedores').update({ conta_como_rejeito: true  }).in('id', toMark);
+    if (toUnmark.length) await supabase.from('fornecedores').update({ conta_como_rejeito: false }).in('id', toUnmark);
+    fornData.forEach(f => { f.conta_como_rejeito = frSelecionados.has(f.id); });
+    fecharModal('modal-forn-rejeito');
+    toast('Configuração de rejeito atualizada.');
+    await carregar();
+    if (analisesCarregada) { await carregarAnalises(); }
+  } finally {
+    btn.disabled = false; btn.textContent = 'Salvar';
+  }
 });
 
 // ── Filtro próprio da aba Análises ────────────────────────────────────────────
