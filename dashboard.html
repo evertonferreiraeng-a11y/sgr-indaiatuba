@@ -225,16 +225,6 @@ function getPeriodo() {
   };
 }
 
-// Fornecedores marcados com conta_como_rejeito (ex.: clientes municipais cujo
-// material não é reciclável): o volume de entrada deles não conta como
-// Recebido, e é abatido (subtraído) do Rejeito real — não é somado.
-function contaComoRejeito(r) {
-  return r.fornecedores?.conta_como_rejeito === true;
-}
-function contaComoRecebido(r) {
-  return r.tipo_movimentacao !== 'saida' && !contaComoRejeito(r);
-}
-
 async function fetchAll(table, fields, filters = []) {
   const PAGE = 1000; let all = [], from = 0;
   while (true) {
@@ -366,7 +356,7 @@ async function carregar() {
   const hojeStr = new Date().toISOString().split('T')[0];
 
   const [ents, vends, mats, equipamentos, colaboradores, avaliacoes, ocorrencias, producoes, metas, vendsAno, cargosAll, presencaHoje, entsAnoCli] = await Promise.all([
-    fetchAll('entradas', 'peso_liquido, peso_liquido_descontos, tipo_movimentacao, tipo_material, fornecedor_id, fornecedores(conta_como_rejeito), data', [['gte','data',inicio],['lte','data',fim]]),
+    fetchAll('entradas', 'peso_liquido, peso_liquido_descontos, tipo_movimentacao, tipo_material, data', [['gte','data',inicio],['lte','data',fim]]),
     fetchAll('vendas', 'peso_kg, valor_total, data, clientes(nome)', [['gte','data',inicio],['lte','data',fim]]),
     fetchAll('materiais', 'nome, estoque_kg, valor_unitario, no_estoque, observacao', [['eq','no_estoque',true]]),
     fetchAll('equipamentos', 'id, nome, frota, status, capacidade_pct, descricao, funcao', []),
@@ -378,7 +368,7 @@ async function carregar() {
     fetchAll('vendas', 'peso_kg, valor_total, data, clientes(nome)', [['gte','data',`${ano}-01-01`],['lte','data',`${ano}-12-31`]]),
     fetchAll('cargos', 'nome, vagas', []),
     fetchAll('presenca_diaria', 'colaborador_id, presente', [['eq','data',hojeStr]]),
-    fetchAll('entradas', 'peso_liquido, peso_liquido_descontos, peso_kg, tipo_movimentacao, fornecedor_id, fornecedores(nome, conta_como_rejeito), data', [['gte','data',`${ano}-01-01`],['lte','data',`${ano}-12-31`]]),
+    fetchAll('entradas', 'peso_liquido, peso_liquido_descontos, peso_kg, tipo_movimentacao, fornecedor_id, fornecedores(nome), data', [['gte','data',`${ano}-01-01`],['lte','data',`${ano}-12-31`]]),
   ]);
 
   // Snapshot de referência — carregado separadamente para não travar se tabela não existir
@@ -438,10 +428,8 @@ async function carregar() {
     return true;
   }
   const entsFilt = ents.filter(r => matchCatRel(r.tipo_material));
-  const recebido = entsFilt.filter(contaComoRecebido).reduce((s,r)=>s+parseFloat(r.peso_liquido_descontos||r.peso_liquido||0),0);
-  const rejeitoSaida  = entsFilt.filter(r=>r.tipo_movimentacao==='saida').reduce((s,r)=>s+parseFloat(r.peso_liquido||r.peso_liquido_descontos||0),0);
-  const rejeitoAbater = entsFilt.filter(r=>r.tipo_movimentacao!=='saida' && contaComoRejeito(r)).reduce((s,r)=>s+parseFloat(r.peso_liquido_descontos||r.peso_liquido||0),0);
-  const rejeito  = Math.max(0, rejeitoSaida - rejeitoAbater);
+  const recebido = entsFilt.filter(r=>r.tipo_movimentacao!=='saida').reduce((s,r)=>s+parseFloat(r.peso_liquido_descontos||r.peso_liquido||0),0);
+  const rejeito  = entsFilt.filter(r=>r.tipo_movimentacao==='saida').reduce((s,r)=>s+parseFloat(r.peso_liquido||r.peso_liquido_descontos||0),0);
   const expedido = vends.reduce((s,r)=>s+(r.peso_kg||0),0);
   const estoque  = mats.reduce((s,r)=>s+parseFloat(r.estoque_kg||0),0);
   const passivo  = Math.max(0, recebido - expedido - rejeito - estoque);
@@ -559,7 +547,7 @@ async function carregar() {
 
   const { diaCorte: diaCorteFat, tendencias: tendClientesFat } =
     calcularTendenciaPorCliente(vendsAno, r => r.clientes?.nome, r => r.valor_total || 0);
-  const entradasClientesAno = entsAnoCli.filter(contaComoRecebido);
+  const entradasClientesAno = entsAnoCli.filter(r => r.tipo_movimentacao !== 'saida');
   const { diaCorte: diaCorteVol, tendencias: tendClientesVol } =
     calcularTendenciaPorCliente(entradasClientesAno, r => r.fornecedores?.nome,
       r => parseFloat(r.peso_liquido_descontos ?? r.peso_kg ?? r.peso_liquido ?? 0));

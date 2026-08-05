@@ -494,7 +494,7 @@
     </div>
     <div class="modal-body">
       <p class="text-muted" style="font-size:12px;margin-bottom:10px">
-        Marque os fornecedores cujo material recebido não é reciclável (ex.: clientes municipais). O volume de entrada desses fornecedores deixa de contar como "Volume Recebido" e passa a ser abatido (subtraído) do "Rejeito UVR" real em todos os indicadores.
+        Marque os fornecedores cujo material recebido não é reciclável (ex.: clientes municipais). Isso só tem efeito quando o fornecedor for removido do filtro "Fornecedor" (na aba Registro ou Análises): o volume de entrada dele, no período filtrado, passa a ser abatido (subtraído) do "Rejeito UVR". Enquanto o fornecedor estiver incluído no filtro (ou "Todos" selecionado), nada muda.
       </p>
       <input type="text" id="fr-busca" placeholder="Buscar fornecedor…" style="width:100%;padding:8px 10px;border:1px solid #d1d5db;border-radius:6px;font-size:13px;margin-bottom:10px" />
       <div id="fr-lista" style="max-height:360px;overflow-y:auto;border:1px solid #f1f5f9;border-radius:8px;padding:4px"></div>
@@ -514,6 +514,7 @@ import { icon } from './js/icons.js';
 await initPage();
 
 let perfil, entData = [], entDataAn = [], fornData = [], matData = [];
+let volumeAbaterRejeito = 0, volumeAbaterRejeitoAn = 0;
 let matFiltroItens = [], tiposUnicos = [];
 let chartForn = null, chartMedia = null, fornViewMode = 'consolidado';
 let chartAnMensal = null, chartAnTipo = null, chartAnQualidade = null, chartAnPareto = null;
@@ -602,18 +603,30 @@ async function init() {
   await carregar();
 }
 
-// Fornecedores marcados com conta_como_rejeito (ex.: clientes municipais cujo
-// material não é reciclável): o volume de entrada deles não conta como Volume
-// Recebido, e esse mesmo volume é abatido (subtraído) do Rejeito UVR real —
-// não é somado, é descontado do total de saída/rejeito verdadeiro.
-function contaComoRejeito(r) {
-  return r.fornecedores?.conta_como_rejeito === true;
-}
-
-// Volume que conta como Recebido de fato: nem lançamento de saída, nem de
-// fornecedor marcado como rejeito.
-function contaComoRecebido(r) {
-  return r.tipo_movimentacao !== 'saida' && !contaComoRejeito(r);
+// Fornecedores marcados com conta_como_rejeito (ex.: clientes municipais cujo material
+// não é reciclável): enquanto esse fornecedor estiver incluído no filtro de Fornecedor
+// (ou nenhum filtro/"Todos" estiver aplicado), nada muda — ele conta normalmente, como
+// qualquer outro fornecedor. Só quando o usuário o REMOVE do filtro de Fornecedor é que
+// o volume de entrada dele (no mesmo período/material filtrado) é abatido do Rejeito UVR.
+async function calcularVolumeAbaterRejeito({ ini, fim, fornSel, matSel, tipoMatSel }) {
+  const excluidos = fornData.filter(f => f.conta_como_rejeito && fornSel.length > 0 && !fornSel.includes(f.id));
+  if (!excluidos.length) return 0;
+  let total = 0;
+  for (const f of excluidos) {
+    let q = supabase.from('entradas')
+      .select('peso_liquido_descontos, peso_kg, peso_liquido')
+      .eq('fornecedor_id', f.id)
+      .neq('tipo_movimentacao', 'saida');
+    if (ini) q = q.gte('data', ini);
+    if (fim) q = q.lte('data', fim);
+    if (matSel.length === 1) q = q.eq('material_id', matSel[0]);
+    else if (matSel.length > 1) q = q.in('material_id', matSel);
+    if (tipoMatSel.length === 1) q = q.eq('tipo_material', tipoMatSel[0]);
+    else if (tipoMatSel.length > 1) q = q.in('tipo_material', tipoMatSel);
+    const { data } = await q;
+    (data || []).forEach(r => { total += parseFloat(r.peso_liquido_descontos ?? r.peso_kg ?? r.peso_liquido ?? 0); });
+  }
+  return total;
 }
 
 function periodoRange(mes) {
@@ -629,7 +642,7 @@ async function fetchEntradasPaginado({ ini, fim, fornSel = [], matSel = [], tipo
   let page = 0, todos = [], done = false;
   while (!done) {
     let q = supabase.from('entradas')
-      .select('*, fornecedores(nome, conta_como_rejeito), materiais(nome)')
+      .select('*, fornecedores(nome), materiais(nome)')
       .order('data', { ascending: false })
       .range(page * PAGE, (page + 1) * PAGE - 1);
 
@@ -661,16 +674,20 @@ function lerFiltro(prefix) {
 }
 
 async function carregar() {
-  const { ini, fim, fornSel, matSel, tipoMatSel } = lerFiltro('f');
+  const filtro = lerFiltro('f');
+  const { ini, fim, fornSel, matSel, tipoMatSel } = filtro;
   entData = await fetchEntradasPaginado({ ini, fim, fornSel, matSel, tipoMatSel });
+  volumeAbaterRejeito = await calcularVolumeAbaterRejeito(filtro);
   renderKPIs();
   renderTabela();
 }
 
 // ── Aba Análises: filtro independente ─────────────────────────────────────────
 async function carregarAnalises() {
-  const { ini, fim, fornSel, matSel, tipoMatSel } = lerFiltro('an-f');
+  const filtro = lerFiltro('an-f');
+  const { ini, fim, fornSel, matSel, tipoMatSel } = filtro;
   entDataAn = await fetchEntradasPaginado({ ini, fim, fornSel, matSel, tipoMatSel });
+  volumeAbaterRejeitoAn = await calcularVolumeAbaterRejeito(filtro);
   renderAnalises();
   renderChartForn();
 }
@@ -680,10 +697,9 @@ function renderKPIs() {
   entData.forEach(r => {
     const pl = parseFloat(r.peso_liquido ?? r.peso_liquido_descontos ?? r.peso_kg ?? 0);
     if (r.tipo_movimentacao === 'saida') rej += pl;
-    else if (contaComoRejeito(r)) rej -= pl; // abate do rejeito, não conta como recebido
     else rec += pl;
   });
-  rej = Math.max(0, rej);
+  rej = Math.max(0, rej - volumeAbaterRejeito);
   document.getElementById('kpi-rec').textContent  = ton(rec);
   document.getElementById('kpi-rej').textContent  = ton(rej);
 }
@@ -792,7 +808,7 @@ async function renderChartForn() {
   const tipoMatSelFiltro = [...document.getElementById('an-f-tipo-mat').selectedOptions].map(o=>o.value).filter(v=>v!=='');
   let rows = entDataAn;
   if (de || ate) {
-    let q = supabase.from('entradas').select('*, fornecedores(nome, conta_como_rejeito)');
+    let q = supabase.from('entradas').select('*, fornecedores(nome)');
     if (de)  q = q.gte('data', de);
     if (ate) q = q.lte('data', ate);
     if (tipoMatSelFiltro.length === 1) q = q.eq('tipo_material', tipoMatSelFiltro[0]);
@@ -803,7 +819,7 @@ async function renderChartForn() {
   if (tipoMatSelFiltro.length && !(de || ate)) rows = rows.filter(r => tipoMatSelFiltro.includes(r.tipo_material));
 
   // Popular select de fornecedores (exclui fornecedores contabilizados como rejeito)
-  const todosForns = [...new Set(entDataAn.filter(contaComoRecebido).map(r => r.fornecedores?.nome || 'Desconhecido'))].sort();
+  const todosForns = [...new Set(entDataAn.filter(r => r.tipo_movimentacao !== 'saida').map(r => r.fornecedores?.nome || 'Desconhecido'))].sort();
   const selEl = document.getElementById('forn-sel');
   const selAtual = selEl.value;
   selEl.innerHTML = '<option value="">Todos os fornecedores</option>' +
@@ -813,7 +829,7 @@ async function renderChartForn() {
   if (sel) rows = rows.filter(r => (r.fornecedores?.nome || 'Desconhecido') === sel);
 
   const fornMap = {};
-  rows.filter(contaComoRecebido).forEach(r => {
+  rows.filter(r => r.tipo_movimentacao !== 'saida').forEach(r => {
     const nome = r.fornecedores?.nome || 'Desconhecido';
     fornMap[nome] = (fornMap[nome]||0) + parseFloat(r.peso_liquido_descontos ?? r.peso_kg ?? 0);
   });
@@ -850,7 +866,7 @@ async function renderChartForn() {
 
   if (fornViewMode === 'mensal') {
     const mesesMap = {};
-    rows.filter(contaComoRecebido).forEach(r => {
+    rows.filter(r => r.tipo_movimentacao !== 'saida').forEach(r => {
       const nome = r.fornecedores?.nome || 'Desconhecido';
       if (sel && nome !== sel) return;
       const mes = (r.data||'').substring(0,7);
@@ -915,7 +931,7 @@ async function calcularMediaHistorica() {
   let page = 0, histRows = [], done = false;
   while (!done) {
     let q = supabase.from('entradas')
-      .select('data, peso_liquido, fornecedores(nome, conta_como_rejeito)')
+      .select('data, peso_liquido, fornecedores(nome)')
       .eq('tipo_movimentacao', 'entrada')
       .gte('data', histDe).lte('data', histAte)
       .range(page * PAGE, (page+1)*PAGE - 1);
@@ -925,8 +941,6 @@ async function calcularMediaHistorica() {
     if (!data || data.length === 0) { done = true; }
     else { histRows = histRows.concat(data); page++; if (data.length < PAGE) done = true; }
   }
-  // Fornecedores contabilizados como rejeito não entram na comparação de volume por fornecedor
-  histRows = histRows.filter(r => !r.fornecedores?.conta_como_rejeito);
 
   // Calcula média mensal por fornecedor no período histórico — filtra pelo dia limite
   const porFornMes = {};
@@ -953,7 +967,7 @@ async function calcularMediaHistorica() {
   let page2 = 0, atualRows = [], done2 = false;
   while (!done2) {
     let q2 = supabase.from('entradas')
-      .select('data, peso_liquido, fornecedores(nome, conta_como_rejeito)')
+      .select('data, peso_liquido, fornecedores(nome)')
       .eq('tipo_movimentacao', 'entrada')
       .gte('data', atualDe).lte('data', atualAte)
       .range(page2 * PAGE, (page2+1)*PAGE - 1);
@@ -963,8 +977,6 @@ async function calcularMediaHistorica() {
     if (!d2 || d2.length === 0) { done2 = true; }
     else { atualRows = atualRows.concat(d2); page2++; if (d2.length < PAGE) done2 = true; }
   }
-  // Fornecedores contabilizados como rejeito não entram na comparação de volume por fornecedor
-  atualRows = atualRows.filter(r => !r.fornecedores?.conta_como_rejeito);
 
   const atualMap = {};
   atualRows.forEach(r => {
@@ -1053,17 +1065,14 @@ async function calcularMediaHistorica() {
 // ── Análises de Entrada de Materiais ─────────────────────────────────────────
 function renderAnalises() {
   const rows = entDataAn;
-  const entradas   = rows.filter(contaComoRecebido);
+  const entradas   = rows.filter(r => r.tipo_movimentacao !== 'saida');
   const saidaPuras = rows.filter(r => r.tipo_movimentacao === 'saida');
-  // Fornecedores marcados como rejeito: o volume de entrada deles é abatido do Rejeito UVR
-  const abaterRows = rows.filter(r => r.tipo_movimentacao !== 'saida' && contaComoRejeito(r));
 
   const totalRecebidoKg  = entradas.reduce((s,r)=> s + parseFloat(r.peso_liquido_descontos ?? r.peso_kg ?? 0), 0);
   const totalBrutoKg     = entradas.reduce((s,r)=> s + parseFloat(r.peso_liquido ?? 0), 0);
   const totalDescontosKg = entradas.reduce((s,r)=> s + parseFloat(r.total_descontos ?? 0), 0);
   const totalSaidaKg     = saidaPuras.reduce((s,r)=> s + parseFloat(r.peso_liquido_descontos ?? r.peso_kg ?? r.peso_liquido ?? 0), 0);
-  const totalAbaterKg    = abaterRows.reduce((s,r)=> s + parseFloat(r.peso_liquido_descontos ?? r.peso_kg ?? r.peso_liquido ?? 0), 0);
-  const totalRejeitoKg   = Math.max(0, totalSaidaKg - totalAbaterKg);
+  const totalRejeitoKg   = Math.max(0, totalSaidaKg - volumeAbaterRejeitoAn);
   const nEntradas = entradas.length;
   const fornSet = new Set(entradas.map(r=>r.fornecedores?.nome || 'Desconhecido'));
 
@@ -1143,7 +1152,7 @@ function renderAnalises() {
     .sort((a,b) => (a.variacaoPct ?? 0) - (b.variacaoPct ?? 0));
 
   // Tendência mensal (a partir dos dados carregados)
-  const mesMap = {}, rejMesMapSaida = {}, rejMesMapAbater = {};
+  const mesMap = {}, rejMesMap = {};
   entradas.forEach(r=>{
     const mes = (r.data||'').substring(0,7);
     if (!mes) return;
@@ -1152,16 +1161,7 @@ function renderAnalises() {
   saidaPuras.forEach(r=>{
     const mes = (r.data||'').substring(0,7);
     if (!mes) return;
-    rejMesMapSaida[mes] = (rejMesMapSaida[mes]||0) + parseFloat(r.peso_liquido_descontos ?? r.peso_kg ?? r.peso_liquido ?? 0);
-  });
-  abaterRows.forEach(r=>{
-    const mes = (r.data||'').substring(0,7);
-    if (!mes) return;
-    rejMesMapAbater[mes] = (rejMesMapAbater[mes]||0) + parseFloat(r.peso_liquido_descontos ?? r.peso_kg ?? r.peso_liquido ?? 0);
-  });
-  const rejMesMap = {};
-  new Set([...Object.keys(rejMesMapSaida), ...Object.keys(rejMesMapAbater)]).forEach(mes => {
-    rejMesMap[mes] = Math.max(0, (rejMesMapSaida[mes]||0) - (rejMesMapAbater[mes]||0));
+    rejMesMap[mes] = (rejMesMap[mes]||0) + parseFloat(r.peso_liquido_descontos ?? r.peso_kg ?? r.peso_liquido ?? 0);
   });
   const mesesOrdenados = Object.keys(mesMap).sort();
   const ultimosMeses = mesesOrdenados.slice(-12);
