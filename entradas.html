@@ -1933,9 +1933,20 @@ document.getElementById('fr-salvar').addEventListener('click', async () => {
   const btn = document.getElementById('fr-salvar');
   btn.disabled = true; btn.textContent = 'Salvando…';
   try {
-    if (toMark.length)   await supabase.from('fornecedores').update({ conta_como_rejeito: true  }).in('id', toMark);
-    if (toUnmark.length) await supabase.from('fornecedores').update({ conta_como_rejeito: false }).in('id', toUnmark);
-    fornData.forEach(f => { f.conta_como_rejeito = frSelecionados.has(f.id); });
+    if (toMark.length) {
+      const { error, data } = await supabase.from('fornecedores').update({ conta_como_rejeito: true }).in('id', toMark).select('id');
+      if (error) { toast('Erro ao marcar fornecedor(es): ' + error.message); return; }
+      if (!data || data.length !== toMark.length) { toast('Aviso: a gravação não afetou todos os fornecedores marcados (verifique permissões/RLS na tabela fornecedores).'); }
+    }
+    if (toUnmark.length) {
+      const { error, data } = await supabase.from('fornecedores').update({ conta_como_rejeito: false }).in('id', toUnmark).select('id');
+      if (error) { toast('Erro ao desmarcar fornecedor(es): ' + error.message); return; }
+      if (!data || data.length !== toUnmark.length) { toast('Aviso: a gravação não afetou todos os fornecedores desmarcados (verifique permissões/RLS na tabela fornecedores).'); }
+    }
+    // Recarrega do banco (em vez de confiar apenas no estado local) para confirmar que a gravação realmente persistiu
+    const { data: fornsAtualizados, error: fetchError } = await supabase.from('fornecedores').select('*').order('nome');
+    if (fetchError) { toast('Erro ao recarregar fornecedores: ' + fetchError.message); return; }
+    fornData = fornsAtualizados || fornData;
     fecharModal('modal-forn-rejeito');
     toast('Configuração de rejeito atualizada.');
     await carregar();
