@@ -27,20 +27,13 @@
     .vol-pct-input{width:64px;padding:5px 6px;border:1px solid var(--border);border-radius:6px;font-size:12.5px;text-align:right}
     .vol-pct-input:focus{border-color:var(--primary);outline:none}
 
-    .ms-wrap{position:relative}
-    .ms-btn{width:100%;text-align:left;background:#fff;border:1px solid var(--border);border-radius:8px;padding:9px 12px;font-size:13.5px;color:var(--text);cursor:pointer;display:flex;justify-content:space-between;align-items:center;gap:8px;white-space:nowrap;overflow:hidden}
-    .ms-btn span.ms-label{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-    .ms-btn:focus{outline:none;border-color:var(--primary);box-shadow:0 0 0 3px rgba(0,102,54,.1)}
-    .ms-btn .ms-caret{opacity:.5;font-size:11px;flex-shrink:0}
-    .ms-panel{display:none;position:absolute;top:calc(100% + 4px);left:0;z-index:60;background:#fff;border:1px solid var(--border);border-radius:8px;box-shadow:0 10px 28px rgba(0,0,0,.14);min-width:230px;max-width:320px;padding:6px}
-    .ms-panel.open{display:block}
-    .ms-actions{display:flex;justify-content:space-between;gap:8px;padding:4px 6px 6px;border-bottom:1px solid #f1f5f9;margin-bottom:4px}
-    .ms-actions a{font-size:11px;color:var(--primary);cursor:pointer;font-weight:600;text-decoration:none}
-    .ms-actions a:hover{text-decoration:underline}
-    .ms-options{max-height:240px;overflow-y:auto}
-    .ms-option{display:flex;align-items:center;gap:8px;padding:6px 8px;border-radius:6px;font-size:13px;cursor:pointer}
-    .ms-option:hover{background:#f8fafc}
-    .ms-option input{width:auto;padding:0;margin:0}
+    .forn-picker-btn{display:flex;align-items:center;justify-content:space-between;gap:6px;width:100%;min-width:200px;padding:9px 12px;border:1px solid var(--border);border-radius:8px;background:#fff;font-size:13.5px;color:var(--text);text-align:left;cursor:pointer;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+    .forn-picker-btn:hover{border-color:#9ca3af}
+    .forn-picker-btn::after{content:'▾';color:#9ca3af;flex-shrink:0}
+    .fp-item{display:flex;align-items:center;gap:10px;padding:9px 10px;border-radius:6px;font-size:13px;font-weight:500;color:var(--text);cursor:pointer}
+    .fp-item:hover{background:#f8fafc}
+    .fp-item input[type="checkbox"]{width:16px;height:16px;min-width:16px;flex-shrink:0;padding:0;accent-color:var(--primary);cursor:pointer}
+    .fp-item span{flex:1;min-width:0}
 
     .breadcrumb{display:flex;align-items:center;gap:6px;font-size:13px;color:var(--text-muted);margin-bottom:22px}
     .breadcrumb .bc-link{cursor:pointer;color:var(--primary);font-weight:600}
@@ -177,7 +170,7 @@
       <!-- SUB-TAB: VOLUMES DE ENTRADA -->
       <div class="cli-tabpane" id="clitab-volumes">
         <div class="section-row">
-          <div><h2>Volumes de Entrada por Cliente</h2><p>Volume de material recebido (entradas), por mês, cruzado pelo nome do cliente/fornecedor</p></div>
+          <div><h2>Volumes de Entrada por Fornecedor</h2><p>Volume de material recebido (Entradas), por mês, no período selecionado</p></div>
         </div>
 
         <div class="card mb-16" style="padding:16px">
@@ -196,16 +189,10 @@
               <div class="form-group"><label>De</label><input type="date" id="vol-de" /></div>
               <div class="form-group"><label>Até</label><input type="date" id="vol-ate" /></div>
             </div>
-            <div class="form-group ms-wrap" style="min-width:220px">
-              <label>Clientes</label>
-              <button type="button" class="ms-btn" id="vol-cliente-btn"><span class="ms-label">Todos</span><span class="ms-caret">▾</span></button>
-              <div class="ms-panel" id="vol-cliente-panel">
-                <div class="ms-actions">
-                  <a data-vol-ms-all>Selecionar todos</a>
-                  <a data-vol-ms-clear>Limpar</a>
-                </div>
-                <div class="ms-options" id="vol-cliente-options"></div>
-              </div>
+            <div class="form-group" style="min-width:220px">
+              <label>Fornecedores</label>
+              <select id="vol-forn" multiple style="display:none"><option value="">Todos</option></select>
+              <button type="button" class="forn-picker-btn" id="vol-forn-btn">Todos os fornecedores</button>
             </div>
             <div class="form-group" style="justify-content:flex-end"><label>&nbsp;</label>
               <button class="btn btn-primary" id="btn-vol-filtrar">Aplicar Filtro</button>
@@ -218,17 +205,16 @@
 
         <div class="table-card">
           <div class="table-card-header">
-            <h3>Volume por Cliente</h3>
+            <h3>Volume por Fornecedor</h3>
             <span id="vol-total" class="text-muted" style="font-size:12px"></span>
           </div>
           <div class="table-scroll">
             <table style="font-size:12.5px">
               <thead><tr id="tr-vol-head"></tr></thead>
-              <tbody id="tb-vol-clientes"></tbody>
+              <tbody id="tb-vol-fornecedores"></tbody>
             </table>
           </div>
         </div>
-        <p id="vol-nao-identificado" class="text-muted" style="font-size:12px;margin-top:10px"></p>
       </div>
     </div>
 
@@ -345,6 +331,29 @@
       <button class="btn btn-danger" id="btn-excluir-estudo" style="display:none;margin-right:auto" onclick="excluirEstudo()">Excluir</button>
       <button class="btn btn-outline" data-close="modal-estudo" onclick="fecharModalEstudo()">Cancelar</button>
       <button class="btn btn-primary" id="btn-salvar-estudo">Salvar</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: Selecionar Fornecedores (Volumes de Entrada) -->
+<div class="modal-backdrop" id="modal-vol-forn-picker">
+  <div class="modal" style="max-width:420px">
+    <div class="modal-header">
+      <h3>Selecionar Fornecedores</h3>
+      <button class="modal-close" data-close="modal-vol-forn-picker">✕</button>
+    </div>
+    <div class="modal-body">
+      <input type="text" id="vfp-busca" placeholder="Buscar fornecedor…" style="width:100%;padding:8px 10px;border:1px solid #d1d5db;border-radius:6px;font-size:13px;margin-bottom:10px" />
+      <div style="display:flex;gap:8px;margin-bottom:10px">
+        <button type="button" class="btn btn-sm btn-outline" id="vfp-todos" style="flex:1">Selecionar todos</button>
+        <button type="button" class="btn btn-sm btn-outline" id="vfp-nenhum" style="flex:1">Limpar seleção</button>
+      </div>
+      <div id="vfp-lista" style="max-height:360px;overflow-y:auto;border:1px solid #f1f5f9;border-radius:8px;padding:4px"></div>
+    </div>
+    <div class="modal-footer">
+      <span id="vfp-count" class="text-muted" style="font-size:12px;margin-right:auto"></span>
+      <button class="btn btn-outline" data-close="modal-vol-forn-picker">Cancelar</button>
+      <button class="btn btn-primary" id="vfp-aplicar">Aplicar</button>
     </div>
   </div>
 </div>
@@ -544,68 +553,87 @@ window.removerColunaTipo = function (id, nome) {
   toggleAtivoTipo(id, false);
 };
 
-// ── VOLUMES DE ENTRADA (cliente x mês, cruzado por nome com fornecedores) ──
-let msStateVol = new Set();
-let msItemsVol = [];
+// ── VOLUMES DE ENTRADA (por fornecedor — mesma fonte usada em Entradas) ──
 let ultimaTabelaVol = { meses: [], linhas: [] };
 
-function normalizarNome(s) {
-  return String(s || '')
-    .normalize('NFD').replace(/[̀-ͯ]/g, '')
-    .toLowerCase()
-    .replace(/[^a-z0-9 ]/g, ' ')
-    .replace(/\s+/g, ' ')
-    .trim();
-}
-
-function initMsClienteVol() {
-  msItemsVol = clientes;
-  const optsEl = document.getElementById('vol-cliente-options');
-  optsEl.innerHTML = clientes.map(c => `
-    <label class="ms-option">
-      <input type="checkbox" value="${c.id}" ${msStateVol.has(String(c.id)) ? 'checked' : ''} />
-      <span>${esc(c.nome)}</span>
-    </label>
-  `).join('');
-  optsEl.querySelectorAll('input[type="checkbox"]').forEach(cb => {
-    cb.addEventListener('change', () => {
-      if (cb.checked) msStateVol.add(cb.value); else msStateVol.delete(cb.value);
-      updateMsLabelVol();
-    });
-  });
-  updateMsLabelVol();
-}
-
-function updateMsLabelVol() {
-  const label = document.querySelector('#vol-cliente-btn .ms-label');
-  if (!msStateVol.size) { label.textContent = 'Todos'; return; }
-  if (msStateVol.size === 1) {
-    const id = [...msStateVol][0];
-    const item = msItemsVol.find(it => String(it.id) === id);
-    label.textContent = item ? item.nome : '1 selecionado';
-    return;
+// Seletor "Selecionar Fornecedores" (mesmo padrão usado em Entradas): um
+// select nativo escondido guarda a seleção real; o modal só edita esse select.
+async function abrirVolFornPicker() {
+  const { ini, fim } = volPeriodoRange();
+  let idsComEntrada = null;
+  if (ini && fim) {
+    const PAGE = 1000;
+    let page = 0, ids = new Set(), done = false;
+    while (!done) {
+      const { data } = await supabase.from('entradas').select('fornecedor_id')
+        .gte('data', ini).lte('data', fim)
+        .range(page * PAGE, (page + 1) * PAGE - 1);
+      if (!data || !data.length) { done = true; }
+      else { data.forEach(r => { if (r.fornecedor_id) ids.add(r.fornecedor_id); }); page++; if (data.length < PAGE) done = true; }
+    }
+    idsComEntrada = ids;
   }
-  label.textContent = `${msStateVol.size} selecionados`;
+  volFornItens = fornecedoresData
+    .filter(f => !idsComEntrada || idsComEntrada.has(f.id))
+    .map(f => ({ value: f.id, label: f.nome }));
+  const select = document.getElementById('vol-forn');
+  volFornSelecionados = new Set([...select.selectedOptions].map(o => o.value).filter(v => v !== ''));
+  document.getElementById('vfp-busca').value = '';
+  renderVolFornPickerLista();
+  abrirModal('modal-vol-forn-picker');
 }
 
-document.getElementById('vol-cliente-btn').addEventListener('click', e => {
-  e.stopPropagation();
-  document.getElementById('vol-cliente-panel').classList.toggle('open');
+function renderVolFornPickerLista() {
+  const termo = document.getElementById('vfp-busca').value.trim().toLowerCase();
+  const lista = volFornItens
+    .filter(it => !termo || it.label.toLowerCase().includes(termo))
+    .sort((a, b) => a.label.localeCompare(b.label));
+  document.getElementById('vfp-lista').innerHTML = lista.length
+    ? lista.map(it => `
+      <label class="fp-item">
+        <input type="checkbox" value="${it.value}" ${volFornSelecionados.has(it.value) ? 'checked' : ''} />
+        <span>${esc(it.label)}</span>
+      </label>`).join('')
+    : `<div class="table-empty" style="padding:24px">Nenhum fornecedor encontrado</div>`;
+  document.getElementById('vfp-count').textContent =
+    volFornSelecionados.size ? `${volFornSelecionados.size} selecionado(s)` : 'Nenhum selecionado (= todos)';
+}
+
+function atualizarVolFornBtnLabel() {
+  const btn = document.getElementById('vol-forn-btn');
+  const select = document.getElementById('vol-forn');
+  const sel = [...select.selectedOptions].map(o => o.value).filter(v => v !== '');
+  if (!sel.length) btn.textContent = 'Todos os fornecedores';
+  else if (sel.length === 1) btn.textContent = fornecedoresData.find(f => f.id === sel[0])?.nome || '1 selecionado';
+  else btn.textContent = `${sel.length} fornecedores selecionados`;
+}
+
+let volFornItens = [], volFornSelecionados = new Set();
+
+document.getElementById('vol-forn-btn').addEventListener('click', abrirVolFornPicker);
+document.getElementById('vfp-busca').addEventListener('input', renderVolFornPickerLista);
+document.getElementById('vfp-lista').addEventListener('change', e => {
+  if (e.target.type !== 'checkbox') return;
+  if (e.target.checked) volFornSelecionados.add(e.target.value);
+  else volFornSelecionados.delete(e.target.value);
+  document.getElementById('vfp-count').textContent =
+    volFornSelecionados.size ? `${volFornSelecionados.size} selecionado(s)` : 'Nenhum selecionado (= todos)';
 });
-document.querySelector('[data-vol-ms-all]').addEventListener('click', e => {
-  e.preventDefault();
-  msItemsVol.forEach(it => msStateVol.add(String(it.id)));
-  document.querySelectorAll('#vol-cliente-options input[type="checkbox"]').forEach(cb => cb.checked = true);
-  updateMsLabelVol();
+document.getElementById('vfp-todos').addEventListener('click', () => {
+  volFornSelecionados = new Set(volFornItens.map(it => it.value));
+  renderVolFornPickerLista();
 });
-document.querySelector('[data-vol-ms-clear]').addEventListener('click', e => {
-  e.preventDefault();
-  msStateVol.clear();
-  document.querySelectorAll('#vol-cliente-options input[type="checkbox"]').forEach(cb => cb.checked = false);
-  updateMsLabelVol();
+document.getElementById('vfp-nenhum').addEventListener('click', () => {
+  volFornSelecionados = new Set();
+  renderVolFornPickerLista();
 });
-document.addEventListener('click', e => {
-  if (!e.target.closest('.ms-wrap')) document.getElementById('vol-cliente-panel').classList.remove('open');
+document.getElementById('vfp-aplicar').addEventListener('click', () => {
+  const select = document.getElementById('vol-forn');
+  const optsAtuais = new Set([...select.options].map(o => o.value));
+  volFornSelecionados.forEach(v => { if (!optsAtuais.has(v)) select.add(new Option('', v)); });
+  [...select.options].forEach(o => { o.selected = volFornSelecionados.has(o.value); });
+  atualizarVolFornBtnLabel();
+  fecharModal('modal-vol-forn-picker');
 });
 
 function volPeriodoRange() {
@@ -660,29 +688,17 @@ async function carregarVolumesEntrada() {
   const { ini, fim } = volPeriodoRange();
   if (!ini || !fim) { toast('Selecione o período De e Até.', 'error'); return; }
 
-  initMsClienteVol();
-
   // Todos os fornecedores (ativos e inativos) — uma entrada antiga pode
   // referenciar um fornecedor já desativado, e não queremos perdê-la da soma.
-  const { data: forns } = await supabase.from('fornecedores').select('id, nome');
+  const { data: forns } = await supabase.from('fornecedores').select('*').order('nome');
   fornecedoresData = forns || [];
-  const fornNomeMap = {};
-  fornecedoresData.forEach(f => { fornNomeMap[f.id] = f.nome; });
-  const fornPorNome = {};
-  fornecedoresData.forEach(f => {
-    const key = normalizarNome(f.nome);
-    (fornPorNome[key] = fornPorNome[key] || []).push(f.id);
-  });
-  const clienteNomesSet = new Set(clientes.map(c => normalizarNome(c.nome)));
 
   const entradas = await fetchEntradasPeriodo(ini, fim);
   const volPorFornMes = {};
   const volPorFornTotal = {};
-  let totalPeriodoKg = 0;
   entradas.forEach(r => {
     const vol = parseFloat(r.peso_liquido_descontos ?? r.peso_kg ?? r.peso_liquido ?? 0);
     const mesKey = (r.data || '').slice(0, 7);
-    totalPeriodoKg += vol;
     volPorFornTotal[r.fornecedor_id] = (volPorFornTotal[r.fornecedor_id] || 0) + vol;
     if (!mesKey) return;
     volPorFornMes[r.fornecedor_id] = volPorFornMes[r.fornecedor_id] || {};
@@ -691,7 +707,7 @@ async function carregarVolumesEntrada() {
 
   const meses = listaMeses(ini, fim);
   const theadRow = document.getElementById('tr-vol-head');
-  theadRow.innerHTML = `<th>Cliente</th>` +
+  theadRow.innerHTML = `<th>Fornecedor</th>` +
     meses.map(mk => {
       const [y, m] = mk.split('-');
       const label = new Date(+y, +m - 1, 1).toLocaleDateString('pt-BR', { month: 'short', year: '2-digit' });
@@ -701,44 +717,23 @@ async function carregarVolumesEntrada() {
     `<th class="text-right" style="white-space:nowrap">% Aproveitamento</th>` +
     `<th class="text-right" style="white-space:nowrap">Volume Real Aproveitado</th>`;
 
-  const clientesFiltrados = msStateVol.size ? clientes.filter(c => msStateVol.has(String(c.id))) : clientes;
-  const fornIdsUsados = new Set();
-  const linhas = clientesFiltrados.map(c => {
-    const fornIds = fornPorNome[normalizarNome(c.nome)] || [];
-    fornIds.forEach(fid => fornIdsUsados.add(fid));
+  const fornSel = [...document.getElementById('vol-forn').selectedOptions].map(o => o.value).filter(v => v !== '');
+  const fornecedoresFiltrados = fornSel.length ? fornecedoresData.filter(f => fornSel.includes(f.id)) : fornecedoresData;
+
+  const linhas = fornecedoresFiltrados.map(f => {
     const volMes = {};
     let totalKg = 0;
     meses.forEach(mk => {
-      let v = 0;
-      fornIds.forEach(fid => { v += (volPorFornMes[fid] && volPorFornMes[fid][mk]) || 0; });
+      const v = (volPorFornMes[f.id] && volPorFornMes[f.id][mk]) || 0;
       volMes[mk] = v;
       totalKg += v;
     });
-    return { cliente: c, volMes, totalKg, encontrado: fornIds.length > 0 };
-  }).filter(l => l.totalKg > 0 || l.encontrado);
+    return { fornecedor: f, volMes, totalKg };
+  }).filter(l => l.totalKg > 0);
 
-  // Diagnóstico: fornecedores com entrada no período que não bateram
-  // com nenhum nome de cliente cadastrado em Estudo de Cargas.
-  const naoIdentEl = document.getElementById('vol-nao-identificado');
-  let volumeNaoIdentKg = 0;
-  const fornNaoIdent = [];
-  Object.keys(volPorFornTotal).forEach(fid => {
-    if (clienteNomesSet.has(normalizarNome(fornNomeMap[fid] || ''))) return;
-    volumeNaoIdentKg += volPorFornTotal[fid];
-    fornNaoIdent.push(fornNomeMap[fid] || 'Desconhecido');
-  });
-  if (volumeNaoIdentKg > 0) {
-    naoIdentEl.innerHTML = `⚠ ${ton(volumeNaoIdentKg)} do período não puderam ser atribuídos a nenhum cliente ` +
-      `(nome do fornecedor em Entradas não bate com nenhum nome de cliente aqui cadastrado). Fornecedores: ` +
-      `<strong>${fornNaoIdent.sort().map(esc).join(', ')}</strong>. ` +
-      `Renomeie o fornecedor em Entradas (ou o cliente aqui) para que os nomes fiquem iguais.`;
-  } else {
-    naoIdentEl.textContent = '';
-  }
-
-  const tb = document.getElementById('tb-vol-clientes');
+  const tb = document.getElementById('tb-vol-fornecedores');
   if (!linhas.length) {
-    tb.innerHTML = `<tr><td colspan="${meses.length + 4}" class="table-empty">Nenhum volume de entrada encontrado para o período (cruzando pelo nome do cliente com os fornecedores cadastrados em Entradas)</td></tr>`;
+    tb.innerHTML = `<tr><td colspan="${meses.length + 4}" class="table-empty">Nenhum volume de entrada encontrado para o período</td></tr>`;
     document.getElementById('vol-total').textContent = '';
     ultimaTabelaVol = { meses, linhas: [] };
     return;
@@ -750,21 +745,21 @@ async function carregarVolumesEntrada() {
 
   tb.innerHTML = linhas.map(l => {
     const mesCells = meses.map(mk => `<td class="text-right">${l.volMes[mk] > 0 ? ton(l.volMes[mk]) : '—'}</td>`).join('');
-    const pct = l.cliente.aproveitamento_pct ?? '';
+    const pct = l.fornecedor.aproveitamento_pct ?? '';
     const realKg = pct !== '' ? l.totalKg * (parseFloat(pct) / 100) : 0;
-    return `<tr data-cliente-id="${l.cliente.id}" data-total-kg="${l.totalKg}">
-      <td style="font-weight:600;white-space:nowrap">${esc(l.cliente.nome)}</td>
+    return `<tr data-fornecedor-id="${l.fornecedor.id}" data-total-kg="${l.totalKg}">
+      <td style="font-weight:600;white-space:nowrap">${esc(l.fornecedor.nome)}</td>
       ${mesCells}
       <td class="text-right" style="font-weight:600">${ton(l.totalKg)}</td>
       <td class="text-right">
         <input type="number" class="vol-pct-input" min="0" max="100" step="0.1" placeholder="—" value="${pct}"
-          onchange="salvarAproveitamento('${l.cliente.id}', this)" oninput="atualizarVolumeReal(this)" />
+          onchange="salvarAproveitamento('${l.fornecedor.id}', this)" oninput="atualizarVolumeReal(this)" />
       </td>
       <td class="text-right vol-real-cell">${pct !== '' ? ton(realKg) : '—'}</td>
     </tr>`;
   }).join('');
   document.getElementById('vol-total').textContent =
-    `${linhas.length} cliente${linhas.length === 1 ? '' : 's'} · Total identificado: ${ton(totalGeralKg)} · Total de entradas no período: ${ton(totalPeriodoKg)}`;
+    `${linhas.length} fornecedor${linhas.length === 1 ? '' : 'es'} · Total do período: ${ton(totalGeralKg)}`;
 }
 
 window.atualizarVolumeReal = function (input) {
@@ -775,13 +770,13 @@ window.atualizarVolumeReal = function (input) {
   cell.textContent = !isNaN(pct) && input.value !== '' ? ton(totalKg * (pct / 100)) : '—';
 };
 
-window.salvarAproveitamento = async function (clienteId, input) {
+window.salvarAproveitamento = async function (fornecedorId, input) {
   const val = input.value === '' ? null : Math.max(0, Math.min(100, parseFloat(input.value)));
   input.value = val ?? '';
-  const { error } = await supabase.from('clientes').update({ aproveitamento_pct: val }).eq('id', clienteId);
+  const { error } = await supabase.from('fornecedores').update({ aproveitamento_pct: val }).eq('id', fornecedorId);
   if (error) { toast('Erro ao salvar % de aproveitamento', 'error'); return; }
-  const c = clientes.find(x => x.id === clienteId);
-  if (c) c.aproveitamento_pct = val;
+  const f = fornecedoresData.find(x => x.id === fornecedorId);
+  if (f) f.aproveitamento_pct = val;
   atualizarVolumeReal(input);
   toast('% de aproveitamento salvo!');
 };
@@ -799,10 +794,10 @@ document.getElementById('btn-vol-exportar').addEventListener('click', () => {
   const arred = v => Math.round((v + Number.EPSILON) * 100) / 100;
 
   const rows = linhas.map(l => {
-    const linha = { 'Cliente': l.cliente.nome };
+    const linha = { 'Fornecedor': l.fornecedor.nome };
     meses.forEach((mk, i) => { linha[mesLabels[i]] = arred((l.volMes[mk] || 0) / 1000); });
     linha['Total (ton)'] = arred(l.totalKg / 1000);
-    const pct = l.cliente.aproveitamento_pct ?? '';
+    const pct = l.fornecedor.aproveitamento_pct ?? '';
     linha['% Aproveitamento'] = pct === '' ? '' : arred(parseFloat(pct));
     linha['Volume Real Aproveitado (ton)'] = pct === '' ? '' : arred((l.totalKg / 1000) * (parseFloat(pct) / 100));
     return linha;
@@ -811,7 +806,7 @@ document.getElementById('btn-vol-exportar').addEventListener('click', () => {
   const ws = XLSX.utils.json_to_sheet(rows);
   const wb = XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(wb, ws, 'Volumes de Entrada');
-  XLSX.writeFile(wb, `volumes-entrada-clientes-${new Date().toISOString().split('T')[0]}.xlsx`);
+  XLSX.writeFile(wb, `volumes-entrada-fornecedores-${new Date().toISOString().split('T')[0]}.xlsx`);
 });
 
 // ── TIPOS DE CARGA ──
