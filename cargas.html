@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="pt-BR">
 <head>
   <meta charset="UTF-8" />
@@ -12,6 +12,7 @@
   <link rel="icon" type="image/png" href="img/icons/icon-192.png" />
   <title>Estudo de Cargas — SGR Indaiatuba</title>
   <link rel="stylesheet" href="css/style.css" />
+  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
   <style>
     .page{display:none;padding:24px 28px}
     .page.active{display:block!important}
@@ -25,6 +26,21 @@
 
     .vol-pct-input{width:64px;padding:5px 6px;border:1px solid var(--border);border-radius:6px;font-size:12.5px;text-align:right}
     .vol-pct-input:focus{border-color:var(--primary);outline:none}
+
+    .ms-wrap{position:relative}
+    .ms-btn{width:100%;text-align:left;background:#fff;border:1px solid var(--border);border-radius:8px;padding:9px 12px;font-size:13.5px;color:var(--text);cursor:pointer;display:flex;justify-content:space-between;align-items:center;gap:8px;white-space:nowrap;overflow:hidden}
+    .ms-btn span.ms-label{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+    .ms-btn:focus{outline:none;border-color:var(--primary);box-shadow:0 0 0 3px rgba(0,102,54,.1)}
+    .ms-btn .ms-caret{opacity:.5;font-size:11px;flex-shrink:0}
+    .ms-panel{display:none;position:absolute;top:calc(100% + 4px);left:0;z-index:60;background:#fff;border:1px solid var(--border);border-radius:8px;box-shadow:0 10px 28px rgba(0,0,0,.14);min-width:230px;max-width:320px;padding:6px}
+    .ms-panel.open{display:block}
+    .ms-actions{display:flex;justify-content:space-between;gap:8px;padding:4px 6px 6px;border-bottom:1px solid #f1f5f9;margin-bottom:4px}
+    .ms-actions a{font-size:11px;color:var(--primary);cursor:pointer;font-weight:600;text-decoration:none}
+    .ms-actions a:hover{text-decoration:underline}
+    .ms-options{max-height:240px;overflow-y:auto}
+    .ms-option{display:flex;align-items:center;gap:8px;padding:6px 8px;border-radius:6px;font-size:13px;cursor:pointer}
+    .ms-option:hover{background:#f8fafc}
+    .ms-option input{width:auto;padding:0;margin:0}
 
     .breadcrumb{display:flex;align-items:center;gap:6px;font-size:13px;color:var(--text-muted);margin-bottom:22px}
     .breadcrumb .bc-link{cursor:pointer;color:var(--primary);font-weight:600}
@@ -180,8 +196,22 @@
               <div class="form-group"><label>De</label><input type="date" id="vol-de" /></div>
               <div class="form-group"><label>Até</label><input type="date" id="vol-ate" /></div>
             </div>
+            <div class="form-group ms-wrap" style="min-width:220px">
+              <label>Clientes</label>
+              <button type="button" class="ms-btn" id="vol-cliente-btn"><span class="ms-label">Todos</span><span class="ms-caret">▾</span></button>
+              <div class="ms-panel" id="vol-cliente-panel">
+                <div class="ms-actions">
+                  <a data-vol-ms-all>Selecionar todos</a>
+                  <a data-vol-ms-clear>Limpar</a>
+                </div>
+                <div class="ms-options" id="vol-cliente-options"></div>
+              </div>
+            </div>
             <div class="form-group" style="justify-content:flex-end"><label>&nbsp;</label>
               <button class="btn btn-primary" id="btn-vol-filtrar">Aplicar Filtro</button>
+            </div>
+            <div class="form-group" style="justify-content:flex-end"><label>&nbsp;</label>
+              <button class="btn btn-outline" id="btn-vol-exportar">⬇ Exportar Excel</button>
             </div>
           </div>
         </div>
@@ -198,6 +228,7 @@
             </table>
           </div>
         </div>
+        <p id="vol-nao-identificado" class="text-muted" style="font-size:12px;margin-top:10px"></p>
       </div>
     </div>
 
@@ -514,6 +545,10 @@ window.removerColunaTipo = function (id, nome) {
 };
 
 // ── VOLUMES DE ENTRADA (cliente x mês, cruzado por nome com fornecedores) ──
+let msStateVol = new Set();
+let msItemsVol = [];
+let ultimaTabelaVol = { meses: [], linhas: [] };
+
 function normalizarNome(s) {
   return String(s || '')
     .normalize('NFD').replace(/[̀-ͯ]/g, '')
@@ -522,6 +557,56 @@ function normalizarNome(s) {
     .replace(/\s+/g, ' ')
     .trim();
 }
+
+function initMsClienteVol() {
+  msItemsVol = clientes;
+  const optsEl = document.getElementById('vol-cliente-options');
+  optsEl.innerHTML = clientes.map(c => `
+    <label class="ms-option">
+      <input type="checkbox" value="${c.id}" ${msStateVol.has(String(c.id)) ? 'checked' : ''} />
+      <span>${esc(c.nome)}</span>
+    </label>
+  `).join('');
+  optsEl.querySelectorAll('input[type="checkbox"]').forEach(cb => {
+    cb.addEventListener('change', () => {
+      if (cb.checked) msStateVol.add(cb.value); else msStateVol.delete(cb.value);
+      updateMsLabelVol();
+    });
+  });
+  updateMsLabelVol();
+}
+
+function updateMsLabelVol() {
+  const label = document.querySelector('#vol-cliente-btn .ms-label');
+  if (!msStateVol.size) { label.textContent = 'Todos'; return; }
+  if (msStateVol.size === 1) {
+    const id = [...msStateVol][0];
+    const item = msItemsVol.find(it => String(it.id) === id);
+    label.textContent = item ? item.nome : '1 selecionado';
+    return;
+  }
+  label.textContent = `${msStateVol.size} selecionados`;
+}
+
+document.getElementById('vol-cliente-btn').addEventListener('click', e => {
+  e.stopPropagation();
+  document.getElementById('vol-cliente-panel').classList.toggle('open');
+});
+document.querySelector('[data-vol-ms-all]').addEventListener('click', e => {
+  e.preventDefault();
+  msItemsVol.forEach(it => msStateVol.add(String(it.id)));
+  document.querySelectorAll('#vol-cliente-options input[type="checkbox"]').forEach(cb => cb.checked = true);
+  updateMsLabelVol();
+});
+document.querySelector('[data-vol-ms-clear]').addEventListener('click', e => {
+  e.preventDefault();
+  msStateVol.clear();
+  document.querySelectorAll('#vol-cliente-options input[type="checkbox"]').forEach(cb => cb.checked = false);
+  updateMsLabelVol();
+});
+document.addEventListener('click', e => {
+  if (!e.target.closest('.ms-wrap')) document.getElementById('vol-cliente-panel').classList.remove('open');
+});
 
 function volPeriodoRange() {
   const tipo = document.getElementById('vol-tipo-periodo').value;
@@ -575,21 +660,30 @@ async function carregarVolumesEntrada() {
   const { ini, fim } = volPeriodoRange();
   if (!ini || !fim) { toast('Selecione o período De e Até.', 'error'); return; }
 
-  if (!fornecedoresData.length) {
-    const { data } = await supabase.from('fornecedores').select('id, nome').eq('ativo', true);
-    fornecedoresData = data || [];
-  }
+  initMsClienteVol();
+
+  // Todos os fornecedores (ativos e inativos) — uma entrada antiga pode
+  // referenciar um fornecedor já desativado, e não queremos perdê-la da soma.
+  const { data: forns } = await supabase.from('fornecedores').select('id, nome');
+  fornecedoresData = forns || [];
+  const fornNomeMap = {};
+  fornecedoresData.forEach(f => { fornNomeMap[f.id] = f.nome; });
   const fornPorNome = {};
   fornecedoresData.forEach(f => {
     const key = normalizarNome(f.nome);
     (fornPorNome[key] = fornPorNome[key] || []).push(f.id);
   });
+  const clienteNomesSet = new Set(clientes.map(c => normalizarNome(c.nome)));
 
   const entradas = await fetchEntradasPeriodo(ini, fim);
   const volPorFornMes = {};
+  const volPorFornTotal = {};
+  let totalPeriodoKg = 0;
   entradas.forEach(r => {
     const vol = parseFloat(r.peso_liquido_descontos ?? r.peso_kg ?? r.peso_liquido ?? 0);
     const mesKey = (r.data || '').slice(0, 7);
+    totalPeriodoKg += vol;
+    volPorFornTotal[r.fornecedor_id] = (volPorFornTotal[r.fornecedor_id] || 0) + vol;
     if (!mesKey) return;
     volPorFornMes[r.fornecedor_id] = volPorFornMes[r.fornecedor_id] || {};
     volPorFornMes[r.fornecedor_id][mesKey] = (volPorFornMes[r.fornecedor_id][mesKey] || 0) + vol;
@@ -607,8 +701,11 @@ async function carregarVolumesEntrada() {
     `<th class="text-right" style="white-space:nowrap">% Aproveitamento</th>` +
     `<th class="text-right" style="white-space:nowrap">Volume Real Aproveitado</th>`;
 
-  const linhas = clientes.map(c => {
+  const clientesFiltrados = msStateVol.size ? clientes.filter(c => msStateVol.has(String(c.id))) : clientes;
+  const fornIdsUsados = new Set();
+  const linhas = clientesFiltrados.map(c => {
     const fornIds = fornPorNome[normalizarNome(c.nome)] || [];
+    fornIds.forEach(fid => fornIdsUsados.add(fid));
     const volMes = {};
     let totalKg = 0;
     meses.forEach(mk => {
@@ -620,15 +717,36 @@ async function carregarVolumesEntrada() {
     return { cliente: c, volMes, totalKg, encontrado: fornIds.length > 0 };
   }).filter(l => l.totalKg > 0 || l.encontrado);
 
+  // Diagnóstico: fornecedores com entrada no período que não bateram
+  // com nenhum nome de cliente cadastrado em Estudo de Cargas.
+  const naoIdentEl = document.getElementById('vol-nao-identificado');
+  let volumeNaoIdentKg = 0;
+  const fornNaoIdent = [];
+  Object.keys(volPorFornTotal).forEach(fid => {
+    if (clienteNomesSet.has(normalizarNome(fornNomeMap[fid] || ''))) return;
+    volumeNaoIdentKg += volPorFornTotal[fid];
+    fornNaoIdent.push(fornNomeMap[fid] || 'Desconhecido');
+  });
+  if (volumeNaoIdentKg > 0) {
+    naoIdentEl.innerHTML = `⚠ ${ton(volumeNaoIdentKg)} do período não puderam ser atribuídos a nenhum cliente ` +
+      `(nome do fornecedor em Entradas não bate com nenhum nome de cliente aqui cadastrado). Fornecedores: ` +
+      `<strong>${fornNaoIdent.sort().map(esc).join(', ')}</strong>. ` +
+      `Renomeie o fornecedor em Entradas (ou o cliente aqui) para que os nomes fiquem iguais.`;
+  } else {
+    naoIdentEl.textContent = '';
+  }
+
   const tb = document.getElementById('tb-vol-clientes');
   if (!linhas.length) {
     tb.innerHTML = `<tr><td colspan="${meses.length + 4}" class="table-empty">Nenhum volume de entrada encontrado para o período (cruzando pelo nome do cliente com os fornecedores cadastrados em Entradas)</td></tr>`;
     document.getElementById('vol-total').textContent = '';
+    ultimaTabelaVol = { meses, linhas: [] };
     return;
   }
 
   linhas.sort((a, b) => b.totalKg - a.totalKg);
   const totalGeralKg = linhas.reduce((s, l) => s + l.totalKg, 0);
+  ultimaTabelaVol = { meses, linhas };
 
   tb.innerHTML = linhas.map(l => {
     const mesCells = meses.map(mk => `<td class="text-right">${l.volMes[mk] > 0 ? ton(l.volMes[mk]) : '—'}</td>`).join('');
@@ -645,7 +763,8 @@ async function carregarVolumesEntrada() {
       <td class="text-right vol-real-cell">${pct !== '' ? ton(realKg) : '—'}</td>
     </tr>`;
   }).join('');
-  document.getElementById('vol-total').textContent = `${linhas.length} cliente${linhas.length === 1 ? '' : 's'} · Total do período: ${ton(totalGeralKg)}`;
+  document.getElementById('vol-total').textContent =
+    `${linhas.length} cliente${linhas.length === 1 ? '' : 's'} · Total identificado: ${ton(totalGeralKg)} · Total de entradas no período: ${ton(totalPeriodoKg)}`;
 }
 
 window.atualizarVolumeReal = function (input) {
@@ -668,6 +787,32 @@ window.salvarAproveitamento = async function (clienteId, input) {
 };
 
 document.getElementById('btn-vol-filtrar').addEventListener('click', carregarVolumesEntrada);
+
+document.getElementById('btn-vol-exportar').addEventListener('click', () => {
+  const { meses, linhas } = ultimaTabelaVol;
+  if (!linhas.length) { toast('Nenhum dado para exportar', 'error'); return; }
+
+  const mesLabels = meses.map(mk => {
+    const [y, m] = mk.split('-');
+    return new Date(+y, +m - 1, 1).toLocaleDateString('pt-BR', { month: 'short', year: 'numeric' });
+  });
+  const arred = v => Math.round((v + Number.EPSILON) * 100) / 100;
+
+  const rows = linhas.map(l => {
+    const linha = { 'Cliente': l.cliente.nome };
+    meses.forEach((mk, i) => { linha[mesLabels[i]] = arred((l.volMes[mk] || 0) / 1000); });
+    linha['Total (ton)'] = arred(l.totalKg / 1000);
+    const pct = l.cliente.aproveitamento_pct ?? '';
+    linha['% Aproveitamento'] = pct === '' ? '' : arred(parseFloat(pct));
+    linha['Volume Real Aproveitado (ton)'] = pct === '' ? '' : arred((l.totalKg / 1000) * (parseFloat(pct) / 100));
+    return linha;
+  });
+
+  const ws = XLSX.utils.json_to_sheet(rows);
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, 'Volumes de Entrada');
+  XLSX.writeFile(wb, `volumes-entrada-clientes-${new Date().toISOString().split('T')[0]}.xlsx`);
+});
 
 // ── TIPOS DE CARGA ──
 async function carregarTipos() {
