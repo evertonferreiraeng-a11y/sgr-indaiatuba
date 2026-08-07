@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="pt-BR">
 <head>
   <meta charset="UTF-8" />
@@ -271,6 +271,9 @@
             </div>
             <div class="form-group" style="justify-content:flex-end"><label>&nbsp;</label>
               <button class="btn btn-outline" id="btn-an-exportar">⬇ Exportar Excel</button>
+            </div>
+            <div class="form-group" style="justify-content:flex-end"><label>&nbsp;</label>
+              <button class="btn btn-outline" id="btn-an-exportar-volume">⬇ Exportar Volume (Mensal/Anual)</button>
             </div>
           </div>
         </div>
@@ -1238,6 +1241,37 @@ function initMultiSelect(kind, items) {
   updateMsLabel(kind);
 }
 
+// Restringe as opções do multi-seleção à lista informada (ex.: só clientes/materiais
+// com venda no período filtrado), preservando a seleção atual quando ainda válida.
+function atualizarOpcoesMultiSelect(kind, items) {
+  msItems[kind] = items;
+  const idsValidos = new Set(items.map(it => String(it.id)));
+  [...msState[kind]].forEach(id => { if (!idsValidos.has(id)) msState[kind].delete(id); });
+  const optsEl = document.getElementById(`an-${kind}-options`);
+  optsEl.innerHTML = items.map(it => `
+    <label class="ms-option">
+      <input type="checkbox" value="${it.id}" ${msState[kind].has(String(it.id)) ? 'checked' : ''} />
+      <span>${it.nome}</span>
+    </label>
+  `).join('');
+  optsEl.querySelectorAll('input[type="checkbox"]').forEach(cb => {
+    cb.addEventListener('change', () => {
+      if (cb.checked) msState[kind].add(cb.value); else msState[kind].delete(cb.value);
+      updateMsLabel(kind);
+    });
+  });
+  updateMsLabel(kind);
+}
+
+// Busca quais clientes/materiais tiveram venda no período e restringe as opções a eles
+async function atualizarOpcoesDisponiveis(ini, fim) {
+  const { data } = await supabase.from('vendas').select('cliente_id, material_id').gte('data', ini).lte('data', fim);
+  const clienteIds  = new Set((data || []).map(r => String(r.cliente_id)).filter(Boolean));
+  const materialIds = new Set((data || []).map(r => String(r.material_id)).filter(Boolean));
+  atualizarOpcoesMultiSelect('cliente', clienteData.filter(c => clienteIds.has(String(c.id))));
+  atualizarOpcoesMultiSelect('material', matData.filter(m => materialIds.has(String(m.id))));
+}
+
 function updateMsLabel(kind) {
   const label = document.querySelector(`#an-${kind}-btn .ms-label`);
   const sel = msState[kind];
@@ -1313,6 +1347,8 @@ function anaPeriodoRange() {
 async function carregarAnalises() {
   const { ini, fim } = anaPeriodoRange();
   if (!ini || !fim) { toast('Selecione o período De e Até.', 'error'); return; }
+
+  await atualizarOpcoesDisponiveis(ini, fim);
 
   const cliSel = [...msState.cliente];
   const matSel = [...msState.material];
@@ -1619,6 +1655,75 @@ document.getElementById('btn-an-exportar').addEventListener('click', () => {
   const wb = XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(wb, ws, 'Análises');
   XLSX.writeFile(wb, `analises-comercial-${new Date().toISOString().split('T')[0]}.xlsx`);
+});
+
+document.getElementById('btn-an-exportar-volume').addEventListener('click', async () => {
+  const cliSel = [...msState.cliente];
+  const matSel = [...msState.material];
+
+  let q = supabase.from('vendas').select('data, peso_kg, material_id, materiais(nome), codigo_material').order('data');
+  if (cliSel.length) q = q.in('cliente_id', cliSel);
+  if (matSel.length) q = q.in('material_id', matSel);
+
+  const { data, error } = await q;
+  if (error) { toast('Erro ao buscar dados: ' + error.message, 'error'); return; }
+  if (!data || !data.length) { toast('Nenhum dado para exportar', 'error'); return; }
+
+  const porMesMaterial = {}, porAnoMaterial = {};
+  const mesesSet = new Set(), anosSet = new Set(), materiaisSet = new Set();
+  data.forEach(r => {
+    const mat = r.materiais?.nome || r.codigo_material || 'Sem material';
+    const vol = parseFloat(r.peso_kg || 0) / 1000;
+    const mesKey = (r.data || '').slice(0, 7);
+    const anoKey = (r.data || '').slice(0, 4);
+    materiaisSet.add(mat);
+    if (mesKey) {
+      mesesSet.add(mesKey);
+      porMesMaterial[mat] = porMesMaterial[mat] || {};
+      porMesMaterial[mat][mesKey] = (porMesMaterial[mat][mesKey] || 0) + vol;
+    }
+    if (anoKey) {
+      anosSet.add(anoKey);
+      porAnoMaterial[mat] = porAnoMaterial[mat] || {};
+      porAnoMaterial[mat][anoKey] = (porAnoMaterial[mat][anoKey] || 0) + vol;
+    }
+  });
+
+  const materiais = [...materiaisSet].sort();
+  const meses = [...mesesSet].sort();
+  const anos = [...anosSet].sort();
+  const arred = v => Math.round((v + Number.EPSILON) * 100) / 100;
+
+  const linhasMensal = materiais.map(mat => {
+    const linha = { 'Material': mat };
+    let total = 0;
+    meses.forEach(mk => {
+      const [y, m] = mk.split('-');
+      const label = new Date(+y, +m - 1, 1).toLocaleDateString('pt-BR', { month: 'short', year: 'numeric' });
+      const vol = (porMesMaterial[mat] && porMesMaterial[mat][mk]) || 0;
+      linha[label] = arred(vol);
+      total += vol;
+    });
+    linha['Total (ton)'] = arred(total);
+    return linha;
+  });
+
+  const linhasAnual = materiais.map(mat => {
+    const linha = { 'Material': mat };
+    let total = 0;
+    anos.forEach(ano => {
+      const vol = (porAnoMaterial[mat] && porAnoMaterial[mat][ano]) || 0;
+      linha[ano] = arred(vol);
+      total += vol;
+    });
+    linha['Total (ton)'] = arred(total);
+    return linha;
+  });
+
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(linhasMensal), 'Volume Mensal');
+  XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(linhasAnual), 'Volume Anual');
+  XLSX.writeFile(wb, `volume-material-vendido-${new Date().toISOString().split('T')[0]}.xlsx`);
 });
 
 // ── Planos de Ações ────────────────────────────────────────────────────────────
