@@ -178,6 +178,10 @@ document.getElementById('rel-mes').value = mesAtual();
 
 let modoAtual = 'mes'; // 'mes' | 'ano'
 
+// materiais vendidos por UNIDADE (não por peso) não entram no volume/tonelagem — só no faturamento
+const UNIDADES_PESO = new Set(['', 'KG', 'TON']);
+const pesoVenda = r => UNIDADES_PESO.has((r.unidade || '').trim().toUpperCase()) ? parseFloat(r.peso_kg || 0) : 0;
+
 function getPeriodo() {
   if (modoAtual === 'ano') {
     const a = selAno.value;
@@ -226,7 +230,7 @@ async function carregar() {
 
   const [ents, vends, mats, equipamentos, colaboradores, avaliacoes, ocorrencias, producoes, metas, vendsAno, cargosAll, presencaHoje] = await Promise.all([
     fetchAll('entradas', 'peso_liquido, peso_liquido_descontos, tipo_movimentacao, tipo_material, data', [['gte','data',inicio],['lte','data',fim]]),
-    fetchAll('vendas', 'peso_kg, valor_total, data, clientes(nome)', [['gte','data',inicio],['lte','data',fim]]),
+    fetchAll('vendas', 'peso_kg, unidade, valor_total, data, clientes(nome)', [['gte','data',inicio],['lte','data',fim]]),
     fetchAll('materiais', 'nome, estoque_kg, valor_unitario, no_estoque, observacao', [['eq','no_estoque',true]]),
     fetchAll('equipamentos', 'id, nome, frota, status, capacidade_pct, descricao, funcao', []),
     fetchAll('colaboradores', '*, cargos(nome, vagas)', []),
@@ -234,7 +238,7 @@ async function carregar() {
     fetchAll('ocorrencias', 'tipo, data, colaborador_id', [['gte','data',inicio],['lte','data',fim]]),
     fetchAll('producao', 'peso_kg, data', [['gte','data',inicio],['lte','data',fim]]),
     fetchAll('metas', 'periodo, valor_meta', [['eq','indicador','faturamento'],['gte','periodo',`${ano}-01`],['lte','periodo',`${ano}-12`]]),
-    fetchAll('vendas', 'peso_kg, valor_total, data', [['gte','data',`${ano}-01-01`],['lte','data',`${ano}-12-31`]]),
+    fetchAll('vendas', 'peso_kg, unidade, valor_total, data', [['gte','data',`${ano}-01-01`],['lte','data',`${ano}-12-31`]]),
     fetchAll('cargos', 'nome, vagas', []),
     fetchAll('presenca_diaria', 'colaborador_id, presente', [['eq','data',hojeStr]]),
   ]);
@@ -309,7 +313,7 @@ async function carregar() {
   const entsFilt = ents.filter(r => matchCatRel(r.tipo_material));
   const recebido = entsFilt.filter(r=>r.tipo_movimentacao!=='saida').reduce((s,r)=>s+parseFloat(r.peso_liquido_descontos||r.peso_liquido||0),0);
   const rejeito  = entsFilt.filter(r=>r.tipo_movimentacao==='saida').reduce((s,r)=>s+parseFloat(r.peso_liquido||r.peso_liquido_descontos||0),0);
-  const expedido = vends.reduce((s,r)=>s+(r.peso_kg||0),0);
+  const expedido = vends.reduce((s,r)=>s+pesoVenda(r),0);
   const estoque  = mats.reduce((s,r)=>s+parseFloat(r.estoque_kg||0),0);
   const passivo  = Math.max(0, recebido - expedido - rejeito - estoque);
   const taxa     = recebido > 0 ? Math.min(((expedido + estoque) / recebido) * 100, 100) : 0;
@@ -336,7 +340,7 @@ async function carregar() {
   (vendsAno||[]).forEach(r => {
     const i = new Date(r.data+'T00:00:00').getMonth();
     fatReal[i] += r.valor_total||0;
-    fatKg[i]   += r.peso_kg||0;
+    fatKg[i]   += pesoVenda(r);
   });
   (metas||[]).forEach(m => {
     const i = parseInt(m.periodo.split('-')[1])-1;

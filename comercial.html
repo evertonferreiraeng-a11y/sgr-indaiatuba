@@ -560,6 +560,11 @@ await initPage();
 let perfil, vendaData = [], clienteData = [], matData = [], colunasVendas = new Set();
 let chartClientes = null, chartEvolucao = null;
 
+// materiais vendidos por UNIDADE (ou outra unidade que não seja peso) não entram nos totais de tonelagem — só no faturamento
+const UNIDADES_PESO = new Set(['', 'KG', 'TON']);
+const vendaPorPeso = r => UNIDADES_PESO.has((r.unidade || '').trim().toUpperCase());
+const pesoVenda = r => vendaPorPeso(r) ? parseFloat(r.peso_kg || 0) : 0;
+
 // ── TABS ─────────────────────────────────────────────────────────────────────
 document.querySelectorAll('.com-tab').forEach(tab => {
   tab.addEventListener('click', () => {
@@ -700,7 +705,7 @@ async function carregar() {
 
 async function renderKPIs() {
   let fat = 0, vol = 0;
-  vendaData.forEach(r => { fat += r.valor_total||0; vol += r.peso_kg||0; });
+  vendaData.forEach(r => { fat += r.valor_total||0; vol += pesoVenda(r); });
 
   // Faturamento
   document.getElementById('kpi-fat').textContent       = moeda(fat);
@@ -737,7 +742,7 @@ function renderFatProduto() {
   vendaData.forEach(r => {
     const nome = r.materiais?.nome || r.codigo_material || 'Sem material';
     if (!map[nome]) map[nome] = { vol: 0, fat: 0 };
-    map[nome].vol += parseFloat(r.peso_kg || 0);
+    map[nome].vol += pesoVenda(r);
     map[nome].fat += parseFloat(r.valor_total || 0);
   });
 
@@ -796,16 +801,23 @@ function renderTabela() {
     return;
   }
   tb.innerHTML = vendaData.map(r => {
-    const ticket = r.peso_kg ? (r.valor_total||0)/(r.peso_kg/1000) : null;
+    const porPeso = vendaPorPeso(r);
+    const ticket = r.peso_kg ? (r.valor_total||0)/(porPeso ? r.peso_kg/1000 : r.peso_kg) : null;
+    const qtd = r.peso_kg
+      ? (porPeso ? ton(r.peso_kg) : `${r.peso_kg} ${r.unidade||'UN'}`)
+      : '—';
+    const precoUnit = r.preco_kg
+      ? (porPeso ? moeda(r.preco_kg * 1000) : moeda(r.preco_kg))
+      : '—';
     return `
     <tr>
       <td>${r.clientes?.nome||'—'}</td>
       <td>${dataBR(r.data)}</td>
       <td>${r.codigo_material||'—'}</td>
       <td>${r.materiais?.nome||'—'}</td>
-      <td class="text-right">${r.peso_kg ? ton(r.peso_kg) : '—'}</td>
+      <td class="text-right">${qtd}</td>
       <td>${r.unidade||'—'}</td>
-      <td class="text-right">${r.preco_kg ? moeda(r.preco_kg * 1000) : '—'}</td>
+      <td class="text-right">${precoUnit}</td>
       <td class="text-right">${r.desconto ? moeda(r.desconto) : '—'}</td>
       <td class="text-right fw-600">${moeda(r.valor_total||0)}</td>
       <td class="text-right">${ticket ? moeda(ticket) : '—'}</td>
@@ -859,7 +871,7 @@ async function carregarGraficos() {
   rows.forEach(r => {
     const nome = r.clientes?.nome || 'Desconhecido';
     const mat  = r.materiais?.nome || r.tipo_material || 'Material';
-    const vol  = r.peso_kg||0;
+    const vol  = pesoVenda(r);
     const fat  = r.valor_total||0;
     if (!cliMap[nome]) cliMap[nome] = { vol:0, fat:0, mats:{} };
     cliMap[nome].vol += vol;
@@ -1396,7 +1408,7 @@ function anaAgrupar(rows, keyFn) {
     const key = keyFn(r);
     if (!map[key]) map[key] = { vendas: 0, vol: 0, fat: 0 };
     map[key].vendas += 1;
-    map[key].vol += parseFloat(r.peso_kg || 0);
+    map[key].vol += pesoVenda(r);
     map[key].fat += parseFloat(r.valor_total || 0);
   });
   return map;
@@ -1408,7 +1420,7 @@ function anaTopN(map, n = 10) {
 
 function renderAnaKPIs() {
   const fat = anaData.reduce((s, r) => s + (r.valor_total || 0), 0);
-  const vol = anaData.reduce((s, r) => s + (r.peso_kg || 0), 0);
+  const vol = anaData.reduce((s, r) => s + pesoVenda(r), 0);
   const clientesUnicos  = new Set(anaData.map(r => r.cliente_id).filter(Boolean));
   const materiaisUnicos = new Set(anaData.map(r => r.material_id).filter(Boolean));
 
@@ -1518,7 +1530,7 @@ function renderEvolTicket() {
   anaData.forEach(r => {
     const key = r.data.substring(0, 7);
     if (!meses[key]) meses[key] = { vol: 0, fat: 0 };
-    meses[key].vol += parseFloat(r.peso_kg || 0);
+    meses[key].vol += pesoVenda(r);
     meses[key].fat += parseFloat(r.valor_total || 0);
   });
   const labs = Object.keys(meses).sort();
@@ -1547,7 +1559,7 @@ function renderTabelaAnaClientes() {
     const mat = r.materiais?.nome || r.codigo_material || 'Sem material';
     if (!matPorCliente[cli]) matPorCliente[cli] = {};
     if (!matPorCliente[cli][mat]) matPorCliente[cli][mat] = { vol: 0, fat: 0 };
-    matPorCliente[cli][mat].vol += parseFloat(r.peso_kg || 0);
+    matPorCliente[cli][mat].vol += pesoVenda(r);
     matPorCliente[cli][mat].fat += (r.valor_total || 0);
   });
   const totalFat = Object.values(map).reduce((s, v) => s + v.fat, 0);
@@ -1599,7 +1611,7 @@ function renderTabelaAnaMateriais() {
     if (mesKey) {
       mesesSet.add(mesKey);
       if (!volPorMesMaterial[mat]) volPorMesMaterial[mat] = {};
-      volPorMesMaterial[mat][mesKey] = (volPorMesMaterial[mat][mesKey] || 0) + parseFloat(r.peso_kg || 0);
+      volPorMesMaterial[mat][mesKey] = (volPorMesMaterial[mat][mesKey] || 0) + pesoVenda(r);
     }
   });
   const meses = [...mesesSet].sort();
@@ -1662,10 +1674,10 @@ document.getElementById('btn-an-exportar').addEventListener('click', () => {
     Cliente: r.clientes?.nome || '—',
     Data: dataBR(r.data),
     Material: r.materiais?.nome || r.codigo_material || '—',
-    'Volume (kg)': r.peso_kg || 0,
-    'Preço/ton (R$)': r.preco_kg ? (r.preco_kg * 1000) : '',
+    'Volume (kg)': pesoVenda(r),
+    'Preço/ton (R$)': r.preco_kg && vendaPorPeso(r) ? (r.preco_kg * 1000) : '',
     'Valor Total (R$)': r.valor_total || 0,
-    'Ticket (R$/ton)': r.peso_kg ? (r.valor_total || 0) / (r.peso_kg / 1000) : '',
+    'Ticket (R$/ton)': pesoVenda(r) > 0 ? (r.valor_total || 0) / (pesoVenda(r) / 1000) : '',
     'O. Venda': r.ordem_venda || '',
     NF: r.nf || '',
   }));
@@ -1679,7 +1691,7 @@ document.getElementById('btn-an-exportar-volume').addEventListener('click', asyn
   const cliSel = [...msState.cliente];
   const matSel = [...msState.material];
 
-  let q = supabase.from('vendas').select('data, peso_kg, material_id, materiais(nome), codigo_material').order('data');
+  let q = supabase.from('vendas').select('data, peso_kg, unidade, material_id, materiais(nome), codigo_material').order('data');
   if (cliSel.length) q = q.in('cliente_id', cliSel);
   if (matSel.length) q = q.in('material_id', matSel);
 
@@ -1691,7 +1703,7 @@ document.getElementById('btn-an-exportar-volume').addEventListener('click', asyn
   const mesesSet = new Set(), anosSet = new Set(), materiaisSet = new Set();
   data.forEach(r => {
     const mat = r.materiais?.nome || r.codigo_material || 'Sem material';
-    const vol = parseFloat(r.peso_kg || 0) / 1000;
+    const vol = pesoVenda(r) / 1000;
     const mesKey = (r.data || '').slice(0, 7);
     const anoKey = (r.data || '').slice(0, 4);
     materiaisSet.add(mat);
@@ -1855,7 +1867,7 @@ function renderPlanosAcao() {
   const dadosPeriodo = paData.filter(r => r.data >= ini && r.data <= fim);
 
   const fatTotalPeriodo = dadosPeriodo.reduce((s, r) => s + (r.valor_total || 0), 0);
-  const volTotalPeriodo = dadosPeriodo.reduce((s, r) => s + parseFloat(r.peso_kg || 0), 0);
+  const volTotalPeriodo = dadosPeriodo.reduce((s, r) => s + pesoVenda(r), 0);
   const ticketGeral = volTotalPeriodo > 0 ? fatTotalPeriodo / (volTotalPeriodo / 1000) : 0;
 
   // Previsão de faturamento (meta) cadastrada para os meses do período
@@ -1872,7 +1884,7 @@ function renderPlanosAcao() {
     const material = r.materiais?.nome || r.codigo_material || 'Sem material';
     const key = `${cliente}||${material}`;
     if (!porClienteMaterial[key]) porClienteMaterial[key] = { cliente, material, vol: 0, fat: 0 };
-    porClienteMaterial[key].vol += parseFloat(r.peso_kg || 0);
+    porClienteMaterial[key].vol += pesoVenda(r);
     porClienteMaterial[key].fat += (r.valor_total || 0);
   });
   const combosClienteMaterial = Object.values(porClienteMaterial).map(cm => ({
