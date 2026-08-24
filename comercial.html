@@ -497,8 +497,18 @@
           <div class="form-group"><label>Data *</label><input type="date" name="data" required /></div>
           <div class="form-group"><label>Cód. Material</label><input type="text" name="codigo_material" /></div>
           <div class="form-group"><label>Tipo de Material *</label><select name="material_id" required><option value="">Selecione…</option></select></div>
-          <div class="form-group"><label>KG *</label><input type="number" name="peso_kg" min="0.01" step="0.01" required /></div>
-          <div class="form-group"><label>Unidade</label><input type="text" name="unidade" placeholder="ex: TON, KG" /></div>
+          <div class="form-group"><label>Quantidade *</label><input type="number" name="peso_kg" min="0.01" step="0.01" required /></div>
+          <div class="form-group"><label>Unidade</label>
+            <input type="text" name="unidade" list="dl-unidades" placeholder="ex: KG, TON, UN" />
+            <datalist id="dl-unidades">
+              <option value="KG"></option>
+              <option value="TON"></option>
+              <option value="UN"></option>
+              <option value="SC"></option>
+              <option value="M³"></option>
+              <option value="L"></option>
+            </datalist>
+          </div>
           <div class="form-group"><label>Preço Material (R$)</label><input type="number" name="preco_kg" min="0" step="0.01" /></div>
           <div class="form-group"><label>Desconto (R$)</label><input type="number" name="desconto" min="0" step="0.01" value="0" /></div>
           <div class="form-group"><label>Valor Total NF (R$)</label><input type="number" name="valor_total" min="0" step="0.01" /></div>
@@ -580,6 +590,14 @@ function recalcVenda() {
 ['peso_kg','preco_kg','desconto'].forEach(n =>
   document.querySelector(`#form-venda [name="${n}"]`).addEventListener('input', recalcVenda)
 );
+
+// preenche a Unidade automaticamente com a unidade de medida cadastrada no material (se o campo estiver vazio)
+document.querySelector('#form-venda [name="material_id"]').addEventListener('change', e => {
+  const unidadeInput = document.querySelector('#form-venda [name="unidade"]');
+  if (unidadeInput.value) return;
+  const mat = matData.find(m => m.id === e.target.value);
+  if (mat && mat.unidade_medida) unidadeInput.value = mat.unidade_medida.toUpperCase();
+});
 
 // ── clientes ──────────────────────────────────────────────────────────────────
 async function carregarClientesDropdowns(selecionarId) {
