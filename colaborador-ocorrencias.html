@@ -102,10 +102,10 @@
             <select name="tipo" required>
               <option value="">Selecione…</option>
               <option value="falta">Falta injustificada</option>
-              <option value="atestado">Atestado / Justificada</option>
-              <option value="advertencia">Advertência</option>
-              <option value="elogio">Elogio</option>
+              <option value="atestado">Justificada</option>
               <option value="outro">Presente</option>
+              <option value="advertencia">Advertência</option>
+              <option value="elogio">Outro</option>
             </select>
           </div>
           <div class="form-group">
@@ -150,8 +150,8 @@ if (!colabId) {
   throw new Error('missing id');
 }
 
-const TIPO_LABEL = { falta:'Falta', atestado:'Atestado', advertencia:'Advertência', elogio:'Elogio', outro:'Presente' };
-const TIPO_COR   = { falta:'background:#fee2e2;color:#991b1b', atestado:'background:#fef3c7;color:#92400e', advertencia:'background:#fee2e2;color:#991b1b', elogio:'background:#d1fae5;color:#065f46', outro:'background:#dcfce7;color:#166534' };
+const TIPO_LABEL = { falta:'Falta', atestado:'Justificada', advertencia:'Advertência', elogio:'Outro', outro:'Presente' };
+const TIPO_COR   = { falta:'background:#fee2e2;color:#991b1b', atestado:'background:#fef3c7;color:#92400e', advertencia:'background:#fee2e2;color:#991b1b', elogio:'background:#f1f5f9;color:#475569', outro:'background:#dcfce7;color:#166534' };
 const DIAS_SEMANA = ['Dom','Seg','Ter','Qua','Qui','Sex','Sáb'];
 const MESES = ['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
 
@@ -201,10 +201,10 @@ function montarLayout() {
         <select id="f-tipo">
           <option value="">Todos</option>
           <option value="falta">Falta injustificada</option>
-          <option value="atestado">Atestado / Justificada</option>
-          <option value="advertencia">Advertência</option>
-          <option value="elogio">Elogio</option>
+          <option value="atestado">Justificada</option>
           <option value="outro">Presente</option>
+          <option value="advertencia">Advertência</option>
+          <option value="elogio">Outro</option>
         </select>
       </div>
       <div class="form-group" style="min-width:auto">
@@ -232,10 +232,10 @@ function montarLayout() {
         <div class="cal-grid" id="cal-grid"></div>
         <div class="cal-legend">
           <span><i style="background:#fecaca"></i>Falta</span>
-          <span><i style="background:#fde68a"></i>Atestado</span>
-          <span><i style="background:#fecaca"></i>Advertência</span>
-          <span><i style="background:#a7f3d0"></i>Elogio</span>
+          <span><i style="background:#fde68a"></i>Justificada</span>
           <span><i style="background:#bbf7d0"></i>Presente</span>
+          <span><i style="background:#fecaca"></i>Advertência</span>
+          <span><i style="background:#e2e8f0"></i>Outro</span>
         </div>
       </div>
 
@@ -338,9 +338,9 @@ function renderKPIs() {
   const kpis = [
     { val: lista.length, lbl: 'Total', cor:'#0f172a' },
     { val: faltas,           lbl: 'Faltas',       cor: faltas>0?'#dc2626':'#0f172a' },
-    { val: count('atestado'),    lbl: 'Atestados',    cor:'#d97706' },
+    { val: count('atestado'),    lbl: 'Justificadas', cor:'#d97706' },
     { val: count('advertencia'), lbl: 'Advertências', cor:'#dc2626' },
-    { val: count('elogio'),      lbl: 'Elogios',      cor:'#16a34a' },
+    { val: count('elogio'),      lbl: 'Outros',        cor:'#64748b' },
   ];
   document.getElementById('co-kpis').innerHTML = kpis.map(k =>
     `<div class="co-kpi"><div class="val" style="color:${k.cor}">${k.val}</div><div class="lbl">${k.lbl}</div></div>`
