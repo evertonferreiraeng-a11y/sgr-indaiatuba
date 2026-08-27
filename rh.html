@@ -27,11 +27,11 @@
     .colab-card:hover .colab-actions { opacity:1; }
 
     /* Stats */
-    .colab-stats   { display:grid; grid-template-columns:repeat(3,1fr); }
-    .colab-stat    { padding:10px 8px; text-align:center; border-right:1px solid #f1f5f9; }
+    .colab-stats   { display:grid; grid-template-columns:repeat(5,1fr); }
+    .colab-stat    { padding:10px 4px; text-align:center; border-right:1px solid #f1f5f9; }
     .colab-stat:last-child { border-right:none; }
-    .colab-stat .val { font-size:20px; font-weight:800; line-height:1; }
-    .colab-stat .lbl { font-size:10px; color:#94a3b8; margin-top:2px; font-weight:600; text-transform:uppercase; letter-spacing:.3px; }
+    .colab-stat .val { font-size:17px; font-weight:800; line-height:1; }
+    .colab-stat .lbl { font-size:9px; color:#94a3b8; margin-top:2px; font-weight:600; text-transform:uppercase; letter-spacing:.2px; white-space:nowrap; }
 
     /* Recomendação */
     .recomendacao  { display:flex; align-items:center; gap:8px; padding:8px 14px; font-size:12px; font-weight:700; letter-spacing:.1px; border-top:1px solid #f1f5f9; }
@@ -512,6 +512,8 @@ function cardHTML(c, isAdm, hoje, iniMes, fimMes) {
   const ocMes   = ocColab.filter(o => o.data >= iniMes && o.data <= fimMes);
   const faltasC = ocMes.filter(o => o.conta_como_falta).length;
   const atestC  = ocMes.filter(o => o.tipo === 'atestado').length;
+  const advertC = ocMes.filter(o => o.tipo === 'advertencia').length;
+  const outroC  = ocMes.filter(o => o.tipo === 'elogio').length;
 
   const mediaUltima = avals[0] ? calcMediaAval(avals[0]) : null;
   const todasMedias = avals.map(calcMediaAval).filter(v => v !== null);
@@ -620,7 +622,15 @@ function cardHTML(c, isAdm, hoje, iniMes, fimMes) {
         </div>
         <div class="colab-stat">
           <div class="val" style="color:${atestC>0?'#d97706':'#0f172a'}">${atestC}</div>
-          <div class="lbl">Atestados</div>
+          <div class="lbl">Justif.</div>
+        </div>
+        <div class="colab-stat">
+          <div class="val" style="color:${advertC>0?'#dc2626':'#0f172a'}">${advertC}</div>
+          <div class="lbl">Advert.</div>
+        </div>
+        <div class="colab-stat">
+          <div class="val" style="color:#475569">${outroC}</div>
+          <div class="lbl">Outros</div>
         </div>
         <div class="colab-stat" style="background:#f8faff">
           <div class="val" style="color:${notaCor}">${notaStr}</div>
