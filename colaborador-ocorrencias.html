@@ -334,13 +334,12 @@ function ocFiltradas() {
 function renderKPIs() {
   const lista = ocFiltradas();
   const count = tipo => lista.filter(o => o.tipo === tipo).length;
-  const faltas = lista.filter(o => o.conta_como_falta).length;
   const kpis = [
-    { val: lista.length, lbl: 'Total', cor:'#0f172a' },
-    { val: faltas,           lbl: 'Faltas',       cor: faltas>0?'#dc2626':'#0f172a' },
-    { val: count('atestado'),    lbl: 'Justificadas', cor:'#d97706' },
-    { val: count('advertencia'), lbl: 'Advertências', cor:'#dc2626' },
-    { val: count('elogio'),      lbl: 'Outros',        cor:'#64748b' },
+    { val: count('falta'),       lbl: 'Falta injustificada', cor:'#dc2626' },
+    { val: count('atestado'),    lbl: 'Justificada',         cor:'#d97706' },
+    { val: count('outro'),       lbl: 'Presente',            cor:'#16a34a' },
+    { val: count('advertencia'), lbl: 'Advertência',         cor:'#dc2626' },
+    { val: count('elogio'),      lbl: 'Outro',               cor:'#64748b' },
   ];
   document.getElementById('co-kpis').innerHTML = kpis.map(k =>
     `<div class="co-kpi"><div class="val" style="color:${k.cor}">${k.val}</div><div class="lbl">${k.lbl}</div></div>`
