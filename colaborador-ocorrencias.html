@@ -1,0 +1,470 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <link rel="manifest" href="manifest.json" />
+  <meta name="theme-color" content="#006636" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="SGR Indaiatuba" />
+  <link rel="apple-touch-icon" href="img/icons/apple-touch-icon.png" />
+  <link rel="icon" type="image/png" href="img/icons/icon-192.png" />
+  <title>Ocorrências — SGR Indaiatuba</title>
+  <link rel="stylesheet" href="css/style.css" />
+  <style>
+    .co-breadcrumb { display:flex; align-items:center; gap:6px; font-size:13px; color:#64748b; margin-bottom:14px; }
+    .co-breadcrumb a { color:#006636; font-weight:600; text-decoration:none; }
+    .co-breadcrumb a:hover { text-decoration:underline; }
+
+    .co-header { display:flex; align-items:center; gap:14px; margin-bottom:20px; flex-wrap:wrap; }
+    .co-avatar { width:52px; height:52px; border-radius:50%; background:#006636; color:#fff; display:flex; align-items:center; justify-content:center; font-weight:800; font-size:20px; flex-shrink:0; }
+    .co-header h2 { margin:0 0 2px; font-size:20px; font-weight:800; color:#0f172a; }
+    .co-header p { margin:0; font-size:13px; color:#64748b; }
+
+    .co-kpis { display:grid; grid-template-columns:repeat(5,1fr); gap:12px; margin-bottom:20px; }
+    @media(max-width:900px) { .co-kpis { grid-template-columns:repeat(2,1fr); } }
+    .co-kpi { background:#fff; border:1px solid #e2e8f0; border-radius:10px; padding:12px 14px; }
+    .co-kpi .val { font-size:22px; font-weight:800; line-height:1; }
+    .co-kpi .lbl { font-size:11px; color:#94a3b8; margin-top:4px; font-weight:600; text-transform:uppercase; letter-spacing:.3px; }
+
+    .co-filters { background:#fff; border:1px solid #e2e8f0; border-radius:10px; padding:14px 16px; margin-bottom:20px; display:flex; gap:14px; flex-wrap:wrap; align-items:flex-end; }
+    .co-filters .form-group { min-width:150px; }
+    .co-quick { display:flex; gap:6px; flex-wrap:wrap; }
+    .co-quick button { padding:7px 12px; border:1px solid #e2e8f0; border-radius:20px; background:#f8fafc; color:#475569; font-size:12px; font-weight:600; cursor:pointer; }
+    .co-quick button:hover { background:#f1f5f9; }
+    .co-quick button.active { background:#006636; border-color:#006636; color:#fff; }
+
+    .co-grid { display:grid; grid-template-columns:1fr 1fr; gap:20px; align-items:start; }
+    @media(max-width:1000px) { .co-grid { grid-template-columns:1fr; } }
+
+    .co-card { background:#fff; border:1px solid #e2e8f0; border-radius:12px; padding:18px 20px; }
+    .co-card h3 { font-size:13px; font-weight:800; text-transform:uppercase; letter-spacing:.06em; color:#334155; margin:0 0 14px; display:flex; align-items:center; justify-content:space-between; }
+
+    /* Calendário */
+    .cal-nav { display:flex; align-items:center; justify-content:space-between; margin-bottom:12px; }
+    .cal-nav button { border:1px solid #e2e8f0; background:#f8fafc; border-radius:8px; width:30px; height:30px; cursor:pointer; font-size:15px; color:#334155; }
+    .cal-nav button:hover { background:#f1f5f9; }
+    .cal-nav-titulo { font-size:14px; font-weight:700; color:#0f172a; text-transform:capitalize; }
+    .cal-weekdays, .cal-grid { display:grid; grid-template-columns:repeat(7,1fr); gap:4px; }
+    .cal-weekdays div { text-align:center; font-size:10px; font-weight:700; color:#94a3b8; text-transform:uppercase; padding-bottom:4px; }
+    .cal-day { min-height:64px; border:1px solid #f1f5f9; border-radius:8px; padding:4px; cursor:pointer; transition:background .15s; display:flex; flex-direction:column; gap:2px; }
+    .cal-day:hover { background:#f8fafc; }
+    .cal-day-empty { border:none; cursor:default; }
+    .cal-day-empty:hover { background:none; }
+    .cal-daynum { font-size:11px; font-weight:700; color:#64748b; }
+    .cal-day-hoje .cal-daynum { color:#006636; }
+    .cal-day-hoje { border-color:#006636; }
+    .cal-day-chips { display:flex; flex-direction:column; gap:2px; overflow:hidden; }
+    .cal-chip { font-size:9px; font-weight:700; padding:1px 4px; border-radius:4px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+    .cal-legend { display:flex; gap:10px; flex-wrap:wrap; margin-top:14px; }
+    .cal-legend span { display:flex; align-items:center; gap:5px; font-size:11px; color:#64748b; font-weight:600; }
+    .cal-legend i { width:10px; height:10px; border-radius:3px; display:inline-block; }
+
+    /* Histórico */
+    .hist-row { display:flex; align-items:flex-start; gap:10px; padding:9px 0; border-bottom:1px solid #f1f5f9; font-size:13px; }
+    .hist-row:last-child { border-bottom:none; }
+    .hist-tipo { font-size:11px; font-weight:600; padding:2px 8px; border-radius:10px; white-space:nowrap; }
+    .hist-empty { font-size:13px; color:#94a3b8; padding:16px 0; text-align:center; }
+
+    .co-loading { padding:60px; text-align:center; color:#94a3b8; }
+  </style>
+</head>
+<body>
+<div class="app-layout">
+  <div id="sidebar-root"></div>
+  <div class="main-content">
+    <div class="page-body">
+      <div class="co-breadcrumb">
+        <a href="rh.html">← RH</a>
+      </div>
+
+      <div id="co-content">
+        <div class="co-loading">Carregando…</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Modal: Ocorrência -->
+<div class="modal-backdrop" id="modal-oc">
+  <div class="modal">
+    <div class="modal-header">
+      <h3 id="modal-oc-title">Nova Ocorrência</h3>
+      <button class="modal-close" data-close="modal-oc">✕</button>
+    </div>
+    <div class="modal-body">
+      <form id="form-oc">
+        <input type="hidden" name="id" />
+        <div class="form-grid">
+          <div class="form-group"><label>Data *</label><input type="date" name="data" required /></div>
+          <div class="form-group"><label>Tipo *</label>
+            <select name="tipo" required>
+              <option value="">Selecione…</option>
+              <option value="falta">Falta injustificada</option>
+              <option value="atestado">Atestado / Justificada</option>
+              <option value="advertencia">Advertência</option>
+              <option value="elogio">Elogio</option>
+              <option value="outro">Outro</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>Presença no dia</label>
+            <select name="presenca_no_dia" id="sel-presenca-oc" style="font-weight:600">
+              <option value="true">Presente</option>
+              <option value="false">Falta</option>
+            </select>
+          </div>
+          <div class="form-group full">
+            <label style="display:flex;align-items:center;gap:10px;cursor:pointer;font-weight:600">
+              <input type="checkbox" name="conta_como_falta" id="chk-conta-falta" style="width:16px;height:16px;accent-color:#dc2626" />
+              <span>Conta como falta no KPI?</span>
+            </label>
+            <p style="margin:4px 0 0 26px;font-size:12px;color:#64748b">Marque se esta ocorrência deve ser contabilizada no contador de Faltas do mês.</p>
+          </div>
+          <div class="form-group full"><label>Descrição</label><textarea name="descricao" rows="3" style="width:100%;resize:vertical"></textarea></div>
+        </div>
+      </form>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-outline" id="btn-excluir-oc" style="margin-right:auto;color:#dc2626;border-color:#fee2e2">Excluir</button>
+      <button class="btn btn-outline" data-close="modal-oc">Cancelar</button>
+      <button class="btn btn-primary" id="btn-salvar-oc">Salvar</button>
+    </div>
+  </div>
+</div>
+
+<div id="toast-container"></div>
+<script type="module">
+import { supabase, initPage, dataBR, toast, abrirModal, fecharModal } from './js/config.js?v=2';
+import { icon } from './js/icons.js';
+
+await initPage();
+
+const params    = new URLSearchParams(location.search);
+const colabId   = params.get('id');
+const contentEl = document.getElementById('co-content');
+
+if (!colabId) {
+  contentEl.innerHTML = '<div class="co-loading">Colaborador não informado.</div>';
+  throw new Error('missing id');
+}
+
+const TIPO_LABEL = { falta:'Falta', atestado:'Atestado', advertencia:'Advertência', elogio:'Elogio', outro:'Outro' };
+const TIPO_COR   = { falta:'background:#fee2e2;color:#991b1b', atestado:'background:#fef3c7;color:#92400e', advertencia:'background:#fee2e2;color:#991b1b', elogio:'background:#d1fae5;color:#065f46', outro:'background:#f1f5f9;color:#475569' };
+const DIAS_SEMANA = ['Dom','Seg','Ter','Qua','Qui','Sex','Sáb'];
+const MESES = ['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
+
+let perfil, colaborador, ocColab = [];
+let calYear, calMonth; // calMonth 0-indexed
+let quickAtivo = '';
+
+async function init() {
+  const { data: { user } } = await supabase.auth.getUser();
+  const { data: p } = await supabase.from('profiles').select('*').eq('id', user.id).single();
+  perfil = p;
+
+  const { data: c, error } = await supabase.from('colaboradores').select('*').eq('id', colabId).single();
+  if (error || !c) {
+    contentEl.innerHTML = '<div class="co-loading">Colaborador não encontrado.</div>';
+    return;
+  }
+  colaborador = c;
+
+  const hoje = new Date();
+  calYear  = hoje.getFullYear();
+  calMonth = hoje.getMonth();
+
+  montarLayout();
+  await carregarOcorrencias();
+  setQuick('mes');
+}
+
+function montarLayout() {
+  const isAdm = perfil?.role === 'admin';
+  contentEl.innerHTML = `
+    <div class="co-header">
+      <div class="co-avatar">${colaborador.nome.charAt(0).toUpperCase()}</div>
+      <div>
+        <h2>${colaborador.nome}</h2>
+        <p>Admissão: ${dataBR(colaborador.data_admissao)}${colaborador.demissao ? ` · Demitido em ${dataBR(colaborador.demissao)}` : ''}</p>
+      </div>
+      ${isAdm ? `<button class="btn btn-primary" style="margin-left:auto" id="btn-nova-oc">+ Ocorrência</button>` : ''}
+    </div>
+
+    <div class="co-kpis" id="co-kpis"></div>
+
+    <div class="co-filters">
+      <div class="form-group"><label>De</label><input type="date" id="f-ini" /></div>
+      <div class="form-group"><label>Até</label><input type="date" id="f-fim" /></div>
+      <div class="form-group"><label>Tipo</label>
+        <select id="f-tipo">
+          <option value="">Todos</option>
+          <option value="falta">Falta injustificada</option>
+          <option value="atestado">Atestado / Justificada</option>
+          <option value="advertencia">Advertência</option>
+          <option value="elogio">Elogio</option>
+          <option value="outro">Outro</option>
+        </select>
+      </div>
+      <div class="form-group" style="min-width:auto">
+        <label>&nbsp;</label>
+        <div class="co-quick">
+          <button type="button" data-q="mes">Este mês</button>
+          <button type="button" data-q="mes-passado">Mês passado</button>
+          <button type="button" data-q="ano">Este ano</button>
+          <button type="button" data-q="tudo">Tudo</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="co-grid">
+      <div class="co-card">
+        <h3>
+          <span>Calendário</span>
+          <div class="cal-nav" style="margin:0">
+            <button type="button" id="cal-prev">‹</button>
+            <span class="cal-nav-titulo" id="cal-titulo"></span>
+            <button type="button" id="cal-next">›</button>
+          </div>
+        </h3>
+        <div class="cal-weekdays">${DIAS_SEMANA.map(d => `<div>${d}</div>`).join('')}</div>
+        <div class="cal-grid" id="cal-grid"></div>
+        <div class="cal-legend">
+          <span><i style="background:#fecaca"></i>Falta</span>
+          <span><i style="background:#fde68a"></i>Atestado</span>
+          <span><i style="background:#fecaca"></i>Advertência</span>
+          <span><i style="background:#a7f3d0"></i>Elogio</span>
+          <span><i style="background:#e2e8f0"></i>Outro</span>
+        </div>
+      </div>
+
+      <div class="co-card">
+        <h3><span>Histórico</span><span id="hist-count" style="text-transform:none;font-weight:600;color:#94a3b8"></span></h3>
+        <div id="hist-lista"></div>
+      </div>
+    </div>
+  `;
+
+  document.getElementById('cal-prev').addEventListener('click', () => { moverMes(-1); });
+  document.getElementById('cal-next').addEventListener('click', () => { moverMes(1); });
+  document.getElementById('f-ini').addEventListener('change', () => { quickAtivo=''; marcarQuick(); renderTudoFiltrado(); });
+  document.getElementById('f-fim').addEventListener('change', () => { quickAtivo=''; marcarQuick(); renderTudoFiltrado(); });
+  document.getElementById('f-tipo').addEventListener('change', renderTudoFiltrado);
+  document.querySelectorAll('.co-quick [data-q]').forEach(b => b.addEventListener('click', () => setQuick(b.dataset.q)));
+  document.getElementById('btn-nova-oc')?.addEventListener('click', () => abrirNovaOc(new Date().toISOString().split('T')[0]));
+
+  document.querySelectorAll('[data-close]').forEach(btn => btn.addEventListener('click', () => fecharModal(btn.dataset.close)));
+  document.querySelectorAll('.modal-backdrop').forEach(m => m.addEventListener('click', e => { if(e.target===m) fecharModal(m.id); }));
+
+  document.querySelector('#form-oc [name="tipo"]').addEventListener('change', e => {
+    const tipo = e.target.value;
+    const selP = document.getElementById('sel-presenca-oc');
+    const chkF = document.getElementById('chk-conta-falta');
+    if (tipo === 'falta') { selP.value = 'false'; chkF.checked = true; }
+    else if (tipo === 'atestado') { selP.value = 'false'; chkF.checked = false; }
+    else { selP.value = 'true'; chkF.checked = false; }
+  });
+
+  document.getElementById('btn-salvar-oc').addEventListener('click', salvarOc);
+  document.getElementById('btn-excluir-oc').addEventListener('click', excluirOcAtual);
+}
+
+function moverMes(delta) {
+  calMonth += delta;
+  if (calMonth < 0) { calMonth = 11; calYear--; }
+  if (calMonth > 11) { calMonth = 0; calYear++; }
+  renderCalendario();
+}
+
+function marcarQuick() {
+  document.querySelectorAll('.co-quick [data-q]').forEach(b => b.classList.toggle('active', b.dataset.q === quickAtivo));
+}
+
+function setQuick(q) {
+  quickAtivo = q;
+  marcarQuick();
+  const hoje = new Date();
+  const pad = n => String(n).padStart(2,'0');
+  const fmt = (y,m,d) => `${y}-${pad(m)}-${pad(d)}`;
+  const fIni = document.getElementById('f-ini');
+  const fFim = document.getElementById('f-fim');
+  if (q === 'mes') {
+    fIni.value = fmt(hoje.getFullYear(), hoje.getMonth()+1, 1);
+    fFim.value = new Date(hoje.getFullYear(), hoje.getMonth()+1, 0).toISOString().split('T')[0];
+  } else if (q === 'mes-passado') {
+    const mp = new Date(hoje.getFullYear(), hoje.getMonth()-1, 1);
+    fIni.value = fmt(mp.getFullYear(), mp.getMonth()+1, 1);
+    fFim.value = new Date(mp.getFullYear(), mp.getMonth()+1, 0).toISOString().split('T')[0];
+  } else if (q === 'ano') {
+    fIni.value = fmt(hoje.getFullYear(), 1, 1);
+    fFim.value = fmt(hoje.getFullYear(), 12, 31);
+  } else if (q === 'tudo') {
+    fIni.value = '';
+    fFim.value = '';
+  }
+  renderTudoFiltrado();
+}
+
+async function carregarOcorrencias() {
+  const { data, error } = await supabase.from('ocorrencias').select('*').eq('colaborador_id', colabId).order('data', { ascending: false });
+  if (error) { toast('Erro ao carregar ocorrências: ' + error.message, 'error'); return; }
+  ocColab = data || [];
+  renderCalendario();
+  renderTudoFiltrado();
+}
+
+function renderTudoFiltrado() {
+  renderKPIs();
+  renderHistorico();
+}
+
+function ocFiltradas() {
+  const ini  = document.getElementById('f-ini').value;
+  const fim  = document.getElementById('f-fim').value;
+  const tipo = document.getElementById('f-tipo').value;
+  return ocColab.filter(o => {
+    if (ini && o.data < ini) return false;
+    if (fim && o.data > fim) return false;
+    if (tipo && o.tipo !== tipo) return false;
+    return true;
+  }).sort((a,b) => b.data.localeCompare(a.data));
+}
+
+function renderKPIs() {
+  const lista = ocFiltradas();
+  const count = tipo => lista.filter(o => o.tipo === tipo).length;
+  const faltas = lista.filter(o => o.conta_como_falta).length;
+  const kpis = [
+    { val: lista.length, lbl: 'Total', cor:'#0f172a' },
+    { val: faltas,           lbl: 'Faltas',       cor: faltas>0?'#dc2626':'#0f172a' },
+    { val: count('atestado'),    lbl: 'Atestados',    cor:'#d97706' },
+    { val: count('advertencia'), lbl: 'Advertências', cor:'#dc2626' },
+    { val: count('elogio'),      lbl: 'Elogios',      cor:'#16a34a' },
+  ];
+  document.getElementById('co-kpis').innerHTML = kpis.map(k =>
+    `<div class="co-kpi"><div class="val" style="color:${k.cor}">${k.val}</div><div class="lbl">${k.lbl}</div></div>`
+  ).join('');
+}
+
+function renderHistorico() {
+  const lista = ocFiltradas();
+  const isAdm = perfil?.role === 'admin';
+  document.getElementById('hist-count').textContent = lista.length ? `${lista.length} registro(s)` : '';
+  document.getElementById('hist-lista').innerHTML = lista.length ? lista.map(o => `
+    <div class="hist-row">
+      <span class="hist-tipo" style="${TIPO_COR[o.tipo]||'background:#f1f5f9;color:#475569'}">${TIPO_LABEL[o.tipo]||o.tipo}</span>
+      <span style="color:#64748b;font-size:12px;white-space:nowrap">${dataBR(o.data)}</span>
+      <span style="flex:1;color:#374151">${o.descricao||''}</span>
+      ${isAdm ? `
+        <button class="btn-icon" onclick="window._editarOc('${o.id}')">${icon('edit',{size:15})}</button>
+        <button class="btn-icon danger" onclick="window._excluirOc('${o.id}')">${icon('trash',{size:15})}</button>
+      ` : ''}
+    </div>
+  `).join('') : '<p class="hist-empty">Nenhuma ocorrência no período selecionado.</p>';
+}
+
+function renderCalendario() {
+  const first        = new Date(calYear, calMonth, 1);
+  const startWeekday = first.getDay();
+  const daysInMonth  = new Date(calYear, calMonth + 1, 0).getDate();
+  const hoje         = new Date().toISOString().split('T')[0];
+
+  document.getElementById('cal-titulo').textContent = `${MESES[calMonth]} de ${calYear}`;
+
+  let cells = '';
+  for (let i = 0; i < startWeekday; i++) cells += `<div class="cal-day cal-day-empty"></div>`;
+  for (let d = 1; d <= daysInMonth; d++) {
+    const dateStr = `${calYear}-${String(calMonth+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+    const ocsDia  = ocColab.filter(o => o.data === dateStr);
+    const isHoje  = dateStr === hoje;
+    const chips = ocsDia.map(o => `<span class="cal-chip" style="${TIPO_COR[o.tipo]||''}" onclick="event.stopPropagation();window._editarOc('${o.id}')" title="${TIPO_LABEL[o.tipo]||o.tipo}${o.descricao ? ' — '+o.descricao.replace(/"/g,'&quot;') : ''}">${TIPO_LABEL[o.tipo]||o.tipo}</span>`).join('');
+    cells += `<div class="cal-day${isHoje ? ' cal-day-hoje' : ''}" onclick="window._abrirNovaOcData('${dateStr}')">
+      <div class="cal-daynum">${d}</div>
+      <div class="cal-day-chips">${chips}</div>
+    </div>`;
+  }
+  document.getElementById('cal-grid').innerHTML = cells;
+}
+
+// ── Modal Ocorrência ─────────────────────────────────────────────────────────
+function abrirNovaOc(data) {
+  if (perfil?.role !== 'admin') return;
+  document.getElementById('modal-oc-title').textContent = 'Nova Ocorrência';
+  document.getElementById('form-oc').reset();
+  document.getElementById('chk-conta-falta').checked = false;
+  document.getElementById('sel-presenca-oc').value = 'true';
+  document.querySelector('#form-oc [name="id"]').value = '';
+  document.querySelector('#form-oc [name="data"]').value = data;
+  document.getElementById('btn-excluir-oc').style.display = 'none';
+  abrirModal('modal-oc');
+}
+
+window._abrirNovaOcData = data => {
+  const existentes = ocColab.filter(o => o.data === data);
+  if (existentes.length) { window._editarOc(existentes[0].id); return; }
+  abrirNovaOc(data);
+};
+
+window._editarOc = id => {
+  if (perfil?.role !== 'admin') return;
+  const o = ocColab.find(x => x.id === id); if (!o) return;
+  document.getElementById('modal-oc-title').textContent = 'Editar Ocorrência';
+  const f = document.getElementById('form-oc');
+  f.querySelector('[name="id"]').value = o.id;
+  f.querySelector('[name="data"]').value = o.data;
+  f.querySelector('[name="tipo"]').value = o.tipo;
+  f.querySelector('[name="descricao"]').value = o.descricao || '';
+  document.getElementById('chk-conta-falta').checked = !!o.conta_como_falta;
+  document.getElementById('sel-presenca-oc').value = 'true';
+  document.getElementById('btn-excluir-oc').style.display = '';
+  abrirModal('modal-oc');
+};
+
+window._excluirOc = async id => {
+  if (!confirm('Excluir esta ocorrência?')) return;
+  const { error } = await supabase.from('ocorrencias').delete().eq('id', id);
+  if (error) { toast('Erro ao excluir', 'error'); return; }
+  toast('Ocorrência excluída!');
+  await carregarOcorrencias();
+};
+
+async function excluirOcAtual() {
+  const id = document.querySelector('#form-oc [name="id"]').value;
+  if (!id) return;
+  if (!confirm('Excluir esta ocorrência?')) return;
+  const { error } = await supabase.from('ocorrencias').delete().eq('id', id);
+  if (error) { toast('Erro ao excluir', 'error'); return; }
+  toast('Ocorrência excluída!');
+  fecharModal('modal-oc');
+  await carregarOcorrencias();
+}
+
+async function salvarOc() {
+  const f = document.getElementById('form-oc');
+  if (!f.checkValidity()) { f.reportValidity(); return; }
+  const fd = Object.fromEntries(new FormData(f));
+  const presente = document.getElementById('sel-presenca-oc').value === 'true';
+  const payload = { colaborador_id: colabId, tipo: fd.tipo, data: fd.data, descricao: fd.descricao || null, conta_como_falta: document.getElementById('chk-conta-falta').checked };
+  if (fd.id) {
+    const { error } = await supabase.from('ocorrencias').update(payload).eq('id', fd.id);
+    if (error) { toast('Erro: ' + error.message, 'error'); return; }
+    toast('Ocorrência atualizada!');
+  } else {
+    const { error } = await supabase.from('ocorrencias').insert(payload);
+    if (error) { toast('Erro: ' + error.message, 'error'); return; }
+    toast('Ocorrência registrada!');
+  }
+  const { error: presErr } = await supabase.from('presenca_diaria').upsert(
+    [{ colaborador_id: colabId, data: fd.data, presente, observacao: fd.descricao || null }],
+    { onConflict: 'colaborador_id,data' }
+  );
+  if (presErr) toast('Erro ao salvar presença: ' + presErr.message, 'error');
+  fecharModal('modal-oc');
+  await carregarOcorrencias();
+}
+
+await init();
+</script>
+</body>
+</html>

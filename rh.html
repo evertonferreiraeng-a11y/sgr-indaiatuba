@@ -63,6 +63,8 @@
     .crit-pill .cn { font-size:13px; font-weight:700; }
     .crit-pill .cl { font-size:9px; color:#94a3b8; line-height:1.2; }
 
+    .oc-link-title:hover { text-decoration:underline; color:#006636; }
+
     .oc-row { display:flex; align-items:flex-start; gap:10px; padding:8px 0; border-bottom:1px solid #f1f5f9; font-size:13px; }
     .oc-row:last-child { border-bottom:none; }
     .oc-tipo { font-size:11px; font-weight:600; padding:2px 8px; border-radius:10px; white-space:nowrap; }
@@ -638,7 +640,7 @@ function cardHTML(c, isAdm, hoje, iniMes, fimMes) {
       </div>
       <div class="detail-section">
         <div class="detail-header">
-          <h5 style="display:flex;align-items:center;gap:6px">${icon('pin',{size:13})}Ocorrências / Faltas</h5>
+          <h5 style="display:flex;align-items:center;gap:6px;cursor:pointer" class="oc-link-title" onclick="abrirHistoricoOc('${c.id}')" title="Ver histórico completo, calendário e filtros por período">${icon('pin',{size:13})}Ocorrências / Faltas</h5>
           ${isAdm ? `<button class="btn btn-primary" style="padding:4px 12px;font-size:12px" onclick="novaOcPara('${c.id}')">+ Ocorrência</button>` : ''}
         </div>
         ${ocsHTML}
@@ -650,6 +652,10 @@ function cardHTML(c, isAdm, hoje, iniMes, fimMes) {
 function badge(bg, cor, texto) {
   return `<span style="background:${bg};color:${cor};padding:1px 7px;border-radius:10px;font-size:11px;font-weight:600">${texto}</span>`;
 }
+
+window.abrirHistoricoOc = colabId => {
+  window.open('colaborador-ocorrencias.html?id=' + colabId, '_blank');
+};
 
 window.toggleCard = btn => {
   const detail = btn.nextElementSibling;
