@@ -266,7 +266,7 @@
               <option value="atestado">Atestado / Justificada</option>
               <option value="advertencia">Advertência</option>
               <option value="elogio">Elogio</option>
-              <option value="outro">Outro</option>
+              <option value="outro">Presente</option>
             </select>
           </div>
           <div class="form-group">
@@ -342,8 +342,8 @@ let perfil, colabData = [], cargoData = [], avalData = [], ocData = [], presenca
 
 const CRITERIOS       = ['relacionamento','responsabilidade','cooperacao','conhecimento_trabalho','interesse','atitude_profissional','produtividade'];
 const CRITERIOS_LABEL = ['Relac.','Resp.','Coop.','Conhec.','Inter.','Atitude','Produt.'];
-const TIPO_LABEL = { falta:'Falta', atestado:'Atestado', advertencia:'Advertência', elogio:'Elogio', outro:'Outro' };
-const TIPO_COR   = { falta:'background:#fee2e2;color:#991b1b', atestado:'background:#fef3c7;color:#92400e', advertencia:'background:#fee2e2;color:#991b1b', elogio:'background:#d1fae5;color:#065f46', outro:'background:#f1f5f9;color:#475569' };
+const TIPO_LABEL = { falta:'Falta', atestado:'Atestado', advertencia:'Advertência', elogio:'Elogio', outro:'Presente' };
+const TIPO_COR   = { falta:'background:#fee2e2;color:#991b1b', atestado:'background:#fef3c7;color:#92400e', advertencia:'background:#fee2e2;color:#991b1b', elogio:'background:#d1fae5;color:#065f46', outro:'background:#dcfce7;color:#166534' };
 
 const _hoje       = new Date();
 const anoAtualVal = _hoje.getFullYear();
