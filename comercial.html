@@ -1691,7 +1691,7 @@ document.getElementById('btn-an-exportar-volume').addEventListener('click', asyn
   const cliSel = [...msState.cliente];
   const matSel = [...msState.material];
 
-  let q = supabase.from('vendas').select('data, peso_kg, unidade, material_id, materiais(nome), codigo_material').order('data');
+  let q = supabase.from('vendas').select('data, peso_kg, unidade, valor_total, material_id, materiais(nome), codigo_material').order('data');
   if (cliSel.length) q = q.in('cliente_id', cliSel);
   if (matSel.length) q = q.in('material_id', matSel);
 
@@ -1700,10 +1700,12 @@ document.getElementById('btn-an-exportar-volume').addEventListener('click', asyn
   if (!data || !data.length) { toast('Nenhum dado para exportar', 'error'); return; }
 
   const porMesMaterial = {}, porAnoMaterial = {};
+  const fatPorMesMaterial = {}, fatPorAnoMaterial = {};
   const mesesSet = new Set(), anosSet = new Set(), materiaisSet = new Set();
   data.forEach(r => {
     const mat = r.materiais?.nome || r.codigo_material || 'Sem material';
     const vol = pesoVenda(r) / 1000;
+    const fat = r.valor_total || 0;
     const mesKey = (r.data || '').slice(0, 7);
     const anoKey = (r.data || '').slice(0, 4);
     materiaisSet.add(mat);
@@ -1711,11 +1713,15 @@ document.getElementById('btn-an-exportar-volume').addEventListener('click', asyn
       mesesSet.add(mesKey);
       porMesMaterial[mat] = porMesMaterial[mat] || {};
       porMesMaterial[mat][mesKey] = (porMesMaterial[mat][mesKey] || 0) + vol;
+      fatPorMesMaterial[mat] = fatPorMesMaterial[mat] || {};
+      fatPorMesMaterial[mat][mesKey] = (fatPorMesMaterial[mat][mesKey] || 0) + fat;
     }
     if (anoKey) {
       anosSet.add(anoKey);
       porAnoMaterial[mat] = porAnoMaterial[mat] || {};
       porAnoMaterial[mat][anoKey] = (porAnoMaterial[mat][anoKey] || 0) + vol;
+      fatPorAnoMaterial[mat] = fatPorAnoMaterial[mat] || {};
+      fatPorAnoMaterial[mat][anoKey] = (fatPorAnoMaterial[mat][anoKey] || 0) + fat;
     }
   });
 
@@ -1726,27 +1732,41 @@ document.getElementById('btn-an-exportar-volume').addEventListener('click', asyn
 
   const linhasMensal = materiais.map(mat => {
     const linha = { 'Material': mat };
-    let total = 0;
+    let total = 0, totalFat = 0;
     meses.forEach(mk => {
       const [y, m] = mk.split('-');
       const label = new Date(+y, +m - 1, 1).toLocaleDateString('pt-BR', { month: 'short', year: 'numeric' });
       const vol = (porMesMaterial[mat] && porMesMaterial[mat][mk]) || 0;
-      linha[label] = arred(vol);
+      const fat = (fatPorMesMaterial[mat] && fatPorMesMaterial[mat][mk]) || 0;
+      const ticket = vol > 0 ? fat / vol : 0;
+      linha[`${label} - Volume (ton)`] = arred(vol);
+      linha[`${label} - Ticket Médio (R$/ton)`] = ticket > 0 ? arred(ticket) : '';
+      linha[`${label} - Total (R$)`] = fat > 0 ? arred(fat) : '';
       total += vol;
+      totalFat += fat;
     });
     linha['Total (ton)'] = arred(total);
+    linha['Ticket Médio Geral (R$/ton)'] = total > 0 ? arred(totalFat / total) : '';
+    linha['Total Geral (R$)'] = arred(totalFat);
     return linha;
   });
 
   const linhasAnual = materiais.map(mat => {
     const linha = { 'Material': mat };
-    let total = 0;
+    let total = 0, totalFat = 0;
     anos.forEach(ano => {
       const vol = (porAnoMaterial[mat] && porAnoMaterial[mat][ano]) || 0;
-      linha[ano] = arred(vol);
+      const fat = (fatPorAnoMaterial[mat] && fatPorAnoMaterial[mat][ano]) || 0;
+      const ticket = vol > 0 ? fat / vol : 0;
+      linha[`${ano} - Volume (ton)`] = arred(vol);
+      linha[`${ano} - Ticket Médio (R$/ton)`] = ticket > 0 ? arred(ticket) : '';
+      linha[`${ano} - Total (R$)`] = fat > 0 ? arred(fat) : '';
       total += vol;
+      totalFat += fat;
     });
     linha['Total (ton)'] = arred(total);
+    linha['Ticket Médio Geral (R$/ton)'] = total > 0 ? arred(totalFat / total) : '';
+    linha['Total Geral (R$)'] = arred(totalFat);
     return linha;
   });
 
