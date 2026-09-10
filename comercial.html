@@ -45,7 +45,7 @@
     .acond-table thead th.acond-grp-a{background:#ecfdf3;color:#166534;border-bottom:2px solid #86efac}
     .acond-table thead th.acond-grp-b{background:#eff6ff;color:#1e40af;border-bottom:2px solid #93c5fd}
     .acond-table thead th[colspan]{font-size:12.5px;text-transform:none;letter-spacing:.02em;font-weight:700;padding-top:14px;padding-bottom:8px}
-    .acond-table tbody tr.acond-total-row td{background:#f8fafc;font-weight:700;border-top:2px solid var(--border);font-size:14.5px}
+    .acond-table tbody tr.acond-total-row td{background:#e2e8f0;font-weight:700;border-top:2px solid #94a3b8;font-size:14.5px}
     .acond-table .acond-divider{border-left:2px solid #cbd5e1}
     .acond-dot{display:inline-block;width:10px;height:10px;border-radius:50%;margin-right:8px;vertical-align:middle}
     .acond-dot-prensa{background:#7c3aed}
@@ -53,6 +53,8 @@
     .acond-dot-sem_info{background:#94a3b8}
     .acond-pct{display:inline-block;min-width:48px;padding:3px 10px;border-radius:20px;font-weight:700;font-size:12.5px;background:#f1f5f9;color:#475569}
     .acond-fat{font-weight:700;color:var(--text)}
+    .acond-table tr.acond-cat-row td{background:#eef2f6;border-top:1px solid #dde3ea;border-bottom:1px solid #dde3ea}
+    .acond-table tr.acond-cat-row td.acond-divider{border-left:2px solid #b6c0cc}
     .acond-table tr.acond-sub-row td{padding:6px 18px 6px 34px;font-size:11.5px;color:var(--text-muted);border-bottom:1px dashed #f1f5f9;background:#fcfcfd}
     .acond-table tr.acond-sub-row:last-of-type td{border-bottom:1px solid var(--border)}
     .acond-sub-label{position:relative}
@@ -911,7 +913,7 @@ function renderResumoAcondicionamento() {
           <td class="text-right">${precoMat}</td>
         </tr>`;
       }).join('');
-    return `<tr>
+    return `<tr class="acond-cat-row">
       <td><span class="acond-dot acond-dot-${acond}"></span><strong>${label}</strong></td>
       <td class="text-right">${ton(v.vol)}</td>
       <td class="text-right">
@@ -1115,7 +1117,7 @@ async function compararAcondicionamento() {
       </tr>`;
     }).join('');
 
-    return `<tr>
+    return `<tr class="acond-cat-row">
       <td><span class="acond-dot acond-dot-${acond}"></span><strong>${label}</strong></td>
       <td class="text-right">${ton(a.vol)}</td>
       <td class="text-right"><span class="acond-pct">${pctVolA}%</span></td>
