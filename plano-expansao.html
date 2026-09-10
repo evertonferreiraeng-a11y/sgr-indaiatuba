@@ -17,6 +17,8 @@
     .pe-hero{background:linear-gradient(135deg,#f0fdf4,#eff6ff);border:1px solid var(--border);border-radius:var(--radius);padding:18px 22px;margin-bottom:20px}
     .pe-hero .pe-meta-label{font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.07em;color:var(--primary);margin-bottom:6px}
     .pe-hero p{font-size:14.5px;color:var(--text);line-height:1.55;margin:0}
+    .pe-section-title{font-size:12px;font-weight:800;text-transform:uppercase;letter-spacing:.06em;color:var(--text-muted);margin:22px 0 10px}
+    .pe-section-title:first-of-type{margin-top:0}
     .pe-progress-block{margin-bottom:18px}
     .pe-progress-block:last-child{margin-bottom:0}
     .pe-progress-row{display:flex;justify-content:space-between;align-items:baseline;font-size:12.5px;margin-bottom:6px;color:var(--text-muted)}
@@ -51,17 +53,46 @@
         <p>Elevar o processamento de 135 para até 250 t/mês, com equipe de 13 colaboradores e a 3ª prensa em operação.</p>
       </div>
 
+      <div class="pe-section-title">Processamento Geral (material disponível para processar)</div>
       <div class="kpi-grid">
         <div class="kpi-card">
-          <div class="kpi-label">Processamento do Mês</div>
-          <div class="kpi-value" id="pe-kpi-processamento">—</div>
-          <div class="kpi-sub">Meta: 250 t/mês (prensado)</div>
+          <div class="kpi-label">Processamento Total do Mês</div>
+          <div class="kpi-value" id="pe-kpi-total">—</div>
+          <div class="kpi-sub">Meta: até 250 t/mês disponíveis</div>
         </div>
         <div class="kpi-card">
-          <div class="kpi-label">Variação vs Antes do Plano</div>
-          <div class="kpi-value" id="pe-kpi-variacao" style="font-size:19px">—</div>
-          <div class="kpi-sub">média mensal, material prensado</div>
+          <div class="kpi-label">Variação Total vs Antes do Plano</div>
+          <div class="kpi-value" id="pe-kpi-var-total" style="font-size:19px">—</div>
+          <div class="kpi-sub">média mensal, prensado + solto</div>
         </div>
+      </div>
+
+      <div class="pe-section-title">Prensagem (capacidade instalada)</div>
+      <div class="kpi-grid">
+        <div class="kpi-card">
+          <div class="kpi-label">Volume Prensado do Mês</div>
+          <div class="kpi-value" id="pe-kpi-prensado">—</div>
+          <div class="kpi-sub" id="pe-kpi-prensado-sub">Capacidade: — t/mês</div>
+        </div>
+        <div class="kpi-card">
+          <div class="kpi-label">Variação Prensado vs Antes do Plano</div>
+          <div class="kpi-value" id="pe-kpi-var-prensado" style="font-size:19px">—</div>
+          <div class="kpi-sub">média mensal, só material prensado</div>
+        </div>
+        <div class="kpi-card">
+          <div class="kpi-label">Utilização da Capacidade</div>
+          <div class="kpi-value" id="pe-kpi-utilizacao">—</div>
+          <div class="kpi-sub">volume prensado / capacidade das prensas</div>
+        </div>
+        <div class="kpi-card">
+          <div class="kpi-label">Prensas em Operação</div>
+          <div class="kpi-value" id="pe-kpi-prensas">—</div>
+          <div class="kpi-sub">Meta: 3 prensas (24 t/mês cada)</div>
+        </div>
+      </div>
+
+      <div class="pe-section-title">Equipe</div>
+      <div class="kpi-grid">
         <div class="kpi-card">
           <div class="kpi-label">Colaboradores</div>
           <div class="kpi-value" id="pe-kpi-colab">—</div>
@@ -72,11 +103,6 @@
           <div class="kpi-value" id="pe-kpi-vagas">—</div>
           <div class="kpi-sub">para completar a equipe</div>
         </div>
-        <div class="kpi-card">
-          <div class="kpi-label">Prensas em Operação</div>
-          <div class="kpi-value" id="pe-kpi-prensas">—</div>
-          <div class="kpi-sub">Meta: 3 prensas</div>
-        </div>
       </div>
 
       <div id="pe-next-box" class="pe-next-box" style="display:none"></div>
@@ -84,8 +110,12 @@
       <div class="card mb-16" style="padding:20px">
         <h3 style="font-size:13px;font-weight:700;margin-bottom:16px;text-transform:uppercase;letter-spacing:.05em;color:var(--text-muted)">Progresso da Meta</h3>
         <div class="pe-progress-block">
-          <div class="pe-progress-row"><span>Processamento (material prensado)</span><strong id="pe-prog-proc-label">—</strong></div>
-          <div class="progress-bar"><div class="progress-fill" id="pe-prog-proc-fill" style="width:0%"></div></div>
+          <div class="pe-progress-row"><span>Processamento Total (material disponível)</span><strong id="pe-prog-total-label">—</strong></div>
+          <div class="progress-bar"><div class="progress-fill" id="pe-prog-total-fill" style="width:0%"></div></div>
+        </div>
+        <div class="pe-progress-block">
+          <div class="pe-progress-row"><span>Volume Prensado (capacidade das prensas)</span><strong id="pe-prog-prensado-label">—</strong></div>
+          <div class="progress-bar"><div class="progress-fill" id="pe-prog-prensado-fill" style="width:0%"></div></div>
         </div>
         <div class="pe-progress-block">
           <div class="pe-progress-row"><span>Colaboradores</span><strong id="pe-prog-colab-label">—</strong></div>
@@ -98,9 +128,15 @@
       </div>
 
       <div class="chart-card mb-16">
-        <h3>Processamento Prensado por Mês (ton) — Antes × Depois do Plano</h3>
-        <div class="chart-wrap" style="height:280px"><canvas id="chart-processamento"></canvas></div>
-        <div class="pe-chart-legenda" id="pe-chart-legenda">Carregando…</div>
+        <h3>Processamento Total por Mês (ton) — Prensado + Solto — Antes × Depois do Plano</h3>
+        <div class="chart-wrap" style="height:280px"><canvas id="chart-total"></canvas></div>
+        <div class="pe-chart-legenda" id="pe-chart-legenda-total">Carregando…</div>
+      </div>
+
+      <div class="chart-card mb-16">
+        <h3>Volume Prensado por Mês (ton) — Antes × Depois do Plano</h3>
+        <div class="chart-wrap" style="height:280px"><canvas id="chart-prensado"></canvas></div>
+        <div class="pe-chart-legenda" id="pe-chart-legenda-prensado">Carregando…</div>
       </div>
 
       <div class="table-card">
@@ -147,7 +183,9 @@ import { icon } from './js/icons.js';
 await initPage();
 
 const META = {
-  processamentoTon: 250,
+  materialDisponivelTon: 250,  // t/mês de material disponível para processar (entrada)
+  baseProcessamentoTon: 135,   // processamento total antes do plano, para referência
+  capacidadePorPrensaTon: 24,  // ton/mês que cada prensa consegue processar
   colaboradores: 13,
   prensas: 3,
   dataInicio: '2026-08-14',
@@ -159,7 +197,7 @@ const vendaPorPeso = r => UNIDADES_PESO.has((r.unidade || '').trim().toUpperCase
 const pesoVenda = r => vendaPorPeso(r) ? parseFloat(r.peso_kg || 0) : 0;
 
 let perfil;
-let chartProcessamento = null;
+let chartTotal = null, chartPrensado = null;
 
 function varBadge(a, b) {
   const pct = ((b - a) / a) * 100;
@@ -169,18 +207,38 @@ function varBadge(a, b) {
   return `<span class="badge ${cls}">${seta} ${sinal}${pct.toFixed(1)}%</span>`;
 }
 
-function renderKpis(ultimo, avgAntes, avgDepois, mesAtualTon) {
-  document.getElementById('pe-kpi-processamento').textContent = ton(mesAtualTon * 1000);
-  document.getElementById('pe-kpi-variacao').innerHTML = avgAntes > 0
-    ? varBadge(avgAntes, avgDepois)
+function renderKpis(ultimo, stats) {
+  const { totalAtual, prensadoAtual, totalAntes, totalDepois, prensadoAntes, prensadoDepois } = stats;
+  const capacidadeAtual = (ultimo.prensas_operando || 0) * META.capacidadePorPrensaTon;
+
+  document.getElementById('pe-kpi-total').textContent = ton(totalAtual * 1000);
+  document.getElementById('pe-kpi-var-total').innerHTML = totalAntes > 0
+    ? varBadge(totalAntes, totalDepois)
     : '<span class="text-muted" style="font-size:12.5px">sem dados suficientes</span>';
+
+  document.getElementById('pe-kpi-prensado').textContent = ton(prensadoAtual * 1000);
+  document.getElementById('pe-kpi-prensado-sub').textContent = `Capacidade: ${capacidadeAtual} t/mês (${ultimo.prensas_operando ?? 0} prensa${ultimo.prensas_operando === 1 ? '' : 's'})`;
+  document.getElementById('pe-kpi-var-prensado').innerHTML = prensadoAntes > 0
+    ? varBadge(prensadoAntes, prensadoDepois)
+    : '<span class="text-muted" style="font-size:12.5px">sem dados suficientes</span>';
+
+  const pctUtil = capacidadeAtual > 0 ? (prensadoAtual / capacidadeAtual * 100) : 0;
+  document.getElementById('pe-kpi-utilizacao').textContent = capacidadeAtual > 0 ? `${pctUtil.toFixed(0)}%` : '—';
+
+  document.getElementById('pe-kpi-prensas').textContent = `${ultimo.prensas_operando ?? '—'} / ${META.prensas}`;
   document.getElementById('pe-kpi-colab').textContent = `${ultimo.colaboradores_ativos ?? '—'} / ${META.colaboradores}`;
   document.getElementById('pe-kpi-vagas').textContent = ultimo.vagas_abertas ?? '—';
-  document.getElementById('pe-kpi-prensas').textContent = `${ultimo.prensas_operando ?? '—'} / ${META.prensas}`;
 
-  const pctProc = Math.min(100, (mesAtualTon / META.processamentoTon) * 100);
-  document.getElementById('pe-prog-proc-fill').style.width = pctProc + '%';
-  document.getElementById('pe-prog-proc-label').textContent = `${ton(mesAtualTon * 1000)} / ${META.processamentoTon} t`;
+  // Progresso
+  const pctTotal = Math.min(100, (totalAtual / META.materialDisponivelTon) * 100);
+  document.getElementById('pe-prog-total-fill').style.width = pctTotal + '%';
+  document.getElementById('pe-prog-total-label').textContent = `${ton(totalAtual * 1000)} / ${META.materialDisponivelTon} t`;
+
+  const pctPrensado = capacidadeAtual > 0 ? Math.min(100, pctUtil) : 0;
+  document.getElementById('pe-prog-prensado-fill').style.width = pctPrensado + '%';
+  document.getElementById('pe-prog-prensado-label').textContent = capacidadeAtual > 0
+    ? `${ton(prensadoAtual * 1000)} / ${capacidadeAtual} t`
+    : `${ton(prensadoAtual * 1000)}`;
 
   const colabAtual = ultimo.colaboradores_ativos || 0;
   const pctColab = Math.min(100, (colabAtual / META.colaboradores) * 100);
@@ -193,15 +251,15 @@ function renderKpis(ultimo, avgAntes, avgDepois, mesAtualTon) {
   document.getElementById('pe-prog-prensa-label').textContent = `${prensasAtual} / ${META.prensas}`;
 }
 
-function renderComparativo(avgAntes, avgDepois) {
-  const el = document.getElementById('pe-chart-legenda');
+function renderLegenda(elId, avgAntes, avgDepois) {
+  const el = document.getElementById(elId);
   if (!avgAntes && !avgDepois) { el.textContent = 'Ainda não há dados suficientes para comparar.'; return; }
   el.innerHTML = `Média mensal <strong>antes</strong> do plano: <strong>${ton(avgAntes * 1000)}</strong>
     &nbsp;·&nbsp; Média mensal <strong>desde o início do plano</strong>: <strong>${ton(avgDepois * 1000)}</strong>
     ${avgAntes > 0 ? ' &nbsp;·&nbsp; ' + varBadge(avgAntes, avgDepois) : ''}`;
 }
 
-function renderChart(porMes, inicioPlanoMes) {
+function montarDataset(porMes, inicioPlanoMes) {
   const meses = Object.keys(porMes).sort();
   const labels = meses.map(mk => {
     const [y, m] = mk.split('-');
@@ -209,21 +267,34 @@ function renderChart(porMes, inicioPlanoMes) {
   });
   const valores = meses.map(m => +porMes[m].toFixed(2));
   const cores = meses.map(m => m < inicioPlanoMes ? '#cbd5e1' : '#10b981');
+  return { meses, labels, valores, cores };
+}
 
-  if (chartProcessamento) chartProcessamento.destroy();
-  if (!meses.length) return;
-  chartProcessamento = new Chart(document.getElementById('chart-processamento').getContext('2d'), {
-    type: 'bar',
-    data: { labels, datasets: [{ label: 'Processamento Prensado (ton)', data: valores, backgroundColor: cores, borderRadius: 4 }] },
+function renderChart(canvasId, chartRefSetter, chartAtual, porMes, inicioPlanoMes, linhaRef, linhaLabel) {
+  const { meses, labels, valores, cores } = montarDataset(porMes, inicioPlanoMes);
+  if (chartAtual) chartAtual.destroy();
+  if (!meses.length) { chartRefSetter(null); return; }
+
+  const datasets = [{ type: 'bar', label: 'ton/mês', data: valores, backgroundColor: cores, borderRadius: 4 }];
+  if (linhaRef > 0) {
+    datasets.push({
+      type: 'line', label: linhaLabel, data: meses.map(() => linhaRef),
+      borderColor: '#94a3b8', borderDash: [6, 4], borderWidth: 2, pointRadius: 0,
+    });
+  }
+
+  const novoChart = new Chart(document.getElementById(canvasId).getContext('2d'), {
+    data: { labels, datasets },
     options: {
       responsive: true, maintainAspectRatio: false,
       plugins: {
-        legend: { display: false },
-        tooltip: { callbacks: { label: c => `${c.parsed.y.toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2})} ton` } },
+        legend: { display: linhaRef > 0, position: 'bottom' },
+        tooltip: { callbacks: { label: c => `${c.dataset.label}: ${c.parsed.y.toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2})} ton` } },
       },
       scales: { y: { beginAtZero: true, title: { display: true, text: 'ton' } } },
     },
   });
+  chartRefSetter(novoChart);
 }
 
 function renderTimeline(marcos) {
@@ -251,7 +322,7 @@ function renderNextBox(ultimo) {
   if ((ultimo.prensas_operando || 0) < META.prensas) {
     const dias = Math.ceil((new Date(META.dataPrevistaPrensa) - new Date(hoje)) / 86400000);
     partes.push(dias > 0
-      ? `3ª prensa prevista para ${dataBR(META.dataPrevistaPrensa)} (em ${dias} dia${dias === 1 ? '' : 's'})`
+      ? `3ª prensa prevista para ${dataBR(META.dataPrevistaPrensa)} (em ${dias} dia${dias === 1 ? '' : 's'}) — capacidade sobe para ${META.prensas * META.capacidadePorPrensaTon} t/mês`
       : `3ª prensa prevista para ${dataBR(META.dataPrevistaPrensa)}`);
   }
   if ((ultimo.colaboradores_ativos || 0) < META.colaboradores) {
@@ -268,31 +339,40 @@ async function carregarPlano() {
   const marcosList = marcos || [];
   const ultimo = marcosList[0] || {};
 
-  const { data: vendasPrensa, error: errV } = await supabase.from('vendas')
-    .select('data, peso_kg, unidade')
-    .eq('acondicionamento', 'prensa')
+  const { data: vendas, error: errV } = await supabase.from('vendas')
+    .select('data, peso_kg, unidade, acondicionamento')
     .order('data');
   if (errV) { toast('Erro ao carregar processamento: ' + errV.message, 'error'); }
 
-  const porMes = {};
-  (vendasPrensa || []).forEach(r => {
+  const porMesTotal = {}, porMesPrensado = {};
+  (vendas || []).forEach(r => {
     const mk = (r.data || '').slice(0, 7);
     if (!mk) return;
-    porMes[mk] = (porMes[mk] || 0) + pesoVenda(r) / 1000;
+    const vol = pesoVenda(r) / 1000;
+    porMesTotal[mk] = (porMesTotal[mk] || 0) + vol;
+    if (r.acondicionamento === 'prensa') porMesPrensado[mk] = (porMesPrensado[mk] || 0) + vol;
   });
 
   const inicioPlanoMes = META.dataInicio.slice(0, 7);
-  const mesesOrd = Object.keys(porMes).sort();
-  const antes = mesesOrd.filter(m => m < inicioPlanoMes);
-  const depois = mesesOrd.filter(m => m >= inicioPlanoMes);
-  const avgAntes = antes.length ? antes.reduce((s, m) => s + porMes[m], 0) / antes.length : 0;
-  const avgDepois = depois.length ? depois.reduce((s, m) => s + porMes[m], 0) / depois.length : 0;
-  const hojeMes = new Date().toISOString().slice(0, 7);
-  const mesAtualTon = porMes[hojeMes] || 0;
+  const media = (porMes, filtro) => {
+    const meses = Object.keys(porMes).filter(filtro);
+    return meses.length ? meses.reduce((s, m) => s + porMes[m], 0) / meses.length : 0;
+  };
+  const totalAntes = media(porMesTotal, m => m < inicioPlanoMes);
+  const totalDepois = media(porMesTotal, m => m >= inicioPlanoMes);
+  const prensadoAntes = media(porMesPrensado, m => m < inicioPlanoMes);
+  const prensadoDepois = media(porMesPrensado, m => m >= inicioPlanoMes);
 
-  renderKpis(ultimo, avgAntes, avgDepois, mesAtualTon);
-  renderComparativo(avgAntes, avgDepois);
-  renderChart(porMes, inicioPlanoMes);
+  const hojeMes = new Date().toISOString().slice(0, 7);
+  const totalAtual = porMesTotal[hojeMes] || 0;
+  const prensadoAtual = porMesPrensado[hojeMes] || 0;
+
+  renderKpis(ultimo, { totalAtual, prensadoAtual, totalAntes, totalDepois, prensadoAntes, prensadoDepois });
+  renderLegenda('pe-chart-legenda-total', totalAntes, totalDepois);
+  renderLegenda('pe-chart-legenda-prensado', prensadoAntes, prensadoDepois);
+  renderChart('chart-total', c => chartTotal = c, chartTotal, porMesTotal, inicioPlanoMes, META.materialDisponivelTon, 'Material disponível (250 t)');
+  const capacidadeAtual = (ultimo.prensas_operando || 0) * META.capacidadePorPrensaTon;
+  renderChart('chart-prensado', c => chartPrensado = c, chartPrensado, porMesPrensado, inicioPlanoMes, capacidadeAtual, `Capacidade atual (${capacidadeAtual} t)`);
   renderTimeline(marcosList);
   renderNextBox(ultimo);
 }
