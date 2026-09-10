@@ -36,6 +36,21 @@
     .ms-option{display:flex;align-items:center;gap:8px;padding:6px 8px;border-radius:6px;font-size:13px;cursor:pointer}
     .ms-option:hover{background:#f8fafc}
     .ms-option input{width:auto;padding:0;margin:0}
+
+    /* Resumo por Acondicionamento — layout de apresentação */
+    .acond-table{font-size:13px!important}
+    .acond-table th{padding:12px 18px;font-size:11.5px}
+    .acond-table td{padding:14px 18px;font-size:14px}
+    .acond-table td:first-child{font-size:14.5px}
+    .acond-table thead th.acond-grp-a{background:#ecfdf3;color:#166534;border-bottom:2px solid #86efac}
+    .acond-table thead th.acond-grp-b{background:#eff6ff;color:#1e40af;border-bottom:2px solid #93c5fd}
+    .acond-table thead th[colspan]{font-size:12.5px;text-transform:none;letter-spacing:.02em;font-weight:700;padding-top:14px;padding-bottom:8px}
+    .acond-table tbody tr.acond-total-row td{background:#f8fafc;font-weight:700;border-top:2px solid var(--border);font-size:14.5px}
+    .acond-dot{display:inline-block;width:10px;height:10px;border-radius:50%;margin-right:8px;vertical-align:middle}
+    .acond-dot-prensa{background:#2a78d6}
+    .acond-dot-granel{background:#10b981}
+    .acond-dot-sem_info{background:#94a3b8}
+    .acond-pct{display:inline-block;min-width:48px;padding:3px 10px;border-radius:20px;font-weight:700;font-size:12.5px;background:#f1f5f9;color:#475569}
   </style>
 </head>
 <body>
@@ -210,7 +225,7 @@
           </div>
         </div>
         <div class="table-scroll">
-          <table style="font-size:12px">
+          <table class="acond-table">
             <thead id="thead-fat-acond">
               <tr>
                 <th>Acondicionamento</th>
@@ -535,8 +550,8 @@
           <div class="form-group"><label>Acondicionamento</label>
             <select name="acondicionamento">
               <option value="">Selecione…</option>
-              <option value="prensa">Prensa</option>
-              <option value="granel">Granel</option>
+              <option value="prensa">Prensado</option>
+              <option value="granel">A Granel</option>
             </select>
           </div>
           <div class="form-group"><label>Quantidade *</label><input type="number" name="peso_kg" min="0.01" step="0.01" required /></div>
@@ -772,7 +787,7 @@ async function renderKPIs() {
   document.getElementById('kpi-acum-ticket').textContent = acumVol > 0 ? moeda(acumVal/(acumVol/1000)) : '—';
 }
 
-const ACOND_LABEL = { prensa: 'Prensa', granel: 'Granel' };
+const ACOND_LABEL = { prensa: 'Prensado', granel: 'A Granel' };
 
 function renderFatProduto() {
   const tb = document.getElementById('tb-fat-prod');
@@ -868,14 +883,14 @@ function renderResumoAcondicionamento() {
     const barWidth = parseFloat(pctFat);
     const label = acond === 'sem_info' ? 'Não informado' : ACOND_LABEL[acond];
     return `<tr>
-      <td><strong>${label}</strong></td>
+      <td><span class="acond-dot acond-dot-${acond}"></span><strong>${label}</strong></td>
       <td class="text-right">${ton(v.vol)}</td>
       <td class="text-right">
         <div style="display:flex;align-items:center;gap:6px;justify-content:flex-end">
           <div style="width:60px;height:6px;background:#e2e8f0;border-radius:3px;overflow:hidden">
             <div style="width:${barWidth}%;height:100%;background:#10b981;border-radius:3px"></div>
           </div>
-          <span>${pctVol}%</span>
+          <span class="acond-pct">${pctVol}%</span>
         </div>
       </td>
       <td class="text-right">${moeda(v.fat)}</td>
@@ -884,13 +899,13 @@ function renderResumoAcondicionamento() {
           <div style="width:60px;height:6px;background:#e2e8f0;border-radius:3px;overflow:hidden">
             <div style="width:${barWidth}%;height:100%;background:#3b82f6;border-radius:3px"></div>
           </div>
-          <span>${pctFat}%</span>
+          <span class="acond-pct">${pctFat}%</span>
         </div>
       </td>
       <td class="text-right">${precoMedio}</td>
     </tr>`;
   }).join('') + `
-    <tr style="background:#f8fafc;font-weight:700;border-top:2px solid #e2e8f0">
+    <tr class="acond-total-row">
       <td>TOTAL</td>
       <td class="text-right">${ton(totalVol)}</td>
       <td class="text-right">100%</td>
@@ -962,11 +977,12 @@ function labelMesRef(mk) {
 }
 
 function varLabelAcond(a, b) {
-  if (a <= 0) return b > 0 ? '<span style="color:#10b981;font-weight:600">novo</span>' : '—';
+  if (a <= 0) return b > 0 ? '<span class="badge badge-green">novo</span>' : '<span class="badge badge-gray">—</span>';
   const pct = ((b - a) / a) * 100;
+  const seta = pct > 0 ? '▲' : (pct < 0 ? '▼' : '●');
   const sinal = pct > 0 ? '+' : '';
-  const cor = pct > 0 ? '#10b981' : (pct < 0 ? '#ef4444' : '#64748b');
-  return `<span style="color:${cor};font-weight:600">${sinal}${pct.toFixed(1)}%</span>`;
+  const classe = pct > 0 ? 'badge-green' : (pct < 0 ? 'badge-red' : 'badge-gray');
+  return `<span class="badge ${classe}">${seta} ${sinal}${pct.toFixed(1)}%</span>`;
 }
 
 async function compararAcondicionamento() {
@@ -989,18 +1005,20 @@ async function compararAcondicionamento() {
   document.getElementById('thead-fat-acond').innerHTML = `
     <tr>
       <th rowspan="2" style="vertical-align:bottom">Acondicionamento</th>
-      <th colspan="3" style="text-align:center;border-bottom:1px solid #e2e8f0">${labA}</th>
-      <th colspan="3" style="text-align:center;border-bottom:1px solid #e2e8f0">${labB}</th>
+      <th colspan="4" class="acond-grp-a" style="text-align:center">${labA}</th>
+      <th colspan="4" class="acond-grp-b" style="text-align:center">${labB}</th>
       <th rowspan="2" class="text-right" style="vertical-align:bottom">Var. Volume</th>
       <th rowspan="2" class="text-right" style="vertical-align:bottom">Var. Faturamento</th>
     </tr>
     <tr>
-      <th class="text-right">Volume (ton)</th>
-      <th class="text-right">Faturamento</th>
-      <th class="text-right">Preço Médio/ton</th>
-      <th class="text-right">Volume (ton)</th>
-      <th class="text-right">Faturamento</th>
-      <th class="text-right">Preço Médio/ton</th>
+      <th class="text-right acond-grp-a">Volume (ton)</th>
+      <th class="text-right acond-grp-a">% Volume</th>
+      <th class="text-right acond-grp-a">Faturamento</th>
+      <th class="text-right acond-grp-a">Preço Médio/ton</th>
+      <th class="text-right acond-grp-b">Volume (ton)</th>
+      <th class="text-right acond-grp-b">% Volume</th>
+      <th class="text-right acond-grp-b">Faturamento</th>
+      <th class="text-right acond-grp-b">Preço Médio/ton</th>
     </tr>`;
 
   const ordem = { prensa: 0, granel: 1, sem_info: 2 };
@@ -1008,27 +1026,35 @@ async function compararAcondicionamento() {
     .sort((x, y) => (ordem[x] ?? 9) - (ordem[y] ?? 9));
 
   if (!chaves.length) {
-    document.getElementById('tb-fat-acond').innerHTML = '<tr><td colspan="9" class="table-empty">Nenhuma venda encontrada nos meses selecionados</td></tr>';
+    document.getElementById('tb-fat-acond').innerHTML = '<tr><td colspan="11" class="table-empty">Nenhuma venda encontrada nos meses selecionados</td></tr>';
     document.getElementById('fat-acond-total').textContent = `Comparando ${labA} × ${labB}`;
     return;
   }
 
-  let totA = { vol: 0, fat: 0 }, totB = { vol: 0, fat: 0 };
-
-  const linhasHtml = chaves.map(acond => {
+  const totA = { vol: 0, fat: 0 }, totB = { vol: 0, fat: 0 };
+  chaves.forEach(acond => {
     const a = mapA[acond] || { vol: 0, fat: 0 };
     const b = mapB[acond] || { vol: 0, fat: 0 };
     totA.vol += a.vol; totA.fat += a.fat;
     totB.vol += b.vol; totB.fat += b.fat;
+  });
+
+  const linhasHtml = chaves.map(acond => {
+    const a = mapA[acond] || { vol: 0, fat: 0 };
+    const b = mapB[acond] || { vol: 0, fat: 0 };
     const precoA = a.vol > 0 ? moeda(a.fat / (a.vol / 1000)) : '—';
     const precoB = b.vol > 0 ? moeda(b.fat / (b.vol / 1000)) : '—';
+    const pctVolA = totA.vol > 0 ? (a.vol / totA.vol * 100).toFixed(1) : '0.0';
+    const pctVolB = totB.vol > 0 ? (b.vol / totB.vol * 100).toFixed(1) : '0.0';
     const label = acond === 'sem_info' ? 'Não informado' : ACOND_LABEL[acond];
     return `<tr>
-      <td><strong>${label}</strong></td>
+      <td><span class="acond-dot acond-dot-${acond}"></span><strong>${label}</strong></td>
       <td class="text-right">${ton(a.vol)}</td>
+      <td class="text-right"><span class="acond-pct">${pctVolA}%</span></td>
       <td class="text-right">${moeda(a.fat)}</td>
       <td class="text-right">${precoA}</td>
       <td class="text-right">${ton(b.vol)}</td>
+      <td class="text-right"><span class="acond-pct">${pctVolB}%</span></td>
       <td class="text-right">${moeda(b.fat)}</td>
       <td class="text-right">${precoB}</td>
       <td class="text-right">${varLabelAcond(a.vol, b.vol)}</td>
@@ -1037,19 +1063,21 @@ async function compararAcondicionamento() {
   }).join('');
 
   document.getElementById('tb-fat-acond').innerHTML = linhasHtml + `
-    <tr style="background:#f8fafc;font-weight:700;border-top:2px solid #e2e8f0">
+    <tr class="acond-total-row">
       <td>TOTAL</td>
       <td class="text-right">${ton(totA.vol)}</td>
+      <td class="text-right">100%</td>
       <td class="text-right">${moeda(totA.fat)}</td>
       <td class="text-right">${totA.vol > 0 ? moeda(totA.fat / (totA.vol / 1000)) : '—'}</td>
       <td class="text-right">${ton(totB.vol)}</td>
+      <td class="text-right">100%</td>
       <td class="text-right">${moeda(totB.fat)}</td>
       <td class="text-right">${totB.vol > 0 ? moeda(totB.fat / (totB.vol / 1000)) : '—'}</td>
       <td class="text-right">${varLabelAcond(totA.vol, totB.vol)}</td>
       <td class="text-right">${varLabelAcond(totA.fat, totB.fat)}</td>
     </tr>`;
 
-  document.getElementById('fat-acond-total').textContent = `Comparando ${labA} × ${labB}`;
+  document.getElementById('fat-acond-total').textContent = `Comparando ${labA} (${moeda(totA.fat)}) × ${labB} (${moeda(totB.fat)})`;
 }
 
 function renderTabela() {
