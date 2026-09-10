@@ -150,7 +150,7 @@ const META = {
   processamentoTon: 250,
   colaboradores: 13,
   prensas: 3,
-  dataInicio: '2026-09-01',
+  dataInicio: '2026-08-14',
   dataPrevistaPrensa: '2026-09-19',
 };
 
@@ -255,7 +255,7 @@ function renderNextBox(ultimo) {
       : `3ª prensa prevista para ${dataBR(META.dataPrevistaPrensa)}`);
   }
   if ((ultimo.colaboradores_ativos || 0) < META.colaboradores) {
-    partes.push('próxima semana: previsão de +4 colaboradores');
+    partes.push('próxima semana: previsão de +4 Servente de Usina de Tratamento de Lixo');
   }
   if (!partes.length) { box.style.display = 'none'; return; }
   box.style.display = 'block';
