@@ -208,24 +208,28 @@
         </div>
       </div>
 
+      <!-- Controles do Resumo por Acondicionamento (fora do card, não aparecem no print da tabela) -->
+      <div class="card mb-16" style="padding:14px 20px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px">
+        <div id="acond-controles" style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+          <label style="display:flex;align-items:center;gap:6px;font-size:12px;font-weight:600;cursor:pointer;color:var(--text-muted)">
+            <input type="checkbox" id="acond-cmp-toggle" style="width:auto" />
+            Comparar meses
+          </label>
+          <div id="acond-cmp-filtros" style="display:none;gap:8px;align-items:center;flex-wrap:wrap">
+            <input type="month" id="acond-mes-a" style="font-size:12px;padding:4px 8px;border:1px solid #e2e8f0;border-radius:6px" />
+            <span style="font-size:12px;color:#64748b">vs</span>
+            <input type="month" id="acond-mes-b" style="font-size:12px;padding:4px 8px;border:1px solid #e2e8f0;border-radius:6px" />
+            <button type="button" class="btn btn-sm btn-primary" id="btn-acond-comparar" style="padding:4px 12px;font-size:12px">Comparar</button>
+          </div>
+          <span id="fat-acond-total" class="text-muted" style="font-size:12px"></span>
+        </div>
+        <button type="button" class="btn btn-outline btn-sm" id="btn-acond-print" style="padding:4px 12px;font-size:12px" title="Esconde estes controles para tirar print da tabela">👁 Ocultar filtros</button>
+      </div>
+
       <!-- Tabela Resumo por Acondicionamento -->
       <div class="table-card mb-16">
-        <div class="table-card-header" style="flex-wrap:wrap;gap:10px">
+        <div class="table-card-header">
           <h3>Tipo de Acondicionamento</h3>
-          <div id="acond-controles" style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
-            <label style="display:flex;align-items:center;gap:6px;font-size:12px;font-weight:600;cursor:pointer;color:var(--text-muted)">
-              <input type="checkbox" id="acond-cmp-toggle" style="width:auto" />
-              Comparar meses
-            </label>
-            <div id="acond-cmp-filtros" style="display:none;gap:8px;align-items:center;flex-wrap:wrap">
-              <input type="month" id="acond-mes-a" style="font-size:12px;padding:4px 8px;border:1px solid #e2e8f0;border-radius:6px" />
-              <span style="font-size:12px;color:#64748b">vs</span>
-              <input type="month" id="acond-mes-b" style="font-size:12px;padding:4px 8px;border:1px solid #e2e8f0;border-radius:6px" />
-              <button type="button" class="btn btn-sm btn-primary" id="btn-acond-comparar" style="padding:4px 12px;font-size:12px">Comparar</button>
-            </div>
-            <span id="fat-acond-total" class="text-muted" style="font-size:12px"></span>
-          </div>
-          <button type="button" class="btn btn-outline btn-sm" id="btn-acond-print" style="padding:4px 12px;font-size:12px" title="Esconde os filtros para tirar print da tabela">👁 Ocultar filtros</button>
         </div>
         <div class="table-scroll">
           <table class="acond-table">
