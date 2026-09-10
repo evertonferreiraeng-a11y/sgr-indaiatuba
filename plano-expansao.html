@@ -160,7 +160,8 @@
       </div>
 
       <div class="chart-card mb-16">
-        <h3>Processamento Total por Mês (ton) — Prensado + Solto — Antes × Depois do Plano</h3>
+        <h3>Processamento Total por Mês (ton) — Vendas + Estoque + Passivo + Rejeito — Antes × Depois do Plano</h3>
+        <p style="font-size:12px;color:var(--text-muted);margin:-10px 0 14px">Estoque entra só no mês atual (não há histórico de estoque de meses passados); Passivo e Rejeito somam nos meses em que forem lançados.</p>
         <div class="chart-wrap" style="height:280px"><canvas id="chart-total"></canvas></div>
         <div class="pe-chart-legenda" id="pe-chart-legenda-total">Carregando…</div>
       </div>
@@ -446,11 +447,17 @@ async function carregarPlano() {
   const { data: mats } = await supabase.from('materiais').select('estoque_kg').eq('no_estoque', true);
   const estoqueTon = (mats || []).reduce((s, m) => s + parseFloat(m.estoque_kg || 0), 0) / 1000;
 
+  const { data: ajustesTodos } = await supabase.from('plano_expansao_ajustes').select('*');
+  const ajustesPorMes = {};
+  (ajustesTodos || []).forEach(a => {
+    const mk = (a.mes || '').slice(0, 7);
+    if (mk) ajustesPorMes[mk] = a;
+  });
+
   const hojeMes = new Date().toISOString().slice(0, 7);
-  const { data: ajustes } = await supabase.from('plano_expansao_ajustes').select('*').eq('mes', `${hojeMes}-01`).maybeSingle();
-  ajustesCache = ajustes || null;
-  const passivoTon = parseFloat(ajustes?.passivo_ton || 0);
-  const rejeitoTon = parseFloat(ajustes?.rejeito_ton || 0);
+  ajustesCache = ajustesPorMes[hojeMes] || null;
+  const passivoTon = parseFloat(ajustesCache?.passivo_ton || 0);
+  const rejeitoTon = parseFloat(ajustesCache?.rejeito_ton || 0);
 
   const porMesTotal = {}, porMesPrensado = {};
   (vendas || []).forEach(r => {
@@ -461,6 +468,17 @@ async function carregarPlano() {
     if (r.acondicionamento === 'prensa') porMesPrensado[mk] = (porMesPrensado[mk] || 0) + vol;
   });
 
+  const vendasAtual = porMesTotal[hojeMes] || 0;
+  const prensadoAtual = porMesPrensado[hojeMes] || 0;
+
+  // Composição Vendas + Estoque + Passivo + Rejeito — estoque só é somado no mês atual
+  // (não temos histórico de estoque de meses passados); passivo/rejeito somam nos meses lançados.
+  Object.entries(ajustesPorMes).forEach(([mk, a]) => {
+    const soma = parseFloat(a.passivo_ton || 0) + parseFloat(a.rejeito_ton || 0);
+    if (soma) porMesTotal[mk] = (porMesTotal[mk] || 0) + soma;
+  });
+  porMesTotal[hojeMes] = (porMesTotal[hojeMes] || 0) + estoqueTon;
+
   const inicioPlanoMes = META.dataInicio.slice(0, 7);
   const media = (porMes, filtro) => {
     const meses = Object.keys(porMes).filter(filtro);
@@ -470,9 +488,6 @@ async function carregarPlano() {
   const totalDepois = media(porMesTotal, m => m >= inicioPlanoMes);
   const prensadoAntes = media(porMesPrensado, m => m < inicioPlanoMes);
   const prensadoDepois = media(porMesPrensado, m => m >= inicioPlanoMes);
-
-  const vendasAtual = porMesTotal[hojeMes] || 0;
-  const prensadoAtual = porMesPrensado[hojeMes] || 0;
 
   renderKpis(ultimo, { vendasAtual, estoqueTon, passivoTon, rejeitoTon, prensadoAtual, totalAntes, totalDepois, prensadoAntes, prensadoDepois });
   renderLegenda('pe-chart-legenda-total', totalAntes, totalDepois);
