@@ -31,6 +31,8 @@
     .kpi-progress-label{font-size:12.5px;color:var(--text-muted);margin-top:6px}
     .pe-kpi-editable.pe-editavel{cursor:pointer;transition:color .15s}
     .pe-kpi-editable.pe-editavel:hover{color:var(--primary)}
+    .pe-kpi-label-row{display:flex;justify-content:space-between;align-items:center;gap:8px}
+    .pe-pct-badge{font-size:10.5px;font-weight:700;padding:2px 7px;border-radius:20px;background:#f1f5f9;color:#475569;text-transform:none;letter-spacing:0;white-space:nowrap}
     .pe-next-box{background:#fffbeb;border:1px dashed #fbbf24;border-radius:10px;padding:14px 18px;font-size:14.5px;color:#92400e;margin-bottom:18px;line-height:1.6;display:flex;justify-content:space-between;align-items:flex-start;gap:12px}
     .pe-next-box strong{color:#78350f}
     .pe-next-box-text{flex:1}
@@ -74,7 +76,7 @@
       <div class="pe-section-title">Processamento Geral (material disponível para processar)</div>
       <div class="kpi-grid">
         <div class="kpi-card">
-          <div class="kpi-label">Processamento Total do Mês</div>
+          <div class="kpi-label pe-kpi-label-row"><span>Processamento Total do Mês</span><span class="pe-pct-badge" id="pe-kpi-total-pct">—</span></div>
           <div class="kpi-value" id="pe-kpi-total">—</div>
           <div class="kpi-sub">vendas + estoque + passivo + rejeito</div>
           <div class="kpi-progress">
@@ -83,22 +85,22 @@
           </div>
         </div>
         <div class="kpi-card">
-          <div class="kpi-label">Vendas do Mês</div>
+          <div class="kpi-label pe-kpi-label-row"><span>Vendas do Mês</span><span class="pe-pct-badge" id="pe-kpi-vendas-pct">—</span></div>
           <div class="kpi-value" id="pe-kpi-vendas">—</div>
           <div class="kpi-sub">prensado + solto</div>
         </div>
         <div class="kpi-card">
-          <div class="kpi-label">Estoque do Mês</div>
+          <div class="kpi-label pe-kpi-label-row"><span>Estoque do Mês</span><span class="pe-pct-badge" id="pe-kpi-estoque-pct">—</span></div>
           <div class="kpi-value pe-kpi-editable" id="pe-kpi-estoque" title="Clique para editar">—</div>
           <div class="kpi-sub">lançado manualmente</div>
         </div>
         <div class="kpi-card">
-          <div class="kpi-label">Passivo do Mês</div>
+          <div class="kpi-label pe-kpi-label-row"><span>Passivo do Mês</span><span class="pe-pct-badge" id="pe-kpi-passivo-pct">—</span></div>
           <div class="kpi-value pe-kpi-editable" id="pe-kpi-passivo" title="Clique para editar">—</div>
           <div class="kpi-sub">Passivo triado</div>
         </div>
         <div class="kpi-card">
-          <div class="kpi-label">Rejeito do Mês</div>
+          <div class="kpi-label pe-kpi-label-row"><span>Rejeito do Mês</span><span class="pe-pct-badge" id="pe-kpi-rejeito-pct">—</span></div>
           <div class="kpi-value pe-kpi-editable" id="pe-kpi-rejeito" title="Clique para editar">—</div>
           <div class="kpi-sub">Rejeito gerado linha UVR</div>
         </div>
@@ -307,6 +309,13 @@ function renderKpis(ultimo, stats) {
   document.getElementById('pe-kpi-estoque').textContent = ton(estoqueTon * 1000);
   document.getElementById('pe-kpi-passivo').textContent = ton(passivoTon * 1000);
   document.getElementById('pe-kpi-rejeito').textContent = ton(rejeitoTon * 1000);
+
+  const pctDoTotal = v => processamentoTotal > 0 ? `${(v / processamentoTotal * 100).toFixed(1)}%` : '—';
+  document.getElementById('pe-kpi-total-pct').textContent = processamentoTotal > 0 ? '100%' : '—';
+  document.getElementById('pe-kpi-vendas-pct').textContent = pctDoTotal(vendasAtual);
+  document.getElementById('pe-kpi-estoque-pct').textContent = pctDoTotal(estoqueTon);
+  document.getElementById('pe-kpi-passivo-pct').textContent = pctDoTotal(passivoTon);
+  document.getElementById('pe-kpi-rejeito-pct').textContent = pctDoTotal(rejeitoTon);
   document.getElementById('pe-kpi-var-total').innerHTML = varBadge(META.baseProcessamentoTon, processamentoTotal);
   const pctTotal = Math.min(100, (processamentoTotal / META.materialDisponivelTon) * 100);
   document.getElementById('pe-kpi-total-fill').style.width = pctTotal + '%';
@@ -471,7 +480,8 @@ async function carregarPlano() {
   const hojeMes = new Date().toISOString().slice(0, 7);
   hojeMesCache = hojeMes;
   ajustesCache = ajustesPorMes[hojeMes] || null;
-  const estoqueTon = parseFloat(ajustesCache?.estoque_ton || 0);
+  // Sem lançamento ainda pro mês atual -> usa o estoque ao vivo como valor corrente.
+  const estoqueTon = ajustesCache ? parseFloat(ajustesCache.estoque_ton || 0) : estoqueLiveCache;
   const passivoTon = parseFloat(ajustesCache?.passivo_ton || 0);
   const rejeitoTon = parseFloat(ajustesCache?.rejeito_ton || 0);
 
@@ -487,12 +497,16 @@ async function carregarPlano() {
   const vendasAtual = porMesTotal[hojeMes] || 0;
   const prensadoAtual = porMesPrensado[hojeMes] || 0;
 
-  // Composição Vendas + Estoque + Passivo + Rejeito — estoque, passivo e rejeito são
-  // lançados manualmente mês a mês (clique numa barra do gráfico ou nos cards para editar).
+  // Composição Vendas + Estoque + Passivo + Rejeito — passivo e rejeito são lançados
+  // manualmente mês a mês (clique numa barra do gráfico ou nos cards para editar).
+  // Estoque também é manual, exceto no mês atual sem lançamento, que usa o estoque ao vivo.
   Object.entries(ajustesPorMes).forEach(([mk, a]) => {
     const soma = parseFloat(a.estoque_ton || 0) + parseFloat(a.passivo_ton || 0) + parseFloat(a.rejeito_ton || 0);
     if (soma) porMesTotal[mk] = (porMesTotal[mk] || 0) + soma;
   });
+  if (!ajustesPorMes[hojeMes] && estoqueTon) {
+    porMesTotal[hojeMes] = (porMesTotal[hojeMes] || 0) + estoqueTon;
+  }
 
   const inicioPlanoMes = META.dataInicio.slice(0, 7);
   const media = (porMes, filtro) => {
