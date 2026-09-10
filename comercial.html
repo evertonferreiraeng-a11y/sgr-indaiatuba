@@ -193,13 +193,25 @@
 
       <!-- Tabela Resumo por Acondicionamento -->
       <div class="table-card mb-16">
-        <div class="table-card-header">
+        <div class="table-card-header" style="flex-wrap:wrap;gap:10px">
           <h3>Resumo por Acondicionamento</h3>
-          <span id="fat-acond-total" class="text-muted" style="font-size:12px"></span>
+          <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+            <label style="display:flex;align-items:center;gap:6px;font-size:12px;font-weight:600;cursor:pointer;color:var(--text-muted)">
+              <input type="checkbox" id="acond-cmp-toggle" style="width:auto" />
+              Comparar meses
+            </label>
+            <div id="acond-cmp-filtros" style="display:none;gap:8px;align-items:center;flex-wrap:wrap">
+              <input type="month" id="acond-mes-a" style="font-size:12px;padding:4px 8px;border:1px solid #e2e8f0;border-radius:6px" />
+              <span style="font-size:12px;color:#64748b">vs</span>
+              <input type="month" id="acond-mes-b" style="font-size:12px;padding:4px 8px;border:1px solid #e2e8f0;border-radius:6px" />
+              <button type="button" class="btn btn-sm btn-primary" id="btn-acond-comparar" style="padding:4px 12px;font-size:12px">Comparar</button>
+            </div>
+            <span id="fat-acond-total" class="text-muted" style="font-size:12px"></span>
+          </div>
         </div>
         <div class="table-scroll">
           <table style="font-size:12px">
-            <thead>
+            <thead id="thead-fat-acond">
               <tr>
                 <th>Acondicionamento</th>
                 <th class="text-right">Volume (ton)</th>
@@ -888,6 +900,156 @@ function renderResumoAcondicionamento() {
     </tr>`;
 
   document.getElementById('fat-acond-total').textContent = `${linhas.length} categorias`;
+}
+
+// ── Comparativo de meses (Resumo por Acondicionamento) ─────────────────────────
+const THEAD_ACOND_NORMAL = `
+  <tr>
+    <th>Acondicionamento</th>
+    <th class="text-right">Volume (ton)</th>
+    <th class="text-right">% Volume</th>
+    <th class="text-right">Faturamento</th>
+    <th class="text-right">% Faturamento</th>
+    <th class="text-right">Preço Médio/ton</th>
+  </tr>`;
+
+function mesAnterior(mk) {
+  let [y, m] = mk.split('-').map(Number);
+  m--; if (m < 1) { m = 12; y--; }
+  return `${y}-${String(m).padStart(2,'0')}`;
+}
+
+document.getElementById('acond-mes-b').value = mesAtual();
+document.getElementById('acond-mes-a').value = mesAnterior(mesAtual());
+
+document.getElementById('acond-cmp-toggle').addEventListener('change', function() {
+  document.getElementById('acond-cmp-filtros').style.display = this.checked ? 'flex' : 'none';
+  if (!this.checked) {
+    document.getElementById('thead-fat-acond').innerHTML = THEAD_ACOND_NORMAL;
+    renderResumoAcondicionamento();
+  }
+});
+
+document.getElementById('btn-acond-comparar').addEventListener('click', compararAcondicionamento);
+
+async function buscarVendasPeriodoAcond(ini, fim) {
+  const cli = document.getElementById('f-cliente').value;
+  const mat = document.getElementById('f-mat').value;
+  let q = supabase.from('vendas')
+    .select('acondicionamento, peso_kg, unidade, valor_total')
+    .gte('data', ini).lte('data', fim);
+  if (cli) q = q.eq('cliente_id', cli);
+  if (mat) q = q.eq('material_id', mat);
+  const { data, error } = await q;
+  if (error) { toast('Erro ao buscar dados: ' + error.message, 'error'); return []; }
+  return data || [];
+}
+
+function agruparPorAcondicionamento(rows) {
+  const map = {};
+  rows.forEach(r => {
+    const acond = r.acondicionamento || 'sem_info';
+    if (!map[acond]) map[acond] = { vol: 0, fat: 0 };
+    map[acond].vol += pesoVenda(r);
+    map[acond].fat += parseFloat(r.valor_total || 0);
+  });
+  return map;
+}
+
+function labelMesRef(mk) {
+  const [y, m] = mk.split('-');
+  return new Date(+y, +m - 1, 1).toLocaleDateString('pt-BR', { month: 'short', year: 'numeric' });
+}
+
+function varLabelAcond(a, b) {
+  if (a <= 0) return b > 0 ? '<span style="color:#10b981;font-weight:600">novo</span>' : '—';
+  const pct = ((b - a) / a) * 100;
+  const sinal = pct > 0 ? '+' : '';
+  const cor = pct > 0 ? '#10b981' : (pct < 0 ? '#ef4444' : '#64748b');
+  return `<span style="color:${cor};font-weight:600">${sinal}${pct.toFixed(1)}%</span>`;
+}
+
+async function compararAcondicionamento() {
+  const mesA = document.getElementById('acond-mes-a').value;
+  const mesB = document.getElementById('acond-mes-b').value;
+  if (!mesA || !mesB) { toast('Selecione os dois meses para comparar', 'error'); return; }
+
+  const { ini: iniA, fim: fimA } = periodoRange(mesA);
+  const { ini: iniB, fim: fimB } = periodoRange(mesB);
+
+  const [rowsA, rowsB] = await Promise.all([
+    buscarVendasPeriodoAcond(iniA, fimA),
+    buscarVendasPeriodoAcond(iniB, fimB),
+  ]);
+
+  const mapA = agruparPorAcondicionamento(rowsA);
+  const mapB = agruparPorAcondicionamento(rowsB);
+  const labA = labelMesRef(mesA), labB = labelMesRef(mesB);
+
+  document.getElementById('thead-fat-acond').innerHTML = `
+    <tr>
+      <th rowspan="2" style="vertical-align:bottom">Acondicionamento</th>
+      <th colspan="3" style="text-align:center;border-bottom:1px solid #e2e8f0">${labA}</th>
+      <th colspan="3" style="text-align:center;border-bottom:1px solid #e2e8f0">${labB}</th>
+      <th rowspan="2" class="text-right" style="vertical-align:bottom">Var. Volume</th>
+      <th rowspan="2" class="text-right" style="vertical-align:bottom">Var. Faturamento</th>
+    </tr>
+    <tr>
+      <th class="text-right">Volume (ton)</th>
+      <th class="text-right">Faturamento</th>
+      <th class="text-right">Preço Médio/ton</th>
+      <th class="text-right">Volume (ton)</th>
+      <th class="text-right">Faturamento</th>
+      <th class="text-right">Preço Médio/ton</th>
+    </tr>`;
+
+  const ordem = { prensa: 0, granel: 1, sem_info: 2 };
+  const chaves = [...new Set([...Object.keys(mapA), ...Object.keys(mapB)])]
+    .sort((x, y) => (ordem[x] ?? 9) - (ordem[y] ?? 9));
+
+  if (!chaves.length) {
+    document.getElementById('tb-fat-acond').innerHTML = '<tr><td colspan="9" class="table-empty">Nenhuma venda encontrada nos meses selecionados</td></tr>';
+    document.getElementById('fat-acond-total').textContent = `Comparando ${labA} × ${labB}`;
+    return;
+  }
+
+  let totA = { vol: 0, fat: 0 }, totB = { vol: 0, fat: 0 };
+
+  const linhasHtml = chaves.map(acond => {
+    const a = mapA[acond] || { vol: 0, fat: 0 };
+    const b = mapB[acond] || { vol: 0, fat: 0 };
+    totA.vol += a.vol; totA.fat += a.fat;
+    totB.vol += b.vol; totB.fat += b.fat;
+    const precoA = a.vol > 0 ? moeda(a.fat / (a.vol / 1000)) : '—';
+    const precoB = b.vol > 0 ? moeda(b.fat / (b.vol / 1000)) : '—';
+    const label = acond === 'sem_info' ? 'Não informado' : ACOND_LABEL[acond];
+    return `<tr>
+      <td><strong>${label}</strong></td>
+      <td class="text-right">${ton(a.vol)}</td>
+      <td class="text-right">${moeda(a.fat)}</td>
+      <td class="text-right">${precoA}</td>
+      <td class="text-right">${ton(b.vol)}</td>
+      <td class="text-right">${moeda(b.fat)}</td>
+      <td class="text-right">${precoB}</td>
+      <td class="text-right">${varLabelAcond(a.vol, b.vol)}</td>
+      <td class="text-right">${varLabelAcond(a.fat, b.fat)}</td>
+    </tr>`;
+  }).join('');
+
+  document.getElementById('tb-fat-acond').innerHTML = linhasHtml + `
+    <tr style="background:#f8fafc;font-weight:700;border-top:2px solid #e2e8f0">
+      <td>TOTAL</td>
+      <td class="text-right">${ton(totA.vol)}</td>
+      <td class="text-right">${moeda(totA.fat)}</td>
+      <td class="text-right">${totA.vol > 0 ? moeda(totA.fat / (totA.vol / 1000)) : '—'}</td>
+      <td class="text-right">${ton(totB.vol)}</td>
+      <td class="text-right">${moeda(totB.fat)}</td>
+      <td class="text-right">${totB.vol > 0 ? moeda(totB.fat / (totB.vol / 1000)) : '—'}</td>
+      <td class="text-right">${varLabelAcond(totA.vol, totB.vol)}</td>
+      <td class="text-right">${varLabelAcond(totA.fat, totB.fat)}</td>
+    </tr>`;
+
+  document.getElementById('fat-acond-total').textContent = `Comparando ${labA} × ${labB}`;
 }
 
 function renderTabela() {
