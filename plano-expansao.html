@@ -29,6 +29,8 @@
     .kpi-progress{margin-top:auto;padding-top:12px}
     .kpi-progress .progress-bar{height:6px}
     .kpi-progress-label{font-size:12.5px;color:var(--text-muted);margin-top:6px}
+    .pe-kpi-editable.pe-editavel{cursor:pointer;border-bottom:2px dashed #cbd5e1;display:inline-block;transition:color .15s,border-color .15s}
+    .pe-kpi-editable.pe-editavel:hover{color:var(--primary);border-color:var(--primary)}
     .pe-next-box{background:#fffbeb;border:1px dashed #fbbf24;border-radius:10px;padding:14px 18px;font-size:14.5px;color:#92400e;margin-bottom:18px;line-height:1.6;display:flex;justify-content:space-between;align-items:flex-start;gap:12px}
     .pe-next-box strong{color:#78350f}
     .pe-next-box-text{flex:1}
@@ -70,9 +72,6 @@
       </div>
 
       <div class="pe-section-title">Processamento Geral (material disponível para processar)</div>
-      <div class="pe-info-box">
-        <strong>Nota:</strong> o Processamento Total do Mês soma <strong>Vendas</strong> (prensado + solto) + <strong>Estoque Atual</strong> + <strong>Passivo</strong> + <strong>Rejeito</strong>. Passivo e Rejeito são lançados manualmente — se ainda não houver lançamento no mês, entram como 0.
-      </div>
       <div class="kpi-grid">
         <div class="kpi-card">
           <div class="kpi-label">Processamento Total do Mês</div>
@@ -95,12 +94,12 @@
         </div>
         <div class="kpi-card">
           <div class="kpi-label">Passivo do Mês</div>
-          <div class="kpi-value" id="pe-kpi-passivo">—</div>
+          <div class="kpi-value pe-kpi-editable" id="pe-kpi-passivo" title="Clique para editar">—</div>
           <div class="kpi-sub">Passivo triado</div>
         </div>
         <div class="kpi-card">
           <div class="kpi-label">Rejeito do Mês</div>
-          <div class="kpi-value" id="pe-kpi-rejeito">—</div>
+          <div class="kpi-value pe-kpi-editable" id="pe-kpi-rejeito" title="Clique para editar">—</div>
           <div class="kpi-sub">Rejeito gerado linha UVR</div>
         </div>
         <div class="kpi-card">
@@ -108,9 +107,6 @@
           <div class="kpi-value" id="pe-kpi-var-total" style="font-size:21px">—</div>
           <div class="kpi-sub">processamento do mês vs 135 t antes do plano</div>
         </div>
-      </div>
-      <div style="display:flex;justify-content:flex-end;margin:12px 0 4px">
-        <button type="button" class="btn btn-outline btn-sm" id="btn-editar-ajustes" style="display:none;font-size:12.5px;padding:6px 14px">Editar Passivo e Rejeito do Mês</button>
       </div>
 
       <div class="pe-section-title">Prensagem (capacidade instalada)</div>
@@ -554,7 +550,7 @@ document.getElementById('btn-salvar-proximos-passos').addEventListener('click', 
   carregarPlano();
 });
 
-document.getElementById('btn-editar-ajustes').addEventListener('click', () => {
+function abrirModalAjustes() {
   const f = document.getElementById('form-ajustes');
   const hojeMes = new Date().toISOString().slice(0, 7);
   f.querySelector('[name="mes"]').value = ajustesCache?.mes ? ajustesCache.mes.slice(0, 7) : hojeMes;
@@ -562,7 +558,9 @@ document.getElementById('btn-editar-ajustes').addEventListener('click', () => {
   f.querySelector('[name="rejeito_ton"]').value = ajustesCache?.rejeito_ton ?? '';
   f.querySelector('[name="observacao"]').value = ajustesCache?.observacao ?? '';
   abrirModal('modal-ajustes');
-});
+}
+document.getElementById('pe-kpi-passivo').addEventListener('click', () => { if (perfil?.role === 'admin') abrirModalAjustes(); });
+document.getElementById('pe-kpi-rejeito').addEventListener('click', () => { if (perfil?.role === 'admin') abrirModalAjustes(); });
 
 document.getElementById('btn-salvar-ajustes').addEventListener('click', async () => {
   const f = document.getElementById('form-ajustes');
@@ -588,7 +586,8 @@ async function init() {
   perfil = p;
   if (perfil?.role === 'admin') {
     document.getElementById('btn-novo-marco').style.display = '';
-    document.getElementById('btn-editar-ajustes').style.display = '';
+    document.getElementById('pe-kpi-passivo').classList.add('pe-editavel');
+    document.getElementById('pe-kpi-rejeito').classList.add('pe-editavel');
   }
   await carregarPlano();
 }
