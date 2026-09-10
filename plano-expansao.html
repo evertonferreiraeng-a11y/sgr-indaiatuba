@@ -25,6 +25,8 @@
     .pe-progress-row strong{color:var(--text);font-size:13.5px}
     .pe-next-box{background:#fffbeb;border:1px dashed #fbbf24;border-radius:10px;padding:13px 16px;font-size:13px;color:#92400e;margin-bottom:18px;line-height:1.5}
     .pe-next-box strong{color:#78350f}
+    .pe-info-box{background:#eff6ff;border:1px dashed #93c5fd;border-radius:10px;padding:12px 16px;font-size:12.5px;color:#1e40af;margin-bottom:16px;line-height:1.5}
+    .pe-info-box strong{color:#1e3a8a}
     .pe-chart-legenda{font-size:12.5px;color:var(--text-muted);margin-top:14px;padding-top:14px;border-top:1px solid var(--border)}
     .pe-chart-legenda strong{color:var(--text)}
     .pe-timeline{position:relative}
@@ -54,11 +56,14 @@
       </div>
 
       <div class="pe-section-title">Processamento Geral (material disponível para processar)</div>
+      <div class="pe-info-box">
+        <strong>Nota:</strong> este número é calculado a partir do volume <strong>vendido</strong> no mês, usado aqui como aproximação do processamento. Ele não inclui o percentual de <strong>rejeito</strong> (material processado que não vira venda) — ainda não temos esse dado. O processamento real tende a ser um pouco maior do que o mostrado.
+      </div>
       <div class="kpi-grid">
         <div class="kpi-card">
           <div class="kpi-label">Processamento Total do Mês</div>
           <div class="kpi-value" id="pe-kpi-total">—</div>
-          <div class="kpi-sub">Meta: até 250 t/mês disponíveis</div>
+          <div class="kpi-sub">Meta: até 250 t/mês · baseado em vendas</div>
         </div>
         <div class="kpi-card">
           <div class="kpi-label">Variação Total vs Antes do Plano</div>
