@@ -175,9 +175,9 @@
       </div>
 
       <div class="chart-card mb-16">
-        <h3>Materiais Vendidos por Mês (ton)</h3>
-        <p style="font-size:12px;color:var(--text-muted);margin:-10px 0 14px">Volume de vendas por tipo de material, mês a mês.</p>
-        <div class="chart-wrap" style="height:320px"><canvas id="chart-materiais"></canvas></div>
+        <h3>Faturamento Bruto por Mês (R$) — Antes × Depois do Plano</h3>
+        <div class="chart-wrap" style="height:280px"><canvas id="chart-faturamento"></canvas></div>
+        <div class="pe-chart-legenda" id="pe-chart-legenda-faturamento">Carregando…</div>
       </div>
 
       <div class="table-card">
@@ -266,7 +266,7 @@
 
 <div id="toast-container"></div>
 <script type="module">
-import { initPage, supabase, ton, dataBR, toast, abrirModal, fecharModal } from './js/config.js?v=2';
+import { initPage, supabase, ton, moeda, dataBR, toast, abrirModal, fecharModal } from './js/config.js?v=2';
 import { icon } from './js/icons.js';
 
 await initPage();
@@ -287,7 +287,7 @@ const vendaPorPeso = r => UNIDADES_PESO.has((r.unidade || '').trim().toUpperCase
 const pesoVenda = r => vendaPorPeso(r) ? parseFloat(r.peso_kg || 0) : 0;
 
 let perfil;
-let chartTotal = null, chartPrensado = null, chartMateriais = null;
+let chartTotal = null, chartPrensado = null, chartFaturamento = null;
 let marcosCache = [];
 let proximosPassosTexto = '';
 let ajustesCache = null;
@@ -356,11 +356,11 @@ function renderKpis(ultimo, stats) {
   document.getElementById('pe-kpi-vagas').textContent = ultimo.vagas_abertas ?? '—';
 }
 
-function renderLegenda(elId, avgAntes, avgDepois) {
+function renderLegenda(elId, avgAntes, avgDepois, formatarValor = v => ton(v * 1000)) {
   const el = document.getElementById(elId);
   if (!avgAntes && !avgDepois) { el.textContent = 'Ainda não há dados suficientes para comparar.'; return; }
-  el.innerHTML = `Média mensal <strong>antes</strong> do plano: <strong>${ton(avgAntes * 1000)}</strong>
-    &nbsp;·&nbsp; Média mensal <strong>desde o início do plano</strong>: <strong>${ton(avgDepois * 1000)}</strong>
+  el.innerHTML = `Média mensal <strong>antes</strong> do plano: <strong>${formatarValor(avgAntes)}</strong>
+    &nbsp;·&nbsp; Média mensal <strong>desde o início do plano</strong>: <strong>${formatarValor(avgDepois)}</strong>
     ${avgAntes > 0 ? ' &nbsp;·&nbsp; ' + varBadge(avgAntes, avgDepois) : ''}`;
 }
 
@@ -375,17 +375,24 @@ function montarDataset(porMes, inicioPlanoMes) {
   return { meses, labels, valores, cores };
 }
 
-function renderChart(canvasId, chartRefSetter, chartAtual, porMes, inicioPlanoMes, linhaRef, linhaLabel, onBarClickMes) {
+function renderChart(canvasId, chartRefSetter, chartAtual, porMes, inicioPlanoMes, linhaRef, linhaLabel, onBarClickMes, opts = {}) {
+  const {
+    unidadeLabel = 'ton/mês',
+    axisTitle = 'ton',
+    formatarLabel = v => v.toLocaleString('pt-BR', { minimumFractionDigits: 1, maximumFractionDigits: 1 }),
+    formatarTooltip = v => `${v.toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2})} ton`,
+  } = opts;
+
   const { meses, labels, valores, cores } = montarDataset(porMes, inicioPlanoMes);
   if (chartAtual) chartAtual.destroy();
   if (!meses.length) { chartRefSetter(null); return; }
 
   const datasets = [{
-    type: 'bar', label: 'ton/mês', data: valores, backgroundColor: cores, borderRadius: 4,
+    type: 'bar', label: unidadeLabel, data: valores, backgroundColor: cores, borderRadius: 4,
     datalabels: {
       anchor: 'end', align: 'top', offset: 2,
       font: { size: 13, weight: '700' }, color: '#334155',
-      formatter: v => v > 0 ? v.toLocaleString('pt-BR', { minimumFractionDigits: 1, maximumFractionDigits: 1 }) : '',
+      formatter: v => v > 0 ? formatarLabel(v) : '',
     },
   }];
   if (linhaRef > 0) {
@@ -401,9 +408,9 @@ function renderChart(canvasId, chartRefSetter, chartAtual, porMes, inicioPlanoMe
     layout: { padding: { top: 22 } },
     plugins: {
       legend: { display: linhaRef > 0, position: 'bottom' },
-      tooltip: { callbacks: { label: c => `${c.dataset.label}: ${c.parsed.y.toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2})} ton` } },
+      tooltip: { callbacks: { label: c => `${c.dataset.label}: ${formatarTooltip(c.parsed.y)}` } },
     },
-    scales: { y: { beginAtZero: true, title: { display: true, text: 'ton' } } },
+    scales: { y: { beginAtZero: true, title: { display: true, text: axisTitle } } },
   };
 
   if (onBarClickMes) {
@@ -418,65 +425,6 @@ function renderChart(canvasId, chartRefSetter, chartAtual, porMes, inicioPlanoMe
 
   const novoChart = new Chart(document.getElementById(canvasId).getContext('2d'), { data: { labels, datasets }, options });
   chartRefSetter(novoChart);
-}
-
-const PALETA_MATERIAIS = ['#2a78d6', '#10b981', '#f59e0b', '#7c3aed', '#ef4444', '#0891b2', '#ec4899', '#84cc16'];
-const MAX_MATERIAIS_CHART = 7;
-
-function renderChartMateriais(porMesMaterial) {
-  const meses = Object.keys(porMesMaterial).sort();
-  if (chartMateriais) chartMateriais.destroy();
-  if (!meses.length) { chartMateriais = null; return; }
-
-  const totalPorMaterial = {};
-  meses.forEach(mk => {
-    Object.entries(porMesMaterial[mk]).forEach(([mat, vol]) => {
-      totalPorMaterial[mat] = (totalPorMaterial[mat] || 0) + vol;
-    });
-  });
-  const materiaisOrdenados = Object.keys(totalPorMaterial).sort((a, b) => totalPorMaterial[b] - totalPorMaterial[a]);
-  const principais = materiaisOrdenados.slice(0, MAX_MATERIAIS_CHART);
-  const temOutros = materiaisOrdenados.length > MAX_MATERIAIS_CHART;
-
-  const labels = meses.map(mk => {
-    const [y, m] = mk.split('-');
-    return new Date(+y, +m - 1, 1).toLocaleDateString('pt-BR', { month: 'short', year: '2-digit' });
-  });
-
-  const datasets = principais.map((mat, i) => ({
-    type: 'bar', label: mat, stack: 'vol',
-    data: meses.map(mk => +((porMesMaterial[mk][mat] || 0).toFixed(2))),
-    backgroundColor: PALETA_MATERIAIS[i % PALETA_MATERIAIS.length],
-    datalabels: { display: false },
-  }));
-  if (temOutros) {
-    datasets.push({
-      type: 'bar', label: 'Outros', stack: 'vol',
-      data: meses.map(mk => {
-        const outros = Object.entries(porMesMaterial[mk])
-          .filter(([mat]) => !principais.includes(mat))
-          .reduce((s, [, v]) => s + v, 0);
-        return +outros.toFixed(2);
-      }),
-      backgroundColor: '#cbd5e1',
-      datalabels: { display: false },
-    });
-  }
-
-  chartMateriais = new Chart(document.getElementById('chart-materiais').getContext('2d'), {
-    data: { labels, datasets },
-    options: {
-      responsive: true, maintainAspectRatio: false,
-      plugins: {
-        legend: { display: true, position: 'bottom' },
-        tooltip: { callbacks: { label: c => `${c.dataset.label}: ${c.parsed.y.toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2})} ton` } },
-      },
-      scales: {
-        x: { stacked: true },
-        y: { stacked: true, beginAtZero: true, title: { display: true, text: 'ton' } },
-      },
-    },
-  });
 }
 
 function renderTimeline(marcos) {
@@ -527,7 +475,7 @@ async function carregarPlano() {
   const { data: config } = await supabase.from('plano_expansao_config').select('proximos_passos').eq('id', 1).maybeSingle();
 
   const { data: vendas, error: errV } = await supabase.from('vendas')
-    .select('data, peso_kg, unidade, acondicionamento, materiais(nome), codigo_material')
+    .select('data, peso_kg, unidade, acondicionamento, valor_total')
     .order('data');
   if (errV) { toast('Erro ao carregar processamento: ' + errV.message, 'error'); }
 
@@ -550,16 +498,14 @@ async function carregarPlano() {
   const passivoTon = parseFloat(ajustesCache?.passivo_ton || 0);
   const rejeitoTon = parseFloat(ajustesCache?.rejeito_ton || 0);
 
-  const porMesTotal = {}, porMesPrensado = {}, porMesMaterial = {};
+  const porMesTotal = {}, porMesPrensado = {}, porMesFaturamento = {};
   (vendas || []).forEach(r => {
     const mk = (r.data || '').slice(0, 7);
     if (!mk) return;
     const vol = pesoVenda(r) / 1000;
     porMesTotal[mk] = (porMesTotal[mk] || 0) + vol;
     if (r.acondicionamento === 'prensa') porMesPrensado[mk] = (porMesPrensado[mk] || 0) + vol;
-    const mat = r.materiais?.nome || r.codigo_material || 'Sem material';
-    porMesMaterial[mk] = porMesMaterial[mk] || {};
-    porMesMaterial[mk][mat] = (porMesMaterial[mk][mat] || 0) + vol;
+    porMesFaturamento[mk] = (porMesFaturamento[mk] || 0) + parseFloat(r.valor_total || 0);
   });
 
   const vendasAtual = porMesTotal[hojeMes] || 0;
@@ -585,15 +531,22 @@ async function carregarPlano() {
   const totalDepois = media(porMesTotal, m => m >= inicioPlanoMes);
   const prensadoAntes = media(porMesPrensado, m => m < inicioPlanoMes);
   const prensadoDepois = media(porMesPrensado, m => m >= inicioPlanoMes);
+  const fatAntes = media(porMesFaturamento, m => m < inicioPlanoMes);
+  const fatDepois = media(porMesFaturamento, m => m >= inicioPlanoMes);
 
   renderKpis(ultimo, { vendasAtual, estoqueTon, passivoTon, rejeitoTon, prensadoAtual, totalAntes, totalDepois, prensadoAntes, prensadoDepois });
   renderLegenda('pe-chart-legenda-total', totalAntes, totalDepois);
   renderLegenda('pe-chart-legenda-prensado', prensadoAntes, prensadoDepois);
+  renderLegenda('pe-chart-legenda-faturamento', fatAntes, fatDepois, moeda);
   const onBarClick = perfil?.role === 'admin' ? abrirModalAjustesParaMes : null;
   renderChart('chart-total', c => chartTotal = c, chartTotal, porMesTotal, inicioPlanoMes, META.materialDisponivelTon, 'Material disponível (250 t)', onBarClick);
   const capacidadeAtual = (ultimo.prensas_operando || 0) * META.capacidadePorPrensaTon;
   renderChart('chart-prensado', c => chartPrensado = c, chartPrensado, porMesPrensado, inicioPlanoMes, capacidadeAtual, `Capacidade atual (${capacidadeAtual} t)`);
-  renderChartMateriais(porMesMaterial);
+  renderChart('chart-faturamento', c => chartFaturamento = c, chartFaturamento, porMesFaturamento, inicioPlanoMes, 0, '', null, {
+    unidadeLabel: 'R$/mês', axisTitle: 'R$',
+    formatarLabel: v => v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL', maximumFractionDigits: 0 }),
+    formatarTooltip: v => moeda(v),
+  });
   renderTimeline(marcosList);
   renderProximosPassos(config?.proximos_passos);
 }
