@@ -106,7 +106,7 @@
         <div class="kpi-card">
           <div class="kpi-label">Variação Total vs Antes do Plano</div>
           <div class="kpi-value" id="pe-kpi-var-total" style="font-size:21px">—</div>
-          <div class="kpi-sub">média mensal de vendas, prensado + solto</div>
+          <div class="kpi-sub">processamento do mês vs 135 t antes do plano</div>
         </div>
       </div>
       <div style="display:flex;justify-content:flex-end;margin:12px 0 4px">
@@ -306,9 +306,7 @@ function renderKpis(ultimo, stats) {
   document.getElementById('pe-kpi-estoque').textContent = ton(estoqueTon * 1000);
   document.getElementById('pe-kpi-passivo').textContent = ton(passivoTon * 1000);
   document.getElementById('pe-kpi-rejeito').textContent = ton(rejeitoTon * 1000);
-  document.getElementById('pe-kpi-var-total').innerHTML = totalAntes > 0
-    ? varBadge(totalAntes, totalDepois)
-    : '<span class="text-muted" style="font-size:12.5px">sem dados suficientes</span>';
+  document.getElementById('pe-kpi-var-total').innerHTML = varBadge(META.baseProcessamentoTon, processamentoTotal);
   const pctTotal = Math.min(100, (processamentoTotal / META.materialDisponivelTon) * 100);
   document.getElementById('pe-kpi-total-fill').style.width = pctTotal + '%';
   document.getElementById('pe-kpi-total-label').textContent = `${ton(processamentoTotal * 1000)} / ${META.materialDisponivelTon} t · ${pctTotal.toFixed(0)}% da meta`;
