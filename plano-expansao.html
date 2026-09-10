@@ -175,7 +175,7 @@
       </div>
 
       <div class="chart-card mb-16">
-        <h3>Volume Comercializado e Faturamento Bruto por Mês — Antes × Depois do Plano</h3>
+        <h3>Volume Comercializado por Mês (ton) — Antes × Depois do Plano</h3>
         <div class="chart-wrap" style="height:280px"><canvas id="chart-faturamento"></canvas></div>
         <div class="pe-chart-legenda" id="pe-chart-legenda-faturamento">Carregando…</div>
       </div>
@@ -266,7 +266,7 @@
 
 <div id="toast-container"></div>
 <script type="module">
-import { initPage, supabase, ton, moeda, dataBR, toast, abrirModal, fecharModal } from './js/config.js?v=2';
+import { initPage, supabase, ton, dataBR, toast, abrirModal, fecharModal } from './js/config.js?v=2';
 import { icon } from './js/icons.js';
 
 await initPage();
@@ -427,58 +427,6 @@ function renderChart(canvasId, chartRefSetter, chartAtual, porMes, inicioPlanoMe
   chartRefSetter(novoChart);
 }
 
-function renderChartFaturamento(porMesFaturamento, porMesVolume, inicioPlanoMes) {
-  const meses = Object.keys(porMesVolume).sort();
-  if (chartFaturamento) chartFaturamento.destroy();
-  if (!meses.length) { chartFaturamento = null; return; }
-
-  const labels = meses.map(mk => {
-    const [y, m] = mk.split('-');
-    return new Date(+y, +m - 1, 1).toLocaleDateString('pt-BR', { month: 'short', year: '2-digit' });
-  });
-  const valoresVol = meses.map(mk => +((porMesVolume[mk] || 0).toFixed(2)));
-  const cores = meses.map(mk => mk < inicioPlanoMes ? '#cbd5e1' : '#10b981');
-  const valoresFat = meses.map(mk => +((porMesFaturamento[mk] || 0).toFixed(2)));
-
-  chartFaturamento = new Chart(document.getElementById('chart-faturamento').getContext('2d'), {
-    data: {
-      labels,
-      datasets: [
-        {
-          type: 'bar', label: 'Volume Comercializado (ton)', data: valoresVol, backgroundColor: cores, borderRadius: 4, yAxisID: 'y',
-          datalabels: {
-            anchor: 'end', align: 'top', offset: 2, font: { size: 13, weight: '700' }, color: '#334155',
-            formatter: v => v > 0 ? v.toLocaleString('pt-BR', { minimumFractionDigits: 1, maximumFractionDigits: 1 }) : '',
-          },
-        },
-        {
-          type: 'line', label: 'Faturamento (R$)', data: valoresFat, yAxisID: 'y1',
-          borderColor: '#2a78d6', backgroundColor: '#2a78d6', borderWidth: 2, tension: 0.25, pointRadius: 3, pointBackgroundColor: '#2a78d6',
-          datalabels: { display: false },
-        },
-      ],
-    },
-    options: {
-      responsive: true, maintainAspectRatio: false,
-      layout: { padding: { top: 22 } },
-      plugins: {
-        legend: { display: true, position: 'bottom' },
-        tooltip: {
-          callbacks: {
-            label: c => c.dataset.yAxisID === 'y'
-              ? `${c.dataset.label}: ${c.parsed.y.toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2})} ton`
-              : `${c.dataset.label}: ${moeda(c.parsed.y)}`,
-          },
-        },
-      },
-      scales: {
-        y:  { beginAtZero: true, position: 'left',  title: { display: true, text: 'ton' } },
-        y1: { beginAtZero: true, position: 'right', title: { display: true, text: 'R$' }, grid: { drawOnChartArea: false } },
-      },
-    },
-  });
-}
-
 function renderTimeline(marcos) {
   const wrap = document.getElementById('pe-timeline');
   if (!marcos.length) { wrap.innerHTML = '<p class="text-muted" style="font-size:13px">Nenhum registro ainda.</p>'; return; }
@@ -527,7 +475,7 @@ async function carregarPlano() {
   const { data: config } = await supabase.from('plano_expansao_config').select('proximos_passos').eq('id', 1).maybeSingle();
 
   const { data: vendas, error: errV } = await supabase.from('vendas')
-    .select('data, peso_kg, unidade, acondicionamento, valor_total')
+    .select('data, peso_kg, unidade, acondicionamento')
     .order('data');
   if (errV) { toast('Erro ao carregar processamento: ' + errV.message, 'error'); }
 
@@ -550,15 +498,15 @@ async function carregarPlano() {
   const passivoTon = parseFloat(ajustesCache?.passivo_ton || 0);
   const rejeitoTon = parseFloat(ajustesCache?.rejeito_ton || 0);
 
-  const porMesTotal = {}, porMesPrensado = {}, porMesFaturamento = {};
+  const porMesTotal = {}, porMesPrensado = {};
   (vendas || []).forEach(r => {
     const mk = (r.data || '').slice(0, 7);
     if (!mk) return;
     const vol = pesoVenda(r) / 1000;
     porMesTotal[mk] = (porMesTotal[mk] || 0) + vol;
     if (r.acondicionamento === 'prensa') porMesPrensado[mk] = (porMesPrensado[mk] || 0) + vol;
-    porMesFaturamento[mk] = (porMesFaturamento[mk] || 0) + parseFloat(r.valor_total || 0);
   });
+  const porMesVendas = { ...porMesTotal };
 
   const vendasAtual = porMesTotal[hojeMes] || 0;
   const prensadoAtual = porMesPrensado[hojeMes] || 0;
@@ -583,18 +531,18 @@ async function carregarPlano() {
   const totalDepois = media(porMesTotal, m => m >= inicioPlanoMes);
   const prensadoAntes = media(porMesPrensado, m => m < inicioPlanoMes);
   const prensadoDepois = media(porMesPrensado, m => m >= inicioPlanoMes);
-  const fatAntes = media(porMesFaturamento, m => m < inicioPlanoMes);
-  const fatDepois = media(porMesFaturamento, m => m >= inicioPlanoMes);
+  const vendasAntes = media(porMesVendas, m => m < inicioPlanoMes);
+  const vendasDepois = media(porMesVendas, m => m >= inicioPlanoMes);
 
   renderKpis(ultimo, { vendasAtual, estoqueTon, passivoTon, rejeitoTon, prensadoAtual, totalAntes, totalDepois, prensadoAntes, prensadoDepois });
   renderLegenda('pe-chart-legenda-total', totalAntes, totalDepois);
   renderLegenda('pe-chart-legenda-prensado', prensadoAntes, prensadoDepois);
-  renderLegenda('pe-chart-legenda-faturamento', fatAntes, fatDepois, moeda);
+  renderLegenda('pe-chart-legenda-faturamento', vendasAntes, vendasDepois);
   const onBarClick = perfil?.role === 'admin' ? abrirModalAjustesParaMes : null;
   renderChart('chart-total', c => chartTotal = c, chartTotal, porMesTotal, inicioPlanoMes, META.materialDisponivelTon, 'Material disponível (250 t)', onBarClick);
   const capacidadeAtual = (ultimo.prensas_operando || 0) * META.capacidadePorPrensaTon;
   renderChart('chart-prensado', c => chartPrensado = c, chartPrensado, porMesPrensado, inicioPlanoMes, capacidadeAtual, `Capacidade atual (${capacidadeAtual} t)`);
-  renderChartFaturamento(porMesFaturamento, porMesTotal, inicioPlanoMes);
+  renderChart('chart-faturamento', c => chartFaturamento = c, chartFaturamento, porMesVendas, inicioPlanoMes, 0, '');
   renderTimeline(marcosList);
   renderProximosPassos(config?.proximos_passos);
 }
