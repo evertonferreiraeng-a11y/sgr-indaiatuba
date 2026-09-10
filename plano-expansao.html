@@ -1,0 +1,346 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <link rel="manifest" href="manifest.json" />
+  <meta name="theme-color" content="#006636" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="SGR Indaiatuba" />
+  <link rel="apple-touch-icon" href="img/icons/apple-touch-icon.png" />
+  <link rel="icon" type="image/png" href="img/icons/icon-192.png" />
+  <title>Plano de Expansão — SGR Indaiatuba</title>
+  <link rel="stylesheet" href="css/style.css" />
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4/dist/chart.umd.min.js"></script>
+  <style>
+    .pe-hero{background:linear-gradient(135deg,#f0fdf4,#eff6ff);border:1px solid var(--border);border-radius:var(--radius);padding:18px 22px;margin-bottom:20px}
+    .pe-hero .pe-meta-label{font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.07em;color:var(--primary);margin-bottom:6px}
+    .pe-hero p{font-size:14.5px;color:var(--text);line-height:1.55;margin:0}
+    .pe-progress-block{margin-bottom:18px}
+    .pe-progress-block:last-child{margin-bottom:0}
+    .pe-progress-row{display:flex;justify-content:space-between;align-items:baseline;font-size:12.5px;margin-bottom:6px;color:var(--text-muted)}
+    .pe-progress-row strong{color:var(--text);font-size:13.5px}
+    .pe-next-box{background:#fffbeb;border:1px dashed #fbbf24;border-radius:10px;padding:13px 16px;font-size:13px;color:#92400e;margin-bottom:18px;line-height:1.5}
+    .pe-next-box strong{color:#78350f}
+    .pe-chart-legenda{font-size:12.5px;color:var(--text-muted);margin-top:14px;padding-top:14px;border-top:1px solid var(--border)}
+    .pe-chart-legenda strong{color:var(--text)}
+    .pe-timeline{position:relative}
+    .pe-timeline-item{position:relative;padding-bottom:20px;border-left:2px solid var(--border);padding-left:22px;margin-left:6px}
+    .pe-timeline-item:last-child{border-left-color:transparent;padding-bottom:0}
+    .pe-timeline-dot{position:absolute;left:-7px;top:2px;width:12px;height:12px;border-radius:50%;background:var(--primary);border:2px solid #fff;box-shadow:0 0 0 1px var(--border)}
+    .pe-timeline-date{font-size:11px;font-weight:800;color:var(--text-muted);text-transform:uppercase;letter-spacing:.05em}
+    .pe-timeline-body{font-size:13.5px;color:var(--text);margin-top:4px;font-weight:600}
+    .pe-timeline-stats{display:flex;gap:16px;margin-top:8px;flex-wrap:wrap}
+    .pe-timeline-stat{font-size:12px;color:var(--text-muted)}
+    .pe-timeline-stat strong{color:var(--text)}
+  </style>
+</head>
+<body>
+<div class="app-layout">
+  <div id="sidebar-root"></div>
+  <div class="main-content">
+    <div class="page-header">
+      <div><h2>Plano de Expansão</h2><p>Acompanhamento da meta de processamento e prensagem</p></div>
+      <button class="btn btn-primary" id="btn-novo-marco" style="display:none">+ Atualizar Progresso</button>
+    </div>
+    <div class="page-body">
+
+      <div class="pe-hero">
+        <div class="pe-meta-label">Meta</div>
+        <p>Elevar o processamento de 135 para até 250 t/mês, com equipe de 13 colaboradores e a 3ª prensa em operação.</p>
+      </div>
+
+      <div class="kpi-grid">
+        <div class="kpi-card">
+          <div class="kpi-label">Processamento do Mês</div>
+          <div class="kpi-value" id="pe-kpi-processamento">—</div>
+          <div class="kpi-sub">Meta: 250 t/mês (prensado)</div>
+        </div>
+        <div class="kpi-card">
+          <div class="kpi-label">Variação vs Antes do Plano</div>
+          <div class="kpi-value" id="pe-kpi-variacao" style="font-size:19px">—</div>
+          <div class="kpi-sub">média mensal, material prensado</div>
+        </div>
+        <div class="kpi-card">
+          <div class="kpi-label">Colaboradores</div>
+          <div class="kpi-value" id="pe-kpi-colab">—</div>
+          <div class="kpi-sub">Meta: 13 colaboradores</div>
+        </div>
+        <div class="kpi-card">
+          <div class="kpi-label">Vagas em Aberto</div>
+          <div class="kpi-value" id="pe-kpi-vagas">—</div>
+          <div class="kpi-sub">para completar a equipe</div>
+        </div>
+        <div class="kpi-card">
+          <div class="kpi-label">Prensas em Operação</div>
+          <div class="kpi-value" id="pe-kpi-prensas">—</div>
+          <div class="kpi-sub">Meta: 3 prensas</div>
+        </div>
+      </div>
+
+      <div id="pe-next-box" class="pe-next-box" style="display:none"></div>
+
+      <div class="card mb-16" style="padding:20px">
+        <h3 style="font-size:13px;font-weight:700;margin-bottom:16px;text-transform:uppercase;letter-spacing:.05em;color:var(--text-muted)">Progresso da Meta</h3>
+        <div class="pe-progress-block">
+          <div class="pe-progress-row"><span>Processamento (material prensado)</span><strong id="pe-prog-proc-label">—</strong></div>
+          <div class="progress-bar"><div class="progress-fill" id="pe-prog-proc-fill" style="width:0%"></div></div>
+        </div>
+        <div class="pe-progress-block">
+          <div class="pe-progress-row"><span>Colaboradores</span><strong id="pe-prog-colab-label">—</strong></div>
+          <div class="progress-bar"><div class="progress-fill" id="pe-prog-colab-fill" style="width:0%"></div></div>
+        </div>
+        <div class="pe-progress-block">
+          <div class="pe-progress-row"><span>Prensas em Operação</span><strong id="pe-prog-prensa-label">—</strong></div>
+          <div class="progress-bar"><div class="progress-fill" id="pe-prog-prensa-fill" style="width:0%"></div></div>
+        </div>
+      </div>
+
+      <div class="chart-card mb-16">
+        <h3>Processamento Prensado por Mês (ton) — Antes × Depois do Plano</h3>
+        <div class="chart-wrap" style="height:280px"><canvas id="chart-processamento"></canvas></div>
+        <div class="pe-chart-legenda" id="pe-chart-legenda">Carregando…</div>
+      </div>
+
+      <div class="table-card">
+        <div class="table-card-header"><h3>Histórico do Plano</h3></div>
+        <div style="padding:20px">
+          <div class="pe-timeline" id="pe-timeline">Carregando…</div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<!-- Modal: Atualizar Progresso -->
+<div class="modal-backdrop" id="modal-marco">
+  <div class="modal">
+    <div class="modal-header">
+      <h3>Atualizar Progresso do Plano</h3>
+      <button class="modal-close" data-close="modal-marco">✕</button>
+    </div>
+    <div class="modal-body">
+      <form id="form-marco">
+        <div class="form-grid">
+          <div class="form-group"><label>Data *</label><input type="date" name="data" required /></div>
+          <div class="form-group"><label>Colaboradores Ativos</label><input type="number" name="colaboradores_ativos" min="0" /></div>
+          <div class="form-group"><label>Vagas em Aberto</label><input type="number" name="vagas_abertas" min="0" /></div>
+          <div class="form-group"><label>Prensas em Operação</label><input type="number" name="prensas_operando" min="0" max="3" /></div>
+          <div class="form-group full"><label>Observação</label><input type="text" name="observacao" placeholder="ex: 2 novos colaboradores iniciaram" /></div>
+        </div>
+      </form>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-outline" data-close="modal-marco">Cancelar</button>
+      <button class="btn btn-primary" id="btn-salvar-marco">Salvar</button>
+    </div>
+  </div>
+</div>
+
+<div id="toast-container"></div>
+<script type="module">
+import { initPage, supabase, ton, dataBR, toast, abrirModal, fecharModal } from './js/config.js?v=2';
+import { icon } from './js/icons.js';
+
+await initPage();
+
+const META = {
+  processamentoTon: 250,
+  colaboradores: 13,
+  prensas: 3,
+  dataInicio: '2026-09-01',
+  dataPrevistaPrensa: '2026-09-19',
+};
+
+const UNIDADES_PESO = new Set(['', 'KG', 'TON']);
+const vendaPorPeso = r => UNIDADES_PESO.has((r.unidade || '').trim().toUpperCase());
+const pesoVenda = r => vendaPorPeso(r) ? parseFloat(r.peso_kg || 0) : 0;
+
+let perfil;
+let chartProcessamento = null;
+
+function varBadge(a, b) {
+  const pct = ((b - a) / a) * 100;
+  const seta = pct > 0 ? '▲' : (pct < 0 ? '▼' : '●');
+  const sinal = pct > 0 ? '+' : '';
+  const cls = pct > 0 ? 'badge-green' : (pct < 0 ? 'badge-red' : 'badge-gray');
+  return `<span class="badge ${cls}">${seta} ${sinal}${pct.toFixed(1)}%</span>`;
+}
+
+function renderKpis(ultimo, avgAntes, avgDepois, mesAtualTon) {
+  document.getElementById('pe-kpi-processamento').textContent = ton(mesAtualTon * 1000);
+  document.getElementById('pe-kpi-variacao').innerHTML = avgAntes > 0
+    ? varBadge(avgAntes, avgDepois)
+    : '<span class="text-muted" style="font-size:12.5px">sem dados suficientes</span>';
+  document.getElementById('pe-kpi-colab').textContent = `${ultimo.colaboradores_ativos ?? '—'} / ${META.colaboradores}`;
+  document.getElementById('pe-kpi-vagas').textContent = ultimo.vagas_abertas ?? '—';
+  document.getElementById('pe-kpi-prensas').textContent = `${ultimo.prensas_operando ?? '—'} / ${META.prensas}`;
+
+  const pctProc = Math.min(100, (mesAtualTon / META.processamentoTon) * 100);
+  document.getElementById('pe-prog-proc-fill').style.width = pctProc + '%';
+  document.getElementById('pe-prog-proc-label').textContent = `${ton(mesAtualTon * 1000)} / ${META.processamentoTon} t`;
+
+  const colabAtual = ultimo.colaboradores_ativos || 0;
+  const pctColab = Math.min(100, (colabAtual / META.colaboradores) * 100);
+  document.getElementById('pe-prog-colab-fill').style.width = pctColab + '%';
+  document.getElementById('pe-prog-colab-label').textContent = `${colabAtual} / ${META.colaboradores}`;
+
+  const prensasAtual = ultimo.prensas_operando || 0;
+  const pctPrensa = Math.min(100, (prensasAtual / META.prensas) * 100);
+  document.getElementById('pe-prog-prensa-fill').style.width = pctPrensa + '%';
+  document.getElementById('pe-prog-prensa-label').textContent = `${prensasAtual} / ${META.prensas}`;
+}
+
+function renderComparativo(avgAntes, avgDepois) {
+  const el = document.getElementById('pe-chart-legenda');
+  if (!avgAntes && !avgDepois) { el.textContent = 'Ainda não há dados suficientes para comparar.'; return; }
+  el.innerHTML = `Média mensal <strong>antes</strong> do plano: <strong>${ton(avgAntes * 1000)}</strong>
+    &nbsp;·&nbsp; Média mensal <strong>desde o início do plano</strong>: <strong>${ton(avgDepois * 1000)}</strong>
+    ${avgAntes > 0 ? ' &nbsp;·&nbsp; ' + varBadge(avgAntes, avgDepois) : ''}`;
+}
+
+function renderChart(porMes, inicioPlanoMes) {
+  const meses = Object.keys(porMes).sort();
+  const labels = meses.map(mk => {
+    const [y, m] = mk.split('-');
+    return new Date(+y, +m - 1, 1).toLocaleDateString('pt-BR', { month: 'short', year: '2-digit' });
+  });
+  const valores = meses.map(m => +porMes[m].toFixed(2));
+  const cores = meses.map(m => m < inicioPlanoMes ? '#cbd5e1' : '#10b981');
+
+  if (chartProcessamento) chartProcessamento.destroy();
+  if (!meses.length) return;
+  chartProcessamento = new Chart(document.getElementById('chart-processamento').getContext('2d'), {
+    type: 'bar',
+    data: { labels, datasets: [{ label: 'Processamento Prensado (ton)', data: valores, backgroundColor: cores, borderRadius: 4 }] },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: {
+        legend: { display: false },
+        tooltip: { callbacks: { label: c => `${c.parsed.y.toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2})} ton` } },
+      },
+      scales: { y: { beginAtZero: true, title: { display: true, text: 'ton' } } },
+    },
+  });
+}
+
+function renderTimeline(marcos) {
+  const wrap = document.getElementById('pe-timeline');
+  if (!marcos.length) { wrap.innerHTML = '<p class="text-muted" style="font-size:13px">Nenhum registro ainda.</p>'; return; }
+  const isAdmin = perfil?.role === 'admin';
+  wrap.innerHTML = marcos.map(m => `
+    <div class="pe-timeline-item">
+      <div class="pe-timeline-dot"></div>
+      <div class="pe-timeline-date">${dataBR(m.data)}</div>
+      <div class="pe-timeline-body">${m.observacao || '—'}</div>
+      <div class="pe-timeline-stats">
+        <span class="pe-timeline-stat">Colaboradores: <strong>${m.colaboradores_ativos ?? '—'} / ${META.colaboradores}</strong></span>
+        <span class="pe-timeline-stat">Vagas abertas: <strong>${m.vagas_abertas ?? '—'}</strong></span>
+        <span class="pe-timeline-stat">Prensas: <strong>${m.prensas_operando ?? '—'} / ${META.prensas}</strong></span>
+      </div>
+      ${isAdmin ? `<button class="btn-icon danger" style="margin-top:8px" onclick="excluirMarco('${m.id}')">${icon('trash',{size:13})} Excluir</button>` : ''}
+    </div>`).join('');
+}
+
+function renderNextBox(ultimo) {
+  const box = document.getElementById('pe-next-box');
+  const hoje = new Date().toISOString().split('T')[0];
+  const partes = [];
+  if ((ultimo.prensas_operando || 0) < META.prensas) {
+    const dias = Math.ceil((new Date(META.dataPrevistaPrensa) - new Date(hoje)) / 86400000);
+    partes.push(dias > 0
+      ? `3ª prensa prevista para ${dataBR(META.dataPrevistaPrensa)} (em ${dias} dia${dias === 1 ? '' : 's'})`
+      : `3ª prensa prevista para ${dataBR(META.dataPrevistaPrensa)}`);
+  }
+  if ((ultimo.colaboradores_ativos || 0) < META.colaboradores) {
+    partes.push('próxima semana: previsão de +4 colaboradores');
+  }
+  if (!partes.length) { box.style.display = 'none'; return; }
+  box.style.display = 'block';
+  box.innerHTML = `<strong>Próximos passos:</strong> ${partes.join(' · ')}`;
+}
+
+async function carregarPlano() {
+  const { data: marcos, error: errM } = await supabase.from('plano_expansao_marcos').select('*').order('data', { ascending: false });
+  if (errM) { toast('Erro ao carregar histórico: ' + errM.message, 'error'); }
+  const marcosList = marcos || [];
+  const ultimo = marcosList[0] || {};
+
+  const { data: vendasPrensa, error: errV } = await supabase.from('vendas')
+    .select('data, peso_kg, unidade')
+    .eq('acondicionamento', 'prensa')
+    .order('data');
+  if (errV) { toast('Erro ao carregar processamento: ' + errV.message, 'error'); }
+
+  const porMes = {};
+  (vendasPrensa || []).forEach(r => {
+    const mk = (r.data || '').slice(0, 7);
+    if (!mk) return;
+    porMes[mk] = (porMes[mk] || 0) + pesoVenda(r) / 1000;
+  });
+
+  const inicioPlanoMes = META.dataInicio.slice(0, 7);
+  const mesesOrd = Object.keys(porMes).sort();
+  const antes = mesesOrd.filter(m => m < inicioPlanoMes);
+  const depois = mesesOrd.filter(m => m >= inicioPlanoMes);
+  const avgAntes = antes.length ? antes.reduce((s, m) => s + porMes[m], 0) / antes.length : 0;
+  const avgDepois = depois.length ? depois.reduce((s, m) => s + porMes[m], 0) / depois.length : 0;
+  const hojeMes = new Date().toISOString().slice(0, 7);
+  const mesAtualTon = porMes[hojeMes] || 0;
+
+  renderKpis(ultimo, avgAntes, avgDepois, mesAtualTon);
+  renderComparativo(avgAntes, avgDepois);
+  renderChart(porMes, inicioPlanoMes);
+  renderTimeline(marcosList);
+  renderNextBox(ultimo);
+}
+
+document.querySelectorAll('[data-close]').forEach(btn => btn.addEventListener('click', () => fecharModal(btn.dataset.close)));
+document.querySelectorAll('.modal-backdrop').forEach(m => m.addEventListener('click', e => { if (e.target === m) fecharModal(m.id); }));
+
+document.getElementById('btn-novo-marco').addEventListener('click', () => {
+  document.getElementById('form-marco').reset();
+  document.querySelector('#form-marco [name="data"]').value = new Date().toISOString().split('T')[0];
+  abrirModal('modal-marco');
+});
+
+document.getElementById('btn-salvar-marco').addEventListener('click', async () => {
+  const f = document.getElementById('form-marco');
+  if (!f.checkValidity()) { f.reportValidity(); return; }
+  const fd = Object.fromEntries(new FormData(f));
+  const payload = {
+    data: fd.data,
+    colaboradores_ativos: fd.colaboradores_ativos ? parseInt(fd.colaboradores_ativos) : null,
+    vagas_abertas: fd.vagas_abertas ? parseInt(fd.vagas_abertas) : null,
+    prensas_operando: fd.prensas_operando ? parseInt(fd.prensas_operando) : null,
+    observacao: fd.observacao || null,
+  };
+  const { error } = await supabase.from('plano_expansao_marcos').insert(payload);
+  if (error) { toast('Erro ao salvar: ' + error.message, 'error'); return; }
+  toast('Progresso atualizado!');
+  fecharModal('modal-marco');
+  carregarPlano();
+});
+
+window.excluirMarco = async id => {
+  if (!confirm('Excluir este registro?')) return;
+  const { error } = await supabase.from('plano_expansao_marcos').delete().eq('id', id);
+  if (error) { toast('Erro ao excluir', 'error'); return; }
+  toast('Registro excluído!');
+  carregarPlano();
+};
+
+async function init() {
+  const { data: { user } } = await supabase.auth.getUser();
+  const { data: p } = await supabase.from('profiles').select('*').eq('id', user.id).single();
+  perfil = p;
+  if (perfil?.role === 'admin') document.getElementById('btn-novo-marco').style.display = '';
+  await carregarPlano();
+}
+
+init();
+</script>
+</body>
+</html>
