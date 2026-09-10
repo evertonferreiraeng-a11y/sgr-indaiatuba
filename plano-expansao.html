@@ -159,11 +159,12 @@
 <div class="modal-backdrop" id="modal-marco">
   <div class="modal">
     <div class="modal-header">
-      <h3>Atualizar Progresso do Plano</h3>
+      <h3 id="modal-marco-title">Atualizar Progresso do Plano</h3>
       <button class="modal-close" data-close="modal-marco">✕</button>
     </div>
     <div class="modal-body">
       <form id="form-marco">
+        <input type="hidden" name="id" />
         <div class="form-grid">
           <div class="form-group"><label>Data *</label><input type="date" name="data" required /></div>
           <div class="form-group"><label>Colaboradores Ativos</label><input type="number" name="colaboradores_ativos" min="0" /></div>
@@ -203,6 +204,7 @@ const pesoVenda = r => vendaPorPeso(r) ? parseFloat(r.peso_kg || 0) : 0;
 
 let perfil;
 let chartTotal = null, chartPrensado = null;
+let marcosCache = [];
 
 function varBadge(a, b) {
   const pct = ((b - a) / a) * 100;
@@ -316,7 +318,11 @@ function renderTimeline(marcos) {
         <span class="pe-timeline-stat">Vagas abertas: <strong>${m.vagas_abertas ?? '—'}</strong></span>
         <span class="pe-timeline-stat">Prensas: <strong>${m.prensas_operando ?? '—'} / ${META.prensas}</strong></span>
       </div>
-      ${isAdmin ? `<button class="btn-icon danger" style="margin-top:8px" onclick="excluirMarco('${m.id}')">${icon('trash',{size:13})} Excluir</button>` : ''}
+      ${isAdmin ? `
+      <div style="margin-top:8px;display:flex;gap:4px">
+        <button class="btn-icon" onclick="editarMarco('${m.id}')">${icon('edit',{size:13})} Editar</button>
+        <button class="btn-icon danger" onclick="excluirMarco('${m.id}')">${icon('trash',{size:13})} Excluir</button>
+      </div>` : ''}
     </div>`).join('');
 }
 
@@ -331,7 +337,7 @@ function renderNextBox(ultimo) {
       : `3ª prensa prevista para ${dataBR(META.dataPrevistaPrensa)}`);
   }
   if ((ultimo.colaboradores_ativos || 0) < META.colaboradores) {
-    partes.push('próxima semana: previsão de +4 Servente de Usina de Tratamento de Lixo');
+    partes.push('próxima semana: previsão de +5 Servente de Usina de Tratamento de Lixo');
   }
   if (!partes.length) { box.style.display = 'none'; return; }
   box.style.display = 'block';
@@ -342,6 +348,7 @@ async function carregarPlano() {
   const { data: marcos, error: errM } = await supabase.from('plano_expansao_marcos').select('*').order('data', { ascending: false });
   if (errM) { toast('Erro ao carregar histórico: ' + errM.message, 'error'); }
   const marcosList = marcos || [];
+  marcosCache = marcosList;
   const ultimo = marcosList[0] || {};
 
   const { data: vendas, error: errV } = await supabase.from('vendas')
@@ -387,9 +394,26 @@ document.querySelectorAll('.modal-backdrop').forEach(m => m.addEventListener('cl
 
 document.getElementById('btn-novo-marco').addEventListener('click', () => {
   document.getElementById('form-marco').reset();
+  document.querySelector('#form-marco [name="id"]').value = '';
   document.querySelector('#form-marco [name="data"]').value = new Date().toISOString().split('T')[0];
+  document.getElementById('modal-marco-title').textContent = 'Atualizar Progresso do Plano';
   abrirModal('modal-marco');
 });
+
+window.editarMarco = id => {
+  const m = marcosCache.find(x => x.id === id);
+  if (!m) return;
+  const f = document.getElementById('form-marco');
+  const set = (n, v) => { const el = f.querySelector(`[name="${n}"]`); if (el) el.value = v ?? ''; };
+  set('id', m.id);
+  set('data', m.data);
+  set('colaboradores_ativos', m.colaboradores_ativos);
+  set('vagas_abertas', m.vagas_abertas);
+  set('prensas_operando', m.prensas_operando);
+  set('observacao', m.observacao);
+  document.getElementById('modal-marco-title').textContent = 'Editar Registro do Plano';
+  abrirModal('modal-marco');
+};
 
 document.getElementById('btn-salvar-marco').addEventListener('click', async () => {
   const f = document.getElementById('form-marco');
@@ -402,9 +426,11 @@ document.getElementById('btn-salvar-marco').addEventListener('click', async () =
     prensas_operando: fd.prensas_operando ? parseInt(fd.prensas_operando) : null,
     observacao: fd.observacao || null,
   };
-  const { error } = await supabase.from('plano_expansao_marcos').insert(payload);
+  const { error } = fd.id
+    ? await supabase.from('plano_expansao_marcos').update(payload).eq('id', fd.id)
+    : await supabase.from('plano_expansao_marcos').insert(payload);
   if (error) { toast('Erro ao salvar: ' + error.message, 'error'); return; }
-  toast('Progresso atualizado!');
+  toast(fd.id ? 'Registro atualizado!' : 'Progresso atualizado!');
   fecharModal('modal-marco');
   carregarPlano();
 });
