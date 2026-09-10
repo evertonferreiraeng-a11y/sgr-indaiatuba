@@ -46,11 +46,13 @@
     .acond-table thead th.acond-grp-b{background:#eff6ff;color:#1e40af;border-bottom:2px solid #93c5fd}
     .acond-table thead th[colspan]{font-size:12.5px;text-transform:none;letter-spacing:.02em;font-weight:700;padding-top:14px;padding-bottom:8px}
     .acond-table tbody tr.acond-total-row td{background:#f8fafc;font-weight:700;border-top:2px solid var(--border);font-size:14.5px}
+    .acond-table .acond-divider{border-left:2px solid #cbd5e1}
     .acond-dot{display:inline-block;width:10px;height:10px;border-radius:50%;margin-right:8px;vertical-align:middle}
-    .acond-dot-prensa{background:#2a78d6}
-    .acond-dot-granel{background:#10b981}
+    .acond-dot-prensa{background:#7c3aed}
+    .acond-dot-granel{background:#f59e0b}
     .acond-dot-sem_info{background:#94a3b8}
     .acond-pct{display:inline-block;min-width:48px;padding:3px 10px;border-radius:20px;font-weight:700;font-size:12.5px;background:#f1f5f9;color:#475569}
+    .acond-fat{font-weight:700;color:var(--text)}
   </style>
 </head>
 <body>
@@ -893,7 +895,7 @@ function renderResumoAcondicionamento() {
           <span class="acond-pct">${pctVol}%</span>
         </div>
       </td>
-      <td class="text-right">${moeda(v.fat)}</td>
+      <td class="text-right acond-fat">${moeda(v.fat)}</td>
       <td class="text-right">
         <div style="display:flex;align-items:center;gap:6px;justify-content:flex-end">
           <div style="width:60px;height:6px;background:#e2e8f0;border-radius:3px;overflow:hidden">
@@ -1006,7 +1008,7 @@ async function compararAcondicionamento() {
     <tr>
       <th rowspan="2" style="vertical-align:bottom">Acondicionamento</th>
       <th colspan="4" class="acond-grp-a" style="text-align:center">${labA}</th>
-      <th colspan="4" class="acond-grp-b" style="text-align:center">${labB}</th>
+      <th colspan="4" class="acond-grp-b acond-divider" style="text-align:center">${labB}</th>
       <th rowspan="2" class="text-right" style="vertical-align:bottom">Var. Volume</th>
       <th rowspan="2" class="text-right" style="vertical-align:bottom">Var. Faturamento</th>
     </tr>
@@ -1015,7 +1017,7 @@ async function compararAcondicionamento() {
       <th class="text-right acond-grp-a">% Volume</th>
       <th class="text-right acond-grp-a">Faturamento</th>
       <th class="text-right acond-grp-a">Preço Médio/ton</th>
-      <th class="text-right acond-grp-b">Volume (ton)</th>
+      <th class="text-right acond-grp-b acond-divider">Volume (ton)</th>
       <th class="text-right acond-grp-b">% Volume</th>
       <th class="text-right acond-grp-b">Faturamento</th>
       <th class="text-right acond-grp-b">Preço Médio/ton</th>
@@ -1051,11 +1053,11 @@ async function compararAcondicionamento() {
       <td><span class="acond-dot acond-dot-${acond}"></span><strong>${label}</strong></td>
       <td class="text-right">${ton(a.vol)}</td>
       <td class="text-right"><span class="acond-pct">${pctVolA}%</span></td>
-      <td class="text-right">${moeda(a.fat)}</td>
+      <td class="text-right acond-fat">${moeda(a.fat)}</td>
       <td class="text-right">${precoA}</td>
-      <td class="text-right">${ton(b.vol)}</td>
+      <td class="text-right acond-divider">${ton(b.vol)}</td>
       <td class="text-right"><span class="acond-pct">${pctVolB}%</span></td>
-      <td class="text-right">${moeda(b.fat)}</td>
+      <td class="text-right acond-fat">${moeda(b.fat)}</td>
       <td class="text-right">${precoB}</td>
       <td class="text-right">${varLabelAcond(a.vol, b.vol)}</td>
       <td class="text-right">${varLabelAcond(a.fat, b.fat)}</td>
@@ -1067,11 +1069,11 @@ async function compararAcondicionamento() {
       <td>TOTAL</td>
       <td class="text-right">${ton(totA.vol)}</td>
       <td class="text-right">100%</td>
-      <td class="text-right">${moeda(totA.fat)}</td>
+      <td class="text-right acond-fat">${moeda(totA.fat)}</td>
       <td class="text-right">${totA.vol > 0 ? moeda(totA.fat / (totA.vol / 1000)) : '—'}</td>
-      <td class="text-right">${ton(totB.vol)}</td>
+      <td class="text-right acond-divider">${ton(totB.vol)}</td>
       <td class="text-right">100%</td>
-      <td class="text-right">${moeda(totB.fat)}</td>
+      <td class="text-right acond-fat">${moeda(totB.fat)}</td>
       <td class="text-right">${totB.vol > 0 ? moeda(totB.fat / (totB.vol / 1000)) : '—'}</td>
       <td class="text-right">${varLabelAcond(totA.vol, totB.vol)}</td>
       <td class="text-right">${varLabelAcond(totA.fat, totB.fat)}</td>
