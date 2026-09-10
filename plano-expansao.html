@@ -88,9 +88,9 @@
           <div class="kpi-sub">prensado + solto</div>
         </div>
         <div class="kpi-card">
-          <div class="kpi-label">Estoque Atual</div>
-          <div class="kpi-value" id="pe-kpi-estoque">—</div>
-          <div class="kpi-sub">material em estoque hoje</div>
+          <div class="kpi-label">Estoque do Mês</div>
+          <div class="kpi-value pe-kpi-editable" id="pe-kpi-estoque" title="Clique para editar">—</div>
+          <div class="kpi-sub">lançado manualmente</div>
         </div>
         <div class="kpi-card">
           <div class="kpi-label">Passivo do Mês</div>
@@ -161,7 +161,7 @@
 
       <div class="chart-card mb-16">
         <h3>Processamento Total por Mês (ton) — Vendas + Estoque + Passivo + Rejeito — Antes × Depois do Plano</h3>
-        <p style="font-size:12px;color:var(--text-muted);margin:-10px 0 14px">Estoque entra só no mês atual (não há histórico de estoque de meses passados); Passivo e Rejeito somam nos meses em que forem lançados.</p>
+        <p style="font-size:12px;color:var(--text-muted);margin:-10px 0 14px">Clique numa barra para lançar Estoque, Passivo e Rejeito daquele mês.</p>
         <div class="chart-wrap" style="height:280px"><canvas id="chart-total"></canvas></div>
         <div class="pe-chart-legenda" id="pe-chart-legenda-total">Carregando…</div>
       </div>
@@ -235,13 +235,14 @@
 <div class="modal-backdrop" id="modal-ajustes">
   <div class="modal">
     <div class="modal-header">
-      <h3>Editar Passivo e Rejeito do Mês</h3>
+      <h3 id="modal-ajustes-title">Editar Estoque, Passivo e Rejeito do Mês</h3>
       <button class="modal-close" data-close="modal-ajustes">✕</button>
     </div>
     <div class="modal-body">
       <form id="form-ajustes">
         <div class="form-grid">
           <div class="form-group"><label>Mês *</label><input type="month" name="mes" required /></div>
+          <div class="form-group"><label>Estoque (ton)</label><input type="number" name="estoque_ton" min="0" step="0.01" /></div>
           <div class="form-group"><label>Passivo (ton)</label><input type="number" name="passivo_ton" min="0" step="0.01" /></div>
           <div class="form-group"><label>Rejeito (ton)</label><input type="number" name="rejeito_ton" min="0" step="0.01" /></div>
           <div class="form-group full"><label>Observação</label><input type="text" name="observacao" placeholder="opcional" /></div>
@@ -282,6 +283,9 @@ let chartTotal = null, chartPrensado = null;
 let marcosCache = [];
 let proximosPassosTexto = '';
 let ajustesCache = null;
+let ajustesPorMesCache = {};
+let hojeMesCache = '';
+let estoqueLiveCache = 0;
 
 document.getElementById('btn-editar-proximos-passos').innerHTML = icon('edit', { size: 13 });
 
@@ -356,7 +360,7 @@ function montarDataset(porMes, inicioPlanoMes) {
   return { meses, labels, valores, cores };
 }
 
-function renderChart(canvasId, chartRefSetter, chartAtual, porMes, inicioPlanoMes, linhaRef, linhaLabel) {
+function renderChart(canvasId, chartRefSetter, chartAtual, porMes, inicioPlanoMes, linhaRef, linhaLabel, onBarClickMes) {
   const { meses, labels, valores, cores } = montarDataset(porMes, inicioPlanoMes);
   if (chartAtual) chartAtual.destroy();
   if (!meses.length) { chartRefSetter(null); return; }
@@ -377,18 +381,27 @@ function renderChart(canvasId, chartRefSetter, chartAtual, porMes, inicioPlanoMe
     });
   }
 
-  const novoChart = new Chart(document.getElementById(canvasId).getContext('2d'), {
-    data: { labels, datasets },
-    options: {
-      responsive: true, maintainAspectRatio: false,
-      layout: { padding: { top: 22 } },
-      plugins: {
-        legend: { display: linhaRef > 0, position: 'bottom' },
-        tooltip: { callbacks: { label: c => `${c.dataset.label}: ${c.parsed.y.toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2})} ton` } },
-      },
-      scales: { y: { beginAtZero: true, title: { display: true, text: 'ton' } } },
+  const options = {
+    responsive: true, maintainAspectRatio: false,
+    layout: { padding: { top: 22 } },
+    plugins: {
+      legend: { display: linhaRef > 0, position: 'bottom' },
+      tooltip: { callbacks: { label: c => `${c.dataset.label}: ${c.parsed.y.toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2})} ton` } },
     },
-  });
+    scales: { y: { beginAtZero: true, title: { display: true, text: 'ton' } } },
+  };
+
+  if (onBarClickMes) {
+    options.onClick = (evt, elements) => {
+      const el = elements.find(e => e.datasetIndex === 0);
+      if (el) onBarClickMes(meses[el.index]);
+    };
+    options.onHover = (evt, elements) => {
+      evt.native.target.style.cursor = elements.some(e => e.datasetIndex === 0) ? 'pointer' : 'default';
+    };
+  }
+
+  const novoChart = new Chart(document.getElementById(canvasId).getContext('2d'), { data: { labels, datasets }, options });
   chartRefSetter(novoChart);
 }
 
@@ -445,7 +458,7 @@ async function carregarPlano() {
   if (errV) { toast('Erro ao carregar processamento: ' + errV.message, 'error'); }
 
   const { data: mats } = await supabase.from('materiais').select('estoque_kg').eq('no_estoque', true);
-  const estoqueTon = (mats || []).reduce((s, m) => s + parseFloat(m.estoque_kg || 0), 0) / 1000;
+  estoqueLiveCache = (mats || []).reduce((s, m) => s + parseFloat(m.estoque_kg || 0), 0) / 1000;
 
   const { data: ajustesTodos } = await supabase.from('plano_expansao_ajustes').select('*');
   const ajustesPorMes = {};
@@ -453,9 +466,12 @@ async function carregarPlano() {
     const mk = (a.mes || '').slice(0, 7);
     if (mk) ajustesPorMes[mk] = a;
   });
+  ajustesPorMesCache = ajustesPorMes;
 
   const hojeMes = new Date().toISOString().slice(0, 7);
+  hojeMesCache = hojeMes;
   ajustesCache = ajustesPorMes[hojeMes] || null;
+  const estoqueTon = parseFloat(ajustesCache?.estoque_ton || 0);
   const passivoTon = parseFloat(ajustesCache?.passivo_ton || 0);
   const rejeitoTon = parseFloat(ajustesCache?.rejeito_ton || 0);
 
@@ -471,13 +487,12 @@ async function carregarPlano() {
   const vendasAtual = porMesTotal[hojeMes] || 0;
   const prensadoAtual = porMesPrensado[hojeMes] || 0;
 
-  // Composição Vendas + Estoque + Passivo + Rejeito — estoque só é somado no mês atual
-  // (não temos histórico de estoque de meses passados); passivo/rejeito somam nos meses lançados.
+  // Composição Vendas + Estoque + Passivo + Rejeito — estoque, passivo e rejeito são
+  // lançados manualmente mês a mês (clique numa barra do gráfico ou nos cards para editar).
   Object.entries(ajustesPorMes).forEach(([mk, a]) => {
-    const soma = parseFloat(a.passivo_ton || 0) + parseFloat(a.rejeito_ton || 0);
+    const soma = parseFloat(a.estoque_ton || 0) + parseFloat(a.passivo_ton || 0) + parseFloat(a.rejeito_ton || 0);
     if (soma) porMesTotal[mk] = (porMesTotal[mk] || 0) + soma;
   });
-  porMesTotal[hojeMes] = (porMesTotal[hojeMes] || 0) + estoqueTon;
 
   const inicioPlanoMes = META.dataInicio.slice(0, 7);
   const media = (porMes, filtro) => {
@@ -492,7 +507,8 @@ async function carregarPlano() {
   renderKpis(ultimo, { vendasAtual, estoqueTon, passivoTon, rejeitoTon, prensadoAtual, totalAntes, totalDepois, prensadoAntes, prensadoDepois });
   renderLegenda('pe-chart-legenda-total', totalAntes, totalDepois);
   renderLegenda('pe-chart-legenda-prensado', prensadoAntes, prensadoDepois);
-  renderChart('chart-total', c => chartTotal = c, chartTotal, porMesTotal, inicioPlanoMes, META.materialDisponivelTon, 'Material disponível (250 t)');
+  const onBarClick = perfil?.role === 'admin' ? abrirModalAjustesParaMes : null;
+  renderChart('chart-total', c => chartTotal = c, chartTotal, porMesTotal, inicioPlanoMes, META.materialDisponivelTon, 'Material disponível (250 t)', onBarClick);
   const capacidadeAtual = (ultimo.prensas_operando || 0) * META.capacidadePorPrensaTon;
   renderChart('chart-prensado', c => chartPrensado = c, chartPrensado, porMesPrensado, inicioPlanoMes, capacidadeAtual, `Capacidade atual (${capacidadeAtual} t)`);
   renderTimeline(marcosList);
@@ -568,17 +584,25 @@ document.getElementById('btn-salvar-proximos-passos').addEventListener('click', 
   carregarPlano();
 });
 
-function abrirModalAjustes() {
+function abrirModalAjustesParaMes(mesKey) {
+  if (perfil?.role !== 'admin') return;
+  const registro = ajustesPorMesCache[mesKey] || null;
   const f = document.getElementById('form-ajustes');
-  const hojeMes = new Date().toISOString().slice(0, 7);
-  f.querySelector('[name="mes"]').value = ajustesCache?.mes ? ajustesCache.mes.slice(0, 7) : hojeMes;
-  f.querySelector('[name="passivo_ton"]').value = ajustesCache?.passivo_ton ?? '';
-  f.querySelector('[name="rejeito_ton"]').value = ajustesCache?.rejeito_ton ?? '';
-  f.querySelector('[name="observacao"]').value = ajustesCache?.observacao ?? '';
+  f.querySelector('[name="mes"]').value = mesKey;
+  f.querySelector('[name="estoque_ton"]').value = registro
+    ? (registro.estoque_ton ?? '')
+    : (mesKey === hojeMesCache ? estoqueLiveCache.toFixed(2) : '');
+  f.querySelector('[name="passivo_ton"]').value = registro?.passivo_ton ?? '';
+  f.querySelector('[name="rejeito_ton"]').value = registro?.rejeito_ton ?? '';
+  f.querySelector('[name="observacao"]').value = registro?.observacao ?? '';
+  const [y, m] = mesKey.split('-');
+  const labelMes = new Date(+y, +m - 1, 1).toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' });
+  document.getElementById('modal-ajustes-title').textContent = `Editar Estoque, Passivo e Rejeito — ${labelMes}`;
   abrirModal('modal-ajustes');
 }
-document.getElementById('pe-kpi-passivo').addEventListener('click', () => { if (perfil?.role === 'admin') abrirModalAjustes(); });
-document.getElementById('pe-kpi-rejeito').addEventListener('click', () => { if (perfil?.role === 'admin') abrirModalAjustes(); });
+document.getElementById('pe-kpi-estoque').addEventListener('click', () => abrirModalAjustesParaMes(hojeMesCache));
+document.getElementById('pe-kpi-passivo').addEventListener('click', () => abrirModalAjustesParaMes(hojeMesCache));
+document.getElementById('pe-kpi-rejeito').addEventListener('click', () => abrirModalAjustesParaMes(hojeMesCache));
 
 document.getElementById('btn-salvar-ajustes').addEventListener('click', async () => {
   const f = document.getElementById('form-ajustes');
@@ -586,6 +610,7 @@ document.getElementById('btn-salvar-ajustes').addEventListener('click', async ()
   const fd = Object.fromEntries(new FormData(f));
   const payload = {
     mes: `${fd.mes}-01`,
+    estoque_ton: fd.estoque_ton ? parseFloat(fd.estoque_ton) : 0,
     passivo_ton: fd.passivo_ton ? parseFloat(fd.passivo_ton) : 0,
     rejeito_ton: fd.rejeito_ton ? parseFloat(fd.rejeito_ton) : 0,
     observacao: fd.observacao || null,
@@ -593,7 +618,7 @@ document.getElementById('btn-salvar-ajustes').addEventListener('click', async ()
   };
   const { error } = await supabase.from('plano_expansao_ajustes').upsert(payload, { onConflict: 'mes' });
   if (error) { toast('Erro ao salvar: ' + error.message, 'error'); return; }
-  toast('Passivo e rejeito atualizados!');
+  toast('Estoque, passivo e rejeito atualizados!');
   fecharModal('modal-ajustes');
   carregarPlano();
 });
@@ -604,6 +629,7 @@ async function init() {
   perfil = p;
   if (perfil?.role === 'admin') {
     document.getElementById('btn-novo-marco').style.display = '';
+    document.getElementById('pe-kpi-estoque').classList.add('pe-editavel');
     document.getElementById('pe-kpi-passivo').classList.add('pe-editavel');
     document.getElementById('pe-kpi-rejeito').classList.add('pe-editavel');
   }
