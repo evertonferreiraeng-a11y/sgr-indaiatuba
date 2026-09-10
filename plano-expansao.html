@@ -97,6 +97,7 @@
           <div class="kpi-sub">Meta: 3 prensas (24 t/mês cada)</div>
           <div class="kpi-progress">
             <div class="progress-bar"><div class="progress-fill" id="pe-kpi-prensas-fill" style="width:0%"></div></div>
+            <div class="kpi-progress-label" id="pe-kpi-prensas-label">—</div>
           </div>
         </div>
       </div>
@@ -109,6 +110,7 @@
           <div class="kpi-sub">Meta: 13 colaboradores</div>
           <div class="kpi-progress">
             <div class="progress-bar"><div class="progress-fill" id="pe-kpi-colab-fill" style="width:0%"></div></div>
+            <div class="kpi-progress-label" id="pe-kpi-colab-label">—</div>
           </div>
         </div>
         <div class="kpi-card">
@@ -226,12 +228,16 @@ function renderKpis(ultimo, stats) {
     : `${ton(prensadoAtual * 1000)}`;
 
   const prensasAtual = ultimo.prensas_operando || 0;
+  const pctPrensas = Math.min(100, (prensasAtual / META.prensas) * 100);
   document.getElementById('pe-kpi-prensas').textContent = `${ultimo.prensas_operando ?? '—'} / ${META.prensas}`;
-  document.getElementById('pe-kpi-prensas-fill').style.width = Math.min(100, (prensasAtual / META.prensas) * 100) + '%';
+  document.getElementById('pe-kpi-prensas-fill').style.width = pctPrensas + '%';
+  document.getElementById('pe-kpi-prensas-label').textContent = `${prensasAtual} / ${META.prensas} prensas · ${pctPrensas.toFixed(0)}% da meta`;
 
   const colabAtual = ultimo.colaboradores_ativos || 0;
+  const pctColab = Math.min(100, (colabAtual / META.colaboradores) * 100);
   document.getElementById('pe-kpi-colab').textContent = `${ultimo.colaboradores_ativos ?? '—'} / ${META.colaboradores}`;
-  document.getElementById('pe-kpi-colab-fill').style.width = Math.min(100, (colabAtual / META.colaboradores) * 100) + '%';
+  document.getElementById('pe-kpi-colab-fill').style.width = pctColab + '%';
+  document.getElementById('pe-kpi-colab-label').textContent = `${colabAtual} / ${META.colaboradores} colaboradores · ${pctColab.toFixed(0)}% da meta`;
 
   document.getElementById('pe-kpi-vagas').textContent = ultimo.vagas_abertas ?? '—';
 }
