@@ -179,7 +179,6 @@
             <thead>
               <tr>
                 <th>Produto</th>
-                <th>Acondicionamento</th>
                 <th class="text-right">Volume (ton)</th>
                 <th class="text-right">% Volume</th>
                 <th class="text-right">Faturamento</th>
@@ -188,6 +187,29 @@
               </tr>
             </thead>
             <tbody id="tb-fat-prod"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Tabela Resumo por Acondicionamento -->
+      <div class="table-card mb-16">
+        <div class="table-card-header">
+          <h3>Resumo por Acondicionamento</h3>
+          <span id="fat-acond-total" class="text-muted" style="font-size:12px"></span>
+        </div>
+        <div class="table-scroll">
+          <table style="font-size:12px">
+            <thead>
+              <tr>
+                <th>Acondicionamento</th>
+                <th class="text-right">Volume (ton)</th>
+                <th class="text-right">% Volume</th>
+                <th class="text-right">Faturamento</th>
+                <th class="text-right">% Faturamento</th>
+                <th class="text-right">Preço Médio/ton</th>
+              </tr>
+            </thead>
+            <tbody id="tb-fat-acond"></tbody>
           </table>
         </div>
       </div>
@@ -709,6 +731,7 @@ async function carregar() {
   renderKPIs();
   renderTabela();
   renderFatProduto();
+  renderResumoAcondicionamento();
 }
 
 async function renderKPIs() {
@@ -742,36 +765,33 @@ const ACOND_LABEL = { prensa: 'Prensa', granel: 'A Granel' };
 function renderFatProduto() {
   const tb = document.getElementById('tb-fat-prod');
   if (!vendaData.length) {
-    tb.innerHTML = '<tr><td colspan="7" class="table-empty">Nenhuma venda encontrada</td></tr>';
+    tb.innerHTML = '<tr><td colspan="6" class="table-empty">Nenhuma venda encontrada</td></tr>';
     document.getElementById('fat-prod-total').textContent = '';
     return;
   }
 
-  // Agrupa por material + acondicionamento
+  // Agrupa por material
   const map = {};
   vendaData.forEach(r => {
     const nome = r.materiais?.nome || r.codigo_material || 'Sem material';
-    const acond = r.acondicionamento || '';
-    const chave = `${nome}||${acond}`;
-    if (!map[chave]) map[chave] = { nome, acond, vol: 0, fat: 0 };
-    map[chave].vol += pesoVenda(r);
-    map[chave].fat += parseFloat(r.valor_total || 0);
+    if (!map[nome]) map[nome] = { vol: 0, fat: 0 };
+    map[nome].vol += pesoVenda(r);
+    map[nome].fat += parseFloat(r.valor_total || 0);
   });
 
   const totalVol = Object.values(map).reduce((s, v) => s + v.vol, 0);
   const totalFat = Object.values(map).reduce((s, v) => s + v.fat, 0);
 
-  const linhas = Object.values(map)
-    .sort((a, b) => b.fat - a.fat);
+  const linhas = Object.entries(map)
+    .sort((a, b) => b[1].fat - a[1].fat);
 
-  tb.innerHTML = linhas.map(v => {
+  tb.innerHTML = linhas.map(([nome, v]) => {
     const pctVol = totalVol > 0 ? (v.vol / totalVol * 100).toFixed(1) : '0.0';
     const pctFat = totalFat > 0 ? (v.fat / totalFat * 100).toFixed(1) : '0.0';
     const precoMedio = v.vol > 0 ? moeda(v.fat / (v.vol / 1000)) : '—';
     const barWidth = parseFloat(pctFat);
     return `<tr>
-      <td><strong>${v.nome}</strong></td>
-      <td>${ACOND_LABEL[v.acond] || '—'}</td>
+      <td><strong>${nome}</strong></td>
       <td class="text-right">${ton(v.vol)}</td>
       <td class="text-right">
         <div style="display:flex;align-items:center;gap:6px;justify-content:flex-end">
@@ -795,7 +815,6 @@ function renderFatProduto() {
   }).join('') + `
     <tr style="background:#f8fafc;font-weight:700;border-top:2px solid #e2e8f0">
       <td>TOTAL</td>
-      <td></td>
       <td class="text-right">${ton(totalVol)}</td>
       <td class="text-right">100%</td>
       <td class="text-right">${moeda(totalFat)}</td>
@@ -804,6 +823,71 @@ function renderFatProduto() {
     </tr>`;
 
   document.getElementById('fat-prod-total').textContent = `${linhas.length} produtos`;
+}
+
+function renderResumoAcondicionamento() {
+  const tb = document.getElementById('tb-fat-acond');
+  if (!vendaData.length) {
+    tb.innerHTML = '<tr><td colspan="6" class="table-empty">Nenhuma venda encontrada</td></tr>';
+    document.getElementById('fat-acond-total').textContent = '';
+    return;
+  }
+
+  // Agrupa por acondicionamento (prensa / granel / não informado)
+  const map = {};
+  vendaData.forEach(r => {
+    const acond = r.acondicionamento || 'sem_info';
+    if (!map[acond]) map[acond] = { vol: 0, fat: 0 };
+    map[acond].vol += pesoVenda(r);
+    map[acond].fat += parseFloat(r.valor_total || 0);
+  });
+
+  const totalVol = Object.values(map).reduce((s, v) => s + v.vol, 0);
+  const totalFat = Object.values(map).reduce((s, v) => s + v.fat, 0);
+
+  const ordem = { prensa: 0, granel: 1, sem_info: 2 };
+  const linhas = Object.entries(map)
+    .sort((a, b) => (ordem[a[0]] ?? 9) - (ordem[b[0]] ?? 9));
+
+  tb.innerHTML = linhas.map(([acond, v]) => {
+    const pctVol = totalVol > 0 ? (v.vol / totalVol * 100).toFixed(1) : '0.0';
+    const pctFat = totalFat > 0 ? (v.fat / totalFat * 100).toFixed(1) : '0.0';
+    const precoMedio = v.vol > 0 ? moeda(v.fat / (v.vol / 1000)) : '—';
+    const barWidth = parseFloat(pctFat);
+    const label = acond === 'sem_info' ? 'Não informado' : ACOND_LABEL[acond];
+    return `<tr>
+      <td><strong>${label}</strong></td>
+      <td class="text-right">${ton(v.vol)}</td>
+      <td class="text-right">
+        <div style="display:flex;align-items:center;gap:6px;justify-content:flex-end">
+          <div style="width:60px;height:6px;background:#e2e8f0;border-radius:3px;overflow:hidden">
+            <div style="width:${barWidth}%;height:100%;background:#10b981;border-radius:3px"></div>
+          </div>
+          <span>${pctVol}%</span>
+        </div>
+      </td>
+      <td class="text-right">${moeda(v.fat)}</td>
+      <td class="text-right">
+        <div style="display:flex;align-items:center;gap:6px;justify-content:flex-end">
+          <div style="width:60px;height:6px;background:#e2e8f0;border-radius:3px;overflow:hidden">
+            <div style="width:${barWidth}%;height:100%;background:#3b82f6;border-radius:3px"></div>
+          </div>
+          <span>${pctFat}%</span>
+        </div>
+      </td>
+      <td class="text-right">${precoMedio}</td>
+    </tr>`;
+  }).join('') + `
+    <tr style="background:#f8fafc;font-weight:700;border-top:2px solid #e2e8f0">
+      <td>TOTAL</td>
+      <td class="text-right">${ton(totalVol)}</td>
+      <td class="text-right">100%</td>
+      <td class="text-right">${moeda(totalFat)}</td>
+      <td class="text-right">100%</td>
+      <td class="text-right">${totalVol > 0 ? moeda(totalFat / (totalVol / 1000)) : '—'}</td>
+    </tr>`;
+
+  document.getElementById('fat-acond-total').textContent = `${linhas.length} categorias`;
 }
 
 function renderTabela() {
