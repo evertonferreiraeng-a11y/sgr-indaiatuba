@@ -71,23 +71,46 @@
 
       <div class="pe-section-title">Processamento Geral (material disponível para processar)</div>
       <div class="pe-info-box">
-        <strong>Nota:</strong> este número é calculado a partir do volume <strong>vendido</strong> no mês, usado aqui como aproximação do processamento. Ele não inclui o percentual de <strong>rejeito</strong> (material processado que não vira venda) — ainda não temos esse dado. O processamento real tende a ser um pouco maior do que o mostrado.
+        <strong>Nota:</strong> o Processamento Total do Mês soma <strong>Vendas</strong> (prensado + solto) + <strong>Estoque Atual</strong> + <strong>Passivo</strong> + <strong>Rejeito</strong>. Passivo e Rejeito são lançados manualmente — se ainda não houver lançamento no mês, entram como 0.
       </div>
       <div class="kpi-grid">
         <div class="kpi-card">
           <div class="kpi-label">Processamento Total do Mês</div>
           <div class="kpi-value" id="pe-kpi-total">—</div>
-          <div class="kpi-sub">baseado em vendas (prensado + solto)</div>
+          <div class="kpi-sub">vendas + estoque + passivo + rejeito</div>
           <div class="kpi-progress">
             <div class="progress-bar"><div class="progress-fill" id="pe-kpi-total-fill" style="width:0%"></div></div>
             <div class="kpi-progress-label" id="pe-kpi-total-label">— / 250 t</div>
           </div>
         </div>
         <div class="kpi-card">
+          <div class="kpi-label">Vendas do Mês</div>
+          <div class="kpi-value" id="pe-kpi-vendas">—</div>
+          <div class="kpi-sub">prensado + solto</div>
+        </div>
+        <div class="kpi-card">
+          <div class="kpi-label">Estoque Atual</div>
+          <div class="kpi-value" id="pe-kpi-estoque">—</div>
+          <div class="kpi-sub">material em estoque hoje</div>
+        </div>
+        <div class="kpi-card">
+          <div class="kpi-label">Passivo do Mês</div>
+          <div class="kpi-value" id="pe-kpi-passivo">—</div>
+          <div class="kpi-sub">lançado manualmente</div>
+        </div>
+        <div class="kpi-card">
+          <div class="kpi-label">Rejeito do Mês</div>
+          <div class="kpi-value" id="pe-kpi-rejeito">—</div>
+          <div class="kpi-sub">lançado manualmente</div>
+        </div>
+        <div class="kpi-card">
           <div class="kpi-label">Variação Total vs Antes do Plano</div>
           <div class="kpi-value" id="pe-kpi-var-total" style="font-size:21px">—</div>
-          <div class="kpi-sub">média mensal, prensado + solto</div>
+          <div class="kpi-sub">média mensal de vendas, prensado + solto</div>
         </div>
+      </div>
+      <div style="display:flex;justify-content:flex-end;margin:12px 0 4px">
+        <button type="button" class="btn btn-outline btn-sm" id="btn-editar-ajustes" style="display:none;font-size:12.5px;padding:6px 14px">Editar Passivo e Rejeito do Mês</button>
       </div>
 
       <div class="pe-section-title">Prensagem (capacidade instalada)</div>
@@ -211,6 +234,30 @@
   </div>
 </div>
 
+<!-- Modal: Editar Passivo e Rejeito -->
+<div class="modal-backdrop" id="modal-ajustes">
+  <div class="modal">
+    <div class="modal-header">
+      <h3>Editar Passivo e Rejeito do Mês</h3>
+      <button class="modal-close" data-close="modal-ajustes">✕</button>
+    </div>
+    <div class="modal-body">
+      <form id="form-ajustes">
+        <div class="form-grid">
+          <div class="form-group"><label>Mês *</label><input type="month" name="mes" required /></div>
+          <div class="form-group"><label>Passivo (ton)</label><input type="number" name="passivo_ton" min="0" step="0.01" /></div>
+          <div class="form-group"><label>Rejeito (ton)</label><input type="number" name="rejeito_ton" min="0" step="0.01" /></div>
+          <div class="form-group full"><label>Observação</label><input type="text" name="observacao" placeholder="opcional" /></div>
+        </div>
+      </form>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-outline" data-close="modal-ajustes">Cancelar</button>
+      <button class="btn btn-primary" id="btn-salvar-ajustes">Salvar</button>
+    </div>
+  </div>
+</div>
+
 <div id="toast-container"></div>
 <script type="module">
 import { initPage, supabase, ton, dataBR, toast, abrirModal, fecharModal } from './js/config.js?v=2';
@@ -237,6 +284,7 @@ let perfil;
 let chartTotal = null, chartPrensado = null;
 let marcosCache = [];
 let proximosPassosTexto = '';
+let ajustesCache = null;
 
 document.getElementById('btn-editar-proximos-passos').innerHTML = icon('edit', { size: 13 });
 
@@ -249,16 +297,21 @@ function varBadge(a, b) {
 }
 
 function renderKpis(ultimo, stats) {
-  const { totalAtual, prensadoAtual, totalAntes, totalDepois, prensadoAntes, prensadoDepois } = stats;
+  const { vendasAtual, estoqueTon, passivoTon, rejeitoTon, prensadoAtual, totalAntes, totalDepois, prensadoAntes, prensadoDepois } = stats;
+  const processamentoTotal = vendasAtual + estoqueTon + passivoTon + rejeitoTon;
   const capacidadeAtual = (ultimo.prensas_operando || 0) * META.capacidadePorPrensaTon;
 
-  document.getElementById('pe-kpi-total').textContent = ton(totalAtual * 1000);
+  document.getElementById('pe-kpi-total').textContent = ton(processamentoTotal * 1000);
+  document.getElementById('pe-kpi-vendas').textContent = ton(vendasAtual * 1000);
+  document.getElementById('pe-kpi-estoque').textContent = ton(estoqueTon * 1000);
+  document.getElementById('pe-kpi-passivo').textContent = ton(passivoTon * 1000);
+  document.getElementById('pe-kpi-rejeito').textContent = ton(rejeitoTon * 1000);
   document.getElementById('pe-kpi-var-total').innerHTML = totalAntes > 0
     ? varBadge(totalAntes, totalDepois)
     : '<span class="text-muted" style="font-size:12.5px">sem dados suficientes</span>';
-  const pctTotal = Math.min(100, (totalAtual / META.materialDisponivelTon) * 100);
+  const pctTotal = Math.min(100, (processamentoTotal / META.materialDisponivelTon) * 100);
   document.getElementById('pe-kpi-total-fill').style.width = pctTotal + '%';
-  document.getElementById('pe-kpi-total-label').textContent = `${ton(totalAtual * 1000)} / ${META.materialDisponivelTon} t · ${pctTotal.toFixed(0)}% da meta`;
+  document.getElementById('pe-kpi-total-label').textContent = `${ton(processamentoTotal * 1000)} / ${META.materialDisponivelTon} t · ${pctTotal.toFixed(0)}% da meta`;
 
   document.getElementById('pe-kpi-prensado').textContent = ton(prensadoAtual * 1000);
   document.getElementById('pe-kpi-prensado-sub').textContent = `Capacidade: ${capacidadeAtual} t/mês (${ultimo.prensas_operando ?? 0} prensa${ultimo.prensas_operando === 1 ? '' : 's'})`;
@@ -393,6 +446,15 @@ async function carregarPlano() {
     .order('data');
   if (errV) { toast('Erro ao carregar processamento: ' + errV.message, 'error'); }
 
+  const { data: mats } = await supabase.from('materiais').select('estoque_kg').eq('no_estoque', true);
+  const estoqueTon = (mats || []).reduce((s, m) => s + parseFloat(m.estoque_kg || 0), 0) / 1000;
+
+  const hojeMes = new Date().toISOString().slice(0, 7);
+  const { data: ajustes } = await supabase.from('plano_expansao_ajustes').select('*').eq('mes', `${hojeMes}-01`).maybeSingle();
+  ajustesCache = ajustes || null;
+  const passivoTon = parseFloat(ajustes?.passivo_ton || 0);
+  const rejeitoTon = parseFloat(ajustes?.rejeito_ton || 0);
+
   const porMesTotal = {}, porMesPrensado = {};
   (vendas || []).forEach(r => {
     const mk = (r.data || '').slice(0, 7);
@@ -412,11 +474,10 @@ async function carregarPlano() {
   const prensadoAntes = media(porMesPrensado, m => m < inicioPlanoMes);
   const prensadoDepois = media(porMesPrensado, m => m >= inicioPlanoMes);
 
-  const hojeMes = new Date().toISOString().slice(0, 7);
-  const totalAtual = porMesTotal[hojeMes] || 0;
+  const vendasAtual = porMesTotal[hojeMes] || 0;
   const prensadoAtual = porMesPrensado[hojeMes] || 0;
 
-  renderKpis(ultimo, { totalAtual, prensadoAtual, totalAntes, totalDepois, prensadoAntes, prensadoDepois });
+  renderKpis(ultimo, { vendasAtual, estoqueTon, passivoTon, rejeitoTon, prensadoAtual, totalAntes, totalDepois, prensadoAntes, prensadoDepois });
   renderLegenda('pe-chart-legenda-total', totalAntes, totalDepois);
   renderLegenda('pe-chart-legenda-prensado', prensadoAntes, prensadoDepois);
   renderChart('chart-total', c => chartTotal = c, chartTotal, porMesTotal, inicioPlanoMes, META.materialDisponivelTon, 'Material disponível (250 t)');
@@ -495,11 +556,42 @@ document.getElementById('btn-salvar-proximos-passos').addEventListener('click', 
   carregarPlano();
 });
 
+document.getElementById('btn-editar-ajustes').addEventListener('click', () => {
+  const f = document.getElementById('form-ajustes');
+  const hojeMes = new Date().toISOString().slice(0, 7);
+  f.querySelector('[name="mes"]').value = ajustesCache?.mes ? ajustesCache.mes.slice(0, 7) : hojeMes;
+  f.querySelector('[name="passivo_ton"]').value = ajustesCache?.passivo_ton ?? '';
+  f.querySelector('[name="rejeito_ton"]').value = ajustesCache?.rejeito_ton ?? '';
+  f.querySelector('[name="observacao"]').value = ajustesCache?.observacao ?? '';
+  abrirModal('modal-ajustes');
+});
+
+document.getElementById('btn-salvar-ajustes').addEventListener('click', async () => {
+  const f = document.getElementById('form-ajustes');
+  if (!f.checkValidity()) { f.reportValidity(); return; }
+  const fd = Object.fromEntries(new FormData(f));
+  const payload = {
+    mes: `${fd.mes}-01`,
+    passivo_ton: fd.passivo_ton ? parseFloat(fd.passivo_ton) : 0,
+    rejeito_ton: fd.rejeito_ton ? parseFloat(fd.rejeito_ton) : 0,
+    observacao: fd.observacao || null,
+    atualizado_em: new Date().toISOString(),
+  };
+  const { error } = await supabase.from('plano_expansao_ajustes').upsert(payload, { onConflict: 'mes' });
+  if (error) { toast('Erro ao salvar: ' + error.message, 'error'); return; }
+  toast('Passivo e rejeito atualizados!');
+  fecharModal('modal-ajustes');
+  carregarPlano();
+});
+
 async function init() {
   const { data: { user } } = await supabase.auth.getUser();
   const { data: p } = await supabase.from('profiles').select('*').eq('id', user.id).single();
   perfil = p;
-  if (perfil?.role === 'admin') document.getElementById('btn-novo-marco').style.display = '';
+  if (perfil?.role === 'admin') {
+    document.getElementById('btn-novo-marco').style.display = '';
+    document.getElementById('btn-editar-ajustes').style.display = '';
+  }
   await carregarPlano();
 }
 
