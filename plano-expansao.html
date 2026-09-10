@@ -123,7 +123,7 @@
         <div class="kpi-card">
           <div class="kpi-label">Variação Prensado vs Antes do Plano</div>
           <div class="kpi-value" id="pe-kpi-var-prensado" style="font-size:21px">—</div>
-          <div class="kpi-sub">média mensal, só material prensado</div>
+          <div class="kpi-sub">mês atual vs média mensal antes do plano</div>
         </div>
         <div class="kpi-card">
           <div class="kpi-label">Prensas em Operação</div>
@@ -310,7 +310,7 @@ function renderKpis(ultimo, stats) {
   document.getElementById('pe-kpi-prensado').textContent = ton(prensadoAtual * 1000);
   document.getElementById('pe-kpi-prensado-sub').textContent = `Capacidade: ${capacidadeAtual} t/mês (${ultimo.prensas_operando ?? 0} prensa${ultimo.prensas_operando === 1 ? '' : 's'})`;
   document.getElementById('pe-kpi-var-prensado').innerHTML = prensadoAntes > 0
-    ? varBadge(prensadoAntes, prensadoDepois)
+    ? varBadge(prensadoAntes, prensadoAtual)
     : '<span class="text-muted" style="font-size:12.5px">sem dados suficientes</span>';
   const pctUtil = capacidadeAtual > 0 ? (prensadoAtual / capacidadeAtual * 100) : 0;
   document.getElementById('pe-kpi-prensado-fill').style.width = Math.min(100, pctUtil) + '%';
