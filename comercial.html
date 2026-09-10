@@ -53,6 +53,10 @@
     .acond-dot-sem_info{background:#94a3b8}
     .acond-pct{display:inline-block;min-width:48px;padding:3px 10px;border-radius:20px;font-weight:700;font-size:12.5px;background:#f1f5f9;color:#475569}
     .acond-fat{font-weight:700;color:var(--text)}
+    .acond-table tr.acond-sub-row td{padding:6px 18px 6px 34px;font-size:11.5px;color:var(--text-muted);border-bottom:1px dashed #f1f5f9;background:#fcfcfd}
+    .acond-table tr.acond-sub-row:last-of-type td{border-bottom:1px solid var(--border)}
+    .acond-sub-label{position:relative}
+    .acond-sub-label::before{content:'';position:absolute;left:14px;top:50%;width:6px;height:6px;border-radius:50%;background:#cbd5e1;transform:translateY(-50%)}
   </style>
 </head>
 <body>
@@ -867,13 +871,17 @@ function renderResumoAcondicionamento() {
     return;
   }
 
-  // Agrupa por acondicionamento (prensa / granel / não informado)
+  // Agrupa por acondicionamento (prensa / granel / não informado), com detalhamento por material
   const map = {};
   vendaData.forEach(r => {
     const acond = r.acondicionamento || 'sem_info';
-    if (!map[acond]) map[acond] = { vol: 0, fat: 0 };
+    const mat = r.materiais?.nome || r.codigo_material || 'Sem material';
+    if (!map[acond]) map[acond] = { vol: 0, fat: 0, materiais: {} };
     map[acond].vol += pesoVenda(r);
     map[acond].fat += parseFloat(r.valor_total || 0);
+    if (!map[acond].materiais[mat]) map[acond].materiais[mat] = { vol: 0, fat: 0 };
+    map[acond].materiais[mat].vol += pesoVenda(r);
+    map[acond].materiais[mat].fat += parseFloat(r.valor_total || 0);
   });
 
   const totalVol = Object.values(map).reduce((s, v) => s + v.vol, 0);
@@ -889,6 +897,20 @@ function renderResumoAcondicionamento() {
     const precoMedio = v.vol > 0 ? moeda(v.fat / (v.vol / 1000)) : '—';
     const barWidth = parseFloat(pctFat);
     const label = acond === 'sem_info' ? 'Não informado' : ACOND_LABEL[acond];
+    const subLinhas = Object.entries(v.materiais)
+      .sort((a, b) => b[1].fat - a[1].fat)
+      .map(([nomeMat, mv]) => {
+        const pctMat = v.vol > 0 ? (mv.vol / v.vol * 100).toFixed(1) : '0.0';
+        const precoMat = mv.vol > 0 ? moeda(mv.fat / (mv.vol / 1000)) : '—';
+        return `<tr class="acond-sub-row">
+          <td class="acond-sub-label">${nomeMat}</td>
+          <td class="text-right">${ton(mv.vol)}</td>
+          <td class="text-right">${pctMat}%</td>
+          <td class="text-right">${moeda(mv.fat)}</td>
+          <td class="text-right">${v.fat > 0 ? (mv.fat / v.fat * 100).toFixed(1) : '0.0'}%</td>
+          <td class="text-right">${precoMat}</td>
+        </tr>`;
+      }).join('');
     return `<tr>
       <td><span class="acond-dot acond-dot-${acond}"></span><strong>${label}</strong></td>
       <td class="text-right">${ton(v.vol)}</td>
@@ -910,7 +932,7 @@ function renderResumoAcondicionamento() {
         </div>
       </td>
       <td class="text-right">${precoMedio}</td>
-    </tr>`;
+    </tr>${subLinhas}`;
   }).join('') + `
     <tr class="acond-total-row">
       <td>TOTAL</td>
@@ -964,7 +986,7 @@ async function buscarVendasPeriodoAcond(ini, fim) {
   const cli = document.getElementById('f-cliente').value;
   const mat = document.getElementById('f-mat').value;
   let q = supabase.from('vendas')
-    .select('acondicionamento, peso_kg, unidade, valor_total')
+    .select('acondicionamento, peso_kg, unidade, valor_total, materiais(nome), codigo_material')
     .gte('data', ini).lte('data', fim);
   if (cli) q = q.eq('cliente_id', cli);
   if (mat) q = q.eq('material_id', mat);
@@ -977,9 +999,13 @@ function agruparPorAcondicionamento(rows) {
   const map = {};
   rows.forEach(r => {
     const acond = r.acondicionamento || 'sem_info';
-    if (!map[acond]) map[acond] = { vol: 0, fat: 0 };
+    const mat = r.materiais?.nome || r.codigo_material || 'Sem material';
+    if (!map[acond]) map[acond] = { vol: 0, fat: 0, materiais: {} };
     map[acond].vol += pesoVenda(r);
     map[acond].fat += parseFloat(r.valor_total || 0);
+    if (!map[acond].materiais[mat]) map[acond].materiais[mat] = { vol: 0, fat: 0 };
+    map[acond].materiais[mat].vol += pesoVenda(r);
+    map[acond].materiais[mat].fat += parseFloat(r.valor_total || 0);
   });
   return map;
 }
@@ -1053,13 +1079,42 @@ async function compararAcondicionamento() {
   });
 
   const linhasHtml = chaves.map(acond => {
-    const a = mapA[acond] || { vol: 0, fat: 0 };
-    const b = mapB[acond] || { vol: 0, fat: 0 };
+    const a = mapA[acond] || { vol: 0, fat: 0, materiais: {} };
+    const b = mapB[acond] || { vol: 0, fat: 0, materiais: {} };
     const precoA = a.vol > 0 ? moeda(a.fat / (a.vol / 1000)) : '—';
     const precoB = b.vol > 0 ? moeda(b.fat / (b.vol / 1000)) : '—';
     const pctVolA = totA.vol > 0 ? (a.vol / totA.vol * 100).toFixed(1) : '0.0';
     const pctVolB = totB.vol > 0 ? (b.vol / totB.vol * 100).toFixed(1) : '0.0';
     const label = acond === 'sem_info' ? 'Não informado' : ACOND_LABEL[acond];
+
+    const matKeys = [...new Set([...Object.keys(a.materiais || {}), ...Object.keys(b.materiais || {})])]
+      .sort((x, y) => {
+        const fx = (a.materiais?.[x]?.fat || 0) + (b.materiais?.[x]?.fat || 0);
+        const fy = (a.materiais?.[y]?.fat || 0) + (b.materiais?.[y]?.fat || 0);
+        return fy - fx;
+      });
+    const subLinhas = matKeys.map(nomeMat => {
+      const ma = a.materiais?.[nomeMat] || { vol: 0, fat: 0 };
+      const mb = b.materiais?.[nomeMat] || { vol: 0, fat: 0 };
+      const precoMa = ma.vol > 0 ? moeda(ma.fat / (ma.vol / 1000)) : '—';
+      const precoMb = mb.vol > 0 ? moeda(mb.fat / (mb.vol / 1000)) : '—';
+      const pctMa = a.vol > 0 ? (ma.vol / a.vol * 100).toFixed(1) : '0.0';
+      const pctMb = b.vol > 0 ? (mb.vol / b.vol * 100).toFixed(1) : '0.0';
+      return `<tr class="acond-sub-row">
+        <td class="acond-sub-label">${nomeMat}</td>
+        <td class="text-right">${ton(ma.vol)}</td>
+        <td class="text-right">${pctMa}%</td>
+        <td class="text-right">${moeda(ma.fat)}</td>
+        <td class="text-right">${precoMa}</td>
+        <td class="text-right acond-divider">${ton(mb.vol)}</td>
+        <td class="text-right">${pctMb}%</td>
+        <td class="text-right">${moeda(mb.fat)}</td>
+        <td class="text-right">${precoMb}</td>
+        <td class="text-right">${varLabelAcond(ma.vol, mb.vol)}</td>
+        <td class="text-right">${varLabelAcond(ma.fat, mb.fat)}</td>
+      </tr>`;
+    }).join('');
+
     return `<tr>
       <td><span class="acond-dot acond-dot-${acond}"></span><strong>${label}</strong></td>
       <td class="text-right">${ton(a.vol)}</td>
@@ -1072,7 +1127,7 @@ async function compararAcondicionamento() {
       <td class="text-right">${precoB}</td>
       <td class="text-right">${varLabelAcond(a.vol, b.vol)}</td>
       <td class="text-right">${varLabelAcond(a.fat, b.fat)}</td>
-    </tr>`;
+    </tr>${subLinhas}`;
   }).join('');
 
   document.getElementById('tb-fat-acond').innerHTML = linhasHtml + `
