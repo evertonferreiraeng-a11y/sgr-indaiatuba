@@ -19,10 +19,9 @@
     .pe-hero p{font-size:14.5px;color:var(--text);line-height:1.55;margin:0}
     .pe-section-title{font-size:12px;font-weight:800;text-transform:uppercase;letter-spacing:.06em;color:var(--text-muted);margin:22px 0 10px}
     .pe-section-title:first-of-type{margin-top:0}
-    .pe-progress-block{margin-bottom:18px}
-    .pe-progress-block:last-child{margin-bottom:0}
-    .pe-progress-row{display:flex;justify-content:space-between;align-items:baseline;font-size:12.5px;margin-bottom:6px;color:var(--text-muted)}
-    .pe-progress-row strong{color:var(--text);font-size:13.5px}
+    .kpi-progress{margin-top:12px}
+    .kpi-progress .progress-bar{height:5px}
+    .kpi-progress-label{font-size:11px;color:var(--text-muted);margin-top:5px}
     .pe-next-box{background:#fffbeb;border:1px dashed #fbbf24;border-radius:10px;padding:13px 16px;font-size:13px;color:#92400e;margin-bottom:18px;line-height:1.5}
     .pe-next-box strong{color:#78350f}
     .pe-info-box{background:#eff6ff;border:1px dashed #93c5fd;border-radius:10px;padding:12px 16px;font-size:12.5px;color:#1e40af;margin-bottom:16px;line-height:1.5}
@@ -63,7 +62,11 @@
         <div class="kpi-card">
           <div class="kpi-label">Processamento Total do Mês</div>
           <div class="kpi-value" id="pe-kpi-total">—</div>
-          <div class="kpi-sub">Meta: até 250 t/mês · baseado em vendas</div>
+          <div class="kpi-sub">baseado em vendas (prensado + solto)</div>
+          <div class="kpi-progress">
+            <div class="progress-bar"><div class="progress-fill" id="pe-kpi-total-fill" style="width:0%"></div></div>
+            <div class="kpi-progress-label" id="pe-kpi-total-label">— / 250 t</div>
+          </div>
         </div>
         <div class="kpi-card">
           <div class="kpi-label">Variação Total vs Antes do Plano</div>
@@ -78,6 +81,10 @@
           <div class="kpi-label">Volume Prensado do Mês</div>
           <div class="kpi-value" id="pe-kpi-prensado">—</div>
           <div class="kpi-sub" id="pe-kpi-prensado-sub">Capacidade: — t/mês</div>
+          <div class="kpi-progress">
+            <div class="progress-bar"><div class="progress-fill" id="pe-kpi-prensado-fill" style="width:0%"></div></div>
+            <div class="kpi-progress-label" id="pe-kpi-prensado-label">—</div>
+          </div>
         </div>
         <div class="kpi-card">
           <div class="kpi-label">Variação Prensado vs Antes do Plano</div>
@@ -85,14 +92,12 @@
           <div class="kpi-sub">média mensal, só material prensado</div>
         </div>
         <div class="kpi-card">
-          <div class="kpi-label">Utilização da Capacidade</div>
-          <div class="kpi-value" id="pe-kpi-utilizacao">—</div>
-          <div class="kpi-sub">volume prensado / capacidade das prensas</div>
-        </div>
-        <div class="kpi-card">
           <div class="kpi-label">Prensas em Operação</div>
           <div class="kpi-value" id="pe-kpi-prensas">—</div>
           <div class="kpi-sub">Meta: 3 prensas (24 t/mês cada)</div>
+          <div class="kpi-progress">
+            <div class="progress-bar"><div class="progress-fill" id="pe-kpi-prensas-fill" style="width:0%"></div></div>
+          </div>
         </div>
       </div>
 
@@ -102,6 +107,9 @@
           <div class="kpi-label">Colaboradores</div>
           <div class="kpi-value" id="pe-kpi-colab">—</div>
           <div class="kpi-sub">Meta: 13 colaboradores</div>
+          <div class="kpi-progress">
+            <div class="progress-bar"><div class="progress-fill" id="pe-kpi-colab-fill" style="width:0%"></div></div>
+          </div>
         </div>
         <div class="kpi-card">
           <div class="kpi-label">Vagas em Aberto</div>
@@ -111,26 +119,6 @@
       </div>
 
       <div id="pe-next-box" class="pe-next-box" style="display:none"></div>
-
-      <div class="card mb-16" style="padding:20px">
-        <h3 style="font-size:13px;font-weight:700;margin-bottom:16px;text-transform:uppercase;letter-spacing:.05em;color:var(--text-muted)">Progresso da Meta</h3>
-        <div class="pe-progress-block">
-          <div class="pe-progress-row"><span>Processamento Total (material disponível)</span><strong id="pe-prog-total-label">—</strong></div>
-          <div class="progress-bar"><div class="progress-fill" id="pe-prog-total-fill" style="width:0%"></div></div>
-        </div>
-        <div class="pe-progress-block">
-          <div class="pe-progress-row"><span>Volume Prensado (capacidade das prensas)</span><strong id="pe-prog-prensado-label">—</strong></div>
-          <div class="progress-bar"><div class="progress-fill" id="pe-prog-prensado-fill" style="width:0%"></div></div>
-        </div>
-        <div class="pe-progress-block">
-          <div class="pe-progress-row"><span>Colaboradores</span><strong id="pe-prog-colab-label">—</strong></div>
-          <div class="progress-bar"><div class="progress-fill" id="pe-prog-colab-fill" style="width:0%"></div></div>
-        </div>
-        <div class="pe-progress-block">
-          <div class="pe-progress-row"><span>Prensas em Operação</span><strong id="pe-prog-prensa-label">—</strong></div>
-          <div class="progress-bar"><div class="progress-fill" id="pe-prog-prensa-fill" style="width:0%"></div></div>
-        </div>
-      </div>
 
       <div class="chart-card mb-16">
         <h3>Processamento Total por Mês (ton) — Prensado + Solto — Antes × Depois do Plano</h3>
@@ -222,40 +210,30 @@ function renderKpis(ultimo, stats) {
   document.getElementById('pe-kpi-var-total').innerHTML = totalAntes > 0
     ? varBadge(totalAntes, totalDepois)
     : '<span class="text-muted" style="font-size:12.5px">sem dados suficientes</span>';
+  const pctTotal = Math.min(100, (totalAtual / META.materialDisponivelTon) * 100);
+  document.getElementById('pe-kpi-total-fill').style.width = pctTotal + '%';
+  document.getElementById('pe-kpi-total-label').textContent = `${ton(totalAtual * 1000)} / ${META.materialDisponivelTon} t · ${pctTotal.toFixed(0)}% da meta`;
 
   document.getElementById('pe-kpi-prensado').textContent = ton(prensadoAtual * 1000);
   document.getElementById('pe-kpi-prensado-sub').textContent = `Capacidade: ${capacidadeAtual} t/mês (${ultimo.prensas_operando ?? 0} prensa${ultimo.prensas_operando === 1 ? '' : 's'})`;
   document.getElementById('pe-kpi-var-prensado').innerHTML = prensadoAntes > 0
     ? varBadge(prensadoAntes, prensadoDepois)
     : '<span class="text-muted" style="font-size:12.5px">sem dados suficientes</span>';
-
   const pctUtil = capacidadeAtual > 0 ? (prensadoAtual / capacidadeAtual * 100) : 0;
-  document.getElementById('pe-kpi-utilizacao').textContent = capacidadeAtual > 0 ? `${pctUtil.toFixed(0)}%` : '—';
-
-  document.getElementById('pe-kpi-prensas').textContent = `${ultimo.prensas_operando ?? '—'} / ${META.prensas}`;
-  document.getElementById('pe-kpi-colab').textContent = `${ultimo.colaboradores_ativos ?? '—'} / ${META.colaboradores}`;
-  document.getElementById('pe-kpi-vagas').textContent = ultimo.vagas_abertas ?? '—';
-
-  // Progresso
-  const pctTotal = Math.min(100, (totalAtual / META.materialDisponivelTon) * 100);
-  document.getElementById('pe-prog-total-fill').style.width = pctTotal + '%';
-  document.getElementById('pe-prog-total-label').textContent = `${ton(totalAtual * 1000)} / ${META.materialDisponivelTon} t`;
-
-  const pctPrensado = capacidadeAtual > 0 ? Math.min(100, pctUtil) : 0;
-  document.getElementById('pe-prog-prensado-fill').style.width = pctPrensado + '%';
-  document.getElementById('pe-prog-prensado-label').textContent = capacidadeAtual > 0
-    ? `${ton(prensadoAtual * 1000)} / ${capacidadeAtual} t`
+  document.getElementById('pe-kpi-prensado-fill').style.width = Math.min(100, pctUtil) + '%';
+  document.getElementById('pe-kpi-prensado-label').textContent = capacidadeAtual > 0
+    ? `${ton(prensadoAtual * 1000)} / ${capacidadeAtual} t · ${pctUtil.toFixed(0)}% da capacidade`
     : `${ton(prensadoAtual * 1000)}`;
 
-  const colabAtual = ultimo.colaboradores_ativos || 0;
-  const pctColab = Math.min(100, (colabAtual / META.colaboradores) * 100);
-  document.getElementById('pe-prog-colab-fill').style.width = pctColab + '%';
-  document.getElementById('pe-prog-colab-label').textContent = `${colabAtual} / ${META.colaboradores}`;
-
   const prensasAtual = ultimo.prensas_operando || 0;
-  const pctPrensa = Math.min(100, (prensasAtual / META.prensas) * 100);
-  document.getElementById('pe-prog-prensa-fill').style.width = pctPrensa + '%';
-  document.getElementById('pe-prog-prensa-label').textContent = `${prensasAtual} / ${META.prensas}`;
+  document.getElementById('pe-kpi-prensas').textContent = `${ultimo.prensas_operando ?? '—'} / ${META.prensas}`;
+  document.getElementById('pe-kpi-prensas-fill').style.width = Math.min(100, (prensasAtual / META.prensas) * 100) + '%';
+
+  const colabAtual = ultimo.colaboradores_ativos || 0;
+  document.getElementById('pe-kpi-colab').textContent = `${ultimo.colaboradores_ativos ?? '—'} / ${META.colaboradores}`;
+  document.getElementById('pe-kpi-colab-fill').style.width = Math.min(100, (colabAtual / META.colaboradores) * 100) + '%';
+
+  document.getElementById('pe-kpi-vagas').textContent = ultimo.vagas_abertas ?? '—';
 }
 
 function renderLegenda(elId, avgAntes, avgDepois) {
