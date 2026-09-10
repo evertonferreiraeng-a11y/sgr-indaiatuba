@@ -179,6 +179,7 @@
             <thead>
               <tr>
                 <th>Produto</th>
+                <th>Acondicionamento</th>
                 <th class="text-right">Volume (ton)</th>
                 <th class="text-right">% Volume</th>
                 <th class="text-right">Faturamento</th>
@@ -497,6 +498,13 @@
           <div class="form-group"><label>Data *</label><input type="date" name="data" required /></div>
           <div class="form-group"><label>Cód. Material</label><input type="text" name="codigo_material" /></div>
           <div class="form-group"><label>Tipo de Material *</label><select name="material_id" required><option value="">Selecione…</option></select></div>
+          <div class="form-group"><label>Acondicionamento</label>
+            <select name="acondicionamento">
+              <option value="">Selecione…</option>
+              <option value="prensa">Prensa</option>
+              <option value="granel">A Granel</option>
+            </select>
+          </div>
           <div class="form-group"><label>Quantidade *</label><input type="number" name="peso_kg" min="0.01" step="0.01" required /></div>
           <div class="form-group"><label>Unidade</label>
             <input type="text" name="unidade" list="dl-unidades" placeholder="ex: KG, TON, UN" />
@@ -729,36 +737,41 @@ async function renderKPIs() {
   document.getElementById('kpi-acum-ticket').textContent = acumVol > 0 ? moeda(acumVal/(acumVol/1000)) : '—';
 }
 
+const ACOND_LABEL = { prensa: 'Prensa', granel: 'A Granel' };
+
 function renderFatProduto() {
   const tb = document.getElementById('tb-fat-prod');
   if (!vendaData.length) {
-    tb.innerHTML = '<tr><td colspan="6" class="table-empty">Nenhuma venda encontrada</td></tr>';
+    tb.innerHTML = '<tr><td colspan="7" class="table-empty">Nenhuma venda encontrada</td></tr>';
     document.getElementById('fat-prod-total').textContent = '';
     return;
   }
 
-  // Agrupa por material
+  // Agrupa por material + acondicionamento
   const map = {};
   vendaData.forEach(r => {
     const nome = r.materiais?.nome || r.codigo_material || 'Sem material';
-    if (!map[nome]) map[nome] = { vol: 0, fat: 0 };
-    map[nome].vol += pesoVenda(r);
-    map[nome].fat += parseFloat(r.valor_total || 0);
+    const acond = r.acondicionamento || '';
+    const chave = `${nome}||${acond}`;
+    if (!map[chave]) map[chave] = { nome, acond, vol: 0, fat: 0 };
+    map[chave].vol += pesoVenda(r);
+    map[chave].fat += parseFloat(r.valor_total || 0);
   });
 
   const totalVol = Object.values(map).reduce((s, v) => s + v.vol, 0);
   const totalFat = Object.values(map).reduce((s, v) => s + v.fat, 0);
 
-  const linhas = Object.entries(map)
-    .sort((a, b) => b[1].fat - a[1].fat);
+  const linhas = Object.values(map)
+    .sort((a, b) => b.fat - a.fat);
 
-  tb.innerHTML = linhas.map(([nome, v]) => {
+  tb.innerHTML = linhas.map(v => {
     const pctVol = totalVol > 0 ? (v.vol / totalVol * 100).toFixed(1) : '0.0';
     const pctFat = totalFat > 0 ? (v.fat / totalFat * 100).toFixed(1) : '0.0';
     const precoMedio = v.vol > 0 ? moeda(v.fat / (v.vol / 1000)) : '—';
     const barWidth = parseFloat(pctFat);
     return `<tr>
-      <td><strong>${nome}</strong></td>
+      <td><strong>${v.nome}</strong></td>
+      <td>${ACOND_LABEL[v.acond] || '—'}</td>
       <td class="text-right">${ton(v.vol)}</td>
       <td class="text-right">
         <div style="display:flex;align-items:center;gap:6px;justify-content:flex-end">
@@ -782,6 +795,7 @@ function renderFatProduto() {
   }).join('') + `
     <tr style="background:#f8fafc;font-weight:700;border-top:2px solid #e2e8f0">
       <td>TOTAL</td>
+      <td></td>
       <td class="text-right">${ton(totalVol)}</td>
       <td class="text-right">100%</td>
       <td class="text-right">${moeda(totalFat)}</td>
@@ -1004,7 +1018,8 @@ window.editarVenda = id => {
   const f = document.getElementById('form-venda');
   const set = (n,v) => { const el=f.querySelector(`[name="${n}"]`); if(el) el.value=v??''; };
   set('id',r.id); set('data',r.data); set('cliente_id',r.cliente_id);
-  set('material_id',r.material_id); set('peso_kg',r.peso_kg);
+  set('material_id',r.material_id); set('acondicionamento',r.acondicionamento);
+  set('peso_kg',r.peso_kg);
   set('preco_kg',r.preco_kg); set('valor_total',r.valor_total);
   set('codigo_material',r.codigo_material); set('unidade',r.unidade);
   set('desconto',r.desconto||0); set('ordem_venda',r.ordem_venda);
@@ -1033,6 +1048,7 @@ document.getElementById('btn-salvar-venda').addEventListener('click', async () =
   const total= parseFloat(fd.valor_total)||(pk*pr - desc);
   const payload = {
     data:fd.data, cliente_id:fd.cliente_id, material_id:fd.material_id,
+    acondicionamento:fd.acondicionamento||null,
     peso_kg:pk, preco_kg:pr||null, valor_total:total,
     codigo_material:fd.codigo_material||null,
     unidade:fd.unidade||null,
