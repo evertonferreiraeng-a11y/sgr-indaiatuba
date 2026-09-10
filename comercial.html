@@ -211,8 +211,8 @@
       <!-- Tabela Resumo por Acondicionamento -->
       <div class="table-card mb-16">
         <div class="table-card-header" style="flex-wrap:wrap;gap:10px">
-          <h3>Resumo por Acondicionamento</h3>
-          <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+          <h3>Tipo de Acondicionamento</h3>
+          <div id="acond-controles" style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
             <label style="display:flex;align-items:center;gap:6px;font-size:12px;font-weight:600;cursor:pointer;color:var(--text-muted)">
               <input type="checkbox" id="acond-cmp-toggle" style="width:auto" />
               Comparar meses
@@ -225,6 +225,7 @@
             </div>
             <span id="fat-acond-total" class="text-muted" style="font-size:12px"></span>
           </div>
+          <button type="button" class="btn btn-outline btn-sm" id="btn-acond-print" style="padding:4px 12px;font-size:12px" title="Esconde os filtros para tirar print da tabela">👁 Ocultar filtros</button>
         </div>
         <div class="table-scroll">
           <table class="acond-table">
@@ -948,6 +949,12 @@ document.getElementById('acond-cmp-toggle').addEventListener('change', function(
 });
 
 document.getElementById('btn-acond-comparar').addEventListener('click', compararAcondicionamento);
+
+document.getElementById('btn-acond-print').addEventListener('click', function() {
+  const escondido = document.getElementById('acond-controles').style.display === 'none';
+  document.getElementById('acond-controles').style.display = escondido ? 'flex' : 'none';
+  this.textContent = escondido ? '👁 Ocultar filtros' : '👁 Mostrar filtros';
+});
 
 async function buscarVendasPeriodoAcond(ini, fim) {
   const cli = document.getElementById('f-cliente').value;
