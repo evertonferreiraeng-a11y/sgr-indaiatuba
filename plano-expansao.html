@@ -105,7 +105,7 @@
           <div class="kpi-sub">Rejeito gerado linha UVR</div>
         </div>
         <div class="kpi-card">
-          <div class="kpi-label">Variação Total vs Antes do Plano</div>
+          <div class="kpi-label">Atingimento Total vs Antes do Plano</div>
           <div class="kpi-value" id="pe-kpi-var-total" style="font-size:21px">—</div>
           <div class="kpi-sub">processamento do mês vs 135 t antes do plano</div>
         </div>
@@ -132,7 +132,7 @@
           </div>
         </div>
         <div class="kpi-card">
-          <div class="kpi-label">Variação Prensado vs Antes do Plano</div>
+          <div class="kpi-label">Atingimento Prensado vs Antes do Plano</div>
           <div class="kpi-value" id="pe-kpi-var-prensado" style="font-size:21px">—</div>
           <div class="kpi-sub" id="pe-kpi-var-prensado-sub">mês atual vs média mensal antes do plano</div>
         </div>
@@ -297,12 +297,10 @@ let estoqueLiveCache = 0;
 
 document.getElementById('btn-editar-proximos-passos').innerHTML = icon('edit', { size: 13 });
 
-function varBadge(a, b) {
-  const pct = ((b - a) / a) * 100;
-  const seta = pct > 0 ? '▲' : (pct < 0 ? '▼' : '●');
-  const sinal = pct > 0 ? '+' : '';
-  const cls = pct > 0 ? 'badge-green' : (pct < 0 ? 'badge-red' : 'badge-gray');
-  return `<span class="badge ${cls}">${seta} ${sinal}${pct.toFixed(1)}%</span>`;
+function atingimentoBadge(base, atual) {
+  const pct = (atual / base) * 100;
+  const cls = pct >= 100 ? 'badge-green' : (pct >= 70 ? 'badge-yellow' : 'badge-red');
+  return `<span class="badge ${cls}">${pct.toFixed(1)}%</span>`;
 }
 
 function renderKpis(ultimo, stats) {
@@ -322,7 +320,7 @@ function renderKpis(ultimo, stats) {
   document.getElementById('pe-kpi-estoque-pct').textContent = pctDoTotal(estoqueTon);
   document.getElementById('pe-kpi-passivo-pct').textContent = pctDoTotal(passivoTon);
   document.getElementById('pe-kpi-rejeito-pct').textContent = pctDoTotal(rejeitoTon);
-  document.getElementById('pe-kpi-var-total').innerHTML = varBadge(META.baseProcessamentoTon, processamentoTotal);
+  document.getElementById('pe-kpi-var-total').innerHTML = atingimentoBadge(META.baseProcessamentoTon, processamentoTotal);
   const pctTotal = Math.min(100, (processamentoTotal / META.materialDisponivelTon) * 100);
   document.getElementById('pe-kpi-total-fill').style.width = pctTotal + '%';
   document.getElementById('pe-kpi-total-label').textContent = `${ton(processamentoTotal * 1000)} / ${META.materialDisponivelTon} t · ${pctTotal.toFixed(0)}% da meta`;
@@ -330,7 +328,7 @@ function renderKpis(ultimo, stats) {
   document.getElementById('pe-kpi-prensado').textContent = ton(prensadoAtual * 1000);
   document.getElementById('pe-kpi-prensado-sub').textContent = `Capacidade: ${capacidadeAtual} t/mês (${ultimo.prensas_operando ?? 0} prensa${ultimo.prensas_operando === 1 ? '' : 's'})`;
   document.getElementById('pe-kpi-var-prensado').innerHTML = prensadoAntes > 0
-    ? varBadge(prensadoAntes, prensadoAtual)
+    ? atingimentoBadge(prensadoAntes, prensadoAtual)
     : '<span class="text-muted" style="font-size:12.5px">sem dados suficientes</span>';
   document.getElementById('pe-kpi-var-prensado-sub').textContent = prensadoAntes > 0
     ? `mês atual vs média de ${ton(prensadoAntes * 1000)}/mês antes do plano`
@@ -361,7 +359,7 @@ function renderLegenda(elId, avgAntes, avgDepois, formatarValor = v => ton(v * 1
   if (!avgAntes && !avgDepois) { el.textContent = 'Ainda não há dados suficientes para comparar.'; return; }
   el.innerHTML = `Média mensal <strong>antes</strong> do plano: <strong>${formatarValor(avgAntes)}</strong>
     &nbsp;·&nbsp; Média mensal <strong>desde o início do plano</strong>: <strong>${formatarValor(avgDepois)}</strong>
-    ${avgAntes > 0 ? ' &nbsp;·&nbsp; ' + varBadge(avgAntes, avgDepois) : ''}`;
+    ${avgAntes > 0 ? ' &nbsp;·&nbsp; ' + atingimentoBadge(avgAntes, avgDepois) : ''}`;
 }
 
 function montarDataset(porMes, inicioPlanoMes) {
