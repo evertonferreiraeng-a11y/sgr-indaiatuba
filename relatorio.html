@@ -233,13 +233,13 @@ async function carregar() {
     fetchAll('vendas', 'peso_kg, unidade, valor_total, data, clientes(nome)', [['gte','data',inicio],['lte','data',fim]]),
     fetchAll('materiais', 'nome, estoque_kg, valor_unitario, no_estoque, observacao', [['eq','no_estoque',true]]),
     fetchAll('equipamentos', 'id, nome, frota, status, capacidade_pct, descricao, funcao', []),
-    fetchAll('colaboradores', '*, cargos(nome, vagas)', []),
+    fetchAll('colaboradores', '*, cargos(nome, vagas, total_vagas)', []),
     fetchAll('colaborador_avaliacoes', '*', []),
     fetchAll('ocorrencias', 'tipo, data, colaborador_id', [['gte','data',inicio],['lte','data',fim]]),
     fetchAll('producao', 'peso_kg, data', [['gte','data',inicio],['lte','data',fim]]),
     fetchAll('metas', 'periodo, valor_meta', [['eq','indicador','faturamento'],['gte','periodo',`${ano}-01`],['lte','periodo',`${ano}-12`]]),
     fetchAll('vendas', 'peso_kg, unidade, valor_total, data', [['gte','data',`${ano}-01-01`],['lte','data',`${ano}-12-31`]]),
-    fetchAll('cargos', 'nome, vagas', []),
+    fetchAll('cargos', 'nome, vagas, total_vagas, preenchido', []),
     fetchAll('presenca_diaria', 'colaborador_id, presente', [['eq','data',hojeStr]]),
   ]);
 
@@ -415,8 +415,7 @@ async function carregar() {
     vagasMap: Object.fromEntries(
       Object.entries((() => {
         const vm = {};
-        (cargosAll||[]).forEach(c=>{ vm[c.nome]={ preenchido:0, total:c.vagas??null }; });
-        ativos.forEach(c=>{ const n=c.cargos?.nome||'Sem cargo'; if(!vm[n]) vm[n]={preenchido:0,total:null}; vm[n].preenchido++; });
+        (cargosAll||[]).forEach(c=>{ vm[c.nome]={ preenchido:c.preenchido??0, total:c.total_vagas??null }; });
         return vm;
       })()).filter(([k])=>k&&k!=='undefined'&&k!=='Sem cargo')
     ),
@@ -1007,15 +1006,10 @@ async function carregar() {
         </div>
       </div>
       ${(() => {
-        // Balanço de vagas por cargo — parte de todos os cargos cadastrados
+        // Balanço de vagas por cargo — mesmos dados cadastrados no módulo RH
         const vagasMap = {};
         (cargosAll||[]).forEach(c => {
-          vagasMap[c.nome] = { preenchido: 0, total: c.vagas ?? null };
-        });
-        ativos.forEach(c => {
-          const nome = c.cargos?.nome || 'Sem cargo';
-          if (!vagasMap[nome]) vagasMap[nome] = { preenchido: 0, total: c.cargos?.vagas ?? null };
-          vagasMap[nome].preenchido++;
+          vagasMap[c.nome] = { preenchido: c.preenchido ?? 0, total: c.total_vagas ?? null };
         });
         const linhas = Object.entries(vagasMap).filter(([k])=>k && k!=='undefined' && k!=='Sem cargo').sort((a,b)=>a[0].localeCompare(b[0]));
         return `
