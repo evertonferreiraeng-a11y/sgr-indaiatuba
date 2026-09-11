@@ -375,23 +375,27 @@ async function carregarCapacidades() {
 // ── Meta de Produção x Capacidade (prensas) ────────────────────────────────────
 const DOW_ABREV = ['Dom','Seg','Ter','Qua','Qui','Sex','Sáb'];
 
-function diasUteisDoMes(ano, mes1a12) {
-  const dias = [];
+function diasUteisDoMes(ano, mes1a12, extraDias = []) {
+  const dias = new Set();
   const totalDias = new Date(ano, mes1a12, 0).getDate();
   for (let d = 1; d <= totalDias; d++) {
     const dt = new Date(ano, mes1a12 - 1, d);
     const dow = dt.getDay();
-    if (dow !== 0 && dow !== 6) dias.push(`${ano}-${String(mes1a12).padStart(2, '0')}-${String(d).padStart(2, '0')}`);
+    if (dow !== 0 && dow !== 6) dias.add(`${ano}-${String(mes1a12).padStart(2, '0')}-${String(d).padStart(2, '0')}`);
   }
-  return dias;
+  // Sábado/domingo em que houve lançamento também conta como dia útil.
+  extraDias.forEach(d => dias.add(d));
+  return [...dias].sort();
 }
 
 function agruparPorSemana(diasUteis) {
   const semanas = {};
   diasUteis.forEach(dataStr => {
     const dt = new Date(dataStr + 'T00:00:00');
+    const dow = dt.getDay();
+    const diffParaSegunda = dow === 0 ? 6 : dow - 1; // domingo conta como fim daquela semana
     const monday = new Date(dt);
-    monday.setDate(dt.getDate() - (dt.getDay() - 1));
+    monday.setDate(dt.getDate() - diffParaSegunda);
     const key = monday.toISOString().split('T')[0];
     (semanas[key] = semanas[key] || []).push(dataStr);
   });
@@ -501,11 +505,15 @@ function renderMetaPrensas() {
   if (!mes) { wrap.innerHTML = ''; return; }
   const [anoStr, mesStr] = mes.split('-');
   const ano = +anoStr, mesNum = +mesStr;
-  const diasUteis = diasUteisDoMes(ano, mesNum);
-  const semanas = agruparPorSemana(diasUteis);
-  const semanasKeys = Object.keys(semanas).sort();
 
   const prensas = (equipamentos || []).filter(e => (e.nome || '').toLowerCase().includes('prensa') && e.capacidade_kg_mes);
+  const idsPrensas = prensas.map(eq => eq.id);
+  const fimDeSemanaComLancamento = [...new Set(producaoData.filter(r => idsPrensas.includes(r.equipamento_id)).map(r => r.data))]
+    .filter(d => { const dow = new Date(d + 'T00:00:00').getDay(); return dow === 0 || dow === 6; });
+
+  const diasUteis = diasUteisDoMes(ano, mesNum, fimDeSemanaComLancamento);
+  const semanas = agruparPorSemana(diasUteis);
+  const semanasKeys = Object.keys(semanas).sort();
 
   if (!prensas.length) {
     wrap.innerHTML = `<div class="card mb-16" style="padding:16px"><p class="text-muted" style="font-size:13px;margin:0">Nenhuma prensa com capacidade mensal cadastrada. Defina a "Capacidade Mensal (kg)" em Equipamentos para ver o acompanhamento de meta.</p></div>`;
