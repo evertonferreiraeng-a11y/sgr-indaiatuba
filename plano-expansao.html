@@ -504,6 +504,8 @@ async function carregarPlano() {
     porMesTotal[mk] = (porMesTotal[mk] || 0) + vol;
     if (r.acondicionamento === 'prensa') porMesPrensado[mk] = (porMesPrensado[mk] || 0) + vol;
   });
+  // Garante que todo mês com vendas apareça no gráfico de prensado, mesmo com 0 ton.
+  Object.keys(porMesTotal).forEach(mk => { if (!(mk in porMesPrensado)) porMesPrensado[mk] = 0; });
   const porMesVendas = { ...porMesTotal };
 
   const vendasAtual = porMesTotal[hojeMes] || 0;
