@@ -411,17 +411,36 @@ function renderMetaCard(idKey, titulo, subtituloExtra, capMes, equipIds, diasUte
   const atingimentoMes = capMes > 0 ? (totalProduzido / capMes * 100) : 0;
   const pctCls = atingimentoMes >= 100 ? 'badge-green' : atingimentoMes >= 70 ? 'badge-yellow' : 'badge-red';
 
+  const hojeStr = new Date().toISOString().split('T')[0];
+  const diasPassados = diasUteis.filter(d => d <= hojeStr);
+  const diasRestantes = diasUteis.filter(d => d > hojeStr);
+  const produzidoAteHoje = diasPassados.reduce((s, d) => s + (porDia[d] || 0), 0);
+  const metaEsperadaAteHoje = metaDiaria * diasPassados.length;
+  const saldoAcumulado = produzidoAteHoje - metaEsperadaAteHoje;
+  const faltaParaMeta = capMes - totalProduzido;
+  const metaAjustada = diasRestantes.length ? Math.max(0, faltaParaMeta) / diasRestantes.length : 0;
+  const sinal = v => v >= 0 ? '+' : '';
+  const cor = v => v >= 0 ? '#16a34a' : '#dc2626';
+
+  let acumulado = 0;
   const linhasDiario = diasUteis.map(d => {
     const prod = porDia[d] || 0;
     const pct = metaDiaria > 0 ? (prod / metaDiaria * 100) : 0;
     const dow = DOW_ABREV[new Date(d + 'T00:00:00').getDay()];
     const [, mm, dd] = d.split('-');
     const cls = pct >= 100 ? 'meta-day-ok' : (prod > 0 ? 'meta-day-bad' : '');
+    const jaOcorreu = d <= hojeStr;
+    const saldoDia = prod - metaDiaria;
+    if (jaOcorreu) acumulado += saldoDia;
+    const saldoTxt = jaOcorreu ? `${sinal(saldoDia)}${ton(saldoDia)}` : '—';
+    const acumTxt = jaOcorreu ? `${sinal(acumulado)}${ton(acumulado)}` : '—';
     return `<tr>
       <td>${dd}/${mm} (${dow})</td>
       <td class="text-right">${ton(prod)}</td>
       <td class="text-right">${ton(metaDiaria)}</td>
       <td class="text-right ${cls}">${pct.toFixed(0)}%</td>
+      <td class="text-right" style="color:${jaOcorreu ? cor(saldoDia) : 'var(--text-muted)'};font-weight:600">${saldoTxt}</td>
+      <td class="text-right" style="color:${jaOcorreu ? cor(acumulado) : 'var(--text-muted)'};font-weight:600">${acumTxt}</td>
     </tr>`;
   }).join('');
 
@@ -432,11 +451,17 @@ function renderMetaCard(idKey, titulo, subtituloExtra, capMes, equipIds, diasUte
     const pct = metaSemana > 0 ? (prod / metaSemana * 100) : 0;
     const cls = pct >= 100 ? 'meta-day-ok' : (prod > 0 ? 'meta-day-bad' : '');
     const fmtd = s => { const [, m, d] = s.split('-'); return `${d}/${m}`; };
+    const diasSemanaPassados = diasSemana.filter(d => d <= hojeStr);
+    const saldoSemana = diasSemanaPassados.length
+      ? diasSemanaPassados.reduce((s, d) => s + (porDia[d] || 0), 0) - metaDiaria * diasSemanaPassados.length
+      : null;
+    const saldoTxt = saldoSemana === null ? '—' : `${sinal(saldoSemana)}${ton(saldoSemana)}`;
     return `<tr>
       <td>Semana ${i + 1} (${fmtd(diasSemana[0])}–${fmtd(diasSemana[diasSemana.length - 1])})</td>
       <td class="text-right">${ton(prod)}</td>
       <td class="text-right">${ton(metaSemana)}</td>
       <td class="text-right ${cls}">${pct.toFixed(0)}%</td>
+      <td class="text-right" style="color:${saldoSemana === null ? 'var(--text-muted)' : cor(saldoSemana)};font-weight:600">${saldoTxt}</td>
     </tr>`;
   }).join('');
 
@@ -464,7 +489,13 @@ function renderMetaCard(idKey, titulo, subtituloExtra, capMes, equipIds, diasUte
         <div class="kpi-card" style="padding:12px"><div class="kpi-label" style="font-size:10px">Produzido</div><div class="kpi-value" style="font-size:18px">${ton(totalProduzido)}</div></div>
         <div class="kpi-card" style="padding:12px"><div class="kpi-label" style="font-size:10px">Meta Diária</div><div class="kpi-value" style="font-size:18px">${ton(metaDiaria)}</div></div>
         <div class="kpi-card" style="padding:12px"><div class="kpi-label" style="font-size:10px">Dias Úteis</div><div class="kpi-value" style="font-size:18px">${diasUteis.length}</div></div>
+        <div class="kpi-card" style="padding:12px"><div class="kpi-label" style="font-size:10px">Saldo Acumulado</div><div class="kpi-value" style="font-size:18px;color:${cor(saldoAcumulado)}">${sinal(saldoAcumulado)}${ton(saldoAcumulado)}</div><div style="font-size:10px;color:var(--text-muted);margin-top:2px">vs. meta até hoje</div></div>
+        ${diasRestantes.length
+          ? `<div class="kpi-card" style="padding:12px"><div class="kpi-label" style="font-size:10px">Meta Diária Ajustada</div><div class="kpi-value" style="font-size:18px;color:${metaAjustada > metaDiaria ? '#dc2626' : '#16a34a'}">${ton(metaAjustada)}</div><div style="font-size:10px;color:var(--text-muted);margin-top:2px">p/ os ${diasRestantes.length} dias úteis restantes</div></div>`
+          : `<div class="kpi-card" style="padding:12px"><div class="kpi-label" style="font-size:10px">Resultado do Mês</div><div class="kpi-value" style="font-size:18px;color:${cor(-faltaParaMeta)}">${sinal(-faltaParaMeta)}${ton(-faltaParaMeta)}</div><div style="font-size:10px;color:var(--text-muted);margin-top:2px">${faltaParaMeta > 0 ? 'faltou para a meta' : 'acima da meta'}</div></div>`}
       </div>
+      ${diasRestantes.length && saldoAcumulado < 0 ? `<p style="font-size:12px;color:#dc2626;margin:10px 0 0;font-weight:600">⚠ Atraso de ${ton(Math.abs(saldoAcumulado))}. Para recuperar até o fim do mês, é preciso produzir ${ton(metaAjustada)}/dia nos próximos ${diasRestantes.length} dias úteis (em vez de ${ton(metaDiaria)}/dia).</p>` : ''}
+      ${diasRestantes.length && saldoAcumulado > 0 ? `<p style="font-size:12px;color:#16a34a;margin:10px 0 0;font-weight:600">✓ Adiantado em ${ton(saldoAcumulado)}. A meta diária para os próximos ${diasRestantes.length} dias úteis cai para ${ton(metaAjustada)}.</p>` : ''}
 
       <div class="meta-sub-tabs">
         <button type="button" class="meta-sub-tab active" data-pane="diario-${idKey}">Diário</button>
@@ -475,7 +506,7 @@ function renderMetaCard(idKey, titulo, subtituloExtra, capMes, equipIds, diasUte
       <div class="meta-sub-pane active" data-pane="diario-${idKey}">
         <div class="table-scroll" style="max-height:280px">
           <table style="font-size:12px">
-            <thead><tr><th>Dia</th><th class="text-right">Produzido</th><th class="text-right">Meta</th><th class="text-right">Atingimento</th></tr></thead>
+            <thead><tr><th>Dia</th><th class="text-right">Produzido</th><th class="text-right">Meta</th><th class="text-right">Atingimento</th><th class="text-right">Saldo</th><th class="text-right">Acumulado</th></tr></thead>
             <tbody>${linhasDiario}</tbody>
           </table>
         </div>
@@ -483,7 +514,7 @@ function renderMetaCard(idKey, titulo, subtituloExtra, capMes, equipIds, diasUte
       <div class="meta-sub-pane" data-pane="semanal-${idKey}">
         <div class="table-scroll">
           <table style="font-size:12px">
-            <thead><tr><th>Semana</th><th class="text-right">Produzido</th><th class="text-right">Meta</th><th class="text-right">Atingimento</th></tr></thead>
+            <thead><tr><th>Semana</th><th class="text-right">Produzido</th><th class="text-right">Meta</th><th class="text-right">Atingimento</th><th class="text-right">Saldo</th></tr></thead>
             <tbody>${linhasSemanal}</tbody>
           </table>
         </div>
