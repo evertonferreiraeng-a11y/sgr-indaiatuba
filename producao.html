@@ -28,6 +28,12 @@
     .btn-add-colab{background:#f0faf4;border:1.5px dashed #006636;color:#006636;border-radius:8px;padding:8px 16px;font-size:13px;font-weight:700;cursor:pointer;width:100%;margin-top:4px;text-align:center}
     .btn-add-colab:hover{background:#e0f5ea}
     #modal-triagem .modal{max-width:620px}
+    .capacity-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:12px}
+    .capacity-card{border:1px solid var(--border);border-radius:8px;padding:12px 14px;background:#fff}
+    .capacity-card h4{font-size:13px;font-weight:700;margin:0 0 8px}
+    .capacity-info{display:flex;justify-content:space-between;font-size:12px;color:var(--text-muted);margin-top:6px}
+    .capacity-card-total{background:#f0faf4;border:1.5px solid var(--primary)}
+    .capacity-card-total h4{color:var(--primary)}
     .meta-press-card{border:1px solid var(--border);border-radius:var(--radius);padding:16px;margin-bottom:14px;background:#fff}
     .meta-press-card:last-child{margin-bottom:0}
     .meta-press-card-destaque{background:#f0faf4;border:1.5px solid var(--primary)}
@@ -62,6 +68,16 @@
       <!-- ══ TAB: PRENSAGEM ══ -->
       <div class="tab-pane active" id="tab-prensagem">
 
+        <!-- Filtros prensagem -->
+        <div class="card mb-16" style="padding:16px">
+          <div class="filters-row">
+            <div class="form-group"><label>Mês</label><input type="month" id="f-mes" /></div>
+            <div class="form-group"><label>Equipamento</label><select id="f-equip"><option value="">Todos</option></select></div>
+            <div class="form-group"><label>Material</label><select id="f-mat"><option value="">Todos</option></select></div>
+            <div class="form-group" style="justify-content:flex-end"><label>&nbsp;</label><button class="btn btn-primary" id="btn-filtrar">Filtrar</button></div>
+          </div>
+        </div>
+
         <!-- Capacidade hoje -->
         <div class="card mb-16">
           <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px">
@@ -70,25 +86,6 @@
           </div>
           <div class="capacity-grid" id="capacity-grid">
             <div class="loading-spinner"><div class="spinner"></div> Carregando…</div>
-          </div>
-        </div>
-
-        <!-- KPIs prensagem -->
-        <div class="kpi-grid" style="grid-template-columns:repeat(auto-fill,minmax(160px,1fr))">
-          <div class="kpi-card"><div class="kpi-label">Produção do Mês</div><div class="kpi-value" id="kpi-mes">—</div><div class="kpi-sub">kg processados</div></div>
-          <div class="kpi-card"><div class="kpi-label">Total de Fardos</div><div class="kpi-value" id="kpi-fardos">—</div><div class="kpi-sub">unidades prensadas</div></div>
-          <div class="kpi-card"><div class="kpi-label">Registros</div><div class="kpi-value" id="kpi-regs">—</div><div class="kpi-sub">no período</div></div>
-          <div class="kpi-card"><div class="kpi-label">Média por Dia</div><div class="kpi-value" id="kpi-dia">—</div><div class="kpi-sub">kg/dia no mês</div></div>
-          <div class="kpi-card"><div class="kpi-label">Eficiência</div><div class="kpi-value" id="kpi-efic">—</div><div class="kpi-sub">produção / entradas</div></div>
-        </div>
-
-        <!-- Filtros prensagem -->
-        <div class="card mb-16" style="padding:16px">
-          <div class="filters-row">
-            <div class="form-group"><label>Mês</label><input type="month" id="f-mes" /></div>
-            <div class="form-group"><label>Equipamento</label><select id="f-equip"><option value="">Todos</option></select></div>
-            <div class="form-group"><label>Material</label><select id="f-mat"><option value="">Todos</option></select></div>
-            <div class="form-group" style="justify-content:flex-end"><label>&nbsp;</label><button class="btn btn-primary" id="btn-filtrar">Filtrar</button></div>
           </div>
         </div>
 
@@ -334,11 +331,28 @@ async function carregarCapacidades() {
   (prodHoje||[]).forEach(r => { prodPorEquip[r.equipamento_id] = (prodPorEquip[r.equipamento_id]||0) + r.peso_produzido_kg; });
   const grid = document.getElementById('capacity-grid');
   if (!equipamentos.length) { grid.innerHTML = '<p class="text-muted" style="font-size:13px">Nenhum equipamento cadastrado.</p>'; return; }
-  const comProducao = equipamentos.filter(eq => prodPorEquip[eq.id] > 0);
-  if (!comProducao.length) { grid.innerHTML = '<p class="text-muted" style="font-size:13px;padding:8px 0">Nenhuma produção lançada hoje.</p>'; return; }
+
   const hojeD = new Date();
   const diasUteisHoje = diasUteisDoMes(hojeD.getFullYear(), hojeD.getMonth() + 1).length;
-  grid.innerHTML = comProducao.map(eq => {
+
+  const prensas = equipamentos.filter(eq => (eq.nome || '').toLowerCase().includes('prensa') && eq.capacidade_kg_mes);
+  let resumoHtml = '';
+  if (prensas.length) {
+    const metaHojeTotal = prensas.reduce((s, eq) => s + (diasUteisHoje > 0 ? (eq.capacidade_kg_mes || 0) / diasUteisHoje : 0), 0);
+    const produzidoHojeTotal = prensas.reduce((s, eq) => s + (prodPorEquip[eq.id] || 0), 0);
+    const falta = Math.max(0, metaHojeTotal - produzidoHojeTotal);
+    const pct = metaHojeTotal > 0 ? Math.min((produzidoHojeTotal / metaHojeTotal) * 100, 150) : 0;
+    const cls = pct >= 100 ? 'over' : pct >= 80 ? 'warn' : '';
+    resumoHtml = `<div class="capacity-card capacity-card-total">
+      <h4>Total das ${prensas.length} Prensas</h4>
+      <div class="progress-bar"><div class="progress-fill ${cls}" style="width:${Math.min(pct,100)}%"></div></div>
+      <div class="capacity-info"><span>${ton(produzidoHojeTotal)} produzido</span><span>Meta/dia: ${ton(metaHojeTotal)}</span></div>
+      <div style="font-size:12px;margin-top:6px;font-weight:700;color:${falta > 0 ? '#dc2626' : '#16a34a'}">${falta > 0 ? `Falta ${ton(falta)} para a meta` : '✓ Meta do dia batida!'}</div>
+    </div>`;
+  }
+
+  const comProducao = equipamentos.filter(eq => prodPorEquip[eq.id] > 0);
+  const cardsHtml = comProducao.map(eq => {
     const prod = prodPorEquip[eq.id] || 0;
     const cap  = eq.capacidade_kg_mes && diasUteisHoje > 0 ? eq.capacidade_kg_mes / diasUteisHoje : 0;
     const pct  = cap > 0 ? Math.min((prod/cap)*100, 150) : 0;
@@ -350,6 +364,12 @@ async function carregarCapacidades() {
       ${pct >= 100 ? `<div style="font-size:11px;color:var(--danger);margin-top:6px;display:flex;align-items:center;gap:4px">${icon('alert-triangle',{size:11})} Capacidade excedida!</div>` : ''}
     </div>`;
   }).join('');
+
+  if (!resumoHtml && !comProducao.length) {
+    grid.innerHTML = '<p class="text-muted" style="font-size:13px;padding:8px 0">Nenhuma produção lançada hoje.</p>';
+    return;
+  }
+  grid.innerHTML = resumoHtml + cardsHtml + (!comProducao.length ? '<p class="text-muted" style="font-size:13px;padding:8px 0;grid-column:1/-1">Nenhuma produção lançada hoje.</p>' : '');
 }
 
 // ── Meta de Produção x Capacidade (prensas) ────────────────────────────────────
@@ -537,24 +557,6 @@ async function carregarProducao() {
   producaoData = data || [];
   renderMetaPrensas();
 
-  const totKg     = producaoData.reduce((s,r)=>s+r.peso_produzido_kg, 0);
-  const totFardos = producaoData.reduce((s,r)=>s+(r.quantidade_fardos||0), 0);
-  const dias      = new Set(producaoData.map(r=>r.data)).size || 1;
-
-  let efic = '—';
-  if (mes) {
-    const [y,m] = mes.split('-');
-    const { data: ents } = await supabase.from('entradas').select('peso_kg')
-      .gte('data',`${y}-${m}-01`).lte('data', new Date(y,m,0).toISOString().split('T')[0]);
-    const totEnt = (ents||[]).reduce((s,r)=>s+r.peso_kg, 0);
-    efic = totEnt > 0 ? (totKg/totEnt*100).toFixed(1)+'%' : '0%';
-  }
-
-  document.getElementById('kpi-mes').textContent    = ton(totKg);
-  document.getElementById('kpi-fardos').textContent = totFardos > 0 ? totFardos.toLocaleString('pt-BR') + ' un' : '—';
-  document.getElementById('kpi-regs').textContent   = producaoData.length;
-  document.getElementById('kpi-dia').textContent    = ton(totKg/dias);
-  document.getElementById('kpi-efic').textContent   = efic;
   document.getElementById('prod-count').textContent = `${producaoData.length} registros`;
 
   const diasMap = {};
