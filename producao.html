@@ -574,7 +574,7 @@ function renderMetaCard(idKey, titulo, subtituloExtra, capMes, equipIds, diasUte
 function renderMetaPrensas() {
   const wrap = document.getElementById('meta-prensas-wrap');
   const mes = document.getElementById('f-mes').value;
-  if (!mes) { wrap.innerHTML = ''; return; }
+  if (!mes) { wrap.innerHTML = ''; return 0; }
   const [anoStr, mesStr] = mes.split('-');
   const ano = +anoStr, mesNum = +mesStr;
 
@@ -591,10 +591,11 @@ function renderMetaPrensas() {
   if (!prensas.length) {
     const msg = idsFiltro ? 'Nenhuma prensa com capacidade mensal cadastrada dentro do filtro de equipamento selecionado.' : 'Nenhuma prensa com capacidade mensal cadastrada. Defina a "Capacidade Mensal (kg)" em Equipamentos para ver o acompanhamento de meta.';
     wrap.innerHTML = `<div class="card mb-16" style="padding:16px"><p class="text-muted" style="font-size:13px;margin:0">${msg}</p></div>`;
-    return;
+    return 0;
   }
 
   const capMesTotal = prensas.reduce((s, eq) => s + (eq.capacidade_kg_mes || 0), 0);
+  const metaDiariaConsolidada = diasUteis.length ? capMesTotal / diasUteis.length : 0;
   const cardConsolidado = renderMetaCard(
     'consolidado', `Consolidado — ${prensas.length} Prensa${prensas.length !== 1 ? 's' : ''}`, `${prensas.length} prensa${prensas.length !== 1 ? 's' : ''}`,
     capMesTotal, prensas.map(eq => eq.id), diasUteis, semanas, semanasKeys, true,
@@ -620,6 +621,8 @@ function renderMetaPrensas() {
       card.querySelector(`.meta-sub-pane[data-pane="${btn.dataset.pane}"]`).classList.add('active');
     });
   });
+
+  return metaDiariaConsolidada;
 }
 
 async function carregarProducao() {
@@ -636,7 +639,7 @@ async function carregarProducao() {
   if (mat) q = q.eq('material_id', mat);
   const { data } = await q;
   producaoData = data || [];
-  renderMetaPrensas();
+  const metaDiariaChart = renderMetaPrensas();
 
   document.getElementById('prod-count').textContent = `${producaoData.length} registros`;
 
@@ -648,9 +651,12 @@ async function carregarProducao() {
     type: 'bar',
     data: {
       labels: diasSorted.map(d => { const [,, dd] = d.split('-'); return dd+'/'+d.split('-')[1]; }),
-      datasets: [{ data: diasSorted.map(d=>diasMap[d]), backgroundColor:'#006636', borderRadius:4 }]
+      datasets: [
+        { type: 'bar', label: 'Produzido', data: diasSorted.map(d=>diasMap[d]), backgroundColor:'#006636', borderRadius:4 },
+        ...(metaDiariaChart > 0 ? [{ type: 'line', label: 'Meta diária', data: diasSorted.map(() => metaDiariaChart), borderColor:'#dc2626', borderWidth:2, borderDash:[6,4], pointRadius:0, fill:false }] : []),
+      ]
     },
-    options: { responsive:true, maintainAspectRatio:false, plugins:{legend:{display:false}}, scales:{x:{grid:{display:false},ticks:{font:{size:10}}}, y:{grid:{color:'#F0F0F0'}}} }
+    options: { responsive:true, maintainAspectRatio:false, plugins:{legend:{display: metaDiariaChart > 0, position:'top', align:'end', labels:{boxWidth:12,font:{size:10}}}}, scales:{x:{grid:{display:false},ticks:{font:{size:10}}}, y:{grid:{color:'#F0F0F0'}}} }
   });
 
   const opMap = {}, opFardos = {}, opDias = {};
