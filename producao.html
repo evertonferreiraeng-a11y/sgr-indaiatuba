@@ -28,6 +28,17 @@
     .btn-add-colab{background:#f0faf4;border:1.5px dashed #006636;color:#006636;border-radius:8px;padding:8px 16px;font-size:13px;font-weight:700;cursor:pointer;width:100%;margin-top:4px;text-align:center}
     .btn-add-colab:hover{background:#e0f5ea}
     #modal-triagem .modal{max-width:620px}
+    .meta-press-card{border:1px solid var(--border);border-radius:var(--radius);padding:16px;margin-bottom:14px;background:#fff}
+    .meta-press-card:last-child{margin-bottom:0}
+    .meta-press-head{display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:10px;margin-bottom:14px}
+    .meta-press-head h4{font-size:14px;font-weight:700;margin:0 0 4px}
+    .meta-sub-tabs{display:flex;gap:6px;margin:16px 0 10px}
+    .meta-sub-tab{padding:6px 14px;font-size:12px;font-weight:600;border:1px solid var(--border);border-radius:20px;background:#fff;color:var(--text-muted);cursor:pointer}
+    .meta-sub-tab.active{background:var(--primary);color:#fff;border-color:var(--primary)}
+    .meta-sub-pane{display:none}
+    .meta-sub-pane.active{display:block}
+    .meta-day-ok{color:#16a34a;font-weight:700}
+    .meta-day-bad{color:#dc2626;font-weight:700}
   </style>
 </head>
 <body>
@@ -78,6 +89,9 @@
             <div class="form-group" style="justify-content:flex-end"><label>&nbsp;</label><button class="btn btn-primary" id="btn-filtrar">Filtrar</button></div>
           </div>
         </div>
+
+        <!-- Meta de Produção x Capacidade (prensas) -->
+        <div id="meta-prensas-wrap"></div>
 
         <!-- Gráficos prensagem -->
         <div class="charts-grid" style="margin-bottom:20px">
@@ -334,6 +348,165 @@ async function carregarCapacidades() {
   }).join('');
 }
 
+// ── Meta de Produção x Capacidade (prensas) ────────────────────────────────────
+const DOW_ABREV = ['Dom','Seg','Ter','Qua','Qui','Sex','Sáb'];
+
+function diasUteisDoMes(ano, mes1a12) {
+  const dias = [];
+  const totalDias = new Date(ano, mes1a12, 0).getDate();
+  for (let d = 1; d <= totalDias; d++) {
+    const dt = new Date(ano, mes1a12 - 1, d);
+    const dow = dt.getDay();
+    if (dow !== 0 && dow !== 6) dias.push(`${ano}-${String(mes1a12).padStart(2, '0')}-${String(d).padStart(2, '0')}`);
+  }
+  return dias;
+}
+
+function agruparPorSemana(diasUteis) {
+  const semanas = {};
+  diasUteis.forEach(dataStr => {
+    const dt = new Date(dataStr + 'T00:00:00');
+    const monday = new Date(dt);
+    monday.setDate(dt.getDate() - (dt.getDay() - 1));
+    const key = monday.toISOString().split('T')[0];
+    (semanas[key] = semanas[key] || []).push(dataStr);
+  });
+  return semanas;
+}
+
+function renderPressCard(eq, diasUteis, semanas, semanasKeys) {
+  const capMes = eq.capacidade_kg_mes || 0;
+  const metaDiaria = diasUteis.length ? capMes / diasUteis.length : 0;
+  const producaoPress = producaoData.filter(r => r.equipamento_id === eq.id);
+  const porDia = {};
+  producaoPress.forEach(r => { porDia[r.data] = (porDia[r.data] || 0) + r.peso_produzido_kg; });
+  const totalProduzido = producaoPress.reduce((s, r) => s + r.peso_produzido_kg, 0);
+  const atingimentoMes = capMes > 0 ? (totalProduzido / capMes * 100) : 0;
+  const pctCls = atingimentoMes >= 100 ? 'badge-green' : atingimentoMes >= 70 ? 'badge-yellow' : 'badge-red';
+
+  const linhasDiario = diasUteis.map(d => {
+    const prod = porDia[d] || 0;
+    const pct = metaDiaria > 0 ? (prod / metaDiaria * 100) : 0;
+    const dow = DOW_ABREV[new Date(d + 'T00:00:00').getDay()];
+    const [, mm, dd] = d.split('-');
+    const cls = pct >= 100 ? 'meta-day-ok' : (prod > 0 ? 'meta-day-bad' : '');
+    return `<tr>
+      <td>${dd}/${mm} (${dow})</td>
+      <td class="text-right">${ton(prod)}</td>
+      <td class="text-right">${ton(metaDiaria)}</td>
+      <td class="text-right ${cls}">${pct.toFixed(0)}%</td>
+    </tr>`;
+  }).join('');
+
+  const linhasSemanal = semanasKeys.map((wkKey, i) => {
+    const diasSemana = semanas[wkKey];
+    const prod = diasSemana.reduce((s, d) => s + (porDia[d] || 0), 0);
+    const metaSemana = metaDiaria * diasSemana.length;
+    const pct = metaSemana > 0 ? (prod / metaSemana * 100) : 0;
+    const cls = pct >= 100 ? 'meta-day-ok' : (prod > 0 ? 'meta-day-bad' : '');
+    const fmtd = s => { const [, m, d] = s.split('-'); return `${d}/${m}`; };
+    return `<tr>
+      <td>Semana ${i + 1} (${fmtd(diasSemana[0])}–${fmtd(diasSemana[diasSemana.length - 1])})</td>
+      <td class="text-right">${ton(prod)}</td>
+      <td class="text-right">${ton(metaSemana)}</td>
+      <td class="text-right ${cls}">${pct.toFixed(0)}%</td>
+    </tr>`;
+  }).join('');
+
+  const porOperador = {};
+  producaoPress.forEach(r => {
+    const nome = r.colaboradores?.nome || '(Sem operador)';
+    porOperador[nome] = (porOperador[nome] || 0) + r.peso_produzido_kg;
+  });
+  const opSorted = Object.entries(porOperador).sort((a, b) => b[1] - a[1]);
+  const linhasOperador = opSorted.length ? opSorted.map(([nome, kg]) => `
+    <tr><td>${nome}</td><td class="text-right">${ton(kg)}</td><td class="text-right">${totalProduzido > 0 ? (kg / totalProduzido * 100).toFixed(0) : 0}%</td></tr>
+  `).join('') : '<tr><td colspan="3" class="table-empty">Sem dados</td></tr>';
+
+  return `
+    <div class="meta-press-card">
+      <div class="meta-press-head">
+        <div>
+          <h4>${eq.nome}${eq.frota ? ` — ${eq.frota}` : ''}</h4>
+          <span class="text-muted" style="font-size:12px">${ton(capMes)}/mês · ${diasUteis.length} dias úteis · meta diária ${ton(metaDiaria)}</span>
+        </div>
+        <span class="badge ${pctCls}" style="font-size:13px">${atingimentoMes.toFixed(1)}% da meta</span>
+      </div>
+      <div class="kpi-grid" style="grid-template-columns:repeat(auto-fill,minmax(140px,1fr));margin-bottom:0">
+        <div class="kpi-card" style="padding:12px"><div class="kpi-label" style="font-size:10px">Meta do Mês</div><div class="kpi-value" style="font-size:18px">${ton(capMes)}</div></div>
+        <div class="kpi-card" style="padding:12px"><div class="kpi-label" style="font-size:10px">Produzido</div><div class="kpi-value" style="font-size:18px">${ton(totalProduzido)}</div></div>
+        <div class="kpi-card" style="padding:12px"><div class="kpi-label" style="font-size:10px">Meta Diária</div><div class="kpi-value" style="font-size:18px">${ton(metaDiaria)}</div></div>
+        <div class="kpi-card" style="padding:12px"><div class="kpi-label" style="font-size:10px">Dias Úteis</div><div class="kpi-value" style="font-size:18px">${diasUteis.length}</div></div>
+      </div>
+
+      <div class="meta-sub-tabs">
+        <button type="button" class="meta-sub-tab active" data-eq="${eq.id}" data-pane="diario-${eq.id}">Diário</button>
+        <button type="button" class="meta-sub-tab" data-eq="${eq.id}" data-pane="semanal-${eq.id}">Semanal</button>
+        <button type="button" class="meta-sub-tab" data-eq="${eq.id}" data-pane="operador-${eq.id}">Por Operador</button>
+      </div>
+
+      <div class="meta-sub-pane active" data-pane="diario-${eq.id}">
+        <div class="table-scroll" style="max-height:280px">
+          <table style="font-size:12px">
+            <thead><tr><th>Dia</th><th class="text-right">Produzido</th><th class="text-right">Meta</th><th class="text-right">Atingimento</th></tr></thead>
+            <tbody>${linhasDiario}</tbody>
+          </table>
+        </div>
+      </div>
+      <div class="meta-sub-pane" data-pane="semanal-${eq.id}">
+        <div class="table-scroll">
+          <table style="font-size:12px">
+            <thead><tr><th>Semana</th><th class="text-right">Produzido</th><th class="text-right">Meta</th><th class="text-right">Atingimento</th></tr></thead>
+            <tbody>${linhasSemanal}</tbody>
+          </table>
+        </div>
+      </div>
+      <div class="meta-sub-pane" data-pane="operador-${eq.id}">
+        <div class="table-scroll">
+          <table style="font-size:12px">
+            <thead><tr><th>Operador</th><th class="text-right">Produzido</th><th class="text-right">% do Total</th></tr></thead>
+            <tbody>${linhasOperador}</tbody>
+          </table>
+        </div>
+      </div>
+    </div>`;
+}
+
+function renderMetaPrensas() {
+  const wrap = document.getElementById('meta-prensas-wrap');
+  const mes = document.getElementById('f-mes').value;
+  if (!mes) { wrap.innerHTML = ''; return; }
+  const [anoStr, mesStr] = mes.split('-');
+  const ano = +anoStr, mesNum = +mesStr;
+  const diasUteis = diasUteisDoMes(ano, mesNum);
+  const semanas = agruparPorSemana(diasUteis);
+  const semanasKeys = Object.keys(semanas).sort();
+
+  const prensas = (equipamentos || []).filter(e => (e.nome || '').toLowerCase().includes('prensa') && e.capacidade_kg_mes);
+
+  if (!prensas.length) {
+    wrap.innerHTML = `<div class="card mb-16" style="padding:16px"><p class="text-muted" style="font-size:13px;margin:0">Nenhuma prensa com capacidade mensal cadastrada. Defina a "Capacidade Mensal (kg)" em Equipamentos para ver o acompanhamento de meta.</p></div>`;
+    return;
+  }
+
+  wrap.innerHTML = `
+    <div class="card mb-16" style="padding:16px">
+      <h3 style="font-size:14px;font-weight:600;margin-bottom:4px">Meta de Produção — Prensas</h3>
+      <p class="text-muted" style="font-size:12px;margin:0 0 14px">Capacidade mensal ÷ dias úteis (seg–sex) do mês selecionado = meta diária.</p>
+      ${prensas.map(eq => renderPressCard(eq, diasUteis, semanas, semanasKeys)).join('')}
+    </div>`;
+
+  wrap.querySelectorAll('.meta-sub-tab').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const card = btn.closest('.meta-press-card');
+      card.querySelectorAll('.meta-sub-tab').forEach(b => b.classList.remove('active'));
+      card.querySelectorAll('.meta-sub-pane').forEach(p => p.classList.remove('active'));
+      btn.classList.add('active');
+      card.querySelector(`.meta-sub-pane[data-pane="${btn.dataset.pane}"]`).classList.add('active');
+    });
+  });
+}
+
 async function carregarProducao() {
   let q = supabase.from('producao')
     .select('*, equipamentos(nome), materiais(nome), colaboradores(nome)')
@@ -349,6 +522,7 @@ async function carregarProducao() {
   if (mat) q = q.eq('material_id', mat);
   const { data } = await q;
   producaoData = data || [];
+  renderMetaPrensas();
 
   const totKg     = producaoData.reduce((s,r)=>s+r.peso_produzido_kg, 0);
   const totFardos = producaoData.reduce((s,r)=>s+(r.quantidade_fardos||0), 0);
