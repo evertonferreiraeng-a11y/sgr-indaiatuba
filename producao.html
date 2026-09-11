@@ -47,6 +47,13 @@
     .meta-sub-pane.active{display:block}
     .meta-day-ok{color:#16a34a;font-weight:700}
     .meta-day-bad{color:#dc2626;font-weight:700}
+    .multi-select{position:relative}
+    .multi-select-btn{padding:8px 12px;border:1.5px solid var(--border);border-radius:8px;background:#fff;font-size:13px;font-family:inherit;cursor:pointer;display:flex;align-items:center;justify-content:space-between;gap:8px;min-width:150px;text-align:left;color:var(--text)}
+    .multi-select-btn:hover{border-color:var(--primary)}
+    .multi-select-panel{position:absolute;top:calc(100% + 4px);left:0;z-index:20;background:#fff;border:1px solid var(--border);border-radius:8px;box-shadow:0 4px 16px rgba(0,0,0,.12);padding:8px;min-width:220px;max-height:260px;overflow-y:auto}
+    .multi-select-panel label{display:flex;align-items:center;gap:8px;font-size:13px;font-weight:400;text-transform:none;letter-spacing:0;color:var(--text);padding:6px;border-radius:6px;cursor:pointer}
+    .multi-select-panel label:hover{background:#f5f7f6}
+    .multi-select-panel hr{border:none;border-top:1px solid var(--border);margin:4px 0}
   </style>
 </head>
 <body>
@@ -72,7 +79,11 @@
         <div class="card mb-16" style="padding:16px">
           <div class="filters-row">
             <div class="form-group"><label>Mês</label><input type="month" id="f-mes" /></div>
-            <div class="form-group"><label>Equipamento</label><select id="f-equip"><option value="">Todos</option></select></div>
+            <div class="form-group multi-select">
+              <label>Equipamento</label>
+              <button type="button" class="multi-select-btn" id="f-equip-btn"><span id="f-equip-label">Todos</span><span>▾</span></button>
+              <div class="multi-select-panel" id="f-equip-panel" hidden></div>
+            </div>
             <div class="form-group"><label>Material</label><select id="f-mat"><option value="">Todos</option></select></div>
             <div class="form-group" style="justify-content:flex-end"><label>&nbsp;</label><button class="btn btn-primary" id="btn-filtrar">Filtrar</button></div>
           </div>
@@ -310,12 +321,43 @@ async function init() {
   await Promise.all([carregarCapacidades(), carregarProducao(), carregarTriagem()]);
 }
 
+let filtroEquipIds = [];
+
+function atualizarLabelFiltroEquip() {
+  const label = document.getElementById('f-equip-label');
+  if (!filtroEquipIds.length) { label.textContent = 'Todos'; return; }
+  if (filtroEquipIds.length === 1) {
+    const eq = equipamentos.find(e => e.id === filtroEquipIds[0]);
+    label.textContent = eq ? eq.nome : '1 selecionado';
+    return;
+  }
+  label.textContent = `${filtroEquipIds.length} selecionados`;
+}
+
 function popularSelects() {
   const eqOpts  = equipamentos.map(e=>`<option value="${e.id}">${e.nome}${e.frota ? ' — ' + e.frota : ''}</option>`).join('');
   const mtOpts  = materiais.map(m=>`<option value="${m.id}">${m.nome}</option>`).join('');
   const colOpts = '<option value="">— Nenhum —</option>' + colaboradores.map(c=>`<option value="${c.id}">${c.nome}</option>`).join('');
 
-  document.getElementById('f-equip').innerHTML = '<option value="">Todos</option>' + eqOpts;
+  const panel = document.getElementById('f-equip-panel');
+  panel.innerHTML = `<label><input type="checkbox" id="f-equip-todos" checked /> Todos</label><hr />` +
+    equipamentos.map(e => `<label><input type="checkbox" class="f-equip-item" value="${e.id}" /> ${e.nome}${e.frota ? ' — ' + e.frota : ''}</label>`).join('');
+
+  document.getElementById('f-equip-todos').addEventListener('change', e => {
+    e.target.checked = true;
+    panel.querySelectorAll('.f-equip-item').forEach(cb => cb.checked = false);
+    filtroEquipIds = [];
+    atualizarLabelFiltroEquip();
+  });
+  panel.querySelectorAll('.f-equip-item').forEach(cb => {
+    cb.addEventListener('change', () => {
+      const marcados = [...panel.querySelectorAll('.f-equip-item:checked')].map(c => c.value);
+      filtroEquipIds = marcados;
+      document.getElementById('f-equip-todos').checked = !marcados.length;
+      atualizarLabelFiltroEquip();
+    });
+  });
+
   document.getElementById('f-mat').innerHTML   = '<option value="">Todos</option>' + mtOpts;
   document.querySelector('#form-prod [name="equipamento_id"]').innerHTML = '<option value="">Selecione…</option>' + eqOpts;
   document.querySelector('#form-prod [name="material_id"]').innerHTML    = '<option value="">Selecione…</option>' + mtOpts;
@@ -488,7 +530,6 @@ function renderMetaCard(idKey, titulo, subtituloExtra, capMes, equipIds, diasUte
         <div class="kpi-card" style="padding:12px"><div class="kpi-label" style="font-size:10px">Meta do Mês</div><div class="kpi-value" style="font-size:18px">${ton(capMes)}</div></div>
         <div class="kpi-card" style="padding:12px"><div class="kpi-label" style="font-size:10px">Produzido</div><div class="kpi-value" style="font-size:18px">${ton(totalProduzido)}</div></div>
         <div class="kpi-card" style="padding:12px"><div class="kpi-label" style="font-size:10px">Meta Diária</div><div class="kpi-value" style="font-size:18px">${ton(metaDiaria)}</div></div>
-        <div class="kpi-card" style="padding:12px"><div class="kpi-label" style="font-size:10px">Dias Úteis</div><div class="kpi-value" style="font-size:18px">${diasUteis.length}</div></div>
         <div class="kpi-card" style="padding:12px"><div class="kpi-label" style="font-size:10px">Saldo Acumulado</div><div class="kpi-value" style="font-size:18px;color:${cor(saldoAcumulado)}">${sinal(saldoAcumulado)}${ton(saldoAcumulado)}</div><div style="font-size:10px;color:var(--text-muted);margin-top:2px">vs. meta até hoje</div></div>
         ${diasRestantes.length
           ? `<div class="kpi-card" style="padding:12px"><div class="kpi-label" style="font-size:10px">Meta Diária Ajustada</div><div class="kpi-value" style="font-size:18px;color:${metaAjustada > metaDiaria ? '#dc2626' : '#16a34a'}">${ton(metaAjustada)}</div><div style="font-size:10px;color:var(--text-muted);margin-top:2px">p/ os ${diasRestantes.length} dias úteis restantes</div></div>`
@@ -584,13 +625,12 @@ async function carregarProducao() {
     .select('*, equipamentos(nome), materiais(nome), colaboradores(nome)')
     .order('data', { ascending: false });
   const mes = document.getElementById('f-mes').value;
-  const eq  = document.getElementById('f-equip').value;
   const mat = document.getElementById('f-mat').value;
   if (mes) {
     const [y,m] = mes.split('-');
     q = q.gte('data',`${y}-${m}-01`).lte('data', new Date(y,m,0).toISOString().split('T')[0]);
   }
-  if (eq)  q = q.eq('equipamento_id', eq);
+  if (filtroEquipIds.length) q = q.in('equipamento_id', filtroEquipIds);
   if (mat) q = q.eq('material_id', mat);
   const { data } = await q;
   producaoData = data || [];
@@ -1021,6 +1061,15 @@ window.excluirProd = async id => {
   carregarProducao();
   carregarCapacidades();
 };
+
+document.getElementById('f-equip-btn').addEventListener('click', e => {
+  e.stopPropagation();
+  document.getElementById('f-equip-panel').hidden = !document.getElementById('f-equip-panel').hidden;
+});
+document.addEventListener('click', e => {
+  const panel = document.getElementById('f-equip-panel');
+  if (!panel.hidden && !panel.contains(e.target) && e.target !== document.getElementById('f-equip-btn')) panel.hidden = true;
+});
 
 document.getElementById('btn-filtrar').addEventListener('click', carregarProducao);
 document.querySelectorAll('[data-close]').forEach(btn => btn.addEventListener('click', () => fecharModal(btn.dataset.close)));
