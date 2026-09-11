@@ -59,6 +59,8 @@
     .acond-table tr.acond-sub-row:last-of-type td{border-bottom:1px solid var(--border)}
     .acond-sub-label{position:relative}
     .acond-sub-label::before{content:'';position:absolute;left:14px;top:50%;width:6px;height:6px;border-radius:50%;background:#cbd5e1;transform:translateY(-50%)}
+    .acond-table.acond-sem-materiais tr.acond-sub-row{display:none}
+    .acond-table.acond-sem-materiais tr.acond-cat-row td{border-bottom:2px solid var(--border)}
   </style>
 </head>
 <body>
@@ -229,7 +231,10 @@
           </div>
           <span id="fat-acond-total" class="text-muted" style="font-size:12px"></span>
         </div>
-        <button type="button" class="btn btn-outline btn-sm" id="btn-acond-print" style="padding:4px 12px;font-size:12px" title="Esconde estes controles para tirar print da tabela">👁 Ocultar filtros</button>
+        <div style="display:flex;align-items:center;gap:8px">
+          <button type="button" class="btn btn-outline btn-sm" id="btn-acond-materiais" style="padding:4px 12px;font-size:12px" title="Esconde os materiais, deixando só os totais por categoria">📦 Ocultar materiais</button>
+          <button type="button" class="btn btn-outline btn-sm" id="btn-acond-print" style="padding:4px 12px;font-size:12px" title="Esconde estes controles para tirar print da tabela">👁 Ocultar filtros</button>
+        </div>
       </div>
 
       <!-- Tabela Resumo por Acondicionamento -->
@@ -238,7 +243,7 @@
           <h3>Tipo de Acondicionamento</h3>
         </div>
         <div class="table-scroll">
-          <table class="acond-table">
+          <table class="acond-table" id="tbl-fat-acond">
             <thead id="thead-fat-acond">
               <tr>
                 <th>Acondicionamento</th>
@@ -982,6 +987,12 @@ document.getElementById('btn-acond-print').addEventListener('click', function() 
   const escondido = document.getElementById('acond-controles').style.display === 'none';
   document.getElementById('acond-controles').style.display = escondido ? 'flex' : 'none';
   this.textContent = escondido ? '👁 Ocultar filtros' : '👁 Mostrar filtros';
+});
+
+document.getElementById('btn-acond-materiais').addEventListener('click', function() {
+  const tbl = document.getElementById('tbl-fat-acond');
+  const oculto = tbl.classList.toggle('acond-sem-materiais');
+  this.textContent = oculto ? '📦 Mostrar materiais' : '📦 Ocultar materiais';
 });
 
 async function buscarVendasPeriodoAcond(ini, fim) {
