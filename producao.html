@@ -30,6 +30,8 @@
     #modal-triagem .modal{max-width:620px}
     .meta-press-card{border:1px solid var(--border);border-radius:var(--radius);padding:16px;margin-bottom:14px;background:#fff}
     .meta-press-card:last-child{margin-bottom:0}
+    .meta-press-card-destaque{background:#f0faf4;border:1.5px solid var(--primary)}
+    .meta-press-card-destaque .meta-press-head h4{color:var(--primary)}
     .meta-press-head{display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:10px;margin-bottom:14px}
     .meta-press-head h4{font-size:14px;font-weight:700;margin:0 0 4px}
     .meta-sub-tabs{display:flex;gap:6px;margin:16px 0 10px}
@@ -334,15 +336,17 @@ async function carregarCapacidades() {
   if (!equipamentos.length) { grid.innerHTML = '<p class="text-muted" style="font-size:13px">Nenhum equipamento cadastrado.</p>'; return; }
   const comProducao = equipamentos.filter(eq => prodPorEquip[eq.id] > 0);
   if (!comProducao.length) { grid.innerHTML = '<p class="text-muted" style="font-size:13px;padding:8px 0">Nenhuma produção lançada hoje.</p>'; return; }
+  const hojeD = new Date();
+  const diasUteisHoje = diasUteisDoMes(hojeD.getFullYear(), hojeD.getMonth() + 1).length;
   grid.innerHTML = comProducao.map(eq => {
     const prod = prodPorEquip[eq.id] || 0;
-    const cap  = eq.capacidade_kg_dia || 0;
+    const cap  = eq.capacidade_kg_mes && diasUteisHoje > 0 ? eq.capacidade_kg_mes / diasUteisHoje : 0;
     const pct  = cap > 0 ? Math.min((prod/cap)*100, 150) : 0;
     const cls  = pct >= 100 ? 'over' : pct >= 80 ? 'warn' : '';
     return `<div class="capacity-card">
       <h4>${eq.nome}</h4>
       <div class="progress-bar"><div class="progress-fill ${cls}" style="width:${Math.min(pct,100)}%"></div></div>
-      <div class="capacity-info"><span>${ton(prod)} produzido</span><span>Cap: ${cap > 0 ? ton(cap) : 'N/D'}</span></div>
+      <div class="capacity-info"><span>${ton(prod)} produzido</span><span>Meta/dia: ${cap > 0 ? ton(cap) : 'N/D'}</span></div>
       ${pct >= 100 ? `<div style="font-size:11px;color:var(--danger);margin-top:6px;display:flex;align-items:center;gap:4px">${icon('alert-triangle',{size:11})} Capacidade excedida!</div>` : ''}
     </div>`;
   }).join('');
@@ -374,10 +378,9 @@ function agruparPorSemana(diasUteis) {
   return semanas;
 }
 
-function renderPressCard(eq, diasUteis, semanas, semanasKeys) {
-  const capMes = eq.capacidade_kg_mes || 0;
+function renderMetaCard(idKey, titulo, subtituloExtra, capMes, equipIds, diasUteis, semanas, semanasKeys, destaque) {
   const metaDiaria = diasUteis.length ? capMes / diasUteis.length : 0;
-  const producaoPress = producaoData.filter(r => r.equipamento_id === eq.id);
+  const producaoPress = producaoData.filter(r => equipIds.includes(r.equipamento_id));
   const porDia = {};
   producaoPress.forEach(r => { porDia[r.data] = (porDia[r.data] || 0) + r.peso_produzido_kg; });
   const totalProduzido = producaoPress.reduce((s, r) => s + r.peso_produzido_kg, 0);
@@ -424,11 +427,11 @@ function renderPressCard(eq, diasUteis, semanas, semanasKeys) {
   `).join('') : '<tr><td colspan="3" class="table-empty">Sem dados</td></tr>';
 
   return `
-    <div class="meta-press-card">
+    <div class="meta-press-card${destaque ? ' meta-press-card-destaque' : ''}">
       <div class="meta-press-head">
         <div>
-          <h4>${eq.nome}${eq.frota ? ` — ${eq.frota}` : ''}</h4>
-          <span class="text-muted" style="font-size:12px">${ton(capMes)}/mês · ${diasUteis.length} dias úteis · meta diária ${ton(metaDiaria)}</span>
+          <h4>${titulo}</h4>
+          <span class="text-muted" style="font-size:12px">${ton(capMes)}/mês${subtituloExtra ? ` (${subtituloExtra})` : ''} · ${diasUteis.length} dias úteis · meta diária ${ton(metaDiaria)}</span>
         </div>
         <span class="badge ${pctCls}" style="font-size:13px">${atingimentoMes.toFixed(1)}% da meta</span>
       </div>
@@ -440,12 +443,12 @@ function renderPressCard(eq, diasUteis, semanas, semanasKeys) {
       </div>
 
       <div class="meta-sub-tabs">
-        <button type="button" class="meta-sub-tab active" data-eq="${eq.id}" data-pane="diario-${eq.id}">Diário</button>
-        <button type="button" class="meta-sub-tab" data-eq="${eq.id}" data-pane="semanal-${eq.id}">Semanal</button>
-        <button type="button" class="meta-sub-tab" data-eq="${eq.id}" data-pane="operador-${eq.id}">Por Operador</button>
+        <button type="button" class="meta-sub-tab active" data-pane="diario-${idKey}">Diário</button>
+        <button type="button" class="meta-sub-tab" data-pane="semanal-${idKey}">Semanal</button>
+        <button type="button" class="meta-sub-tab" data-pane="operador-${idKey}">Por Operador</button>
       </div>
 
-      <div class="meta-sub-pane active" data-pane="diario-${eq.id}">
+      <div class="meta-sub-pane active" data-pane="diario-${idKey}">
         <div class="table-scroll" style="max-height:280px">
           <table style="font-size:12px">
             <thead><tr><th>Dia</th><th class="text-right">Produzido</th><th class="text-right">Meta</th><th class="text-right">Atingimento</th></tr></thead>
@@ -453,7 +456,7 @@ function renderPressCard(eq, diasUteis, semanas, semanasKeys) {
           </table>
         </div>
       </div>
-      <div class="meta-sub-pane" data-pane="semanal-${eq.id}">
+      <div class="meta-sub-pane" data-pane="semanal-${idKey}">
         <div class="table-scroll">
           <table style="font-size:12px">
             <thead><tr><th>Semana</th><th class="text-right">Produzido</th><th class="text-right">Meta</th><th class="text-right">Atingimento</th></tr></thead>
@@ -461,7 +464,7 @@ function renderPressCard(eq, diasUteis, semanas, semanasKeys) {
           </table>
         </div>
       </div>
-      <div class="meta-sub-pane" data-pane="operador-${eq.id}">
+      <div class="meta-sub-pane" data-pane="operador-${idKey}">
         <div class="table-scroll">
           <table style="font-size:12px">
             <thead><tr><th>Operador</th><th class="text-right">Produzido</th><th class="text-right">% do Total</th></tr></thead>
@@ -489,11 +492,21 @@ function renderMetaPrensas() {
     return;
   }
 
+  const capMesTotal = prensas.reduce((s, eq) => s + (eq.capacidade_kg_mes || 0), 0);
+  const cardConsolidado = renderMetaCard(
+    'consolidado', `Consolidado — ${prensas.length} Prensas`, `${prensas.length} prensas`,
+    capMesTotal, prensas.map(eq => eq.id), diasUteis, semanas, semanasKeys, true,
+  );
+  const cardsIndividuais = prensas.map(eq =>
+    renderMetaCard(eq.id, `${eq.nome}${eq.frota ? ` — ${eq.frota}` : ''}`, '', eq.capacidade_kg_mes || 0, [eq.id], diasUteis, semanas, semanasKeys, false)
+  ).join('');
+
   wrap.innerHTML = `
     <div class="card mb-16" style="padding:16px">
       <h3 style="font-size:14px;font-weight:600;margin-bottom:4px">Meta de Produção — Prensas</h3>
       <p class="text-muted" style="font-size:12px;margin:0 0 14px">Capacidade mensal ÷ dias úteis (seg–sex) do mês selecionado = meta diária.</p>
-      ${prensas.map(eq => renderPressCard(eq, diasUteis, semanas, semanasKeys)).join('')}
+      ${cardConsolidado}
+      ${cardsIndividuais}
     </div>`;
 
   wrap.querySelectorAll('.meta-sub-tab').forEach(btn => {
