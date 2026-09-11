@@ -113,19 +113,6 @@
           </div>
         </div>
 
-        <!-- Materiais CRUD -->
-        <div class="table-card">
-          <div class="table-card-header">
-            <h3>Materiais</h3>
-            <button class="btn btn-sm btn-primary" id="btn-novo-mat">+ Adicionar</button>
-          </div>
-          <div class="table-scroll">
-            <table>
-              <thead><tr><th>Nome</th><th>Unidade</th><th>Categoria</th><th>Status</th><th>Ações</th></tr></thead>
-              <tbody id="tb-materiais"></tbody>
-            </table>
-          </div>
-        </div>
       </div><!-- /tab-prensagem -->
 
       <!-- ══ TAB: TRIAGEM ══ -->
@@ -258,35 +245,6 @@
   </div>
 </div>
 
-<!-- Modal: Material -->
-<div class="modal-backdrop" id="modal-mat">
-  <div class="modal">
-    <div class="modal-header">
-      <h3 id="modal-mat-title">Novo Material</h3>
-      <button class="modal-close" data-close="modal-mat">✕</button>
-    </div>
-    <div class="modal-body">
-      <form id="form-mat">
-        <input type="hidden" name="id" />
-        <div class="form-grid">
-          <div class="form-group full"><label>Nome *</label><input type="text" name="nome" required /></div>
-          <div class="form-group"><label>Unidade de Medida</label><input type="text" name="unidade_medida" placeholder="kg" /></div>
-          <div class="form-group"><label>Categoria</label>
-            <select name="categoria">
-              <option value="reciclavel">Reciclável</option>
-              <option value="rejeito">Rejeito</option>
-            </select>
-          </div>
-        </div>
-      </form>
-    </div>
-    <div class="modal-footer">
-      <button class="btn btn-outline" data-close="modal-mat">Cancelar</button>
-      <button class="btn btn-primary" id="btn-salvar-mat">Salvar</button>
-    </div>
-  </div>
-</div>
-
 <div id="toast-container"></div>
 <script type="module">
 import { initPage, supabase, peso, ton, dataBR, toast, abrirModal, fecharModal, mesAtual } from './js/config.js?v=2';
@@ -336,7 +294,7 @@ async function init() {
   const hoje = new Date().toISOString().split('T')[0];
   document.getElementById('data-hoje').textContent = dataBR(hoje);
 
-  await Promise.all([carregarCapacidades(), carregarProducao(), carregarMateriais(), carregarTriagem()]);
+  await Promise.all([carregarCapacidades(), carregarProducao(), carregarTriagem()]);
 }
 
 function popularSelects() {
@@ -458,18 +416,6 @@ async function carregarProducao() {
       <td>${isAdmin?`<button class="btn-icon" onclick="editarProd('${r.id}')">${icon('edit',{size:15})}</button><button class="btn-icon danger" onclick="excluirProd('${r.id}')">${icon('trash',{size:15})}</button>`:'—'}</td>
     </tr>`).join('')
   : '<tr><td colspan="7" class="table-empty">Nenhum registro encontrado</td></tr>';
-}
-
-async function carregarMateriais() {
-  const { data } = await supabase.from('materiais').select('*').order('nome');
-  const isAdmin = perfil?.role === 'admin';
-  document.getElementById('tb-materiais').innerHTML = (data||[]).map(m=>`
-    <tr>
-      <td>${m.nome}</td><td>${m.unidade_medida||'kg'}</td>
-      <td><span class="badge ${m.categoria==='rejeito'?'badge-red':'badge-green'}">${m.categoria==='rejeito'?'Rejeito':'Reciclável'}</span></td>
-      <td><span class="badge ${m.ativo?'badge-green':'badge-gray'}">${m.ativo?'Ativo':'Inativo'}</span></td>
-      <td>${isAdmin?`<button class="btn-icon" onclick="editarMat(${JSON.stringify(m).replace(/"/g,'&quot;')})">${icon('edit',{size:15})}</button><button class="btn-icon danger" onclick="toggleMat('${m.id}',${m.ativo})">${icon(m.ativo?'x-circle':'check',{size:15})}</button><button class="btn-icon danger" onclick="excluirMat('${m.id}','${m.nome.replace(/'/g,"\\'")}')">${icon('trash',{size:15})}</button>`:'—'}</td>
-    </tr>`).join('') || '<tr><td colspan="5" class="table-empty">Nenhum material</td></tr>';
 }
 
 // ── TRIAGEM ──
@@ -847,49 +793,6 @@ window.excluirProd = async id => {
   carregarProducao();
   carregarCapacidades();
 };
-
-// ── MATERIAIS CRUD ──
-document.getElementById('btn-novo-mat').addEventListener('click', () => {
-  document.getElementById('modal-mat-title').textContent = 'Novo Material';
-  document.getElementById('form-mat').reset();
-  document.querySelector('#form-mat [name="id"]').value = '';
-  abrirModal('modal-mat');
-});
-window.editarMat = m => {
-  document.getElementById('modal-mat-title').textContent = 'Editar Material';
-  const f = document.getElementById('form-mat');
-  f.querySelector('[name="id"]').value             = m.id;
-  f.querySelector('[name="nome"]').value           = m.nome;
-  f.querySelector('[name="unidade_medida"]').value = m.unidade_medida||'';
-  f.querySelector('[name="categoria"]').value      = m.categoria||'reciclavel';
-  abrirModal('modal-mat');
-};
-window.toggleMat = async (id, ativo) => { await supabase.from('materiais').update({ ativo: !ativo }).eq('id', id); carregarMateriais(); };
-window.excluirMat = async (id, nome) => {
-  if (!confirm(`Deseja excluir "${nome}"?`)) return;
-  const [{ count: cVendas }, { count: cEntradas }, { count: cProd }] = await Promise.all([
-    supabase.from('vendas').select('*', { count:'exact', head:true }).eq('material_id', id),
-    supabase.from('entradas').select('*', { count:'exact', head:true }).eq('material_id', id),
-    supabase.from('producao').select('*', { count:'exact', head:true }).eq('material_id', id),
-  ]);
-  const usos = [];
-  if (cVendas>0) usos.push(`Vendas: ${cVendas}`); if (cEntradas>0) usos.push(`Entradas: ${cEntradas}`); if (cProd>0) usos.push(`Produção: ${cProd}`);
-  if (usos.length) { alert(`Não é possível excluir "${nome}".\nVinculado em: ${usos.join(', ')}`); return; }
-  const { error } = await supabase.from('materiais').delete().eq('id', id);
-  if (error) { toast('Erro: ' + error.message, 'error'); return; }
-  toast('Material excluído!'); carregarMateriais();
-};
-document.getElementById('btn-salvar-mat').addEventListener('click', async () => {
-  const f = document.getElementById('form-mat');
-  if (!f.checkValidity()) { f.reportValidity(); return; }
-  const fd = Object.fromEntries(new FormData(f));
-  const payload = { nome: fd.nome, unidade_medida: fd.unidade_medida||'kg', categoria: fd.categoria||'reciclavel' };
-  if (fd.id) { await supabase.from('materiais').update(payload).eq('id', fd.id); toast('Material atualizado!'); }
-  else       { await supabase.from('materiais').insert(payload); toast('Material criado!'); }
-  fecharModal('modal-mat');
-  const { data: mt } = await supabase.from('materiais').select('*').eq('ativo',true).order('nome');
-  materiais = mt||[]; popularSelects(); carregarMateriais();
-});
 
 document.getElementById('btn-filtrar').addEventListener('click', carregarProducao);
 document.querySelectorAll('[data-close]').forEach(btn => btn.addEventListener('click', () => fecharModal(btn.dataset.close)));
