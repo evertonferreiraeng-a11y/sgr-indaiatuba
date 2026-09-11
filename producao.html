@@ -578,7 +578,8 @@ function renderMetaPrensas() {
   const [anoStr, mesStr] = mes.split('-');
   const ano = +anoStr, mesNum = +mesStr;
 
-  const prensas = (equipamentos || []).filter(e => (e.nome || '').toLowerCase().includes('prensa') && e.capacidade_kg_mes);
+  const idsFiltro = filtroEquipIds.length ? new Set(filtroEquipIds) : null;
+  const prensas = (equipamentos || []).filter(e => (e.nome || '').toLowerCase().includes('prensa') && e.capacidade_kg_mes && (!idsFiltro || idsFiltro.has(e.id)));
   const idsPrensas = prensas.map(eq => eq.id);
   const fimDeSemanaComLancamento = [...new Set(producaoData.filter(r => idsPrensas.includes(r.equipamento_id)).map(r => r.data))]
     .filter(d => { const dow = new Date(d + 'T00:00:00').getDay(); return dow === 0 || dow === 6; });
@@ -588,13 +589,14 @@ function renderMetaPrensas() {
   const semanasKeys = Object.keys(semanas).sort();
 
   if (!prensas.length) {
-    wrap.innerHTML = `<div class="card mb-16" style="padding:16px"><p class="text-muted" style="font-size:13px;margin:0">Nenhuma prensa com capacidade mensal cadastrada. Defina a "Capacidade Mensal (kg)" em Equipamentos para ver o acompanhamento de meta.</p></div>`;
+    const msg = idsFiltro ? 'Nenhuma prensa com capacidade mensal cadastrada dentro do filtro de equipamento selecionado.' : 'Nenhuma prensa com capacidade mensal cadastrada. Defina a "Capacidade Mensal (kg)" em Equipamentos para ver o acompanhamento de meta.';
+    wrap.innerHTML = `<div class="card mb-16" style="padding:16px"><p class="text-muted" style="font-size:13px;margin:0">${msg}</p></div>`;
     return;
   }
 
   const capMesTotal = prensas.reduce((s, eq) => s + (eq.capacidade_kg_mes || 0), 0);
   const cardConsolidado = renderMetaCard(
-    'consolidado', `Consolidado — ${prensas.length} Prensas`, `${prensas.length} prensas`,
+    'consolidado', `Consolidado — ${prensas.length} Prensa${prensas.length !== 1 ? 's' : ''}`, `${prensas.length} prensa${prensas.length !== 1 ? 's' : ''}`,
     capMesTotal, prensas.map(eq => eq.id), diasUteis, semanas, semanasKeys, true,
   );
   const cardsIndividuais = prensas.map(eq =>
