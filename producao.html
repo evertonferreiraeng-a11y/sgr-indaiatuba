@@ -228,6 +228,7 @@
       </form>
     </div>
     <div class="modal-footer">
+      <button class="btn btn-danger" id="btn-excluir-prod" style="display:none;margin-right:auto">Excluir</button>
       <button class="btn btn-outline" data-close="modal-prod">Cancelar</button>
       <button class="btn btn-primary" id="btn-salvar-prod">Salvar</button>
     </div>
@@ -1045,6 +1046,7 @@ function abrirNovaProd() {
   document.getElementById('form-prod').reset();
   document.querySelector('#form-prod [name="id"]').value = '';
   document.getElementById('alerta-capacidade').style.display = 'none';
+  document.getElementById('btn-excluir-prod').style.display = 'none';
   abrirModal('modal-prod');
 }
 
@@ -1077,8 +1079,18 @@ window.editarProd = id => {
   f.querySelector('[name="operador_id"]').value       = r.operador_id || '';
   f.querySelector('[name="peso_produzido_kg"]').value = r.peso_produzido_kg;
   f.querySelector('[name="quantidade_fardos"]').value = r.quantidade_fardos || '';
+  const btnExcluir = document.getElementById('btn-excluir-prod');
+  btnExcluir.style.display = 'inline-flex';
+  btnExcluir.dataset.id = r.id;
   abrirModal('modal-prod');
 };
+
+document.getElementById('btn-excluir-prod').addEventListener('click', async () => {
+  const id = document.getElementById('btn-excluir-prod').dataset.id;
+  if (!id) return;
+  const excluiu = await excluirProd(id);
+  if (excluiu) fecharModal('modal-prod');
+});
 
 window.editarProdDeDia = id => {
   fecharModal('modal-dia-registros');
@@ -1114,12 +1126,13 @@ document.getElementById('btn-salvar-prod').addEventListener('click', async () =>
 });
 
 window.excluirProd = async id => {
-  if (!confirm('Excluir este registro?')) return;
+  if (!confirm('Excluir este registro?')) return false;
   await supabase.from('estoque_movimentacoes').delete().eq('origem_id', id);
   await supabase.from('producao').delete().eq('id', id);
   toast('Registro excluído!');
   carregarProducao();
   carregarCapacidades();
+  return true;
 };
 
 document.getElementById('f-equip-btn').addEventListener('click', e => {
