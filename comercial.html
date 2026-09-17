@@ -274,14 +274,16 @@
         </div>
       </div>
 
+      <!-- Controles do Acompanhamento Semanal do Mês (fora do card da tabela) -->
+      <div class="card mb-16" style="padding:12px 20px;display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap">
+        <span id="semanal-unico-total" class="text-muted" style="font-size:12px"></span>
+        <button type="button" class="btn btn-outline btn-sm" id="btn-semanal-unico-detalhe" style="padding:4px 12px;font-size:12px" title="Esconde o detalhamento por Prensado/A Granel, deixando só o total por semana">📦 Ocultar detalhamento</button>
+      </div>
+
       <!-- Tabela Acompanhamento Semanal do Mês (sem comparação, só o mês filtrado) -->
       <div class="table-card mb-16">
         <div class="table-card-header">
           <h3>Acompanhamento Semanal do Mês</h3>
-          <div style="display:flex;align-items:center;gap:12px">
-            <span id="semanal-unico-total" class="text-muted" style="font-size:12px"></span>
-            <button type="button" class="btn btn-outline btn-sm" id="btn-semanal-unico-detalhe" style="padding:4px 12px;font-size:12px" title="Esconde o detalhamento por Prensado/A Granel, deixando só o total por semana">📦 Ocultar detalhamento</button>
-          </div>
         </div>
         <div class="table-scroll">
           <table class="acond-table" id="tbl-semanal-unico">
