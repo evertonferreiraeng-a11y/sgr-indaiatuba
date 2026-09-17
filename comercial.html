@@ -982,20 +982,39 @@ function agruparPorAcondicionamento(rows) {
 }
 
 // ── Comparativo por semana-do-mês (dentro do modo "Mês") ──
-function semanaDoMesIndex(dataStr) {
-  const dia = parseInt(dataStr.split('-')[2], 10);
-  return Math.min(Math.ceil(dia / 7), 5);
+// Semana útil: segunda a sexta. Uma nova semana começa em toda segunda-feira
+// (menos no dia 1, que sempre abre a semana 1); sábado/domingo não entram em
+// nenhum bucket. A última semana do mês é recortada no último dia do mês.
+// Ex. (mês começando numa terça): 1–4, 7–11, 14–18, 21–25, 28–30/31.
+function semanaDoMesMapa(mesKey) {
+  const [anoStr, mesStr] = mesKey.split('-');
+  const ano = +anoStr, mes = +mesStr;
+  const ultimoDia = new Date(Date.UTC(ano, mes, 0)).getUTCDate();
+  const diaParaSemana = {};
+  const faixas = {};
+  let idx = 1;
+  for (let dia = 1; dia <= ultimoDia; dia++) {
+    const dow = new Date(Date.UTC(ano, mes - 1, dia)).getUTCDay(); // 0=Dom..6=Sáb
+    if (dow === 1 && dia !== 1) idx++;
+    if (dow === 0 || dow === 6) continue;
+    diaParaSemana[dia] = idx;
+    faixas[idx] = faixas[idx] ? [faixas[idx][0], dia] : [dia, dia];
+  }
+  return { diaParaSemana, faixas };
 }
 
-const SEMANA_MES_LABEL = {
-  1: 'Semana 1 (dias 1–7)', 2: 'Semana 2 (dias 8–14)', 3: 'Semana 3 (dias 15–21)',
-  4: 'Semana 4 (dias 22–28)', 5: 'Semana 5 (dias 29–31)',
-};
+function faixaLabel(faixas, i) {
+  const f = faixas[i];
+  if (!f) return '—';
+  return f[0] === f[1] ? `dia ${f[0]}` : `dias ${f[0]}–${f[1]}`;
+}
 
-function agruparPorSemanaMes(rows) {
+function agruparPorSemanaMes(rows, diaParaSemana) {
   const map = {};
   rows.forEach(r => {
-    const idx = semanaDoMesIndex(r.data);
+    const dia = parseInt(r.data.split('-')[2], 10);
+    const idx = diaParaSemana[dia];
+    if (!idx) return; // cai num fim de semana — não entra no comparativo semanal
     const acond = r.acondicionamento || 'sem_info';
     if (!map[idx]) map[idx] = { vol: 0, fat: 0, acond: {} };
     map[idx].vol += pesoVenda(r);
@@ -1007,9 +1026,11 @@ function agruparPorSemanaMes(rows) {
   return map;
 }
 
-function renderComparativoSemanasDoMes(rowsA, rowsB, labA, labB) {
-  const mapA = agruparPorSemanaMes(rowsA);
-  const mapB = agruparPorSemanaMes(rowsB);
+function renderComparativoSemanasDoMes(rowsA, rowsB, labA, labB, mesA, mesB) {
+  const { diaParaSemana: diasA, faixas: faixasA } = semanaDoMesMapa(mesA);
+  const { diaParaSemana: diasB, faixas: faixasB } = semanaDoMesMapa(mesB);
+  const mapA = agruparPorSemanaMes(rowsA, diasA);
+  const mapB = agruparPorSemanaMes(rowsB, diasB);
   const semanas = [1, 2, 3, 4, 5].filter(i => mapA[i] || mapB[i]);
 
   document.getElementById('thead-acond-semanas').innerHTML = `
@@ -1063,7 +1084,7 @@ function renderComparativoSemanasDoMes(rowsA, rowsB, labA, labB) {
     }).join('');
 
     return `<tr class="acond-cat-row">
-      <td><strong>${SEMANA_MES_LABEL[i]}</strong></td>
+      <td><strong>Semana ${i}</strong><div style="font-size:10px;font-weight:400;color:var(--text-muted)">${faixaLabel(faixasA, i)} / ${faixaLabel(faixasB, i)}</div></td>
       <td class="text-right">${ton(a.vol)}</td>
       <td class="text-right acond-fat">${moeda(a.fat)}</td>
       <td class="text-right acond-divider">${ton(b.vol)}</td>
@@ -1226,7 +1247,7 @@ async function compararAcondicionamento() {
 
   const semanasWrap = document.getElementById('acond-semanas-wrap');
   if (tipo === 'mes') {
-    renderComparativoSemanasDoMes(rowsA, rowsB, labA, labB);
+    renderComparativoSemanasDoMes(rowsA, rowsB, labA, labB, valA, valB);
     semanasWrap.style.display = '';
   } else {
     semanasWrap.style.display = 'none';
