@@ -47,6 +47,9 @@
     .meta-sub-pane.active{display:block}
     .meta-day-ok{color:#16a34a;font-weight:700}
     .meta-day-bad{color:#dc2626;font-weight:700}
+    .dia-editavel{cursor:pointer}
+    .dia-editavel:hover{background:#f0faf4}
+    .dia-editavel td:first-child{position:relative}
     .multi-select{position:relative}
     .multi-select-btn{padding:8px 12px;border:1.5px solid var(--border);border-radius:8px;background:#fff;font-size:13px;font-family:inherit;cursor:pointer;display:flex;align-items:center;justify-content:space-between;gap:8px;min-width:150px;text-align:left;color:var(--text)}
     .multi-select-btn:hover{border-color:var(--primary)}
@@ -227,6 +230,27 @@
     <div class="modal-footer">
       <button class="btn btn-outline" data-close="modal-prod">Cancelar</button>
       <button class="btn btn-primary" id="btn-salvar-prod">Salvar</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal: Registros do Dia (acesso rápido a partir da tabela de meta) -->
+<div class="modal-backdrop" id="modal-dia-registros">
+  <div class="modal">
+    <div class="modal-header">
+      <h3 id="modal-dia-registros-title">Registros do Dia</h3>
+      <button class="modal-close" data-close="modal-dia-registros">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="table-scroll">
+        <table>
+          <thead><tr><th>Equipamento</th><th>Material</th><th>Operador</th><th class="text-right">Peso (kg)</th><th class="text-right">Fardos</th><th>Ações</th></tr></thead>
+          <tbody id="tb-dia-registros"></tbody>
+        </table>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-outline" data-close="modal-dia-registros">Fechar</button>
     </div>
   </div>
 </div>
@@ -464,6 +488,7 @@ function renderMetaCard(idKey, titulo, subtituloExtra, capMes, equipIds, diasUte
   const sinal = v => v >= 0 ? '+' : '';
   const cor = v => v >= 0 ? '#16a34a' : '#dc2626';
 
+  const isAdmin = perfil?.role === 'admin';
   let acumulado = 0;
   const linhasDiario = diasUteis.map(d => {
     const prod = porDia[d] || 0;
@@ -476,8 +501,10 @@ function renderMetaCard(idKey, titulo, subtituloExtra, capMes, equipIds, diasUte
     if (jaOcorreu) acumulado += saldoDia;
     const saldoTxt = jaOcorreu ? `${sinal(saldoDia)}${ton(saldoDia)}` : '—';
     const acumTxt = jaOcorreu ? `${sinal(acumulado)}${ton(acumulado)}` : '—';
-    return `<tr>
-      <td>${dd}/${mm} (${dow})</td>
+    const editavel = isAdmin && jaOcorreu && prod > 0;
+    const trAttrs = editavel ? ` class="dia-editavel" data-day="${d}" data-equip="${equipIds.join(',')}" title="Clique para editar os lançamentos deste dia"` : '';
+    return `<tr${trAttrs}>
+      <td>${dd}/${mm} (${dow})${editavel ? ` ${icon('edit',{size:12})}` : ''}</td>
       <td class="text-right">${ton(prod)}</td>
       <td class="text-right">${ton(metaDiaria)}</td>
       <td class="text-right ${cls}">${pct.toFixed(0)}%</td>
@@ -622,7 +649,27 @@ function renderMetaPrensas() {
     });
   });
 
+  wrap.querySelectorAll('tr[data-day]').forEach(tr => {
+    tr.addEventListener('click', () => abrirEdicaoDia(tr.dataset.day, tr.dataset.equip));
+  });
+
   return metaDiariaConsolidada;
+}
+
+function abrirEdicaoDia(dia, equipIdsStr) {
+  const equipIds = equipIdsStr.split(',');
+  const registros = producaoData.filter(r => r.data === dia && equipIds.includes(r.equipamento_id));
+  if (!registros.length) return;
+  if (registros.length === 1) { editarProd(registros[0].id); return; }
+  document.getElementById('modal-dia-registros-title').textContent = `Registros de ${dataBR(dia)}`;
+  document.getElementById('tb-dia-registros').innerHTML = registros.map(r => `
+    <tr>
+      <td>${r.equipamentos?.nome || '—'}</td><td>${r.materiais?.nome || '—'}</td><td>${r.colaboradores?.nome || '—'}</td>
+      <td class="text-right">${ton(r.peso_produzido_kg)}</td>
+      <td class="text-right">${r.quantidade_fardos ? r.quantidade_fardos + ' un' : '—'}</td>
+      <td><button class="btn-icon" onclick="editarProdDeDia('${r.id}')">${icon('edit',{size:15})}</button><button class="btn-icon danger" onclick="excluirProd('${r.id}')">${icon('trash',{size:15})}</button></td>
+    </tr>`).join('');
+  abrirModal('modal-dia-registros');
 }
 
 async function carregarProducao() {
@@ -1031,6 +1078,11 @@ window.editarProd = id => {
   f.querySelector('[name="peso_produzido_kg"]').value = r.peso_produzido_kg;
   f.querySelector('[name="quantidade_fardos"]').value = r.quantidade_fardos || '';
   abrirModal('modal-prod');
+};
+
+window.editarProdDeDia = id => {
+  fecharModal('modal-dia-registros');
+  editarProd(id);
 };
 
 document.getElementById('btn-salvar-prod').addEventListener('click', async () => {
