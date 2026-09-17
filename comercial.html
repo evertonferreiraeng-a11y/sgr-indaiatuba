@@ -1225,7 +1225,7 @@ async function renderAcompanhamentoSemanalMes() {
       <td class="text-right acond-fat">${moeda(w.fat)}</td>
       <td class="text-right"><span class="acond-pct">${pctFat}%</span></td>
       <td class="text-right">${precoMedio}</td>
-      <td class="text-right">${moeda(metaSemana)}</td>
+      <td class="text-right acond-fat">${moeda(metaSemana)}</td>
       <td class="text-right">${atingimentoTag(w.fat, metaSemana, aindaNaoComecou)}</td>
     </tr>${subLinhas}`;
   }).join('') + `
@@ -1236,7 +1236,7 @@ async function renderAcompanhamentoSemanalMes() {
       <td class="text-right">${moeda(totalFat)}</td>
       <td class="text-right">100%</td>
       <td class="text-right">${totalVol > 0 ? moeda(totalFat / (totalVol / 1000)) : '—'}</td>
-      <td class="text-right">${moeda(metaMensal)}</td>
+      <td class="text-right acond-fat">${moeda(metaMensal)}</td>
       <td class="text-right">${atingimentoTag(totalFat, metaMensal)}</td>
     </tr>`;
 
