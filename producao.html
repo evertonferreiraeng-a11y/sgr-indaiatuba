@@ -565,7 +565,7 @@ function renderMetaCard(idKey, titulo, subtituloExtra, capMes, equipIds, diasUte
       <div class="kpi-grid" style="grid-template-columns:repeat(auto-fill,minmax(140px,1fr));margin-bottom:0">
         <div class="kpi-card" style="padding:12px"><div class="kpi-label" style="font-size:10px">Meta do Mês</div><div class="kpi-value" style="font-size:18px">${ton(capMes)}</div></div>
         <div class="kpi-card" style="padding:12px"><div class="kpi-label" style="font-size:10px">Produzido</div><div class="kpi-value" style="font-size:18px">${ton(totalProduzido)}</div></div>
-        <div class="kpi-card" style="padding:12px"><div class="kpi-label" style="font-size:10px">Meta Diária</div><div class="kpi-value" style="font-size:18px">${ton(metaDiaria)}</div></div>
+        <div class="kpi-card" style="padding:12px"><div class="kpi-label" style="font-size:10px">Falta Produzir</div><div class="kpi-value" style="font-size:18px;color:${cor(-faltaParaMeta)}">${ton(Math.max(0, faltaParaMeta))}</div></div>
         <div class="kpi-card" style="padding:12px"><div class="kpi-label" style="font-size:10px">Saldo Acumulado</div><div class="kpi-value" style="font-size:18px;color:${cor(saldoAcumulado)}">${sinal(saldoAcumulado)}${ton(saldoAcumulado)}</div><div style="font-size:10px;color:var(--text-muted);margin-top:2px">vs. meta até hoje</div></div>
         ${diasRestantes.length
           ? `<div class="kpi-card" style="padding:12px"><div class="kpi-label" style="font-size:10px">Meta Diária Ajustada</div><div class="kpi-value" style="font-size:18px;color:${metaAjustada > metaDiaria ? '#dc2626' : '#16a34a'}">${ton(metaAjustada)}</div><div style="font-size:10px;color:var(--text-muted);margin-top:2px">p/ os ${diasRestantes.length} dias úteis restantes</div></div>`
@@ -573,14 +573,6 @@ function renderMetaCard(idKey, titulo, subtituloExtra, capMes, equipIds, diasUte
       </div>
       ${diasRestantes.length && saldoAcumulado < 0 ? `<p style="font-size:12px;color:#dc2626;margin:10px 0 0;font-weight:600">⚠ Atraso de ${ton(Math.abs(saldoAcumulado))}. Para recuperar até o fim do mês, é preciso produzir ${ton(metaAjustada)}/dia nos próximos ${diasRestantes.length} dias úteis (em vez de ${ton(metaDiaria)}/dia).</p>` : ''}
       ${diasRestantes.length && saldoAcumulado > 0 ? `<p style="font-size:12px;color:#16a34a;margin:10px 0 0;font-weight:600">✓ Adiantado em ${ton(saldoAcumulado)}. A meta diária para os próximos ${diasRestantes.length} dias úteis cai para ${ton(metaAjustada)}.</p>` : ''}
-      ${diasRestantes.length ? `<div style="margin-top:10px;padding:10px 14px;background:#f8fafc;border:1px solid var(--border);border-radius:8px;font-size:12px;line-height:1.9">
-        <div style="font-weight:700;color:var(--text-muted);text-transform:uppercase;font-size:10px;letter-spacing:.03em;margin-bottom:4px">Como chegamos na Meta Diária Ajustada</div>
-        <div>Meta do Mês: <strong>${ton(capMes)}</strong></div>
-        <div>Produzido até agora: <strong>${ton(totalProduzido)}</strong></div>
-        <div>Falta produzir: ${ton(capMes)} − ${ton(totalProduzido)} = <strong>${ton(Math.max(0, faltaParaMeta))}</strong></div>
-        <div>Dias úteis restantes no mês: <strong>${diasRestantes.length}</strong></div>
-        <div>${ton(Math.max(0, faltaParaMeta))} ÷ ${diasRestantes.length} = <strong style="color:${metaAjustada > metaDiaria ? '#dc2626' : '#16a34a'}">${ton(metaAjustada)}/dia</strong></div>
-      </div>` : ''}
 
       <div class="meta-sub-tabs">
         <button type="button" class="meta-sub-tab active" data-pane="diario-${idKey}">Diário</button>
