@@ -983,13 +983,19 @@ const SEMANA_MES_LABEL = {
   4: 'Semana 4 (dias 22–28)', 5: 'Semana 5 (dias 29–31)',
 };
 
+const ORDEM_ACOND = { prensa: 0, granel: 1, sem_info: 2 };
+
 function agruparPorSemanaMes(rows) {
   const map = {};
   rows.forEach(r => {
     const idx = semanaDoMesIndex(r.data);
-    if (!map[idx]) map[idx] = { vol: 0, fat: 0 };
+    const acond = r.acondicionamento || 'sem_info';
+    if (!map[idx]) map[idx] = { vol: 0, fat: 0, acond: {} };
     map[idx].vol += pesoVenda(r);
     map[idx].fat += parseFloat(r.valor_total || 0);
+    if (!map[idx].acond[acond]) map[idx].acond[acond] = { vol: 0, fat: 0 };
+    map[idx].acond[acond].vol += pesoVenda(r);
+    map[idx].acond[acond].fat += parseFloat(r.valor_total || 0);
   });
   return map;
 }
@@ -1001,7 +1007,7 @@ function renderComparativoSemanasDoMes(rowsA, rowsB, labA, labB) {
 
   document.getElementById('thead-acond-semanas').innerHTML = `
     <tr>
-      <th rowspan="2" style="vertical-align:bottom">Semana</th>
+      <th rowspan="2" style="vertical-align:bottom">Semana / Acondicionamento</th>
       <th colspan="2" class="acond-grp-a" style="text-align:center">${labA}</th>
       <th colspan="2" class="acond-grp-b acond-divider" style="text-align:center">${labB}</th>
       <th rowspan="2" class="text-right" style="vertical-align:bottom">Var. Volume</th>
@@ -1028,17 +1034,36 @@ function renderComparativoSemanasDoMes(rowsA, rowsB, labA, labB) {
   });
 
   document.getElementById('tb-acond-semanas').innerHTML = semanas.map(i => {
-    const a = mapA[i] || { vol: 0, fat: 0 };
-    const b = mapB[i] || { vol: 0, fat: 0 };
-    return `<tr>
-      <td>${SEMANA_MES_LABEL[i]}</td>
+    const a = mapA[i] || { vol: 0, fat: 0, acond: {} };
+    const b = mapB[i] || { vol: 0, fat: 0, acond: {} };
+
+    const acondKeys = [...new Set([...Object.keys(a.acond || {}), ...Object.keys(b.acond || {})])]
+      .sort((x, y) => (ORDEM_ACOND[x] ?? 9) - (ORDEM_ACOND[y] ?? 9));
+
+    const subLinhas = acondKeys.map(acond => {
+      const ma = a.acond?.[acond] || { vol: 0, fat: 0 };
+      const mb = b.acond?.[acond] || { vol: 0, fat: 0 };
+      const label = acond === 'sem_info' ? 'Não informado' : ACOND_LABEL[acond];
+      return `<tr class="acond-sub-row">
+        <td class="acond-sub-label"><span class="acond-dot acond-dot-${acond}"></span>${label}</td>
+        <td class="text-right">${ton(ma.vol)}</td>
+        <td class="text-right">${moeda(ma.fat)}</td>
+        <td class="text-right acond-divider">${ton(mb.vol)}</td>
+        <td class="text-right">${moeda(mb.fat)}</td>
+        <td class="text-right">${varLabelAcond(ma.vol, mb.vol)}</td>
+        <td class="text-right">${varLabelAcond(ma.fat, mb.fat)}</td>
+      </tr>`;
+    }).join('');
+
+    return `<tr class="acond-cat-row">
+      <td><strong>${SEMANA_MES_LABEL[i]}</strong></td>
       <td class="text-right">${ton(a.vol)}</td>
       <td class="text-right acond-fat">${moeda(a.fat)}</td>
       <td class="text-right acond-divider">${ton(b.vol)}</td>
       <td class="text-right acond-fat">${moeda(b.fat)}</td>
       <td class="text-right">${varLabelAcond(a.vol, b.vol)}</td>
       <td class="text-right">${varLabelAcond(a.fat, b.fat)}</td>
-    </tr>`;
+    </tr>${subLinhas}`;
   }).join('') + `
     <tr class="acond-total-row">
       <td>TOTAL</td>
