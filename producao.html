@@ -529,9 +529,7 @@ function renderMetaCard(idKey, titulo, subtituloExtra, capMes, equipIds, diasUte
     const semanaComecou = diasSemanaPassados.length > 0;
     const cls = semanaComecou ? (pct >= 100 ? 'meta-day-ok' : (prod > 0 ? 'meta-day-bad' : '')) : '';
     const pctTxt = semanaComecou ? `${pct.toFixed(0)}%` : '—';
-    const saldoSemana = semanaComecou
-      ? diasSemanaPassados.reduce((s, d) => s + (porDia[d] || 0), 0) - metaDiaria * diasSemanaPassados.length
-      : null;
+    const saldoSemana = semanaComecou ? prod - metaSemana : null;
     const saldoTxt = saldoSemana === null ? '—' : `${sinal(saldoSemana)}${ton(saldoSemana)}`;
     const ehSemanaAtual = hojeStr >= diasSemana[0] && hojeStr <= diasSemana[diasSemana.length - 1];
     return `<tr${ehSemanaAtual ? ' class="meta-linha-atual"' : ''}>
