@@ -274,6 +274,29 @@
         </div>
       </div>
 
+      <!-- Tabela Acompanhamento Semanal do Mês (sem comparação, só o mês filtrado) -->
+      <div class="table-card mb-16">
+        <div class="table-card-header">
+          <h3>Acompanhamento Semanal do Mês</h3>
+          <span id="semanal-unico-total" class="text-muted" style="font-size:12px"></span>
+        </div>
+        <div class="table-scroll">
+          <table class="acond-table" id="tbl-semanal-unico">
+            <thead>
+              <tr>
+                <th>Semana / Acondicionamento</th>
+                <th class="text-right">Volume (ton)</th>
+                <th class="text-right">% Volume</th>
+                <th class="text-right">Faturamento</th>
+                <th class="text-right">% Faturamento</th>
+                <th class="text-right">Preço Médio/ton</th>
+              </tr>
+            </thead>
+            <tbody id="tb-semanal-unico"></tbody>
+          </table>
+        </div>
+      </div>
+
       <!-- Tabela -->
       <div class="table-card">
         <div class="table-card-header">
@@ -676,6 +699,7 @@ async function carregar() {
   renderTabela();
   renderFatProduto();
   renderResumoAcondicionamento();
+  renderAcompanhamentoSemanalMes();
 }
 
 async function renderKPIs() {
@@ -1102,6 +1126,76 @@ function renderComparativoSemanasDoMes(rowsA, rowsB, labA, labB, mesA, mesB) {
       <td class="text-right">${varLabelAcond(totA.vol, totB.vol)}</td>
       <td class="text-right">${varLabelAcond(totA.fat, totB.fat)}</td>
     </tr>`;
+}
+
+// ── Acompanhamento Semanal do Mês (sem comparação — só o mês filtrado) ──
+function renderAcompanhamentoSemanalMes() {
+  const tipo = document.getElementById('f-tipo-periodo').value;
+  const mes = document.getElementById('f-mes').value;
+  const tb = document.getElementById('tb-semanal-unico');
+  const totalEl = document.getElementById('semanal-unico-total');
+
+  if (tipo !== 'mes' || !mes) {
+    tb.innerHTML = '<tr><td colspan="6" class="table-empty">Selecione um Tipo de Período "Mês" para ver o acompanhamento semanal</td></tr>';
+    totalEl.textContent = '';
+    return;
+  }
+
+  const { diaParaSemana, faixas } = semanaDoMesMapa(mes);
+  const map = agruparPorSemanaMes(vendaData, diaParaSemana);
+  const semanas = [1, 2, 3, 4, 5].filter(i => map[i]);
+
+  if (!semanas.length) {
+    tb.innerHTML = '<tr><td colspan="6" class="table-empty">Nenhuma venda encontrada nesse mês</td></tr>';
+    totalEl.textContent = '';
+    return;
+  }
+
+  const totalVol = semanas.reduce((s, i) => s + map[i].vol, 0);
+  const totalFat = semanas.reduce((s, i) => s + map[i].fat, 0);
+
+  tb.innerHTML = semanas.map(i => {
+    const w = map[i];
+    const pctVol = totalVol > 0 ? (w.vol / totalVol * 100).toFixed(1) : '0.0';
+    const pctFat = totalFat > 0 ? (w.fat / totalFat * 100).toFixed(1) : '0.0';
+    const precoMedio = w.vol > 0 ? moeda(w.fat / (w.vol / 1000)) : '—';
+    const barWidth = parseFloat(pctFat);
+
+    const subLinhas = ['prensa', 'granel'].map(acond => {
+      const m = w.acond?.[acond] || { vol: 0, fat: 0 };
+      const label = ACOND_LABEL[acond];
+      const precoSub = m.vol > 0 ? moeda(m.fat / (m.vol / 1000)) : '—';
+      const pctSubVol = w.vol > 0 ? (m.vol / w.vol * 100).toFixed(1) : '0.0';
+      const pctSubFat = w.fat > 0 ? (m.fat / w.fat * 100).toFixed(1) : '0.0';
+      return `<tr class="acond-sub-row">
+        <td class="acond-sub-label"><span class="acond-dot acond-dot-${acond}"></span>${label}</td>
+        <td class="text-right">${ton(m.vol)}</td>
+        <td class="text-right">${pctSubVol}%</td>
+        <td class="text-right">${moeda(m.fat)}</td>
+        <td class="text-right">${pctSubFat}%</td>
+        <td class="text-right">${precoSub}</td>
+      </tr>`;
+    }).join('');
+
+    return `<tr class="acond-cat-row">
+      <td><strong>Semana ${i}</strong><div style="font-size:10px;font-weight:400;color:var(--text-muted)">${faixaLabel(faixas, i)}</div></td>
+      <td class="text-right">${ton(w.vol)}</td>
+      <td class="text-right"><span class="acond-pct">${pctVol}%</span></td>
+      <td class="text-right acond-fat">${moeda(w.fat)}</td>
+      <td class="text-right"><span class="acond-pct">${pctFat}%</span></td>
+      <td class="text-right">${precoMedio}</td>
+    </tr>${subLinhas}`;
+  }).join('') + `
+    <tr class="acond-total-row">
+      <td>TOTAL</td>
+      <td class="text-right">${ton(totalVol)}</td>
+      <td class="text-right">100%</td>
+      <td class="text-right">${moeda(totalFat)}</td>
+      <td class="text-right">100%</td>
+      <td class="text-right">${totalVol > 0 ? moeda(totalFat / (totalVol / 1000)) : '—'}</td>
+    </tr>`;
+
+  totalEl.textContent = `${semanas.length} semanas — ${labelMesRef(mes)}`;
 }
 
 function labelMesRef(mk) {
