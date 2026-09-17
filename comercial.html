@@ -64,6 +64,9 @@
     .acond-table tr.acond-cat-row-atual td{background:#eff6ff!important;border-top:1px solid #bfdbfe;border-bottom:1px solid #bfdbfe}
     .acond-table tr.acond-cat-row-atual td.acond-divider{border-left:2px solid #93c5fd}
     .acond-table tr.acond-sub-row-atual td{background:#f5f9ff!important}
+    .acond-table th.acond-col-highlight{background:#fef9c3}
+    .acond-table td.acond-col-highlight{background:#fef9c3}
+    .acond-table tr.acond-total-row td.acond-col-highlight{background:#fde047}
   </style>
 </head>
 <body>
@@ -295,10 +298,10 @@
                 <th>Semana / Acondicionamento</th>
                 <th class="text-right">Volume (ton)</th>
                 <th class="text-right">% Volume</th>
-                <th class="text-right">Faturamento</th>
+                <th class="text-right acond-col-highlight">Faturamento</th>
                 <th class="text-right">% Faturamento</th>
                 <th class="text-right">Preço Médio/ton</th>
-                <th class="text-right">Meta</th>
+                <th class="text-right acond-col-highlight">Meta</th>
                 <th class="text-right">Atingimento</th>
               </tr>
             </thead>
@@ -1210,10 +1213,10 @@ async function renderAcompanhamentoSemanalMes() {
         <td class="acond-sub-label"><span class="acond-dot acond-dot-${acond}"></span>${label}</td>
         <td class="text-right">${ton(m.vol)}</td>
         <td class="text-right">${pctSubVol}%</td>
-        <td class="text-right">${moeda(m.fat)}</td>
+        <td class="text-right acond-col-highlight">${moeda(m.fat)}</td>
         <td class="text-right">${pctSubFat}%</td>
         <td class="text-right">${precoSub}</td>
-        <td></td>
+        <td class="acond-col-highlight"></td>
         <td></td>
       </tr>`;
     }).join('');
@@ -1222,10 +1225,10 @@ async function renderAcompanhamentoSemanalMes() {
       <td><strong>Semana ${i}</strong>${ehSemanaAtual ? ' <span class="badge badge-blue" style="font-size:9px;padding:2px 7px">ATUAL</span>' : ''}<div style="font-size:10px;font-weight:400;color:var(--text-muted)">${faixaLabel(faixas, i)}</div></td>
       <td class="text-right">${ton(w.vol)}</td>
       <td class="text-right"><span class="acond-pct">${pctVol}%</span></td>
-      <td class="text-right acond-fat">${moeda(w.fat)}</td>
+      <td class="text-right acond-fat acond-col-highlight">${moeda(w.fat)}</td>
       <td class="text-right"><span class="acond-pct">${pctFat}%</span></td>
       <td class="text-right">${precoMedio}</td>
-      <td class="text-right acond-fat">${moeda(metaSemana)}</td>
+      <td class="text-right acond-fat acond-col-highlight">${moeda(metaSemana)}</td>
       <td class="text-right">${atingimentoTag(w.fat, metaSemana, aindaNaoComecou)}</td>
     </tr>${subLinhas}`;
   }).join('') + `
@@ -1233,10 +1236,10 @@ async function renderAcompanhamentoSemanalMes() {
       <td>TOTAL</td>
       <td class="text-right">${ton(totalVol)}</td>
       <td class="text-right">100%</td>
-      <td class="text-right">${moeda(totalFat)}</td>
+      <td class="text-right acond-col-highlight">${moeda(totalFat)}</td>
       <td class="text-right">100%</td>
       <td class="text-right">${totalVol > 0 ? moeda(totalFat / (totalVol / 1000)) : '—'}</td>
-      <td class="text-right acond-fat">${moeda(metaMensal)}</td>
+      <td class="text-right acond-fat acond-col-highlight">${moeda(metaMensal)}</td>
       <td class="text-right">${atingimentoTag(totalFat, metaMensal)}</td>
     </tr>`;
 
