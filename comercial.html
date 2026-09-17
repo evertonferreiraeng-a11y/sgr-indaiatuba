@@ -992,8 +992,6 @@ const SEMANA_MES_LABEL = {
   4: 'Semana 4 (dias 22–28)', 5: 'Semana 5 (dias 29–31)',
 };
 
-const ORDEM_ACOND = { prensa: 0, granel: 1, sem_info: 2 };
-
 function agruparPorSemanaMes(rows) {
   const map = {};
   rows.forEach(r => {
@@ -1046,11 +1044,10 @@ function renderComparativoSemanasDoMes(rowsA, rowsB, labA, labB) {
     const a = mapA[i] || { vol: 0, fat: 0, acond: {} };
     const b = mapB[i] || { vol: 0, fat: 0, acond: {} };
 
-    const acondKeys = [...new Set([...Object.keys(a.acond || {}), ...Object.keys(b.acond || {})])]
-      .sort((x, y) => (ORDEM_ACOND[x] ?? 9) - (ORDEM_ACOND[y] ?? 9));
+    // Sempre mostra Prensado e A Granel (mesmo com 0 na semana), + "Não informado" só se houver dado.
+    const acondKeys = ['prensa', 'granel', ...Object.keys({ ...a.acond, ...b.acond }).filter(k => k === 'sem_info')];
 
-    // Com um único tipo, a sub-linha repetiria os mesmos números da linha da semana — omite.
-    const subLinhas = acondKeys.length <= 1 ? '' : acondKeys.map(acond => {
+    const subLinhas = acondKeys.map(acond => {
       const ma = a.acond?.[acond] || { vol: 0, fat: 0 };
       const mb = b.acond?.[acond] || { vol: 0, fat: 0 };
       const label = acond === 'sem_info' ? 'Não informado' : ACOND_LABEL[acond];
