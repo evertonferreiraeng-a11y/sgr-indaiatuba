@@ -1173,7 +1173,10 @@ async function renderAcompanhamentoSemanalMes() {
   const totalVol = semanas.reduce((s, i) => s + (map[i]?.vol || 0), 0);
   const totalFat = semanas.reduce((s, i) => s + (map[i]?.fat || 0), 0);
 
-  const atingimentoTag = (fat, meta) => {
+  const hojeStr = new Date().toISOString().split('T')[0];
+
+  const atingimentoTag = (fat, meta, aindaNaoComecou) => {
+    if (aindaNaoComecou) return '<span class="badge badge-gray" title="Semana ainda não iniciada">—</span>';
     if (!meta) return '<span class="badge badge-gray">—</span>';
     const pct = fat / meta * 100;
     const classe = pct >= 100 ? 'badge-green' : (pct >= 70 ? 'badge-yellow' : 'badge-red');
@@ -1189,6 +1192,8 @@ async function renderAcompanhamentoSemanalMes() {
 
     const diasNaSemana = faixas[i][1] - faixas[i][0] + 1;
     const metaSemana = metaDiaria * diasNaSemana;
+    const semanaInicioStr = `${mes}-${String(faixas[i][0]).padStart(2, '0')}`;
+    const aindaNaoComecou = semanaInicioStr > hojeStr;
 
     const subLinhas = ['prensa', 'granel'].map(acond => {
       const m = w.acond?.[acond] || { vol: 0, fat: 0 };
@@ -1216,7 +1221,7 @@ async function renderAcompanhamentoSemanalMes() {
       <td class="text-right"><span class="acond-pct">${pctFat}%</span></td>
       <td class="text-right">${precoMedio}</td>
       <td class="text-right">${moeda(metaSemana)}</td>
-      <td class="text-right">${atingimentoTag(w.fat, metaSemana)}</td>
+      <td class="text-right">${atingimentoTag(w.fat, metaSemana, aindaNaoComecou)}</td>
     </tr>${subLinhas}`;
   }).join('') + `
     <tr class="acond-total-row">
