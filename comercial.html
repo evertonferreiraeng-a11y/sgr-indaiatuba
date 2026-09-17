@@ -220,9 +220,13 @@
         <div id="acond-controles" style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
           <label style="display:flex;align-items:center;gap:6px;font-size:12px;font-weight:600;cursor:pointer;color:var(--text-muted)">
             <input type="checkbox" id="acond-cmp-toggle" style="width:auto" />
-            Comparar meses
+            Comparar
           </label>
           <div id="acond-cmp-filtros" style="display:none;gap:8px;align-items:center;flex-wrap:wrap">
+            <select id="acond-cmp-tipo" style="font-size:12px;padding:4px 8px;border:1px solid #e2e8f0;border-radius:6px">
+              <option value="mes">Mês</option>
+              <option value="semana">Semana</option>
+            </select>
             <input type="month" id="acond-mes-a" style="font-size:12px;padding:4px 8px;border:1px solid #e2e8f0;border-radius:6px" />
             <span style="font-size:12px;color:#64748b">vs</span>
             <input type="month" id="acond-mes-b" style="font-size:12px;padding:4px 8px;border:1px solid #e2e8f0;border-radius:6px" />
@@ -853,6 +857,43 @@ function mesAnterior(mk) {
   return `${y}-${String(m).padStart(2,'0')}`;
 }
 
+// ── Semana ISO (para o modo "Semana" do comparativo) ──
+function isoWeekString(date) {
+  const d = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()));
+  const dayNum = (d.getUTCDay() + 6) % 7;
+  d.setUTCDate(d.getUTCDate() - dayNum + 3);
+  const firstThursday = new Date(Date.UTC(d.getUTCFullYear(), 0, 4));
+  const firstDayNum = (firstThursday.getUTCDay() + 6) % 7;
+  firstThursday.setUTCDate(firstThursday.getUTCDate() - firstDayNum + 3);
+  const week = 1 + Math.round((d - firstThursday) / (7 * 24 * 3600 * 1000));
+  return `${d.getUTCFullYear()}-W${String(week).padStart(2, '0')}`;
+}
+
+function periodoRangeSemana(wk) {
+  const [y, w] = wk.split('-W').map(Number);
+  const jan4 = new Date(Date.UTC(y, 0, 4));
+  const jan4Day = (jan4.getUTCDay() + 6) % 7;
+  const monday = new Date(jan4);
+  monday.setUTCDate(jan4.getUTCDate() - jan4Day + (w - 1) * 7);
+  const sunday = new Date(monday);
+  sunday.setUTCDate(monday.getUTCDate() + 6);
+  const fmt = d => d.toISOString().split('T')[0];
+  return { ini: fmt(monday), fim: fmt(sunday) };
+}
+
+function semanaAnterior(wk) {
+  const { ini } = periodoRangeSemana(wk);
+  const d = new Date(ini + 'T00:00:00Z');
+  d.setUTCDate(d.getUTCDate() - 7);
+  return isoWeekString(d);
+}
+
+function labelSemanaRef(wk) {
+  const { ini, fim } = periodoRangeSemana(wk);
+  const fmtd = s => { const [, m, d] = s.split('-'); return `${d}/${m}`; };
+  return `${fmtd(ini)}–${fmtd(fim)}`;
+}
+
 document.getElementById('acond-mes-b').value = mesAtual();
 document.getElementById('acond-mes-a').value = mesAnterior(mesAtual());
 
@@ -861,6 +902,20 @@ document.getElementById('acond-cmp-toggle').addEventListener('change', function(
   if (!this.checked) {
     document.getElementById('thead-fat-acond').innerHTML = THEAD_ACOND_NORMAL;
     renderResumoAcondicionamento();
+  }
+});
+
+document.getElementById('acond-cmp-tipo').addEventListener('change', function() {
+  const inputA = document.getElementById('acond-mes-a');
+  const inputB = document.getElementById('acond-mes-b');
+  if (this.value === 'semana') {
+    inputA.type = 'week'; inputB.type = 'week';
+    inputB.value = isoWeekString(new Date());
+    inputA.value = semanaAnterior(inputB.value);
+  } else {
+    inputA.type = 'month'; inputB.type = 'month';
+    inputB.value = mesAtual();
+    inputA.value = mesAnterior(inputB.value);
   }
 });
 
@@ -921,12 +976,16 @@ function varLabelAcond(a, b) {
 }
 
 async function compararAcondicionamento() {
-  const mesA = document.getElementById('acond-mes-a').value;
-  const mesB = document.getElementById('acond-mes-b').value;
-  if (!mesA || !mesB) { toast('Selecione os dois meses para comparar', 'error'); return; }
+  const tipo = document.getElementById('acond-cmp-tipo').value;
+  const valA = document.getElementById('acond-mes-a').value;
+  const valB = document.getElementById('acond-mes-b').value;
+  if (!valA || !valB) { toast(`Selecione as duas ${tipo === 'semana' ? 'semanas' : 'meses'} para comparar`, 'error'); return; }
 
-  const { ini: iniA, fim: fimA } = periodoRange(mesA);
-  const { ini: iniB, fim: fimB } = periodoRange(mesB);
+  const range = tipo === 'semana' ? periodoRangeSemana : periodoRange;
+  const label = tipo === 'semana' ? labelSemanaRef : labelMesRef;
+
+  const { ini: iniA, fim: fimA } = range(valA);
+  const { ini: iniB, fim: fimB } = range(valB);
 
   const [rowsA, rowsB] = await Promise.all([
     buscarVendasPeriodoAcond(iniA, fimA),
@@ -935,7 +994,7 @@ async function compararAcondicionamento() {
 
   const mapA = agruparPorAcondicionamento(rowsA);
   const mapB = agruparPorAcondicionamento(rowsB);
-  const labA = labelMesRef(mesA), labB = labelMesRef(mesB);
+  const labA = label(valA), labB = label(valB);
 
   document.getElementById('thead-fat-acond').innerHTML = `
     <tr>
