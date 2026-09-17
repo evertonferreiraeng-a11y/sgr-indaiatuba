@@ -61,6 +61,9 @@
     .acond-sub-label::before{content:'';position:absolute;left:14px;top:50%;width:6px;height:6px;border-radius:50%;background:#cbd5e1;transform:translateY(-50%)}
     .acond-table.acond-sem-materiais tr.acond-sub-row{display:none}
     .acond-table.acond-sem-materiais tr.acond-cat-row td{border-bottom:2px solid var(--border)}
+    .acond-table tr.acond-cat-row-atual td{background:#eff6ff!important;border-top:1px solid #bfdbfe;border-bottom:1px solid #bfdbfe}
+    .acond-table tr.acond-cat-row-atual td.acond-divider{border-left:2px solid #93c5fd}
+    .acond-table tr.acond-sub-row-atual td{background:#f5f9ff!important}
   </style>
 </head>
 <body>
@@ -1193,7 +1196,9 @@ async function renderAcompanhamentoSemanalMes() {
     const diasNaSemana = faixas[i][1] - faixas[i][0] + 1;
     const metaSemana = metaDiaria * diasNaSemana;
     const semanaInicioStr = `${mes}-${String(faixas[i][0]).padStart(2, '0')}`;
+    const semanaFimStr = `${mes}-${String(faixas[i][1]).padStart(2, '0')}`;
     const aindaNaoComecou = semanaInicioStr > hojeStr;
+    const ehSemanaAtual = hojeStr >= semanaInicioStr && hojeStr <= semanaFimStr;
 
     const subLinhas = ['prensa', 'granel'].map(acond => {
       const m = w.acond?.[acond] || { vol: 0, fat: 0 };
@@ -1201,7 +1206,7 @@ async function renderAcompanhamentoSemanalMes() {
       const precoSub = m.vol > 0 ? moeda(m.fat / (m.vol / 1000)) : '—';
       const pctSubVol = w.vol > 0 ? (m.vol / w.vol * 100).toFixed(1) : '0.0';
       const pctSubFat = w.fat > 0 ? (m.fat / w.fat * 100).toFixed(1) : '0.0';
-      return `<tr class="acond-sub-row">
+      return `<tr class="acond-sub-row${ehSemanaAtual ? ' acond-sub-row-atual' : ''}">
         <td class="acond-sub-label"><span class="acond-dot acond-dot-${acond}"></span>${label}</td>
         <td class="text-right">${ton(m.vol)}</td>
         <td class="text-right">${pctSubVol}%</td>
@@ -1213,8 +1218,8 @@ async function renderAcompanhamentoSemanalMes() {
       </tr>`;
     }).join('');
 
-    return `<tr class="acond-cat-row">
-      <td><strong>Semana ${i}</strong><div style="font-size:10px;font-weight:400;color:var(--text-muted)">${faixaLabel(faixas, i)}</div></td>
+    return `<tr class="acond-cat-row${ehSemanaAtual ? ' acond-cat-row-atual' : ''}">
+      <td><strong>Semana ${i}</strong>${ehSemanaAtual ? ' <span class="badge badge-blue" style="font-size:9px;padding:2px 7px">ATUAL</span>' : ''}<div style="font-size:10px;font-weight:400;color:var(--text-muted)">${faixaLabel(faixas, i)}</div></td>
       <td class="text-right">${ton(w.vol)}</td>
       <td class="text-right"><span class="acond-pct">${pctVol}%</span></td>
       <td class="text-right acond-fat">${moeda(w.fat)}</td>
