@@ -260,6 +260,15 @@
             <tbody id="tb-fat-acond"></tbody>
           </table>
         </div>
+        <div id="acond-semanas-wrap" style="display:none;border-top:1px solid var(--border)">
+          <div style="padding:12px 20px 4px"><h4 style="font-size:12px;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:.03em;margin:0">Comparativo por Semana do Mês</h4></div>
+          <div class="table-scroll">
+            <table class="acond-table" id="tbl-acond-semanas">
+              <thead id="thead-acond-semanas"></thead>
+              <tbody id="tb-acond-semanas"></tbody>
+            </table>
+          </div>
+        </div>
       </div>
 
       <!-- Tabela -->
@@ -902,6 +911,7 @@ document.getElementById('acond-cmp-toggle').addEventListener('change', function(
   if (!this.checked) {
     document.getElementById('thead-fat-acond').innerHTML = THEAD_ACOND_NORMAL;
     renderResumoAcondicionamento();
+    document.getElementById('acond-semanas-wrap').style.display = 'none';
   }
 });
 
@@ -912,6 +922,7 @@ document.getElementById('acond-cmp-tipo').addEventListener('change', function() 
     inputA.type = 'week'; inputB.type = 'week';
     inputB.value = isoWeekString(new Date());
     inputA.value = semanaAnterior(inputB.value);
+    document.getElementById('acond-semanas-wrap').style.display = 'none';
   } else {
     inputA.type = 'month'; inputB.type = 'month';
     inputB.value = mesAtual();
@@ -937,7 +948,7 @@ async function buscarVendasPeriodoAcond(ini, fim) {
   const cli = document.getElementById('f-cliente').value;
   const mat = document.getElementById('f-mat').value;
   let q = supabase.from('vendas')
-    .select('acondicionamento, peso_kg, unidade, valor_total, materiais(nome), codigo_material')
+    .select('acondicionamento, peso_kg, unidade, valor_total, materiais(nome), codigo_material, data')
     .gte('data', ini).lte('data', fim);
   if (cli) q = q.eq('cliente_id', cli);
   if (mat) q = q.eq('material_id', mat);
@@ -959,6 +970,85 @@ function agruparPorAcondicionamento(rows) {
     map[acond].materiais[mat].fat += parseFloat(r.valor_total || 0);
   });
   return map;
+}
+
+// ── Comparativo por semana-do-mês (dentro do modo "Mês") ──
+function semanaDoMesIndex(dataStr) {
+  const dia = parseInt(dataStr.split('-')[2], 10);
+  return Math.min(Math.ceil(dia / 7), 5);
+}
+
+const SEMANA_MES_LABEL = {
+  1: 'Semana 1 (dias 1–7)', 2: 'Semana 2 (dias 8–14)', 3: 'Semana 3 (dias 15–21)',
+  4: 'Semana 4 (dias 22–28)', 5: 'Semana 5 (dias 29–31)',
+};
+
+function agruparPorSemanaMes(rows) {
+  const map = {};
+  rows.forEach(r => {
+    const idx = semanaDoMesIndex(r.data);
+    if (!map[idx]) map[idx] = { vol: 0, fat: 0 };
+    map[idx].vol += pesoVenda(r);
+    map[idx].fat += parseFloat(r.valor_total || 0);
+  });
+  return map;
+}
+
+function renderComparativoSemanasDoMes(rowsA, rowsB, labA, labB) {
+  const mapA = agruparPorSemanaMes(rowsA);
+  const mapB = agruparPorSemanaMes(rowsB);
+  const semanas = [1, 2, 3, 4, 5].filter(i => mapA[i] || mapB[i]);
+
+  document.getElementById('thead-acond-semanas').innerHTML = `
+    <tr>
+      <th rowspan="2" style="vertical-align:bottom">Semana</th>
+      <th colspan="2" class="acond-grp-a" style="text-align:center">${labA}</th>
+      <th colspan="2" class="acond-grp-b acond-divider" style="text-align:center">${labB}</th>
+      <th rowspan="2" class="text-right" style="vertical-align:bottom">Var. Volume</th>
+      <th rowspan="2" class="text-right" style="vertical-align:bottom">Var. Faturamento</th>
+    </tr>
+    <tr>
+      <th class="text-right acond-grp-a">Volume (ton)</th>
+      <th class="text-right acond-grp-a">Faturamento</th>
+      <th class="text-right acond-grp-b acond-divider">Volume (ton)</th>
+      <th class="text-right acond-grp-b">Faturamento</th>
+    </tr>`;
+
+  if (!semanas.length) {
+    document.getElementById('tb-acond-semanas').innerHTML = '<tr><td colspan="7" class="table-empty">Sem dados nas semanas dos meses selecionados</td></tr>';
+    return;
+  }
+
+  const totA = { vol: 0, fat: 0 }, totB = { vol: 0, fat: 0 };
+  semanas.forEach(i => {
+    const a = mapA[i] || { vol: 0, fat: 0 };
+    const b = mapB[i] || { vol: 0, fat: 0 };
+    totA.vol += a.vol; totA.fat += a.fat;
+    totB.vol += b.vol; totB.fat += b.fat;
+  });
+
+  document.getElementById('tb-acond-semanas').innerHTML = semanas.map(i => {
+    const a = mapA[i] || { vol: 0, fat: 0 };
+    const b = mapB[i] || { vol: 0, fat: 0 };
+    return `<tr>
+      <td>${SEMANA_MES_LABEL[i]}</td>
+      <td class="text-right">${ton(a.vol)}</td>
+      <td class="text-right acond-fat">${moeda(a.fat)}</td>
+      <td class="text-right acond-divider">${ton(b.vol)}</td>
+      <td class="text-right acond-fat">${moeda(b.fat)}</td>
+      <td class="text-right">${varLabelAcond(a.vol, b.vol)}</td>
+      <td class="text-right">${varLabelAcond(a.fat, b.fat)}</td>
+    </tr>`;
+  }).join('') + `
+    <tr class="acond-total-row">
+      <td>TOTAL</td>
+      <td class="text-right">${ton(totA.vol)}</td>
+      <td class="text-right acond-fat">${moeda(totA.fat)}</td>
+      <td class="text-right acond-divider">${ton(totB.vol)}</td>
+      <td class="text-right acond-fat">${moeda(totB.fat)}</td>
+      <td class="text-right">${varLabelAcond(totA.vol, totB.vol)}</td>
+      <td class="text-right">${varLabelAcond(totA.fat, totB.fat)}</td>
+    </tr>`;
 }
 
 function labelMesRef(mk) {
@@ -1101,6 +1191,14 @@ async function compararAcondicionamento() {
     </tr>`;
 
   document.getElementById('fat-acond-total').textContent = `Comparando ${labA} (${moeda(totA.fat)}) × ${labB} (${moeda(totB.fat)})`;
+
+  const semanasWrap = document.getElementById('acond-semanas-wrap');
+  if (tipo === 'mes') {
+    renderComparativoSemanasDoMes(rowsA, rowsB, labA, labB);
+    semanasWrap.style.display = '';
+  } else {
+    semanasWrap.style.display = 'none';
+  }
 }
 
 function renderTabela() {
