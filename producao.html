@@ -47,6 +47,7 @@
     .meta-sub-pane.active{display:block}
     .meta-day-ok{color:#16a34a;font-weight:700}
     .meta-day-bad{color:#dc2626;font-weight:700}
+    .meta-linha-atual td{background:#eff6ff!important}
     .dia-editavel{cursor:pointer}
     .dia-editavel:hover{background:#f0faf4}
     .dia-editavel td:first-child{position:relative}
@@ -496,19 +497,23 @@ function renderMetaCard(idKey, titulo, subtituloExtra, capMes, equipIds, diasUte
     const pct = metaDiaria > 0 ? (prod / metaDiaria * 100) : 0;
     const dow = DOW_ABREV[new Date(d + 'T00:00:00').getDay()];
     const [, mm, dd] = d.split('-');
-    const cls = pct >= 100 ? 'meta-day-ok' : (prod > 0 ? 'meta-day-bad' : '');
     const jaOcorreu = d <= hojeStr;
+    const cls = jaOcorreu ? (pct >= 100 ? 'meta-day-ok' : (prod > 0 ? 'meta-day-bad' : '')) : '';
+    const pctTxt = jaOcorreu ? `${pct.toFixed(0)}%` : '—';
     const saldoDia = prod - metaDiaria;
     if (jaOcorreu) acumulado += saldoDia;
     const saldoTxt = jaOcorreu ? `${sinal(saldoDia)}${ton(saldoDia)}` : '—';
     const acumTxt = jaOcorreu ? `${sinal(acumulado)}${ton(acumulado)}` : '—';
     const editavel = isAdmin && jaOcorreu && prod > 0;
-    const trAttrs = editavel ? ` class="dia-editavel" data-day="${d}" data-equip="${equipIds.join(',')}" title="Clique para editar os lançamentos deste dia"` : '';
-    return `<tr${trAttrs}>
-      <td>${dd}/${mm} (${dow})${editavel ? ` ${icon('edit',{size:12})}` : ''}</td>
+    const ehHoje = d === hojeStr;
+    const classes = [ehHoje && 'meta-linha-atual', editavel && 'dia-editavel'].filter(Boolean);
+    const classAttr = classes.length ? ` class="${classes.join(' ')}"` : '';
+    const dataAttrs = editavel ? ` data-day="${d}" data-equip="${equipIds.join(',')}" title="Clique para editar os lançamentos deste dia"` : '';
+    return `<tr${classAttr}${dataAttrs}>
+      <td>${dd}/${mm} (${dow})${ehHoje ? ' <span class="badge badge-blue" style="font-size:9px;padding:1px 6px">HOJE</span>' : ''}${editavel ? ` ${icon('edit',{size:12})}` : ''}</td>
       <td class="text-right">${ton(prod)}</td>
       <td class="text-right">${ton(metaDiaria)}</td>
-      <td class="text-right ${cls}">${pct.toFixed(0)}%</td>
+      <td class="text-right ${cls}">${pctTxt}</td>
       <td class="text-right" style="color:${jaOcorreu ? cor(saldoDia) : 'var(--text-muted)'};font-weight:600">${saldoTxt}</td>
       <td class="text-right" style="color:${jaOcorreu ? cor(acumulado) : 'var(--text-muted)'};font-weight:600">${acumTxt}</td>
     </tr>`;
@@ -519,18 +524,21 @@ function renderMetaCard(idKey, titulo, subtituloExtra, capMes, equipIds, diasUte
     const prod = diasSemana.reduce((s, d) => s + (porDia[d] || 0), 0);
     const metaSemana = metaDiaria * diasSemana.length;
     const pct = metaSemana > 0 ? (prod / metaSemana * 100) : 0;
-    const cls = pct >= 100 ? 'meta-day-ok' : (prod > 0 ? 'meta-day-bad' : '');
     const fmtd = s => { const [, m, d] = s.split('-'); return `${d}/${m}`; };
     const diasSemanaPassados = diasSemana.filter(d => d <= hojeStr);
-    const saldoSemana = diasSemanaPassados.length
+    const semanaComecou = diasSemanaPassados.length > 0;
+    const cls = semanaComecou ? (pct >= 100 ? 'meta-day-ok' : (prod > 0 ? 'meta-day-bad' : '')) : '';
+    const pctTxt = semanaComecou ? `${pct.toFixed(0)}%` : '—';
+    const saldoSemana = semanaComecou
       ? diasSemanaPassados.reduce((s, d) => s + (porDia[d] || 0), 0) - metaDiaria * diasSemanaPassados.length
       : null;
     const saldoTxt = saldoSemana === null ? '—' : `${sinal(saldoSemana)}${ton(saldoSemana)}`;
-    return `<tr>
-      <td>Semana ${i + 1} (${fmtd(diasSemana[0])}–${fmtd(diasSemana[diasSemana.length - 1])})</td>
+    const ehSemanaAtual = hojeStr >= diasSemana[0] && hojeStr <= diasSemana[diasSemana.length - 1];
+    return `<tr${ehSemanaAtual ? ' class="meta-linha-atual"' : ''}>
+      <td>Semana ${i + 1} (${fmtd(diasSemana[0])}–${fmtd(diasSemana[diasSemana.length - 1])})${ehSemanaAtual ? ' <span class="badge badge-blue" style="font-size:9px;padding:1px 6px">ATUAL</span>' : ''}</td>
       <td class="text-right">${ton(prod)}</td>
       <td class="text-right">${ton(metaSemana)}</td>
-      <td class="text-right ${cls}">${pct.toFixed(0)}%</td>
+      <td class="text-right ${cls}">${pctTxt}</td>
       <td class="text-right" style="color:${saldoSemana === null ? 'var(--text-muted)' : cor(saldoSemana)};font-weight:600">${saldoTxt}</td>
     </tr>`;
   }).join('');
