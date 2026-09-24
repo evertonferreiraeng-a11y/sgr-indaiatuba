@@ -229,11 +229,9 @@ async function fetchAll(table, fields, filters = []) {
 
 async function buscarDados(ini, fim) {
   const periodo = [['gte', 'data', ini], ['lte', 'data', fim]];
-  const [vendas, entradas, producao, ocorrencias, metas, equipamentos, colaboradores, materiais] = await Promise.all([
+  const [vendas, producao, metas, equipamentos, colaboradores, materiais] = await Promise.all([
     fetchAll('vendas', 'data, peso_kg, unidade, valor_total, acondicionamento', periodo),
-    fetchAll('entradas', 'data, peso_liquido, peso_liquido_descontos, tipo_movimentacao', periodo),
     fetchAll('producao', 'data, peso_produzido_kg, equipamento_id', periodo),
-    fetchAll('ocorrencias', 'data, tipo, conta_como_falta', periodo),
     fetchAll('metas', 'periodo, valor_meta', [['eq', 'indicador', 'faturamento'], ['gte', 'periodo', ini.slice(0, 7)], ['lte', 'periodo', fim.slice(0, 7)]]),
     fetchAll('equipamentos', 'id, nome, status, capacidade_kg_mes'),
     fetchAll('colaboradores', 'id, data_admissao, demissao, ativo'),
@@ -247,7 +245,7 @@ async function buscarDados(ini, fim) {
   const metaMes = {};
   metas.forEach(m => { metaMes[m.periodo] = parseFloat(m.valor_meta || 0); });
   const prensas = equipamentos.filter(e => (e.nome || '').toLowerCase().includes('prensa') && e.capacidade_kg_mes);
-  return { vendas, entradas, producao, ocorrencias, metaMes, equipamentos, prensas, colaboradores, materiais, snapshots };
+  return { vendas, producao, metaMes, equipamentos, prensas, colaboradores, materiais, snapshots };
 }
 
 // ── Cálculo dos indicadores de um período ──
@@ -280,10 +278,6 @@ function calcular(D, ini, fim, metaFim = fim) {
   const prod = D.producao.filter(r => noPeriodo(r) && idsPrensas.has(r.equipamento_id))
     .reduce((s, r) => s + parseFloat(r.peso_produzido_kg || 0), 0);
 
-  const ents = D.entradas.filter(noPeriodo);
-  const recebido = ents.filter(r => r.tipo_movimentacao !== 'saida').reduce((s, r) => s + parseFloat(r.peso_liquido_descontos || r.peso_liquido || 0), 0);
-  const rejeito = ents.filter(r => r.tipo_movimentacao === 'saida').reduce((s, r) => s + parseFloat(r.peso_liquido || r.peso_liquido_descontos || 0), 0);
-
   const snaps = D.snapshots.filter(s => s.semana >= ini && s.semana <= fim);
   const disp = snaps.length ? snaps.filter(s => s.status === 'operando' || s.status === 'restricao').length / snaps.length * 100 : null;
 
@@ -295,17 +289,12 @@ function calcular(D, ini, fim, metaFim = fim) {
     return c.ativo !== false;
   }).length;
 
-  const ocs = D.ocorrencias.filter(noPeriodo);
-
   return {
     fat, metaFat, atingFat: metaFat > 0 ? fat / metaFat * 100 : null,
     vol, preco: vol > 0 ? fat / (vol / 1000) : null,
     prensado: acond.prensa.vol, pctPrensado: vol > 0 ? acond.prensa.vol / vol * 100 : null,
     prod, metaProd, atingProd: metaProd > 0 ? prod / metaProd * 100 : null,
-    recebido, rejeito, pctRejeito: recebido > 0 ? rejeito / recebido * 100 : null,
     disp, colab,
-    faltas: ocs.filter(o => o.conta_como_falta).length,
-    atestados: ocs.filter(o => o.tipo === 'atestado').length,
     acond,
   };
 }
@@ -348,17 +337,10 @@ const INDICADORES = [
   { grupo: 'Comercial', label: '% prensado', val: s => s.pctPrensado, fmt: fmtPct, pp: true, soTabela: true },
   { grupo: 'Produção', label: 'Produção das prensas', val: s => s.prod, fmt: ton,
     meta: s => ({ meta: s.metaProd, ating: s.atingProd, txt: s.metaProd ? `Meta ${ton(s.metaProd)}` : 'sem capacidade cadastrada' }) },
-  { grupo: 'Produção', label: 'Material recebido', val: s => s.recebido, fmt: ton,
-    sub: () => 'entradas de material' },
-  { grupo: 'Produção', label: 'Rejeito', val: s => s.rejeito, fmt: ton, melhorMenor: true,
-    sub: s => `${fmtPct(s.pctRejeito)} do recebido` },
-  { grupo: 'Produção', label: '% rejeito', val: s => s.pctRejeito, fmt: fmtPct, pp: true, melhorMenor: true, soTabela: true },
   { grupo: 'Equipamentos', label: 'Disponibilidade', val: s => s.disp, fmt: fmtPct, pp: true,
     sub: s => s.disp == null ? 'sem registro diário no período' : 'operando + com restrição' },
   { grupo: 'Pessoas', label: 'Colaboradores', val: s => s.colab, fmt: fmtNum,
     meta: s => ({ meta: META_COLABORADORES, ating: s.colab / META_COLABORADORES * 100, txt: `Meta ${META_COLABORADORES} colaboradores` }) },
-  { grupo: 'Pessoas', label: 'Faltas', val: s => s.faltas, fmt: fmtNum, melhorMenor: true,
-    sub: s => `${s.atestados} atestado${s.atestados === 1 ? '' : 's'} no período` },
 ];
 
 // ── Render ──
