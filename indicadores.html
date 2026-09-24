@@ -389,6 +389,9 @@ async function carregar() {
     <div class="ind-sec-title">Resumo</div>
     <div class="ind-grid">${INDICADORES.filter(i => !i.soTabela).map(i => cardHTML(i, A, B, labelB)).join('')}</div>
 
+    <div class="ind-sec-title">Situação atual (hoje)</div>
+    <div class="ind-now">${situacaoAtualHTML(D)}</div>
+
     <div class="charts-grid">
       <div class="chart-card">
         <h3>Faturamento × Meta — últimos 12 ${modo === 'mes' ? 'meses' : 'semanas'}</h3>
@@ -414,9 +417,6 @@ async function carregar() {
         </table>
       </div>
     </div>
-
-    <div class="ind-sec-title">Situação atual (hoje)</div>
-    <div class="ind-now">${situacaoAtualHTML(D)}</div>
   `;
 
   renderCharts(evolStats, pA.key, pB.key);
