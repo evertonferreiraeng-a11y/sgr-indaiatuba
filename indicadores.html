@@ -279,8 +279,21 @@ function calcular(D, ini, fim, metaFim = fim) {
   const prod = D.producao.filter(r => noPeriodo(r) && idsPrensas.has(r.equipamento_id))
     .reduce((s, r) => s + parseFloat(r.peso_produzido_kg || 0), 0);
 
-  const snaps = D.snapshots.filter(s => s.semana >= ini && s.semana <= fim);
-  const disp = snaps.length ? snaps.filter(s => s.status === 'operando' || s.status === 'restricao').length / snaps.length * 100 : null;
+  // Disponibilidade = situação dos equipamentos no fim do período (operando + com restrição ÷ total).
+  // Período em andamento → status atual do cadastro; período passado → último registro diário do período.
+  let statusEquip = null;
+  if (fim >= hoje) {
+    statusEquip = D.equipamentos.map(e => e.status);
+  } else {
+    const snaps = D.snapshots.filter(s => s.semana >= ini && s.semana <= fim);
+    const ultimoDia = snaps.reduce((m, s) => s.semana > m ? s.semana : m, '');
+    if (ultimoDia) statusEquip = snaps.filter(s => s.semana === ultimoDia).map(s => s.status);
+  }
+  const contar = st => statusEquip ? statusEquip.filter(s => s === st).length : 0;
+  const equip = statusEquip && statusEquip.length
+    ? { total: statusEquip.length, operando: contar('operando'), restricao: contar('restricao'), parado: contar('parado') }
+    : null;
+  const disp = equip ? (equip.operando + equip.restricao) / equip.total * 100 : null;
 
   // Quadro no fim do período (ou hoje, se o período ainda não acabou)
   const ref = fim < hoje ? fim : hoje;
@@ -295,7 +308,7 @@ function calcular(D, ini, fim, metaFim = fim) {
     vol, preco: vol > 0 ? fat / (vol / 1000) : null,
     prensado: acond.prensa.vol, pctPrensado: vol > 0 ? acond.prensa.vol / vol * 100 : null,
     prod, metaProd, atingProd: metaProd > 0 ? prod / metaProd * 100 : null,
-    disp, colab,
+    disp, equip, colab,
     acond,
   };
 }
@@ -339,7 +352,14 @@ const INDICADORES = [
   { grupo: 'Produção', label: 'Produção das prensas', val: s => s.prod, fmt: ton,
     meta: s => ({ meta: s.metaProd, ating: s.atingProd, txt: s.metaProd ? `Meta ${ton(s.metaProd)}` : 'sem capacidade cadastrada' }) },
   { grupo: 'Equipamentos', label: 'Disponibilidade', val: s => s.disp, fmt: fmtPct, pp: true,
-    sub: s => s.disp == null ? 'sem registro diário no período' : 'operando + com restrição' },
+    sub: s => {
+      if (!s.equip) return 'sem registro diário no período';
+      const e = s.equip;
+      const partes = [`${e.operando + e.restricao} de ${e.total} disponíveis`];
+      if (e.restricao) partes.push(`${e.restricao} operando com restrição`);
+      if (e.parado) partes.push(`${e.parado} parado${e.parado > 1 ? 's' : ''}`);
+      return partes.join(' · ');
+    } },
   { grupo: 'Pessoas', label: 'Colaboradores', val: s => s.colab, fmt: fmtNum,
     meta: s => ({ meta: META_COLABORADORES, ating: s.colab / META_COLABORADORES * 100, txt: `Meta ${META_COLABORADORES} colaboradores` }) },
 ];
