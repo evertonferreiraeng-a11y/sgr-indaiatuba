@@ -474,16 +474,10 @@ function tabelaHTML(A, B) {
 function situacaoAtualHTML(D) {
   const estoqueKg = D.materiais.reduce((s, m) => s + parseFloat(m.estoque_kg || 0), 0);
   const valorEstoque = D.materiais.reduce((s, m) => s + parseFloat(m.estoque_kg || 0) * parseFloat(m.valor_unitario || 0), 0);
-  const eqs = D.equipamentos;
-  const ativos = eqs.filter(e => e.status === 'operando' || e.status === 'restricao').length;
-  const restricao = eqs.filter(e => e.status === 'restricao').length;
-  const prensasOp = D.prensas.filter(e => e.status === 'operando' || e.status === 'restricao').length;
   const card = (label, val, sub) => `<div class="ind-card"><div class="kpi-label">${label}</div><div class="kpi-value" style="font-size:20px">${val}</div><div class="ind-meta">${sub}</div></div>`;
   return [
     card('Estoque', ton(estoqueKg), 'material armazenado'),
     card('Valor em estoque', moeda(valorEstoque), 'estoque × valor unitário'),
-    card('Equipamentos disponíveis', `${ativos} / ${eqs.length}`, `${eqs.length ? Math.round(ativos / eqs.length * 100) : 0}% · ${restricao} com restrição`),
-    card('Prensas em operação', `${prensasOp} / ${D.prensas.length}`, 'prensas com capacidade cadastrada'),
   ].join('');
 }
 
