@@ -492,7 +492,7 @@ function renderCharts(evolStats, keyA, keyB) {
   const corBarra = evolStats.map(e => e.p.key === keyA ? '#006636' : e.p.key === keyB ? '#64748b' : '#a7d7bb');
   const tonV = kg => +(kg / 1000).toFixed(2);
   // Valor sempre visível em cima de cada barra/ponto
-  const rotuloBarra = { anchor: 'end', align: 'top', offset: 1, clamp: true, font: { size: 10, weight: '700' }, color: '#334155' };
+  const rotuloBarra = { anchor: 'end', align: 'top', offset: 1, clamp: true, font: { size: 12, weight: '700' }, color: '#334155' };
 
   chartFat?.destroy();
   chartFat = new Chart(document.getElementById('ch-fat'), {
