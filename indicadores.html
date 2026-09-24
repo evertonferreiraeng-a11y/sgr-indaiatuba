@@ -1,0 +1,567 @@
+﻿<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <link rel="manifest" href="manifest.json" />
+  <meta name="theme-color" content="#006636" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="SGR Indaiatuba" />
+  <link rel="apple-touch-icon" href="img/icons/apple-touch-icon.png" />
+  <link rel="icon" type="image/png" href="img/icons/icon-192.png" />
+  <title>Indicadores — SGR Indaiatuba</title>
+  <link rel="stylesheet" href="css/style.css" />
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4/dist/chart.umd.min.js"></script>
+  <style>
+    /* ── Controles ── */
+    .ind-controls { display:flex; gap:10px; align-items:center; flex-wrap:wrap; }
+    .ind-seg { display:inline-flex; border:1px solid var(--border); border-radius:8px; overflow:hidden; background:#fff; }
+    .ind-seg button { border:none; background:none; padding:7px 16px; font-size:12.5px; font-weight:600; color:var(--text-muted); cursor:pointer; }
+    .ind-seg button.active { background:var(--primary); color:#fff; }
+    .ind-field { display:flex; flex-direction:column; gap:3px; }
+    .ind-field label { font-size:10px; font-weight:700; text-transform:uppercase; letter-spacing:.06em; color:var(--text-muted); }
+    .ind-field input, .ind-field select { padding:6px 10px; border:1px solid #d1d5db; border-radius:6px; font-size:13px; background:#fff; min-width:150px; }
+    .ind-chk { display:flex; align-items:center; gap:6px; font-size:12px; color:var(--text-muted); cursor:pointer; align-self:flex-end; padding-bottom:7px; }
+    .ind-chk input { accent-color:var(--primary); width:15px; height:15px; }
+
+    /* ── Faixa do período ── */
+    .ind-periodo { display:flex; align-items:baseline; gap:10px; flex-wrap:wrap; margin-bottom:6px; }
+    .ind-periodo h3 { font-size:18px; font-weight:800; letter-spacing:-.01em; }
+    .ind-periodo .vs { font-size:13px; color:var(--text-muted); }
+    .ind-aviso { font-size:12px; color:var(--text-muted); margin-bottom:18px; }
+
+    .ind-sec-title { font-size:11px; font-weight:800; text-transform:uppercase; letter-spacing:.1em; color:var(--text-muted); margin:6px 0 10px; }
+
+    /* ── Cards de indicador ── */
+    .ind-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(220px,1fr)); gap:14px; margin-bottom:26px; }
+    .ind-card { background:#fff; border:1px solid var(--border); border-radius:var(--radius); box-shadow:var(--shadow-sm); padding:16px 18px; display:flex; flex-direction:column; gap:6px; }
+    .ind-card .kpi-value { margin:2px 0 0; font-size:24px; }
+    .ind-meta { font-size:11.5px; color:var(--text-muted); }
+    .ind-meta strong { color:var(--text); }
+    .ind-bar { height:6px; border-radius:3px; background:#e2e8f0; overflow:hidden; }
+    .ind-bar > div { height:100%; border-radius:3px; }
+    .ind-cmp { margin-top:auto; padding-top:8px; border-top:1px dashed #e2e8f0; font-size:11.5px; color:var(--text-muted); display:flex; align-items:center; gap:6px; flex-wrap:wrap; }
+
+    /* ── Tabela comparativa ── */
+    .ind-table td, .ind-table th { white-space:nowrap; }
+    .ind-table td:first-child { font-weight:600; }
+    .ind-table tr.ind-grp td { background:#f8fafc; font-size:10.5px; font-weight:800; text-transform:uppercase; letter-spacing:.08em; color:var(--text-muted); padding-top:8px; padding-bottom:8px; }
+    .ind-table tr.ind-sub td:first-child { font-weight:400; padding-left:32px; color:var(--text-muted); }
+    .ind-col-a { background:#f0fdf4; }
+
+    /* ── Situação atual ── */
+    .ind-now { display:grid; grid-template-columns:repeat(auto-fill,minmax(180px,1fr)); gap:12px; margin-bottom:26px; }
+    .ind-now .ind-card { background:#f8fafc; }
+
+    @media (max-width: 900px) { .charts-grid { grid-template-columns:1fr; } }
+
+    @media print {
+      @page { size: A4 landscape; margin: 10mm 12mm; }
+      .sidebar,.sidebar-overlay,.sidebar-toggle,.bottom-nav,.ind-controls,#rotina-bar { display:none !important; }
+      body { background:#fff !important; }
+      .main-content { margin-left:0 !important; }
+      .page-body { padding:8px 0 !important; }
+      .ind-card, .chart-card, .table-card { box-shadow:none !important; break-inside:avoid; }
+      .ind-bar > div, .badge, .ind-col-a, .ind-grp td { -webkit-print-color-adjust:exact; print-color-adjust:exact; }
+    }
+  </style>
+</head>
+<body>
+<div class="app-layout">
+  <div id="sidebar-root"></div>
+  <div class="main-content">
+    <div class="page-header">
+      <div><h2>Indicadores</h2><p>Resumo dos principais indicadores para apresentação e acompanhamento</p></div>
+      <div class="ind-controls">
+        <div class="ind-seg" role="tablist">
+          <button type="button" data-modo="mes" class="active">Mensal</button>
+          <button type="button" data-modo="semana">Semanal</button>
+        </div>
+        <div class="ind-field">
+          <label for="mes-a">Período</label>
+          <input type="month" id="mes-a" />
+          <select id="sem-a" style="display:none"></select>
+        </div>
+        <div class="ind-field">
+          <label for="mes-b">Comparar com</label>
+          <input type="month" id="mes-b" />
+          <select id="sem-b" style="display:none"></select>
+        </div>
+        <label class="ind-chk" id="chk-corte-wrap" title="Com o período em andamento, corta o período de comparação no mesmo ponto (mesmo dia do mês / mesmo dia da semana) para comparar de forma justa">
+          <input type="checkbox" id="chk-corte" checked /> Comparar até o mesmo ponto
+        </label>
+        <button class="btn btn-outline btn-sm" type="button" onclick="window.print()" style="align-self:flex-end">Imprimir / PDF</button>
+      </div>
+    </div>
+
+    <div class="page-body" id="ind-body">
+      <div class="table-empty">Carregando indicadores…</div>
+    </div>
+  </div>
+</div>
+
+<script type="module">
+import { initPage, supabase, moeda, ton, toast } from './js/config.js?v=2';
+
+await initPage();
+
+// Mesmo valor do Plano de Expansão (META.colaboradores)
+const META_COLABORADORES = 13;
+
+const MESES = ['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
+const MESES_ABREV = ['jan','fev','mar','abr','mai','jun','jul','ago','set','out','nov','dez'];
+
+// materiais vendidos por UNIDADE (não por peso) não entram no volume/tonelagem — só no faturamento
+const UNIDADES_PESO = new Set(['', 'KG', 'TON']);
+const pesoVenda = r => UNIDADES_PESO.has((r.unidade || '').trim().toUpperCase()) ? parseFloat(r.peso_kg || 0) : 0;
+
+// ── Datas (sempre no fuso local, sem toISOString, para não pular de dia à noite) ──
+const pad = n => String(n).padStart(2, '0');
+const isoLocal = d => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+const parseD = s => new Date(s + 'T00:00:00');
+const addDias = (s, n) => { const d = parseD(s); d.setDate(d.getDate() + n); return isoLocal(d); };
+const diffDias = (a, b) => Math.round((parseD(b) - parseD(a)) / 86400000);
+const ddmm = s => { const [, m, d] = s.split('-'); return `${d}/${m}`; };
+const hoje = isoLocal(new Date());
+
+function rangeMes(ym) {
+  const [y, m] = ym.split('-').map(Number);
+  return { ini: `${ym}-01`, fim: `${ym}-${pad(new Date(y, m, 0).getDate())}` };
+}
+function mesDelta(ym, n) {
+  const [y, m] = ym.split('-').map(Number);
+  const d = new Date(y, m - 1 + n, 1);
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}`;
+}
+function segundaDaSemana(s) {
+  const d = parseD(s);
+  d.setDate(d.getDate() - ((d.getDay() + 6) % 7));
+  return isoLocal(d);
+}
+function semanaISO(seg) {
+  const d = parseD(addDias(seg, 3)); // quinta-feira define o ano ISO
+  const jan1 = new Date(d.getFullYear(), 0, 1);
+  return 1 + Math.floor((d - jan1) / 86400000 / 7);
+}
+const labelMes = ym => { const [y, m] = ym.split('-'); return `${MESES[+m - 1]} de ${y}`; };
+const labelMesCurto = ym => { const [y, m] = ym.split('-'); return `${MESES_ABREV[+m - 1]}/${y.slice(2)}`; };
+const labelSemana = seg => `Semana ${semanaISO(seg)} · ${ddmm(seg)} a ${ddmm(addDias(seg, 6))}`;
+const labelSemanaCurto = seg => `S${semanaISO(seg)} (${ddmm(seg)})`;
+
+// Dias úteis (seg–sex) do mês — mesma regra da meta semanal do Comercial e da meta das prensas
+const _cacheDU = {};
+function diasUteisMes(ym) {
+  if (_cacheDU[ym] != null) return _cacheDU[ym];
+  const { ini, fim } = rangeMes(ym);
+  let n = 0;
+  for (let d = ini; d <= fim; d = addDias(d, 1)) { const w = parseD(d).getDay(); if (w !== 0 && w !== 6) n++; }
+  return (_cacheDU[ym] = n);
+}
+const ehDiaUtil = s => { const w = parseD(s).getDay(); return w !== 0 && w !== 6; };
+
+// ── Estado / controles ──
+let modo = 'mes';
+const elMesA = document.getElementById('mes-a'), elMesB = document.getElementById('mes-b');
+const elSemA = document.getElementById('sem-a'), elSemB = document.getElementById('sem-b');
+const elCorte = document.getElementById('chk-corte');
+
+const mesHoje = hoje.slice(0, 7);
+elMesA.value = mesHoje;
+elMesB.value = mesDelta(mesHoje, -1);
+
+const segHoje = segundaDaSemana(hoje);
+const opcoesSemanas = Array.from({ length: 53 }, (_, i) => addDias(segHoje, -7 * i));
+[elSemA, elSemB].forEach(sel => opcoesSemanas.forEach(seg => sel.add(new Option(labelSemana(seg), seg))));
+elSemA.value = segHoje;
+elSemB.value = addDias(segHoje, -7);
+
+document.querySelectorAll('.ind-seg button').forEach(btn => btn.addEventListener('click', () => {
+  modo = btn.dataset.modo;
+  document.querySelectorAll('.ind-seg button').forEach(b => b.classList.toggle('active', b === btn));
+  const mes = modo === 'mes';
+  elMesA.style.display = elMesB.style.display = mes ? '' : 'none';
+  elSemA.style.display = elSemB.style.display = mes ? 'none' : '';
+  carregar();
+}));
+[elMesA, elMesB, elSemA, elSemB, elCorte].forEach(el => el.addEventListener('change', carregar));
+
+function periodoSelecionado(qual) {
+  if (modo === 'mes') {
+    const ym = (qual === 'a' ? elMesA : elMesB).value;
+    if (!ym) return null;
+    return { ...rangeMes(ym), label: labelMes(ym), curto: labelMesCurto(ym), key: ym };
+  }
+  const seg = (qual === 'a' ? elSemA : elSemB).value;
+  return { ini: seg, fim: addDias(seg, 6), label: labelSemana(seg), curto: labelSemanaCurto(seg), key: seg };
+}
+
+// Últimos 12 períodos terminando no período A (para os gráficos de evolução)
+function periodosEvolucao(pA) {
+  const lista = [];
+  for (let i = 11; i >= 0; i--) {
+    if (modo === 'mes') {
+      const ym = mesDelta(pA.key, -i);
+      lista.push({ ...rangeMes(ym), curto: labelMesCurto(ym), key: ym });
+    } else {
+      const seg = addDias(pA.key, -7 * i);
+      lista.push({ ini: seg, fim: addDias(seg, 6), curto: labelSemanaCurto(seg), key: seg });
+    }
+  }
+  return lista;
+}
+
+// ── Busca ──
+async function fetchAll(table, fields, filters = []) {
+  const PAGE = 1000; let all = [], from = 0;
+  while (true) {
+    let q = supabase.from(table).select(fields).range(from, from + PAGE - 1);
+    filters.forEach(([fn, ...args]) => { q = q[fn](...args); });
+    const { data, error } = await q;
+    if (error) throw error;
+    if (!data || !data.length) break;
+    all = all.concat(data);
+    if (data.length < PAGE) break;
+    from += PAGE;
+  }
+  return all;
+}
+
+async function buscarDados(ini, fim) {
+  const periodo = [['gte', 'data', ini], ['lte', 'data', fim]];
+  const [vendas, entradas, producao, ocorrencias, metas, equipamentos, colaboradores, materiais] = await Promise.all([
+    fetchAll('vendas', 'data, peso_kg, unidade, valor_total, acondicionamento', periodo),
+    fetchAll('entradas', 'data, peso_liquido, peso_liquido_descontos, tipo_movimentacao', periodo),
+    fetchAll('producao', 'data, peso_produzido_kg, equipamento_id', periodo),
+    fetchAll('ocorrencias', 'data, tipo, conta_como_falta', periodo),
+    fetchAll('metas', 'periodo, valor_meta', [['eq', 'indicador', 'faturamento'], ['gte', 'periodo', ini.slice(0, 7)], ['lte', 'periodo', fim.slice(0, 7)]]),
+    fetchAll('equipamentos', 'id, nome, status, capacidade_kg_mes'),
+    fetchAll('colaboradores', 'id, data_admissao, demissao, ativo'),
+    fetchAll('materiais', 'estoque_kg, valor_unitario', [['eq', 'no_estoque', true]]),
+  ]);
+  let snapshots = [];
+  try {
+    snapshots = await fetchAll('equipamentos_snapshot', 'semana, equipamento_id, status', [['gte', 'semana', ini], ['lte', 'semana', fim]]);
+  } catch (_) { /* tabela pode não existir */ }
+
+  const metaMes = {};
+  metas.forEach(m => { metaMes[m.periodo] = parseFloat(m.valor_meta || 0); });
+  const prensas = equipamentos.filter(e => (e.nome || '').toLowerCase().includes('prensa') && e.capacidade_kg_mes);
+  return { vendas, entradas, producao, ocorrencias, metaMes, equipamentos, prensas, colaboradores, materiais, snapshots };
+}
+
+// ── Cálculo dos indicadores de um período ──
+// [ini, fim] = intervalo dos valores realizados; [ini, metaFim] = intervalo usado para a meta
+// (a meta é sempre do período cheio, mesmo quando o realizado é cortado no "mesmo ponto").
+function calcular(D, ini, fim, metaFim = fim) {
+  const noPeriodo = r => r.data >= ini && r.data <= fim;
+  const vendas = D.vendas.filter(noPeriodo);
+
+  const fat = vendas.reduce((s, r) => s + parseFloat(r.valor_total || 0), 0);
+  const vol = vendas.reduce((s, r) => s + pesoVenda(r), 0);
+  const acond = { prensa: { vol: 0, fat: 0 }, granel: { vol: 0, fat: 0 }, sem_info: { vol: 0, fat: 0 } };
+  vendas.forEach(r => {
+    const a = acond[r.acondicionamento] || acond.sem_info;
+    a.vol += pesoVenda(r);
+    a.fat += parseFloat(r.valor_total || 0);
+  });
+
+  let metaFat = 0, metaProd = 0;
+  const capPrensas = D.prensas.reduce((s, e) => s + parseFloat(e.capacidade_kg_mes || 0), 0);
+  for (let d = ini; d <= metaFim; d = addDias(d, 1)) {
+    if (!ehDiaUtil(d)) continue;
+    const ym = d.slice(0, 7);
+    const du = diasUteisMes(ym);
+    metaFat += (D.metaMes[ym] || 0) / du;
+    metaProd += capPrensas / du;
+  }
+
+  const idsPrensas = new Set(D.prensas.map(e => e.id));
+  const prod = D.producao.filter(r => noPeriodo(r) && idsPrensas.has(r.equipamento_id))
+    .reduce((s, r) => s + parseFloat(r.peso_produzido_kg || 0), 0);
+
+  const ents = D.entradas.filter(noPeriodo);
+  const recebido = ents.filter(r => r.tipo_movimentacao !== 'saida').reduce((s, r) => s + parseFloat(r.peso_liquido_descontos || r.peso_liquido || 0), 0);
+  const rejeito = ents.filter(r => r.tipo_movimentacao === 'saida').reduce((s, r) => s + parseFloat(r.peso_liquido || r.peso_liquido_descontos || 0), 0);
+
+  const snaps = D.snapshots.filter(s => s.semana >= ini && s.semana <= fim);
+  const disp = snaps.length ? snaps.filter(s => s.status === 'operando' || s.status === 'restricao').length / snaps.length * 100 : null;
+
+  // Quadro no fim do período (ou hoje, se o período ainda não acabou)
+  const ref = fim < hoje ? fim : hoje;
+  const colab = D.colaboradores.filter(c => {
+    if (c.data_admissao && c.data_admissao > ref) return false;
+    if (c.demissao) return c.demissao > ref;
+    return c.ativo !== false;
+  }).length;
+
+  const ocs = D.ocorrencias.filter(noPeriodo);
+
+  return {
+    fat, metaFat, atingFat: metaFat > 0 ? fat / metaFat * 100 : null,
+    vol, preco: vol > 0 ? fat / (vol / 1000) : null,
+    prensado: acond.prensa.vol, pctPrensado: vol > 0 ? acond.prensa.vol / vol * 100 : null,
+    prod, metaProd, atingProd: metaProd > 0 ? prod / metaProd * 100 : null,
+    recebido, rejeito, pctRejeito: recebido > 0 ? rejeito / recebido * 100 : null,
+    disp, colab,
+    faltas: ocs.filter(o => o.conta_como_falta).length,
+    atestados: ocs.filter(o => o.tipo === 'atestado').length,
+    acond,
+  };
+}
+
+// ── Formatação ──
+const nf1 = v => v.toLocaleString('pt-BR', { minimumFractionDigits: 1, maximumFractionDigits: 1 });
+const fmtPct = v => v == null ? '—' : nf1(v) + '%';
+const fmtNum = v => v == null ? '—' : String(v);
+const fmtPreco = v => v == null ? '—' : moeda(v) + '/t';
+
+function corAting(p) { return p == null ? '#94a3b8' : p >= 100 ? '#16a34a' : p >= 70 ? '#eab308' : '#dc2626'; }
+
+// Variação A vs B. `pp` = indicador já em % (mostra diferença em pontos percentuais).
+function deltaBadge(a, b, { melhorMenor = false, pp = false } = {}) {
+  if (a == null || b == null) return '<span class="badge badge-gray">—</span>';
+  let diff, txt;
+  if (pp) {
+    diff = a - b;
+    txt = `${diff > 0 ? '+' : ''}${nf1(diff)} p.p.`;
+  } else {
+    if (b === 0) return a > 0 ? '<span class="badge badge-blue">novo</span>' : '<span class="badge badge-gray">—</span>';
+    diff = (a - b) / Math.abs(b) * 100;
+    txt = `${diff > 0 ? '+' : ''}${nf1(diff)}%`;
+  }
+  if (Math.abs(diff) < 0.05) return `<span class="badge badge-gray">● ${txt}</span>`;
+  const bom = melhorMenor ? diff < 0 : diff > 0;
+  return `<span class="badge ${bom ? 'badge-green' : 'badge-red'}">${diff > 0 ? '▲' : '▼'} ${txt}</span>`;
+}
+
+// Lista dos indicadores (cards + tabela comparativa)
+const INDICADORES = [
+  { grupo: 'Comercial', label: 'Faturamento', val: s => s.fat, fmt: moeda,
+    meta: s => ({ meta: s.metaFat, ating: s.atingFat, txt: s.metaFat ? `Meta ${moeda(s.metaFat)}` : 'sem meta cadastrada' }) },
+  { grupo: 'Comercial', label: 'Volume vendido', val: s => s.vol, fmt: ton,
+    sub: s => 'somente materiais vendidos por peso' },
+  { grupo: 'Comercial', label: 'Preço médio', val: s => s.preco, fmt: fmtPreco,
+    sub: () => 'faturamento ÷ toneladas vendidas' },
+  { grupo: 'Comercial', label: 'Volume prensado vendido', val: s => s.prensado, fmt: ton,
+    sub: s => `${fmtPct(s.pctPrensado)} do volume vendido` },
+  { grupo: 'Comercial', label: '% prensado', val: s => s.pctPrensado, fmt: fmtPct, pp: true, soTabela: true },
+  { grupo: 'Produção', label: 'Produção das prensas', val: s => s.prod, fmt: ton,
+    meta: s => ({ meta: s.metaProd, ating: s.atingProd, txt: s.metaProd ? `Meta ${ton(s.metaProd)}` : 'sem capacidade cadastrada' }) },
+  { grupo: 'Produção', label: 'Material recebido', val: s => s.recebido, fmt: ton,
+    sub: () => 'entradas de material' },
+  { grupo: 'Produção', label: 'Rejeito', val: s => s.rejeito, fmt: ton, melhorMenor: true,
+    sub: s => `${fmtPct(s.pctRejeito)} do recebido` },
+  { grupo: 'Produção', label: '% rejeito', val: s => s.pctRejeito, fmt: fmtPct, pp: true, melhorMenor: true, soTabela: true },
+  { grupo: 'Equipamentos', label: 'Disponibilidade', val: s => s.disp, fmt: fmtPct, pp: true,
+    sub: s => s.disp == null ? 'sem registro diário no período' : 'operando + com restrição' },
+  { grupo: 'Pessoas', label: 'Colaboradores', val: s => s.colab, fmt: fmtNum,
+    meta: s => ({ meta: META_COLABORADORES, ating: s.colab / META_COLABORADORES * 100, txt: `Meta ${META_COLABORADORES} colaboradores` }) },
+  { grupo: 'Pessoas', label: 'Faltas', val: s => s.faltas, fmt: fmtNum, melhorMenor: true,
+    sub: s => `${s.atestados} atestado${s.atestados === 1 ? '' : 's'} no período` },
+];
+
+// ── Render ──
+let chartFat = null, chartVol = null;
+
+async function carregar() {
+  const pA = periodoSelecionado('a'), pB = periodoSelecionado('b');
+  const body = document.getElementById('ind-body');
+  if (!pA || !pB) { body.innerHTML = '<div class="table-empty">Selecione os dois períodos.</div>'; return; }
+
+  // Período A em andamento → corta B no mesmo ponto (mesmo dia do mês / da semana)
+  const aEmAndamento = hoje >= pA.ini && hoje <= pA.fim;
+  document.getElementById('chk-corte-wrap').style.display = aEmAndamento ? '' : 'none';
+  let fimB = pB.fim;
+  if (aEmAndamento && elCorte.checked && pB.fim < pA.ini) {
+    const corte = addDias(pB.ini, diffDias(pA.ini, hoje));
+    if (corte < fimB) fimB = corte;
+  }
+
+  const evol = periodosEvolucao(pA);
+  const ini = [evol[0].ini, pB.ini].sort()[0];
+  const fim = [pA.fim, pB.fim].sort()[1];
+
+  body.innerHTML = '<div class="table-empty">Carregando indicadores…</div>';
+  let D;
+  try { D = await buscarDados(ini, fim); }
+  catch (e) { body.innerHTML = `<div class="table-empty">Erro ao carregar: ${e.message}</div>`; toast('Erro ao carregar indicadores', 'error'); return; }
+
+  const A = calcular(D, pA.ini, pA.fim);
+  const B = calcular(D, pB.ini, fimB, pB.fim);
+  const evolStats = evol.map(p => ({ p, s: calcular(D, p.ini, p.fim) }));
+
+  const labelB = fimB !== pB.fim ? `${pB.curto} até ${ddmm(fimB)}` : pB.curto;
+  const avisos = [];
+  if (aEmAndamento) avisos.push(`Período em andamento — dados até hoje (${ddmm(hoje)}).`);
+  if (fimB !== pB.fim) avisos.push(`Comparação cortada no mesmo ponto: ${pB.curto} considerado até ${ddmm(fimB)}. As metas são sempre do período cheio.`);
+
+  body.innerHTML = `
+    <div class="ind-periodo">
+      <h3>${pA.label}</h3>
+      <span class="vs">comparado com ${pB.label}${fimB !== pB.fim ? ` (até ${ddmm(fimB)})` : ''}</span>
+    </div>
+    <div class="ind-aviso">${avisos.join(' ') || '&nbsp;'}</div>
+
+    <div class="ind-sec-title">Resumo</div>
+    <div class="ind-grid">${INDICADORES.filter(i => !i.soTabela).map(i => cardHTML(i, A, B, labelB)).join('')}</div>
+
+    <div class="charts-grid">
+      <div class="chart-card">
+        <h3>Faturamento × Meta — últimos 12 ${modo === 'mes' ? 'meses' : 'semanas'}</h3>
+        <div class="chart-wrap" style="height:260px"><canvas id="ch-fat"></canvas></div>
+      </div>
+      <div class="chart-card">
+        <h3>Volumes (t) — últimos 12 ${modo === 'mes' ? 'meses' : 'semanas'}</h3>
+        <div class="chart-wrap" style="height:260px"><canvas id="ch-vol"></canvas></div>
+      </div>
+    </div>
+
+    <div class="table-card">
+      <div class="table-card-header"><h3>Comparativo ${modo === 'mes' ? 'mensal' : 'semanal'}</h3></div>
+      <div class="table-scroll">
+        <table class="ind-table">
+          <thead><tr>
+            <th>Indicador</th>
+            <th class="text-right ind-col-a">${pA.curto}</th>
+            <th class="text-right">${labelB}</th>
+            <th class="text-right">Variação</th>
+          </tr></thead>
+          <tbody>${tabelaHTML(A, B)}</tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="ind-sec-title">Situação atual (hoje)</div>
+    <div class="ind-now">${situacaoAtualHTML(D)}</div>
+  `;
+
+  renderCharts(evolStats, pA.key, pB.key);
+}
+
+function cardHTML(ind, A, B, labelB) {
+  const a = ind.val(A), b = ind.val(B);
+  let meio = '';
+  if (ind.meta) {
+    const m = ind.meta(A);
+    meio = `<div class="ind-meta">${m.txt}${m.ating != null ? ` · <strong style="color:${corAting(m.ating)}">${fmtPct(m.ating)}</strong>` : ''}</div>
+      ${m.ating != null ? `<div class="ind-bar"><div style="width:${Math.min(100, m.ating)}%;background:${corAting(m.ating)}"></div></div>` : ''}`;
+  } else if (ind.sub) {
+    meio = `<div class="ind-meta">${ind.sub(A)}</div>`;
+  }
+  return `<div class="ind-card">
+    <div class="kpi-label">${ind.label}</div>
+    <div class="kpi-value">${ind.fmt(a)}</div>
+    ${meio}
+    <div class="ind-cmp">${deltaBadge(a, b, ind)} <span>vs ${ind.fmt(b)} <span style="opacity:.75">(${labelB})</span></span></div>
+  </div>`;
+}
+
+function tabelaHTML(A, B) {
+  let grupoAtual = '', html = '';
+  const linha = (label, a, b, fmt, opts = {}, cls = '') => `<tr${cls ? ` class="${cls}"` : ''}>
+    <td>${label}</td>
+    <td class="text-right ind-col-a">${fmt(a)}</td>
+    <td class="text-right">${fmt(b)}</td>
+    <td class="text-right">${deltaBadge(a, b, opts)}</td>
+  </tr>`;
+
+  INDICADORES.forEach(ind => {
+    if (ind.grupo !== grupoAtual) { grupoAtual = ind.grupo; html += `<tr class="ind-grp"><td colspan="4">${grupoAtual}</td></tr>`; }
+    html += linha(ind.label, ind.val(A), ind.val(B), ind.fmt, ind);
+    if (ind.meta && ind.label !== 'Colaboradores') {
+      html += linha('Meta', ind.meta(A).meta || null, ind.meta(B).meta || null, ind.fmt, {}, 'ind-sub');
+      html += linha('Atingimento', ind.meta(A).ating, ind.meta(B).ating, fmtPct, { pp: true }, 'ind-sub');
+    }
+  });
+
+  html += '<tr class="ind-grp"><td colspan="4">Tipo de acondicionamento</td></tr>';
+  [['prensa', 'Prensado'], ['granel', 'A Granel']].forEach(([k, nome]) => {
+    const a = A.acond[k], b = B.acond[k];
+    html += linha(`${nome} — volume`, a.vol, b.vol, ton);
+    html += linha(`${nome} — faturamento`, a.fat, b.fat, moeda, {}, 'ind-sub');
+    html += linha(`${nome} — preço médio`, a.vol > 0 ? a.fat / (a.vol / 1000) : null, b.vol > 0 ? b.fat / (b.vol / 1000) : null, fmtPreco, {}, 'ind-sub');
+  });
+  if (A.acond.sem_info.vol || B.acond.sem_info.vol || A.acond.sem_info.fat || B.acond.sem_info.fat) {
+    html += linha('Não informado — faturamento', A.acond.sem_info.fat, B.acond.sem_info.fat, moeda);
+  }
+  return html;
+}
+
+function situacaoAtualHTML(D) {
+  const estoqueKg = D.materiais.reduce((s, m) => s + parseFloat(m.estoque_kg || 0), 0);
+  const valorEstoque = D.materiais.reduce((s, m) => s + parseFloat(m.estoque_kg || 0) * parseFloat(m.valor_unitario || 0), 0);
+  const eqs = D.equipamentos;
+  const ativos = eqs.filter(e => e.status === 'operando' || e.status === 'restricao').length;
+  const restricao = eqs.filter(e => e.status === 'restricao').length;
+  const prensasOp = D.prensas.filter(e => e.status === 'operando' || e.status === 'restricao').length;
+  const card = (label, val, sub) => `<div class="ind-card"><div class="kpi-label">${label}</div><div class="kpi-value" style="font-size:20px">${val}</div><div class="ind-meta">${sub}</div></div>`;
+  return [
+    card('Estoque', ton(estoqueKg), 'material armazenado'),
+    card('Valor em estoque', moeda(valorEstoque), 'estoque × valor unitário'),
+    card('Equipamentos disponíveis', `${ativos} / ${eqs.length}`, `${eqs.length ? Math.round(ativos / eqs.length * 100) : 0}% · ${restricao} com restrição`),
+    card('Prensas em operação', `${prensasOp} / ${D.prensas.length}`, 'prensas com capacidade cadastrada'),
+  ].join('');
+}
+
+function renderCharts(evolStats, keyA, keyB) {
+  const labels = evolStats.map(e => e.p.curto);
+  const corBarra = evolStats.map(e => e.p.key === keyA ? '#006636' : e.p.key === keyB ? '#64748b' : '#a7d7bb');
+  const tonV = kg => +(kg / 1000).toFixed(2);
+
+  chartFat?.destroy();
+  chartFat = new Chart(document.getElementById('ch-fat'), {
+    data: {
+      labels,
+      datasets: [
+        { type: 'line', label: 'Meta', data: evolStats.map(e => e.s.metaFat || null), borderColor: '#94a3b8', borderDash: [5, 4], borderWidth: 2, pointRadius: 2, fill: false, spanGaps: true },
+        { type: 'bar', label: 'Faturamento', data: evolStats.map(e => +e.s.fat.toFixed(2)), backgroundColor: corBarra, borderRadius: 4 },
+      ],
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: {
+        legend: { position: 'bottom', labels: { boxWidth: 12, font: { size: 11 } } },
+        tooltip: { callbacks: {
+          label: c => `${c.dataset.label}: ${moeda(c.raw)}`,
+          afterLabel: c => {
+            const s = evolStats[c.dataIndex].s;
+            return c.dataset.type === 'bar' && s.atingFat != null ? `Atingimento: ${fmtPct(s.atingFat)}` : '';
+          },
+        } },
+      },
+      scales: {
+        x: { grid: { display: false }, ticks: { font: { size: 10 } } },
+        y: { grid: { color: '#f1f5f9' }, ticks: { font: { size: 10 }, callback: v => 'R$ ' + (v / 1000).toLocaleString('pt-BR') + 'k' } },
+      },
+    },
+  });
+
+  chartVol?.destroy();
+  chartVol = new Chart(document.getElementById('ch-vol'), {
+    data: {
+      labels,
+      datasets: [
+        { type: 'line', label: 'Produção prensas', data: evolStats.map(e => tonV(e.s.prod)), borderColor: '#f59e0b', backgroundColor: '#f59e0b', borderWidth: 2, pointRadius: 2, fill: false },
+        { type: 'bar', label: 'Vendido', data: evolStats.map(e => tonV(e.s.vol)), backgroundColor: '#006636', borderRadius: 4 },
+        { type: 'bar', label: 'Prensado vendido', data: evolStats.map(e => tonV(e.s.prensado)), backgroundColor: '#5EC5BF', borderRadius: 4 },
+      ],
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: {
+        legend: { position: 'bottom', labels: { boxWidth: 12, font: { size: 11 } } },
+        tooltip: { callbacks: { label: c => `${c.dataset.label}: ${c.raw.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} t` } },
+      },
+      scales: {
+        x: { grid: { display: false }, ticks: { font: { size: 10 } } },
+        y: { grid: { color: '#f1f5f9' }, ticks: { font: { size: 10 } } },
+      },
+    },
+  });
+}
+
+carregar();
+</script>
+</body>
+</html>
