@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="pt-BR">
 <head>
   <meta charset="UTF-8" />
@@ -13,6 +13,7 @@
   <title>Indicadores — SGR Indaiatuba</title>
   <link rel="stylesheet" href="css/style.css" />
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4/dist/chart.umd.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2/dist/chartjs-plugin-datalabels.min.js"></script>
   <style>
     /* ── Controles ── */
     .ind-controls { display:flex; gap:10px; align-items:center; flex-wrap:wrap; }
@@ -490,14 +491,18 @@ function renderCharts(evolStats, keyA, keyB) {
   const labels = evolStats.map(e => e.p.curto);
   const corBarra = evolStats.map(e => e.p.key === keyA ? '#006636' : e.p.key === keyB ? '#64748b' : '#a7d7bb');
   const tonV = kg => +(kg / 1000).toFixed(2);
+  // Valor sempre visível em cima de cada barra/ponto
+  const rotuloBarra = { anchor: 'end', align: 'top', offset: 1, clamp: true, font: { size: 10, weight: '700' }, color: '#334155' };
 
   chartFat?.destroy();
   chartFat = new Chart(document.getElementById('ch-fat'), {
+    plugins: [ChartDataLabels],
     data: {
       labels,
       datasets: [
-        { type: 'line', label: 'Meta', data: evolStats.map(e => e.s.metaFat || null), borderColor: '#94a3b8', borderDash: [5, 4], borderWidth: 2, pointRadius: 2, fill: false, spanGaps: true },
-        { type: 'bar', label: 'Faturamento', data: evolStats.map(e => +e.s.fat.toFixed(2)), backgroundColor: corBarra, borderRadius: 4 },
+        { type: 'line', label: 'Meta', data: evolStats.map(e => e.s.metaFat || null), borderColor: '#94a3b8', borderDash: [5, 4], borderWidth: 2, pointRadius: 2, fill: false, spanGaps: true, datalabels: { display: false } },
+        { type: 'bar', label: 'Faturamento', data: evolStats.map(e => +e.s.fat.toFixed(2)), backgroundColor: corBarra, borderRadius: 4,
+          datalabels: { ...rotuloBarra, formatter: v => v > 0 ? 'R$ ' + nf1(v / 1000) + 'k' : '' } },
       ],
     },
     options: {
@@ -514,19 +519,23 @@ function renderCharts(evolStats, keyA, keyB) {
       },
       scales: {
         x: { grid: { display: false }, ticks: { font: { size: 10 } } },
-        y: { grid: { color: '#f1f5f9' }, ticks: { font: { size: 10 }, callback: v => 'R$ ' + (v / 1000).toLocaleString('pt-BR') + 'k' } },
+        y: { grace: '12%', grid: { color: '#f1f5f9' }, ticks: { font: { size: 10 }, callback: v => 'R$ ' + (v / 1000).toLocaleString('pt-BR') + 'k' } },
       },
     },
   });
 
   chartVol?.destroy();
   chartVol = new Chart(document.getElementById('ch-vol'), {
+    plugins: [ChartDataLabels],
     data: {
       labels,
       datasets: [
-        { type: 'line', label: 'Produção prensas', data: evolStats.map(e => tonV(e.s.prod)), borderColor: '#f59e0b', backgroundColor: '#f59e0b', borderWidth: 2, pointRadius: 2, fill: false },
-        { type: 'bar', label: 'Vendido', data: evolStats.map(e => tonV(e.s.vol)), backgroundColor: '#006636', borderRadius: 4 },
-        { type: 'bar', label: 'Prensado vendido', data: evolStats.map(e => tonV(e.s.prensado)), backgroundColor: '#5EC5BF', borderRadius: 4 },
+        { type: 'line', label: 'Produção prensas', data: evolStats.map(e => tonV(e.s.prod)), borderColor: '#f59e0b', backgroundColor: '#f59e0b', borderWidth: 2, pointRadius: 2, fill: false,
+          datalabels: { ...rotuloBarra, color: '#b45309', formatter: v => v > 0 ? nf1(v) : '' } },
+        { type: 'bar', label: 'Vendido', data: evolStats.map(e => tonV(e.s.vol)), backgroundColor: '#006636', borderRadius: 4,
+          datalabels: { ...rotuloBarra, formatter: v => v > 0 ? nf1(v) : '' } },
+        { type: 'bar', label: 'Prensado vendido', data: evolStats.map(e => tonV(e.s.prensado)), backgroundColor: '#5EC5BF', borderRadius: 4,
+          datalabels: { ...rotuloBarra, formatter: v => v > 0 ? nf1(v) : '' } },
       ],
     },
     options: {
@@ -537,7 +546,7 @@ function renderCharts(evolStats, keyA, keyB) {
       },
       scales: {
         x: { grid: { display: false }, ticks: { font: { size: 10 } } },
-        y: { grid: { color: '#f1f5f9' }, ticks: { font: { size: 10 } } },
+        y: { grace: '12%', grid: { color: '#f1f5f9' }, ticks: { font: { size: 10 } } },
       },
     },
   });
