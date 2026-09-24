@@ -1,0 +1,278 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <link rel="manifest" href="manifest.json" />
+  <meta name="theme-color" content="#006636" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="SGR Indaiatuba" />
+  <link rel="apple-touch-icon" href="img/icons/apple-touch-icon.png" />
+  <link rel="icon" type="image/png" href="img/icons/icon-192.png" />
+  <title>Apresentação — SGR Indaiatuba</title>
+  <link rel="stylesheet" href="css/style.css" />
+  <script src="https://cdn.jsdelivr.net/npm/pptxgenjs@3/dist/pptxgen.bundle.js"></script>
+  <style>
+    .ap-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(190px,1fr)); gap:14px; align-items:end; }
+    .ap-card { margin-bottom:18px; }
+    .ap-card h3 { font-size:13px; font-weight:800; text-transform:uppercase; letter-spacing:.06em; color:var(--text-muted); margin-bottom:14px; }
+    .ap-hint { font-size:12px; color:var(--text-muted); margin-top:6px; }
+    .ap-num { width:100%; border-collapse:collapse; font-size:13px; }
+    .ap-num td { padding:7px 10px; border-bottom:1px solid #f1f5f9; }
+    .ap-num td:last-child { text-align:right; font-weight:700; }
+    .ap-cols { display:grid; grid-template-columns:1fr 1fr; gap:18px; }
+    .ap-tar { display:flex; align-items:flex-start; gap:10px; padding:9px 4px; border-bottom:1px solid #f1f5f9; font-size:13px; }
+    .ap-tar input { width:16px; height:16px; margin-top:2px; accent-color:var(--primary); flex-shrink:0; }
+    .ap-tar small { color:var(--text-muted); display:block; margin-top:2px; }
+    .ap-gerar { display:flex; gap:12px; align-items:center; flex-wrap:wrap; }
+    .ap-gerar .btn { font-size:15px; padding:12px 22px; }
+    #ap-status { font-size:13px; color:var(--text-muted); }
+    @media (max-width: 900px) { .ap-cols { grid-template-columns:1fr; } }
+  </style>
+</head>
+<body>
+<div class="app-layout">
+  <div id="sidebar-root"></div>
+  <div class="main-content">
+    <div class="page-header">
+      <div><h2>Apresentação do Comitê</h2><p>Gera a apresentação em PowerPoint (.pptx) no modelo do Comitê, com os dados do sistema</p></div>
+    </div>
+    <div class="page-body">
+
+      <div class="card ap-card">
+        <h3>1. Período</h3>
+        <div class="ap-grid">
+          <div class="form-group"><label for="f-mes">Mês de referência</label><input type="month" id="f-mes" /></div>
+          <div class="form-group"><label for="f-reuniao">Data da reunião</label><input type="date" id="f-reuniao" /></div>
+          <div class="form-group"><label for="f-corte">Dados até</label><input type="date" id="f-corte" /></div>
+          <div class="form-group"><button class="btn btn-primary" id="btn-carregar" type="button">Carregar dados</button></div>
+        </div>
+        <p class="ap-hint">"Dados até" é o último dia considerado. Mês em andamento: por padrão, o dia anterior à reunião. Mês já fechado: o último dia do mês.</p>
+      </div>
+
+      <div id="ap-conteudo" style="display:none">
+        <div class="ap-cols">
+          <div class="card ap-card">
+            <h3>2. Conferência dos números</h3>
+            <table class="ap-num" id="ap-num"></table>
+          </div>
+          <div class="card ap-card">
+            <h3>3. Frases dos slides</h3>
+            <div id="ap-frases" style="display:flex;flex-direction:column;gap:12px"></div>
+            <p class="ap-hint">Use <strong>*texto*</strong> para destacar em vermelho e <strong>**texto**</strong> para destacar em verde.</p>
+          </div>
+        </div>
+
+        <div class="ap-cols">
+          <div class="card ap-card">
+            <h3>4. Equipe e equipamentos</h3>
+            <div class="form-group" style="margin-bottom:12px"><label for="t-aconteceu">O que aconteceu (uma linha por item)</label><textarea id="t-aconteceu" rows="4" placeholder="Ex.: 1 pediu desligamento (aprovado em concurso público)."></textarea></div>
+            <div class="form-group" style="margin-bottom:12px"><label for="t-proximos">Próximos passos (uma linha por item)</label><textarea id="t-proximos" rows="3"></textarea></div>
+            <div class="form-group"><label for="t-obs-equip">Observação dos equipamentos</label><textarea id="t-obs-equip" rows="2"></textarea></div>
+          </div>
+          <div class="card ap-card">
+            <h3>5. Plano de ação</h3>
+            <div class="form-group" style="margin-bottom:10px"><label for="f-cat">Categoria das tarefas</label><select id="f-cat"></select></div>
+            <div id="ap-tarefas"></div>
+            <p class="ap-hint">As ações vêm do módulo <a href="tarefas.html">Tarefas</a> (título, responsável, vencimento e status). Marque as que entram na apresentação.</p>
+          </div>
+        </div>
+
+        <div class="card ap-card">
+          <h3>6. Gerar</h3>
+          <div class="ap-gerar">
+            <button class="btn btn-primary" id="btn-gerar" type="button">Gerar apresentação (.pptx)</button>
+            <label style="display:flex;align-items:center;gap:8px;font-size:12px;text-transform:none;letter-spacing:0;font-weight:600">
+              Foto do encerramento (opcional)
+              <input type="file" id="f-foto" accept="image/*" style="width:auto;padding:4px" />
+            </label>
+            <span id="ap-status"></span>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<script type="module">
+import { initPage, supabase, toast } from './js/config.js?v=2';
+import {
+  META_COLABORADORES, STATUS_TAREFA, calcularDados, frasesPadrao, montarApresentacao, periodoBusca,
+  isoLocal, addDias, fimDoMes, ddmm, ddmmaaaa, nomeMes, mil, tn, pct, reais0, nf,
+} from './js/apresentacao.js?v=1';
+
+await initPage();
+
+const hoje = isoLocal(new Date());
+
+// ── Controles ──
+const elMes = document.getElementById('f-mes'), elReuniao = document.getElementById('f-reuniao'), elCorte = document.getElementById('f-corte');
+elMes.value = hoje.slice(0, 7);
+elReuniao.value = hoje;
+function corteSugerido() {
+  const ym = elMes.value; if (!ym) return '';
+  const ini = `${ym}-01`, fim = fimDoMes(ym), reuniao = elReuniao.value || hoje;
+  if (fim < reuniao) return fim;
+  const ontem = addDias(reuniao, -1);
+  return ontem < ini ? ini : ontem;
+}
+elCorte.value = corteSugerido();
+elMes.addEventListener('change', () => { elCorte.value = corteSugerido(); });
+elReuniao.addEventListener('change', () => { elCorte.value = corteSugerido(); });
+
+async function fetchAll(table, fields, filters = []) {
+  const PAGE = 1000; let all = [], from = 0;
+  while (true) {
+    let q = supabase.from(table).select(fields).range(from, from + PAGE - 1);
+    filters.forEach(([fn, ...args]) => { q = q[fn](...args); });
+    const { data, error } = await q;
+    if (error) throw error;
+    if (!data || !data.length) break;
+    all = all.concat(data);
+    if (data.length < PAGE) break;
+    from += PAGE;
+  }
+  return all;
+}
+// Tabelas complementares: se não existirem, a apresentação sai sem aquela parte
+const fetchOpcional = (...a) => fetchAll(...a).catch(() => []);
+
+const lsGet = k => { try { return localStorage.getItem(k); } catch (_) { return null; } };
+const lsSet = (k, v) => { try { localStorage.setItem(k, v); } catch (_) {} };
+
+let D = null;
+let tarefasCache = [];
+
+document.getElementById('btn-carregar').addEventListener('click', carregar);
+
+async function carregar() {
+  const M = elMes.value, corte = elCorte.value;
+  if (!M || !corte) { toast('Informe o mês e a data "Dados até"', 'error'); return; }
+  if (corte < `${M}-01`) { toast('"Dados até" precisa estar dentro do mês de referência', 'error'); return; }
+  const btn = document.getElementById('btn-carregar');
+  btn.disabled = true; btn.textContent = 'Carregando…';
+  try {
+    const { ini, iniMes } = periodoBusca(M);
+    const fimBusca = corte > fimDoMes(M) ? fimDoMes(M) : corte;
+    const [vendas, metas, producao, equipamentos, materiais, marcos, config, snapshots, tarefas] = await Promise.all([
+      fetchAll('vendas', 'data, peso_kg, unidade, valor_total, acondicionamento', [['gte', 'data', ini], ['lte', 'data', fimBusca]]),
+      fetchAll('metas', 'periodo, valor_meta', [['eq', 'indicador', 'faturamento'], ['gte', 'periodo', ini.slice(0, 7)], ['lte', 'periodo', M]]),
+      fetchAll('producao', 'data, peso_produzido_kg, equipamento_id', [['gte', 'data', iniMes], ['lte', 'data', fimBusca]]),
+      fetchAll('equipamentos', 'id, nome, frota, status, capacidade_kg_mes'),
+      fetchAll('materiais', 'estoque_kg, valor_unitario', [['eq', 'no_estoque', true]]),
+      fetchOpcional('plano_expansao_marcos', 'data, colaboradores_ativos, vagas_abertas, prensas_operando, observacao'),
+      fetchOpcional('plano_expansao_config', 'proximos_passos'),
+      fetchOpcional('equipamentos_snapshot', 'semana, equipamento_id, status', [['gte', 'semana', iniMes], ['lte', 'semana', fimBusca]]),
+      fetchOpcional('tarefas', 'id, titulo, status, categoria, responsavel, data_vencimento'),
+    ]);
+    tarefasCache = tarefas;
+    D = calcularDados({ vendas, metas, producao, equipamentos, materiais, marcos, config, snapshots }, M, corte, hoje);
+    renderConferencia();
+    document.getElementById('ap-conteudo').style.display = '';
+    document.getElementById('ap-status').textContent = '';
+  } catch (e) {
+    console.error(e);
+    toast('Erro ao carregar dados: ' + e.message, 'error');
+  } finally {
+    btn.disabled = false; btn.textContent = 'Carregar dados';
+  }
+}
+
+const FRASES = [
+  ['resumo', 'Resumo executivo'], ['fat', 'Faturamento'], ['comp', 'Composição de vendas'],
+  ['prensa', 'Prensagem'], ['equip', 'Equipamentos e equipe'], ['plano', 'Plano de ação'],
+];
+
+function renderConferencia() {
+  const d = D;
+  const atFat = d.meta > 0 ? d.cur.fat / d.meta * 100 : null;
+  const linhas = [
+    ['Período', `${ddmm(d.ini)} a ${ddmm(d.corte)}${d.emAndamento ? ' (mês em andamento)' : ' (mês fechado)'}`],
+    ['Faturamento', `${mil(d.cur.fat)} · ${pct(atFat)} da meta`],
+    ['Meta do mês', d.meta ? mil(d.meta) : 'sem meta cadastrada'],
+    ['Volume vendido', tn(d.cur.vol)],
+    ['Preço médio', d.cur.preco ? `${reais0(d.cur.preco)}/t` : '—'],
+    ['Prensado vendido', `${tn(d.cur.prensa.vol)} · ${pct(d.cur.pctPrensado)} do volume`],
+    ['Produção das prensas', `${tn(d.prod)} de ${tn(d.capMes, 0)}`],
+    ['Estoque atual', `${tn(d.estoqueKg)} · ${mil(d.valorEstoque)}`],
+    ['Equipamentos disponíveis', `${d.nOp + d.nRes} de ${d.eqs.length}`],
+    ['Equipe (Plano de Expansão)', d.colab != null ? `${d.colab} / ${META_COLABORADORES}` : 'sem registro'],
+    [`Comparação (${nomeMes(d.Mant)})`, d.emAndamento ? `até ${ddmm(d.fimAntMesmo)}` : 'mês cheio'],
+  ];
+  document.getElementById('ap-num').innerHTML = linhas.map(([a, b]) => `<tr><td>${a}</td><td>${b}</td></tr>`).join('');
+
+  const fp = frasesPadrao(d);
+  document.getElementById('ap-frases').innerHTML = FRASES.map(([k, l]) =>
+    `<div class="form-group"><label for="fr-${k}">${l}</label><textarea id="fr-${k}" rows="2" style="min-height:52px"></textarea></div>`).join('');
+  FRASES.forEach(([k]) => { document.getElementById(`fr-${k}`).value = fp[k]; });
+
+  // Textos livres: lembrados por mês neste navegador
+  const kA = `sgr_apres_aconteceu_${d.M}`, kP = `sgr_apres_proximos_${d.M}`, kO = `sgr_apres_obs_equip_${d.M}`;
+  const tA = document.getElementById('t-aconteceu'), tP = document.getElementById('t-proximos'), tO = document.getElementById('t-obs-equip');
+  tA.value = lsGet(kA) ?? '';
+  tP.value = lsGet(kP) ?? d.proximos.join('\n');
+  tO.value = lsGet(kO) ?? d.comParada.map(x => `${x.e.nome}${x.e.frota ? ' ' + x.e.frota : ''} teve paradas no período (${nf(x.pct, 0)}% dos dias registrados).`).join(' ');
+  tA.oninput = () => lsSet(kA, tA.value); tP.oninput = () => lsSet(kP, tP.value); tO.oninput = () => lsSet(kO, tO.value);
+
+  const cats = [...new Set(tarefasCache.map(t => t.categoria).filter(Boolean))].sort();
+  const sel = document.getElementById('f-cat');
+  sel.innerHTML = '<option value="">Todas as categorias</option>' + cats.map(c => `<option>${c}</option>`).join('');
+  const salva = lsGet('sgr_apres_cat');
+  sel.value = salva != null && (salva === '' || cats.includes(salva)) ? salva : (cats.find(c => /plano|comit/i.test(c)) || '');
+  sel.onchange = () => { lsSet('sgr_apres_cat', sel.value); renderTarefas(); };
+  renderTarefas();
+}
+
+const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+function renderTarefas() {
+  const cat = document.getElementById('f-cat').value;
+  const lista = tarefasCache.filter(t => t.status !== 'cancelada' && (!cat || t.categoria === cat))
+    .sort((a, b) => (a.data_vencimento || '9999').localeCompare(b.data_vencimento || '9999'));
+  const wrap = document.getElementById('ap-tarefas');
+  if (!lista.length) { wrap.innerHTML = '<p class="ap-hint">Nenhuma tarefa nesta categoria. Cadastre as ações em Tarefas.</p>'; return; }
+  wrap.innerHTML = lista.map(t => `<label class="ap-tar"><input type="checkbox" data-id="${esc(t.id)}" ${t.status !== 'concluida' ? 'checked' : ''} />
+    <span>${esc(t.titulo)}<small>${esc(t.responsavel || 'sem responsável')} · ${t.data_vencimento ? ddmmaaaa(t.data_vencimento) : 'sem prazo'} · ${STATUS_TAREFA[t.status] || esc(t.status)}</small></span></label>`).join('');
+}
+
+// ── Geração ──
+async function imgData(src) {
+  const blob = src instanceof Blob ? src : await fetch(src).then(r => { if (!r.ok) throw new Error('imagem ' + src); return r.blob(); });
+  const url = await new Promise(res => { const fr = new FileReader(); fr.onload = () => res(fr.result); fr.readAsDataURL(blob); });
+  return url.replace(/^data:/, '');
+}
+
+document.getElementById('btn-gerar').addEventListener('click', async () => {
+  if (!D) return;
+  const btn = document.getElementById('btn-gerar'), st = document.getElementById('ap-status');
+  btn.disabled = true; st.textContent = 'Gerando…';
+  try {
+    const arq = document.getElementById('f-foto').files[0];
+    const [capa, pauta, conteudo, obrigado, foto] = await Promise.all([
+      imgData('img/apresentacao/capa.jpg'), imgData('img/apresentacao/pauta.jpg'), imgData('img/apresentacao/conteudo.jpg'),
+      imgData('img/apresentacao/obrigado.jpg'), imgData(arq || 'img/apresentacao/foto-equipe.jpg'),
+    ]);
+    const frases = {}; FRASES.forEach(([k]) => { frases[k] = document.getElementById(`fr-${k}`).value.trim(); });
+    const linhasDe = id => document.getElementById(id).value.split('\n').map(s => s.trim()).filter(Boolean);
+    const textos = { aconteceu: linhasDe('t-aconteceu'), proximos: linhasDe('t-proximos'), obsEquip: document.getElementById('t-obs-equip').value.trim() };
+    const marcadas = new Set([...document.querySelectorAll('#ap-tarefas input:checked')].map(i => i.dataset.id));
+    const acoes = tarefasCache.filter(t => marcadas.has(String(t.id)))
+      .sort((a, b) => (a.data_vencimento || '9999').localeCompare(b.data_vencimento || '9999'));
+    const dataReuniao = elReuniao.value || hoje;
+
+    const pptx = montarApresentacao(PptxGenJS, D, { img: { capa, pauta, conteudo, obrigado, foto }, frases, textos, acoes, dataReuniao, hoje });
+    const [y, m, dd] = dataReuniao.split('-');
+    await pptx.writeFile({ fileName: `${dd}.${m}.${y.slice(2)} - Comitê UVR Indaiatuba.pptx` });
+    st.textContent = 'Apresentação gerada — confira a pasta de downloads.';
+  } catch (e) {
+    console.error(e);
+    st.textContent = '';
+    toast('Erro ao gerar: ' + e.message, 'error');
+  } finally {
+    btn.disabled = false;
+  }
+});
+</script>
+</body>
+</html>
