@@ -14,6 +14,9 @@ export const nomeMes = ym => MESES[+ym.slice(5) - 1];
 // materiais vendidos por UNIDADE (não por peso) não entram no volume — só no faturamento
 const UNIDADES_PESO = new Set(['', 'KG', 'TON']);
 const pesoVenda = r => UNIDADES_PESO.has((r.unidade || '').trim().toUpperCase()) ? parseFloat(r.peso_kg || 0) : 0;
+// Sucata ferrosa não pode ser prensada: fica fora da conta de % prensado × a granel
+const semAcento = s => (s || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toUpperCase();
+const ehSucataFerrosa = r => semAcento(r.materiais?.nome).includes('SUCATA FERROSA');
 
 // ── Datas (fuso local) ──
 const pad = n => String(n).padStart(2, '0');
@@ -71,16 +74,19 @@ export function calcularDados(rows, M, corteIn, hoje) {
   const metaMes = {}; metas.forEach(m => { metaMes[m.periodo] = parseFloat(m.valor_meta || 0); });
 
   function agg(a, b) {
-    const r = { fat: 0, vol: 0, prensa: { vol: 0, fat: 0 }, granel: { vol: 0, fat: 0 } };
+    const r = { fat: 0, vol: 0, prensa: { vol: 0, fat: 0 }, granel: { vol: 0, fat: 0 }, sucata: 0, sucataPrensa: 0 };
     vendas.forEach(v => {
       if (v.data < a || v.data > b) return;
       const fat = parseFloat(v.valor_total || 0), vol = pesoVenda(v);
       r.fat += fat; r.vol += vol;
       const k = v.acondicionamento === 'prensa' ? 'prensa' : v.acondicionamento === 'granel' ? 'granel' : null;
       if (k) { r[k].vol += vol; r[k].fat += fat; }
+      if (ehSucataFerrosa(v)) { r.sucata += vol; if (k === 'prensa') r.sucataPrensa += vol; }
     });
     r.preco = r.vol > 0 ? r.fat / (r.vol / 1000) : null;
-    r.pctPrensado = r.vol > 0 ? r.prensa.vol / r.vol * 100 : null;
+    // Composição (% prensado × a granel) sem a sucata ferrosa
+    r.volComp = r.vol - r.sucata;
+    r.pctPrensado = r.volComp > 0 ? (r.prensa.vol - r.sucataPrensa) / r.volComp * 100 : null;
     ['prensa', 'granel'].forEach(k => { r[k].preco = r[k].vol > 0 ? r[k].fat / (r[k].vol / 1000) : null; });
     return r;
   }
@@ -364,7 +370,7 @@ export function montarApresentacao(PptxGenJS, d, { img, frases: fr, textos, acoe
       ...cmp(vPreco, a.preco ? `${reais0(a.preco)}/t` : '—') });
     const pAntC = d.antCheio.pctPrensado;
     const compCaiu = c.pctPrensado != null && pAntC != null && c.pctPrensado < pAntC;
-    cards.push({ label: 'Prensado vendido', valor: tn(c.prensa.vol), sub: `${pct(c.pctPrensado)} do volume vendido (${ant.slice(0, 3)}: ${pct(pAntC)})`,
+    cards.push({ label: 'Prensado vendido', valor: tn(c.prensa.vol), sub: `${pct(c.pctPrensado)} do volume sem sucata ferrosa (${ant.slice(0, 3)}: ${pct(pAntC)})`,
       pill: c.pctPrensado == null || pAntC == null ? null : compCaiu ? 'composição caiu' : 'composição subiu',
       pillFg: compCaiu ? COR.amb : COR.ok, pillBg: compCaiu ? COR.ambBg : COR.okBg, ...cmp(varPct(c.prensa.vol, a.prensa.vol), tn(a.prensa.vol)) });
     const [pF, pB] = pillSit(atProd, pEsperadoProd);
@@ -447,13 +453,18 @@ export function montarApresentacao(PptxGenJS, d, { img, frases: fr, textos, acoe
     txt(s, 50, 500, 1280, 24, 'PARTICIPAÇÃO NO VOLUME VENDIDO', 14, COR.muted, { bold: true });
     [[cap(ant), 534, a], [cap(mes) + (d.emAndamento ? '*' : ''), 604, c]].forEach(([rot, y, r]) => {
       txt(s, 50, y + 10, 135, 28, rot, 17, COR.txt2, { bold: true });
-      const p = r.vol > 0 ? r.prensa.vol / r.vol : 0, larg = 1140, wp = Math.min(larg - 1, Math.max(larg * p, 1));
+      const p = (r.pctPrensado ?? 0) / 100, larg = 1140, wp = Math.min(larg - 1, Math.max(larg * p, 1));
       s.addText(`${pct(p * 100)} prensado`, { x: I(190), y: I(y), w: I(wp), h: I(48), fill: { color: COR.verde }, fontFace: FONT, fontSize: 14, bold: true, color: 'FFFFFF', align: 'center', valign: 'middle', margin: 0 });
-      s.addText(`${pct((1 - p) * 100)} a granel · total ${tn(r.vol)}`, { x: I(190 + wp), y: I(y), w: I(larg - wp), h: I(48), fill: { color: COR.verdeBarra }, fontFace: FONT, fontSize: 14, color: COR.txt2, align: 'center', valign: 'middle', margin: 0 });
+      s.addText(`${pct((1 - p) * 100)} a granel · total ${tn(r.volComp)}`, { x: I(190 + wp), y: I(y), w: I(larg - wp), h: I(48), fill: { color: COR.verdeBarra }, fontFace: FONT, fontSize: 14, color: COR.txt2, align: 'center', valign: 'middle', margin: 0 });
     });
+    let yTxt = 680;
+    if (a.sucata > 0 || c.sucata > 0) {
+      txt(s, 190, 662, 1140, 24, `Sucata ferrosa fora da conta (não pode ser prensada): ${tn(a.sucata)} em ${ant} · ${tn(c.sucata)} em ${mes}.`, 14, COR.muted, { italic: true });
+      yTxt = 700;
+    }
     const dif = (c.preco ?? 0) - (a.preco ?? 0);
-    txt(s, 50, 680, 1280, 50, `Preço médio geral: ${a.preco ? reais0(a.preco) + '/t' : '—'} em ${ant} → ${c.preco ? reais0(c.preco) + '/t' : '—'} em ${mes} (${dif >= 0 ? '+' : '-'}R$ ${nf(Math.abs(dif), 0)}/t).`, 17, COR.txt2);
-    if (d.emAndamento) txt(s, 50, 740, 1290, 30, `* Obs.: ${mes} parcial — dados até ${ddmmaaaa(d.corte)}, mês ainda não fechado.`, 17, COR.muted, { italic: true });
+    txt(s, 50, yTxt, 1280, 50, `Preço médio geral: ${a.preco ? reais0(a.preco) + '/t' : '—'} em ${ant} → ${c.preco ? reais0(c.preco) + '/t' : '—'} em ${mes} (${dif >= 0 ? '+' : '-'}R$ ${nf(Math.abs(dif), 0)}/t).`, 17, COR.txt2);
+    if (d.emAndamento) txt(s, 50, yTxt + 60, 1290, 30, `* Obs.: ${mes} parcial — dados até ${ddmmaaaa(d.corte)}, mês ainda não fechado.`, 17, COR.muted, { italic: true });
   }
 
   // ── 6. Prensagem ──
