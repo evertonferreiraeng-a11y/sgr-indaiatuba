@@ -269,13 +269,27 @@ export function frasesPadrao(d) {
   const ratio = c.prensa.preco && c.granel.preco ? c.prensa.preco / c.granel.preco : null;
   const quedaPreco = c.prensa.preco != null && a.prensa.preco != null && c.prensa.preco < a.prensa.preco * 0.98;
   const quedaComp = c.pctPrensado != null && a.pctPrensado != null && c.pctPrensado < a.pctPrensado - 0.5;
-  const txtPreco = `(${a.prensa.preco ? reais0(a.prensa.preco) : '—'} → ${c.prensa.preco ? reais0(c.prensa.preco) : '—'}/t)`;
-  const txtComp = `(${pct(a.pctPrensado)} → ${pct(c.pctPrensado)})`;
-  let comp = ratio ? `A tonelada prensada vale **${nf(ratio, 1)}×** a granel` : 'Prensado × a granel';
-  if (quedaPreco && quedaComp) comp += `, mas o prensado *caiu no preço* ${txtPreco} e *na composição de vendas* ${txtComp}.`;
-  else if (quedaPreco) comp += `, mas o prensado *caiu no preço* ${txtPreco}; participação nas vendas ${txtComp}.`;
-  else if (quedaComp) comp += `, mas o prensado *caiu na composição de vendas* ${txtComp}; preço ${txtPreco}.`;
-  else comp += ` — prensado: preço ${txtPreco} e participação nas vendas ${txtComp}.`;
+  // Frase em linguagem corrida: 1) quanto o prensado vale a mais; 2) participação nas vendas; 3) preço vs mês anterior
+  const ant = nomeMes(d.Mant);
+  let comp = ratio
+    ? `Em ${mes}, o prensado foi vendido a ${reais0(c.prensa.preco)}/t — **${nf(ratio, 1)} vezes** o preço do material a granel (${reais0(c.granel.preco)}/t).`
+    : `Em ${mes}, não houve venda de prensado e a granel para comparar preços.`;
+  if (c.pctPrensado != null && a.pctPrensado != null) {
+    const subiuComp = c.pctPrensado > a.pctPrensado + 0.5;
+    comp += quedaComp
+      ? ` A parte prensada das vendas *caiu de ${pct(a.pctPrensado)} para ${pct(c.pctPrensado)}*`
+      : subiuComp
+        ? ` A parte prensada das vendas **subiu de ${pct(a.pctPrensado)} para ${pct(c.pctPrensado)}**`
+        : ` A parte prensada das vendas ficou estável (${pct(c.pctPrensado)})`;
+    if (c.prensa.preco != null && a.prensa.preco != null) {
+      const subiuPreco = c.prensa.preco > a.prensa.preco * 1.02;
+      comp += quedaPreco
+        ? ` e o preço do prensado *caiu* (${reais0(a.prensa.preco)}/t em ${ant}).`
+        : subiuPreco
+          ? ` e o preço do prensado **subiu** (${reais0(a.prensa.preco)}/t em ${ant}).`
+          : ` e o preço do prensado se manteve (${reais0(a.prensa.preco)}/t em ${ant}).`;
+    } else comp += '.';
+  }
 
   let prensa = `As prensas produziram ${destaque(`${nf(d.prod / 1000, 1)} t de ${tCap(d, d.capMes)} t`, atProd)} em ${mes}` +
     (d.perdaCap > 0.5 ? ` (capacidade de ${nf(d.capNominal / 1000, 0)} t menos ${nf(d.perdaCap / 1000, 1)} t por manutenção).` : '.');
