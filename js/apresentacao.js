@@ -572,32 +572,29 @@ export function montarApresentacao(PptxGenJS, d, { img, frases: fr, textos, acoe
     cartao({ i: 1, g: 'granel' }, 'A GRANEL · MATERIAIS PRENSÁVEIS', `preço médio em ${mes}`, COR.cinzaBg, COR.borda, COR.muted, COR.txt);
     cartao({ i: 2, g: 'sucata' }, 'SUCATA FERROSA · NÃO PRENSA', `preço médio em ${mes}`, 'FFFFFF', COR.borda, COR.muted, COR.txt2);
 
-    // Barra de composição: prensado | a granel | sucata (| outros) = volume total vendido
+    // Barra = só materiais prensáveis (prensado | a granel), com volume e %; a sucata ferrosa fica à direita
     txt(s, 50, 462, 1280, 22, 'COMPOSIÇÃO DO VOLUME VENDIDO', 14, COR.muted, { bold: true });
-    const segs = [
-      ['prensado', 'prensado', COR.verde, 'FFFFFF'],
-      ['granel', 'a granel', COR.verdeBarra, COR.txt2],
-      ['sucata', 'sucata', 'CBD5E1', COR.txt2],
-      ['outros', 'outros', 'E2E8F0', COR.muted],
-    ];
+    const segs = [['prensado', 'prensado', COR.verde, 'FFFFFF'], ['granel', 'a granel', COR.verdeBarra, COR.txt2]];
     const larg = 960, x0 = 200;
     [[cap(ant), 494, a], [cap(mes) + (d.emAndamento ? '*' : ''), 560, c]].forEach(([rot, y, r]) => {
-      const total = segs.reduce((t, [k]) => t + r.g[k].vol, 0);
+      const totalVend = Object.values(r.g).reduce((t, x) => t + x.vol, 0);
+      const prensaveis = segs.reduce((t, [k]) => t + r.g[k].vol, 0);
       txt(s, 50, y + 2, 145, 24, rot, 16, COR.txt2, { bold: true });
-      txt(s, 50, y + 26, 145, 20, `total ${tn(total, 1)}`, 12, COR.muted);
+      txt(s, 50, y + 26, 145, 20, `total ${tn(totalVend, 1)}`, 12, COR.muted);
       let x = x0;
       segs.forEach(([k, nome, fill, cor]) => {
-        const vol = r.g[k].vol; if (!(vol > 0) || !(total > 0)) return;
-        const w = larg * vol / total;
-        const rotSeg = w > 110 ? `${nf(vol / 1000, 1)} t ${nome}` : w > 60 ? `${nf(vol / 1000, 1)} t` : '';
+        const vol = r.g[k].vol; if (!(vol > 0) || !(prensaveis > 0)) return;
+        const w = larg * vol / prensaveis, p = vol / prensaveis * 100;
+        const rotSeg = w > 230 ? `${nf(vol / 1000, 1)} t ${nome} · ${pct(p)}` : w > 120 ? `${nf(vol / 1000, 1)} t · ${pct(p, 0)}` : w > 50 ? pct(p, 0) : '';
         s.addText(rotSeg, { x: I(x), y: I(y), w: I(Math.max(w, 1)), h: I(48), fill: { color: fill }, fontFace: FONT, fontSize: 13, bold: k === 'prensado', color: cor, align: 'center', valign: 'middle', margin: 0 });
         x += w;
       });
-      // Indicador que importa: quanto do material prensável saiu prensado
-      txt(s, x0 + larg + 20, y - 2, 150, 30, pct(r.pctPrensado), 22, COR.verde, { bold: true });
-      txt(s, x0 + larg + 20, y + 26, 150, 22, 'dos prensáveis', 12, COR.muted);
+      // Sucata ferrosa: volume e % do total vendido
+      const suc = r.g.sucata.vol;
+      txt(s, x0 + larg + 20, y - 2, 160, 30, `${nf(suc / 1000, 1)} t sucata`, 18, COR.txt2, { bold: true });
+      txt(s, x0 + larg + 20, y + 26, 160, 22, totalVend > 0 ? `${pct(suc / totalVend * 100)} do total vendido` : '—', 12, COR.muted);
     });
-    txt(s, 50, 620, 1280, 22, '% prensado = prensado ÷ (prensado + a granel). A sucata ferrosa fica fora dessa conta porque não pode ser prensada.', 13, COR.muted, { italic: true });
+    txt(s, 50, 620, 1280, 22, 'Barras: só materiais prensáveis (% prensado = prensado ÷ prensado + a granel). Sucata ferrosa à direita, porque não pode ser prensada.', 13, COR.muted, { italic: true });
     const yTxt = 658;
     const dif = (c.preco ?? 0) - (a.preco ?? 0);
     txt(s, 50, yTxt, 1280, 50, c.preco && a.preco
