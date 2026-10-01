@@ -521,8 +521,8 @@ export function montarApresentacao(PptxGenJS, d, { img, frases: fr, textos, acoe
       txt(s, x + 30, 350, bw - 60, 90, [
         { text: `Vendido em ${quandoMes}: `, options: { color: COR.muted } },
         { text: `${tn(r.vol)} · ${mil(r.fat)}`, options: { bold: true, color: COR.txt2, breakLine: true } },
-        { text: `Preço em ${ant}: `, options: { color: COR.muted } },
-        { text: rAnt.preco ? `${reais0(rAnt.preco)}/t` : '—', options: { bold: true, color: COR.txt2 } },
+        { text: `Vendido em ${ant}: `, options: { color: COR.muted } },
+        { text: `${tn(rAnt.vol)} · ${mil(rAnt.fat)} · ${rAnt.preco ? `${reais0(rAnt.preco)}/t` : '—'}`, options: { bold: true, color: COR.txt2 } },
         { text: v == null ? '' : `  ${seta(v)} ${nf(Math.abs(v), 1)}%`, options: { bold: true, color: corV } },
       ], 16, COR.txt2, { paraSpaceAfter: 4 });
     };
