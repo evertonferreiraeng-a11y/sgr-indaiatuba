@@ -510,14 +510,24 @@ export function montarApresentacao(PptxGenJS, d, { img, frases: fr, textos, acoe
   {
     const s = conteudo('COMPOSIÇÃO DE VENDAS', fr.comp);
     const c = d.cur, a = d.antCheio, bw = 615, gx = 50 + bw + 45;
+    // Cada número com rótulo: preço do mês, quanto foi vendido/faturado e o preço do mês anterior com a variação
+    const quandoMes = d.emAndamento ? `${mes} (até ${ddmm(d.corte)})` : mes;
     const bloco = (x, fill, line, rot, corRot, r, rAnt, corValor) => {
       box(s, x, 210, bw, 250, fill, line);
-      txt(s, x + 30, 236, bw - 60, 22, rot, 14, corRot, { bold: true });
-      txt(s, x + 30, 268, bw - 60, 70, r.preco ? `${reais0(r.preco)}/t` : '—', 50, corValor, { bold: true });
-      txt(s, x + 30, 350, bw - 60, 80, `${mes} (${ant}: ${rAnt.preco ? reais0(rAnt.preco) + '/t' : '—'})\n${tn(r.vol)} · ${mil(r.fat)}`, 16, COR.txt2);
+      txt(s, x + 30, 236, bw - 60, 22, `${rot} · PREÇO MÉDIO EM ${mes.toUpperCase()}`, 14, corRot, { bold: true });
+      txt(s, x + 30, 266, bw - 60, 70, r.preco ? `${reais0(r.preco)}/t` : '—', 50, corValor, { bold: true });
+      const v = varPct(r.preco, rAnt.preco);
+      const corV = v == null || Math.abs(v) < 2 ? COR.muted : v > 0 ? COR.ok : COR.verm;
+      txt(s, x + 30, 350, bw - 60, 90, [
+        { text: `Vendido em ${quandoMes}: `, options: { color: COR.muted } },
+        { text: `${tn(r.vol)} · ${mil(r.fat)}`, options: { bold: true, color: COR.txt2, breakLine: true } },
+        { text: `Preço em ${ant}: `, options: { color: COR.muted } },
+        { text: rAnt.preco ? `${reais0(rAnt.preco)}/t` : '—', options: { bold: true, color: COR.txt2 } },
+        { text: v == null ? '' : `  ${seta(v)} ${nf(Math.abs(v), 1)}%`, options: { bold: true, color: corV } },
+      ], 16, COR.txt2, { paraSpaceAfter: 4 });
     };
-    bloco(50, COR.verdeCl, null, 'PRENSADO · PREÇO MÉDIO', COR.verde, c.prensa, a.prensa, COR.verde);
-    bloco(gx, COR.cinzaBg, COR.borda, 'A GRANEL · PREÇO MÉDIO', COR.muted, c.granel, a.granel, COR.txt);
+    bloco(50, COR.verdeCl, null, 'PRENSADO', COR.verde, c.prensa, a.prensa, COR.verde);
+    bloco(gx, COR.cinzaBg, COR.borda, 'A GRANEL', COR.muted, c.granel, a.granel, COR.txt);
 
     txt(s, 50, 500, 1280, 24, 'PARTICIPAÇÃO NO VOLUME VENDIDO', 14, COR.muted, { bold: true });
     [[cap(ant), 534, a], [cap(mes) + (d.emAndamento ? '*' : ''), 604, c]].forEach(([rot, y, r]) => {
@@ -532,7 +542,9 @@ export function montarApresentacao(PptxGenJS, d, { img, frases: fr, textos, acoe
       yTxt = 700;
     }
     const dif = (c.preco ?? 0) - (a.preco ?? 0);
-    txt(s, 50, yTxt, 1280, 50, `Preço médio geral: ${a.preco ? reais0(a.preco) + '/t' : '—'} em ${ant} → ${c.preco ? reais0(c.preco) + '/t' : '—'} em ${mes} (${dif >= 0 ? '+' : '-'}R$ ${nf(Math.abs(dif), 0)}/t).`, 17, COR.txt2);
+    txt(s, 50, yTxt, 1280, 50, c.preco && a.preco
+      ? `Preço médio geral (todos os materiais): ${reais0(c.preco)}/t em ${mes} — R$ ${nf(Math.abs(dif), 0)}/t ${dif >= 0 ? 'a mais' : 'a menos'} que em ${ant} (${reais0(a.preco)}/t).`
+      : `Preço médio geral (todos os materiais): ${c.preco ? reais0(c.preco) + '/t' : '—'} em ${mes}.`, 17, COR.txt2);
     if (d.emAndamento) txt(s, 50, yTxt + 60, 1290, 30, `* Obs.: ${mes} parcial — dados até ${ddmmaaaa(d.corte)}, mês ainda não fechado.`, 17, COR.muted, { italic: true });
   }
 
