@@ -199,6 +199,10 @@
         <label>Descrição</label>
         <textarea id="f-descricao" placeholder="Detalhes adicionais (opcional)…"></textarea>
       </div>
+      <div class="field-group">
+        <label>Andamento</label>
+        <textarea id="f-andamento" placeholder="O que já foi feito e em que pé está (aparece na apresentação do Comitê)…"></textarea>
+      </div>
       <div class="field-row">
         <div class="field-group">
           <label>Prioridade</label>
@@ -438,6 +442,7 @@ function cardHtml(t, hoje) {
         <button class="task-card-menu" onclick="ctxMenu(event,'${t.id}')">⋯</button>
       </div>
       ${t.descricao ? `<div class="task-desc">${escHtml(t.descricao)}</div>` : ''}
+      ${t.andamento ? `<div class="task-desc" style="border-left:3px solid #2E9E5B;padding-left:8px;color:#334155;white-space:pre-line"><strong style="font-size:10px;letter-spacing:.04em;color:#2E9E5B">ANDAMENTO</strong><br>${escHtml(t.andamento)}</div>` : ''}
       ${etapasHtml}
       <div class="task-tags" style="margin-top:10px">
         <span class="task-tag ${pri.cls}">${pri.label}</span>
@@ -582,6 +587,7 @@ window.abrirTarefa = (id) => {
   document.getElementById('modal-title').textContent   = t ? 'Editar Tarefa' : 'Nova Tarefa';
   document.getElementById('f-titulo').value            = t?.titulo       || '';
   document.getElementById('f-descricao').value         = t?.descricao    || '';
+  document.getElementById('f-andamento').value         = t?.andamento    || '';
   document.getElementById('f-prioridade').value        = t?.prioridade   || 'media';
   document.getElementById('f-status').value            = t?.status       || 'pendente';
   document.getElementById('f-categoria').value         = t?.categoria    || '';
@@ -604,6 +610,7 @@ window.salvarTarefa = async () => {
   const payload = {
     titulo,
     descricao:       document.getElementById('f-descricao').value.trim() || null,
+    andamento:       document.getElementById('f-andamento').value.trim() || null,
     prioridade:      document.getElementById('f-prioridade').value,
     status:          document.getElementById('f-status').value,
     categoria:       document.getElementById('f-categoria').value.trim() || null,

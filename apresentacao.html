@@ -101,7 +101,7 @@ import { initPage, supabase, toast } from './js/config.js?v=2';
 import {
   META_COLABORADORES, STATUS_TAREFA, calcularDados, frasesPadrao, textoPerdaCap, montarApresentacao, periodoBusca,
   isoLocal, addDias, fimDoMes, ddmm, ddmmaaaa, nomeMes, mil, tn, pct, reais0, nf,
-} from './js/apresentacao.js?v=3';
+} from './js/apresentacao.js?v=4';
 
 await initPage();
 
@@ -165,7 +165,9 @@ async function carregar() {
       fetchOpcional('plano_expansao_marcos', 'data, colaboradores_ativos, vagas_abertas, prensas_operando, observacao'),
       fetchOpcional('plano_expansao_config', 'proximos_passos'),
       fetchOpcional('equipamentos_snapshot', 'semana, equipamento_id, status', [['gte', 'semana', addDias(iniMes, -60)], ['lte', 'semana', fimBusca]]),
-      fetchOpcional('tarefas', 'id, titulo, status, categoria, responsavel, data_vencimento'),
+      // "andamento" vem do patch 33; sem ele, carrega as tarefas sem essa coluna
+      fetchAll('tarefas', 'id, titulo, status, categoria, responsavel, data_vencimento, andamento')
+        .catch(() => fetchOpcional('tarefas', 'id, titulo, status, categoria, responsavel, data_vencimento')),
     ]);
     tarefasCache = tarefas;
     D = calcularDados({ vendas, metas, producao, equipamentos, materiais, marcos, config, snapshots }, M, corte, hoje);
@@ -233,7 +235,7 @@ function renderTarefas() {
   const wrap = document.getElementById('ap-tarefas');
   if (!lista.length) { wrap.innerHTML = '<p class="ap-hint">Nenhuma tarefa nesta categoria. Cadastre as ações em Tarefas.</p>'; return; }
   wrap.innerHTML = lista.map(t => `<label class="ap-tar"><input type="checkbox" data-id="${esc(t.id)}" ${t.status !== 'concluida' ? 'checked' : ''} />
-    <span>${esc(t.titulo)}<small>${esc(t.responsavel || 'sem responsável')} · ${t.data_vencimento ? ddmmaaaa(t.data_vencimento) : 'sem prazo'} · ${STATUS_TAREFA[t.status] || esc(t.status)}</small></span></label>`).join('');
+    <span>${esc(t.titulo)}<small>${esc(t.responsavel || 'sem responsável')} · ${t.data_vencimento ? ddmmaaaa(t.data_vencimento) : 'sem prazo'} · ${STATUS_TAREFA[t.status] || esc(t.status)}</small><small style="font-style:italic">${t.andamento ? 'Andamento: ' + esc(t.andamento) : 'sem andamento registrado — preencha em Tarefas'}</small></span></label>`).join('');
 }
 
 // ── Geração ──

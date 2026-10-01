@@ -611,8 +611,13 @@ export function montarApresentacao(PptxGenJS, d, { img, frases: fr, textos, acoe
   // ── 8. Plano de ação (tarefas selecionadas) ──
   {
     const s = conteudo('PLANO DE AÇÃO', fr.plano);
-    const cab = ['#', 'Ação', 'Responsável', 'Prazo', 'Status'].map((t, k) =>
+    // Coluna "Andamento" só entra quando alguma ação tem o campo preenchido (Tarefas → Andamento)
+    const comAnd = acoes.some(t => (t.andamento || '').trim());
+    const titulos = comAnd ? ['#', 'Ação', 'Andamento', 'Responsável', 'Prazo', 'Status'] : ['#', 'Ação', 'Responsável', 'Prazo', 'Status'];
+    const cab = titulos.map((t, k) =>
       ({ text: t, options: { bold: true, color: 'FFFFFF', fill: { color: COR.verde }, fontSize: 14, align: k === 0 ? 'center' : 'left' } }));
+    const maxAnd = Math.max(0, ...acoes.map(t => (t.andamento || '').trim().length));
+    const fsAnd = maxAnd > 160 ? 11 : maxAnd > 100 ? 12 : 13;
     const linhas = acoes.length ? acoes.map((t, k) => {
       const atrasada = t.data_vencimento && t.data_vencimento < hoje && t.status !== 'concluida';
       const st = atrasada ? 'Atrasada' : (STATUS_TAREFA[t.status] || t.status || '—');
@@ -620,15 +625,16 @@ export function montarApresentacao(PptxGenJS, d, { img, frases: fr, textos, acoe
       const fill = { color: k % 2 ? COR.cinzaBg : 'FFFFFF' };
       return [
         { text: String(k + 1), options: { bold: true, align: 'center', fill, color: COR.txt } },
-        { text: t.titulo || '', options: { fill, color: COR.txt } },
-        { text: t.responsavel || 'a definir', options: { italic: true, color: COR.cinza, fill } },
-        { text: t.data_vencimento ? ddmmaaaa(t.data_vencimento) : 'a definir', options: { italic: true, color: COR.cinza, fill } },
-        { text: st, options: { bold: true, color: corSt, fill } },
+        { text: t.titulo || '', options: { fill, color: COR.txt, ...(comAnd ? { fontSize: 14 } : {}) } },
+        ...(comAnd ? [{ text: (t.andamento || '').trim() || '—', options: { fill, color: COR.txt2, fontSize: fsAnd } }] : []),
+        { text: t.responsavel || 'a definir', options: { italic: true, color: COR.cinza, fill, ...(comAnd ? { fontSize: 13 } : {}) } },
+        { text: t.data_vencimento ? ddmmaaaa(t.data_vencimento) : 'a definir', options: { italic: true, color: COR.cinza, fill, ...(comAnd ? { fontSize: 13 } : {}) } },
+        { text: st, options: { bold: true, color: corSt, fill, ...(comAnd ? { fontSize: 13 } : {}) } },
       ];
     }) : [[{ text: 'Nenhuma ação selecionada — cadastre as ações no módulo Tarefas.', options: { colspan: 5, italic: true, color: COR.muted } }]];
-    const rowH = Math.min(70, 560 / Math.max(1, linhas.length));
+    const rowH = Math.min(comAnd ? 80 : 70, 560 / Math.max(1, linhas.length));
     s.addTable([cab, ...linhas], {
-      x: I(50), y: I(210), w: I(1280), colW: [60, 700, 190, 150, 180].map(I), rowH: [I(48), ...linhas.map(() => I(rowH))],
+      x: I(50), y: I(210), w: I(1280), colW: (comAnd ? [50, 400, 440, 140, 115, 135] : [60, 700, 190, 150, 180]).map(I), rowH: [I(48), ...linhas.map(() => I(rowH))],
       fontFace: FONT, fontSize: 16, valign: 'middle', margin: [0, 0.19, 0, 0.19], border: { type: 'none' },
     });
   }
