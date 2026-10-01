@@ -219,7 +219,7 @@
           <div class="form-group"><label>Equipamento *</label><select name="equipamento_id" required><option value="">Selecione…</option></select></div>
           <div class="form-group"><label>Material *</label><select name="material_id" required><option value="">Selecione…</option></select></div>
           <div class="form-group"><label>Operador</label><select name="operador_id"><option value="">— Nenhum —</option></select></div>
-          <div class="form-group"><label>Peso Produzido (kg) *</label><input type="number" name="peso_produzido_kg" min="0.01" step="0.01" required /></div>
+          <div class="form-group"><label>Peso Produzido (kg) *</label><input type="number" name="peso_produzido_kg" min="0.01" step="any" required /><small id="peso-prod-ton" class="text-muted" style="font-size:11px"></small></div>
           <div class="form-group"><label>Quantidade de Fardos</label><input type="number" name="quantidade_fardos" min="0" step="1" placeholder="Unidades prensadas" /></div>
         </div>
         <div id="alerta-capacidade" style="display:none;margin-top:12px;padding:8px 12px;background:var(--danger-light);color:var(--danger);border-radius:6px;font-size:12px;align-items:center;gap:6px">
@@ -1123,10 +1123,17 @@ function abrirNovaProd() {
   document.getElementById('modal-prod-title').textContent = 'Novo Registro de Produção';
   document.getElementById('form-prod').reset();
   document.querySelector('#form-prod [name="id"]').value = '';
+  atualizarPesoTon();
   document.getElementById('alerta-capacidade').style.display = 'none';
   document.getElementById('btn-excluir-prod').style.display = 'none';
   abrirModal('modal-prod');
 }
+
+function atualizarPesoTon() {
+  const v = parseFloat(document.querySelector('#form-prod [name="peso_produzido_kg"]').value);
+  document.getElementById('peso-prod-ton').textContent = v > 0 ? `= ${ton(v)}` : '';
+}
+document.querySelector('#form-prod [name="peso_produzido_kg"]').addEventListener('input', atualizarPesoTon);
 
 ['peso_produzido_kg','equipamento_id','data'].forEach(nm => {
   document.querySelector(`#form-prod [name="${nm}"]`)?.addEventListener('change', verificarCapacidade);
@@ -1157,6 +1164,7 @@ window.editarProd = id => {
   f.querySelector('[name="operador_id"]').value       = r.operador_id || '';
   f.querySelector('[name="peso_produzido_kg"]').value = r.peso_produzido_kg;
   f.querySelector('[name="quantidade_fardos"]').value = r.quantidade_fardos || '';
+  atualizarPesoTon();
   const btnExcluir = document.getElementById('btn-excluir-prod');
   btnExcluir.style.display = 'inline-flex';
   btnExcluir.dataset.id = r.id;
@@ -1188,13 +1196,17 @@ document.getElementById('btn-salvar-prod').addEventListener('click', async () =>
     data: fd.data, criado_por: user.id,
   };
   if (fd.id) {
-    await supabase.from('producao').update(payload).eq('id', fd.id);
+    // Edição mantém quem criou o registro
+    delete payload.criado_por;
+    const { data: atualizados, error } = await supabase.from('producao').update(payload).eq('id', fd.id).select('id');
+    if (error) { toast('Erro ao salvar: ' + error.message, 'error'); return; }
+    if (!atualizados?.length) { toast('O registro não foi alterado — sem permissão de edição ou registro não encontrado.', 'error'); return; }
     await supabase.from('estoque_movimentacoes').delete().eq('origem_id', fd.id);
     await supabase.from('estoque_movimentacoes').insert({ material_id: payload.material_id, tipo:'entrada', peso_kg: payload.peso_produzido_kg, origem_tipo:'producao', origem_id: fd.id, data: payload.data });
     toast('Produção atualizada!');
   } else {
     const { data: nova, error } = await supabase.from('producao').insert(payload).select().single();
-    if (error) { toast('Erro ao salvar','error'); return; }
+    if (error) { toast('Erro ao salvar: ' + error.message, 'error'); return; }
     await supabase.from('estoque_movimentacoes').insert({ material_id: payload.material_id, tipo:'entrada', peso_kg: payload.peso_produzido_kg, origem_tipo:'producao', origem_id: nova.id, data: payload.data });
     toast('Produção registrada!');
   }
