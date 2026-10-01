@@ -69,7 +69,10 @@ export function calcularDados(rows, M, corteIn, hoje) {
   const ano = M.slice(0, 4);
   const Mant = mesDelta(M, -1), iniAnt = `${Mant}-01`, fimAnt = fimDoMes(Mant);
   const emAndamento = corte < fimMes;
-  const { vendas, metas, producao, equipamentos, materiais, marcos = [], config = [], snapshots = [] } = rows;
+  const { vendas, metas, producao, equipamentos, materiais, marcos = [], config = [] } = rows;
+  // snapshotsTodos inclui registros anteriores ao mês (para herdar o status do dia sem registro)
+  const snapshotsTodos = rows.snapshots || [];
+  const snapshots = snapshotsTodos.filter(s => s.semana >= ini);
 
   const metaMes = {}; metas.forEach(m => { metaMes[m.periodo] = parseFloat(m.valor_meta || 0); });
 
@@ -127,7 +130,25 @@ export function calcularDados(rows, M, corteIn, hoje) {
   // Prensas
   const prensas = equipamentos.filter(e => (e.nome || '').toLowerCase().includes('prensa') && e.capacidade_kg_mes);
   const idsPrensas = new Set(prensas.map(e => e.id));
-  const capMes = prensas.reduce((s, e) => s + parseFloat(e.capacidade_kg_mes || 0), 0);
+  const capNominal = prensas.reduce((s, e) => s + parseFloat(e.capacidade_kg_mes || 0), 0);
+  // Disponibilidade diária (mesma regra da tela de Produção): Parado (manutenção) zera a
+  // capacidade da prensa no dia; Restrição aplica o % cadastrado. Dia sem registro herda o
+  // último status salvo (passado) ou usa o status atual do equipamento (hoje/futuro).
+  const snapPorEq = {};
+  snapshotsTodos.forEach(s => { if (idsPrensas.has(s.equipamento_id)) (snapPorEq[s.equipamento_id] = snapPorEq[s.equipamento_id] || []).push(s); });
+  Object.values(snapPorEq).forEach(l => l.sort((a, b) => a.semana.localeCompare(b.semana)));
+  const statusNoDia = (e, dt) => {
+    const lista = snapPorEq[e.id] || [];
+    const exato = lista.find(s => s.semana === dt);
+    if (exato) return exato.status;
+    if (dt >= hoje) return e.status || 'operando';
+    let ult = null; for (const s of lista) { if (s.semana < dt) ult = s; else break; }
+    return ult?.status || 'operando';
+  };
+  const fatorNoDia = (e, dt) => {
+    const st = statusNoDia(e, dt);
+    return st === 'parado' ? 0 : st === 'restricao' ? (parseFloat(e.capacidade_pct) || 50) / 100 : 1;
+  };
   const prodPorDia = {};
   producao.forEach(r => {
     if (r.data < ini || r.data > corte || !idsPrensas.has(r.equipamento_id)) return;
@@ -136,17 +157,36 @@ export function calcularDados(rows, M, corteIn, hoje) {
   // Mesma regra da tela de Produção: sábado/domingo com lançamento também conta como dia útil
   const extras = Object.keys(prodPorDia).filter(dt => !ehUtil(dt));
   const duPrensa = du + extras.length, dpPrensa = dp + extras.filter(dt => dt <= corte).length;
+  const metaPorDia = {};
+  for (let dt = ini; dt <= fimMes; dt = addDias(dt, 1)) {
+    if (!ehUtil(dt) && !extras.includes(dt)) continue;
+    metaPorDia[dt] = duPrensa > 0 ? prensas.reduce((s, e) => s + parseFloat(e.capacidade_kg_mes || 0) / duPrensa * fatorNoDia(e, dt), 0) : 0;
+  }
+  const capMes = Object.values(metaPorDia).reduce((s, v) => s + v, 0);
+  const perdaCap = Math.max(0, capNominal - capMes);
+  // Prensas que tiveram capacidade reduzida no mês (para citar na apresentação)
+  const prensasReduzidas = prensas.map(e => {
+    let perda = 0, diasParado = 0, diasRestr = 0;
+    Object.keys(metaPorDia).forEach(dt => {
+      const f = fatorNoDia(e, dt);
+      perda += parseFloat(e.capacidade_kg_mes || 0) / duPrensa * (1 - f);
+      if (f === 0) diasParado++; else if (f < 1) diasRestr++;
+    });
+    return { e, perda, diasParado, diasRestr };
+  }).filter(x => x.perda > 0.5);
   const metaDia = duPrensa > 0 ? capMes / duPrensa : 0;
+  const metaDiaNominal = duPrensa > 0 ? capNominal / duPrensa : 0;
   const prod = Object.values(prodPorDia).reduce((s, v) => s + v, 0);
-  const esperado = metaDia * dpPrensa;
+  const esperado = Object.entries(metaPorDia).reduce((s, [dt, v]) => s + (dt <= corte ? v : 0), 0);
+  const metaRestante = Object.entries(metaPorDia).reduce((s, [dt, v]) => s + (dt > corte && ehUtil(dt) ? v : 0), 0);
+  const metaDiaRestante = dr > 0 ? metaRestante / dr : metaDia;
   const semProd = semanas.map((s, i) => {
     const fimSemana = addDias(s.ini, 6 - ((parseD(s.ini).getDay() + 6) % 7)); // domingo da semana
-    let p = 0, dias = s.dias;
+    let p = 0, m = 0;
     for (let dt = s.ini; dt <= fimSemana && dt <= fimMes; dt = addDias(dt, 1)) {
       if (dt <= corte) p += prodPorDia[dt] || 0;
-      if (!ehUtil(dt) && prodPorDia[dt]) dias++;
+      m += metaPorDia[dt] || 0;
     }
-    const m = metaDia * dias;
     return { i: i + 1, s, parcial: s.fim > corte, p: m > 0 ? p / m * 100 : null };
   });
   const prensadoMes = fatMes.map(r => r.prensa.vol);
@@ -182,7 +222,7 @@ export function calcularDados(rows, M, corteIn, hoje) {
   return {
     M, ini, fimMes, corte, emAndamento, Mant, fimAntMesmo, cur, antMesmo, antCheio, meta, du, dp, dr,
     estoqueKg, valorEstoque, projecao, mesesAno, fatMes, fatAno, metaAno, metaMes, melhor, nenhumAtingiu, semFat,
-    prensas, capMes, metaDia, duPrensa, dpPrensa, prod, esperado, semProd, prensadoMes, prensAntes, prensDepois,
+    prensas, capMes, capNominal, perdaCap, prensasReduzidas, metaDia, metaDiaNominal, metaDiaRestante, duPrensa, dpPrensa, prod, esperado, semProd, prensadoMes, prensAntes, prensDepois,
     eqs, nOp, nRes, nPar, disp, comParada, colab, vagas, proximos,
   };
 }
@@ -190,6 +230,20 @@ export function calcularDados(rows, M, corteIn, hoje) {
 // ══════════════════════════════════════════════════════════════════════════
 // Frases sugeridas (editáveis na tela). "*x*" = vermelho, "**x**" = verde
 // ══════════════════════════════════════════════════════════════════════════
+// Capacidade em t: com decimal quando houve redução por manutenção (ex.: 70,9 t), senão inteira (72 t)
+const tCap = (d, kg) => nf(kg / 1000, d.perdaCap > 0.5 ? 1 : 0);
+// "1,1 t por manutenção (Prensa 111-U005: 1 dia parada)"
+export function textoPerdaCap(d) {
+  if (!(d.perdaCap > 0.5)) return '';
+  const det = d.prensasReduzidas.map(({ e, diasParado, diasRestr }) => {
+    const p = [];
+    if (diasParado) p.push(`${diasParado} dia${diasParado > 1 ? 's' : ''} em manutenção`);
+    if (diasRestr) p.push(`${diasRestr} dia${diasRestr > 1 ? 's' : ''} com restrição`);
+    return `${e.frota || e.nome}: ${p.join(', ')}`;
+  }).join('; ');
+  return `${nf(d.perdaCap / 1000, 1)} t a menos por manutenção/restrição${det ? ` (${det})` : ''}`;
+}
+
 const destaque = (texto, p) => p == null ? texto : p >= 100 ? `**${texto}**` : p < 70 ? `*${texto}*` : texto;
 
 export function frasesPadrao(d) {
@@ -223,7 +277,8 @@ export function frasesPadrao(d) {
   else if (quedaComp) comp += `, mas o prensado *caiu na composição de vendas* ${txtComp}; preço ${txtPreco}.`;
   else comp += ` — prensado: preço ${txtPreco} e participação nas vendas ${txtComp}.`;
 
-  let prensa = `As prensas produziram ${destaque(`${nf(d.prod / 1000, 1)} t de ${nf(d.capMes / 1000, 0)} t`, atProd)} em ${mes}.`;
+  let prensa = `As prensas produziram ${destaque(`${nf(d.prod / 1000, 1)} t de ${tCap(d, d.capMes)} t`, atProd)} em ${mes}` +
+    (d.perdaCap > 0.5 ? ` (capacidade de ${nf(d.capNominal / 1000, 0)} t menos ${nf(d.perdaCap / 1000, 1)} t por manutenção).` : '.');
   if (d.prensAntes != null && d.prensDepois != null) {
     prensa += d.prensDepois < d.prensAntes
       ? ' Desde o início do plano, o prensado vendido está *abaixo da média anterior*.'
@@ -375,7 +430,7 @@ export function montarApresentacao(PptxGenJS, d, { img, frases: fr, textos, acoe
       pillFg: compCaiu ? COR.amb : COR.ok, pillBg: compCaiu ? COR.ambBg : COR.okBg, ...cmp(varPct(c.prensa.vol, a.prensa.vol), tn(a.prensa.vol)) });
     const [pF, pB] = pillSit(atProd, pEsperadoProd);
     const falta = Math.max(0, d.capMes - d.prod);
-    cards.push({ label: 'Produção das prensas', valor: tn(d.prod), sub: `${pct(atProd)} da meta de ${tn(d.capMes, 0)} (${d.prensas.length} prensas)`,
+    cards.push({ label: 'Produção das prensas', valor: tn(d.prod), sub: `${pct(atProd)} da meta de ${tCap(d, d.capMes)} t (${d.prensas.length} prensas${d.perdaCap > 0.5 ? `, −${nf(d.perdaCap / 1000, 1)} t manutenção` : ''})`,
       pill: atProd != null ? `${nf(atProd, 0)}% da meta` : null, pillFg: pF, pillBg: pB,
       cmp1: falta > 0 ? `faltam ${tn(falta)}` : 'meta atingida', cmp2: d.emAndamento ? `em ${d.dr} dias úteis` : 'mês fechado', cmpCor: falta > 0 ? COR.verm : COR.ok });
     const alvo = d.eqs.find(e => e.st === 'parado') || d.eqs.find(e => e.st === 'restricao');
@@ -471,28 +526,31 @@ export function montarApresentacao(PptxGenJS, d, { img, frases: fr, textos, acoe
   {
     const s = conteudo('PRENSAGEM', fr.prensa);
     const mPlano = PLANO_INICIO.slice(0, 7);
-    const capT = +(d.capMes / 1000).toFixed(2);
+    // Capacidade nominal nos meses anteriores; no mês de referência, a capacidade disponível (descontada a manutenção)
+    const capNomT = +(d.capNominal / 1000).toFixed(2), capRefT = +(d.capMes / 1000).toFixed(2);
+    const nomeCap = `Capacidade ${d.prensas.length} prensas (${nf(d.capNominal / 1000, 0)} t${d.perdaCap > 0.5 ? `; ${abrevMes.toLowerCase()}: ${tCap(d, d.capMes)} t c/ manutenção` : ''})`;
     s.addChart([
       { type: pptx.ChartType.bar, data: [{ name: 'Prensado vendido (t)', labels: labelsAno, values: d.prensadoMes.map(v => +(v / 1000).toFixed(2)) }],
         options: optsBarras(d.mesesAno.map(mk => mk >= mPlano ? COR.lima : COR.verde), '0.0" t"') },
-      { type: pptx.ChartType.line, data: [{ name: `Capacidade ${d.prensas.length} prensas (${nf(d.capMes / 1000, 0)} t)`, labels: labelsAno, values: labelsAno.map(() => capT) }], options: optsLinha },
+      { type: pptx.ChartType.line, data: [{ name: nomeCap, labels: labelsAno, values: d.mesesAno.map(mk => mk === d.M ? capRefT : capNomT) }], options: optsLinha },
     ], { ...optsGrafico('Volume prensado vendido por mês (t)'), valAxisLabelFormatCode: '0' });
 
     const px = 940, pw = 390;
     box(s, px, 205, pw, 190, 'FFFFFF', COR.borda);
     txt(s, px + 22, 221, pw - 44, 20, `PRODUÇÃO DAS PRENSAS · ${mes.toUpperCase()}`, 13, COR.muted, { bold: true });
-    txt(s, px + 22, 247, pw - 44, 46, `${nf(d.prod / 1000, 2)} t de ${nf(d.capMes / 1000, 0)} t`, 30, COR.txt, { bold: true });
+    txt(s, px + 22, 247, pw - 44, 46, `${nf(d.prod / 1000, 2)} t de ${tCap(d, d.capMes)} t`, 30, COR.txt, { bold: true });
     box(s, px + 22, 305, pw - 44, 16, COR.trilho, null, 0);
     if (atProd > 0) box(s, px + 22, 305, Math.max(6, (pw - 44) * Math.min(atProd, 100) / 100), 16, corAting(atProd / pEsperadoProd * 100), null, 0);
     const atraso = d.esperado - d.prod, ritmo = d.dpPrensa > 0 ? d.prod / d.dpPrensa : 0;
-    txt(s, px + 22, 330, pw - 44, 50, `${pct(atProd)} da meta${atraso > 0 ? ` · atraso de ${nf(atraso / 1000, 1)} t` : ''}\nritmo: ${nf(ritmo / 1000, 1)} t/dia útil (meta ${nf(d.metaDia / 1000, 1)} t/dia)`, 14, COR.txt2);
+    const linhaCap = d.perdaCap > 0.5 ? `\ncapacidade ${nf(d.capNominal / 1000, 0)} t − ${nf(d.perdaCap / 1000, 1)} t em manutenção` : '';
+    txt(s, px + 22, 328, pw - 44, linhaCap ? 62 : 50, `${pct(atProd)} da meta${atraso > 0 ? ` · atraso de ${nf(atraso / 1000, 1)} t` : ''}\nritmo: ${nf(ritmo / 1000, 1)} t/dia útil (meta ${nf(d.metaDia / 1000, 1)} t/dia)${linhaCap}`, linhaCap ? 12.5 : 14, COR.txt2);
 
     const falta = Math.max(0, d.capMes - d.prod);
     let b2;
     if (falta <= 0) b2 = ['META DO MÊS', 'Atingida', `${pct(atProd)} da capacidade`, COR.ok, COR.okBg];
     else if (d.emAndamento && d.dr > 0) {
       const nec = falta / d.dr;
-      b2 = ['PARA FECHAR A META DO MÊS', `${nf(nec / 1000, 1)} t/dia`, `nos ${d.dr} dias úteis restantes${nec > d.metaDia * 2 ? ' — inviável' : ''}`, COR.verm, COR.vermBg];
+      b2 = ['PARA FECHAR A META DO MÊS', `${nf(nec / 1000, 1)} t/dia`, `nos ${d.dr} dias úteis restantes${nec > d.metaDiaRestante * 2 ? ' — inviável' : ''}`, COR.verm, COR.vermBg];
     } else b2 = ['RESULTADO DO MÊS', `faltaram ${nf(falta / 1000, 1)} t`, `${pct(atProd)} da meta`, COR.verm, COR.vermBg];
     box(s, px, 409, pw, 118, b2[4], null);
     txt(s, px + 22, 425, pw - 44, 20, b2[0], 13, b2[3], { bold: true });
@@ -508,7 +566,8 @@ export function montarApresentacao(PptxGenJS, d, { img, frases: fr, textos, acoe
     txt(s, px, 672, pw, 22, 'ATINGIMENTO SEMANAL DAS PRENSAS', 13, COR.muted, { bold: true });
     barras(s, px, 700, pw, d.semProd.map(w => [`Sem ${w.i}${w.parcial ? '*' : ''}`, w.p, w.p == null ? '—' : `${nf(w.p, 0)}%`]), 28, 14);
     nota(s, `${d.emAndamento ? `* ${cap(mes)} parcial (até ${ddmm(d.corte)}). ` : ''}Barras em verde-claro: meses do plano de expansão (início em ${ddmm(PLANO_INICIO)}).`);
-    s.addNotes('O gráfico é o volume prensado VENDIDO (Comercial); o painel à direita é a PRODUÇÃO das prensas (Produção).');
+    s.addNotes('O gráfico é o volume prensado VENDIDO (Comercial); o painel à direita é a PRODUÇÃO das prensas (Produção).' +
+      (d.perdaCap > 0.5 ? ` Meta do mês descontada a manutenção: ${textoPerdaCap(d)}.` : ''));
   }
 
   // ── 7. Equipamentos e equipe ──
