@@ -101,7 +101,7 @@ import { initPage, supabase, toast } from './js/config.js?v=2';
 import {
   META_COLABORADORES, STATUS_TAREFA, calcularDados, frasesPadrao, textoPerdaCap, montarApresentacao, periodoBusca,
   isoLocal, addDias, fimDoMes, ddmm, ddmmaaaa, nomeMes, mil, tn, pct, reais0, nf,
-} from './js/apresentacao.js?v=7';
+} from './js/apresentacao.js?v=8';
 
 await initPage();
 
@@ -199,7 +199,7 @@ function renderConferencia() {
     ['Prensado vendido', `${tn(d.cur.prensa.vol)} · ${pct(d.cur.pctPrensado)} do volume sem sucata`],
     ['Produção das prensas', `${tn(d.prod)} de ${tn(d.capMes, d.perdaCap > 0.5 ? 1 : 0)}${d.perdaCap > 0.5 ? ` (capacidade ${tn(d.capNominal, 0)} − ${textoPerdaCap(d)})` : ''}`],
     ['Estoque atual', `${tn(d.estoqueKg)} · ${mil(d.valorEstoque)}`],
-    ['Equipamentos disponíveis', `${d.nOp + d.nRes} de ${d.eqs.length}`],
+    ['Equipamentos disponíveis', `${d.nOp + d.nRes} de ${d.eqs.length} ${d.rotDisp}${d.dispMes != null ? ` · média do mês ${pct(d.dispMes, 0)}` : ''}`],
     ['Equipe (Plano de Expansão)', d.colab != null ? `${d.colab} / ${META_COLABORADORES}` : 'sem registro'],
     [`Comparação (${nomeMes(d.Mant)})`, d.emAndamento ? `até ${ddmm(d.fimAntMesmo)}` : 'mês cheio'],
   ];

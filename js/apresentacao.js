@@ -211,7 +211,13 @@ export function calcularDados(rows, M, corteIn, hoje) {
     const h = (hist[s.equipamento_id] = hist[s.equipamento_id] || { t: 0, p: 0 });
     h.t++; if (s.status === 'parado') h.p++;
   });
-  const comParada = eqs.filter(e => hist[e.id]?.p > 0).map(e => ({ e, pct: hist[e.id].p / hist[e.id].t * 100 }));
+  const comParada = eqs.filter(e => hist[e.id]?.p > 0).map(e => ({ e, pct: hist[e.id].p / hist[e.id].t * 100, dias: hist[e.id].p }))
+    .sort((x, y) => y.pct - x.pct);
+  // Disponibilidade média do mês: dias-equipamento não parados ÷ dias-equipamento registrados
+  const hs = Object.values(hist), regT = hs.reduce((s, h) => s + h.t, 0), regP = hs.reduce((s, h) => s + h.p, 0);
+  const dispMes = regT > 0 ? (regT - regP) / regT * 100 : null;
+  // "disp" é a situação atual (mês em andamento) ou a do último registro do mês (mês fechado)
+  const rotDisp = emAndamento || fimMes >= hoje ? 'hoje' : 'no fim do mês';
 
   // Equipe: último registro do Plano de Expansão até a data de corte
   const marco = marcos.filter(m => m.data <= corte).sort((a, b) => a.data.localeCompare(b.data)).pop() || null;
@@ -223,7 +229,7 @@ export function calcularDados(rows, M, corteIn, hoje) {
     M, ini, fimMes, corte, emAndamento, Mant, fimAntMesmo, cur, antMesmo, antCheio, meta, du, dp, dr,
     estoqueKg, valorEstoque, projecao, mesesAno, fatMes, fatAno, metaAno, metaMes, melhor, nenhumAtingiu, semFat,
     prensas, capMes, capNominal, perdaCap, prensasReduzidas, metaDia, metaDiaNominal, metaDiaRestante, duPrensa, dpPrensa, prod, esperado, semProd, prensadoMes, prensAntes, prensDepois,
-    eqs, nOp, nRes, nPar, disp, comParada, colab, vagas, proximos,
+    eqs, nOp, nRes, nPar, disp, dispMes, rotDisp, comParada, colab, vagas, proximos,
   };
 }
 
@@ -271,39 +277,48 @@ export function frasesPadrao(d) {
   const quedaComp = c.pctPrensado != null && a.pctPrensado != null && c.pctPrensado < a.pctPrensado - 0.5;
   // Frase em linguagem corrida: 1) quanto o prensado vale a mais; 2) participação nas vendas; 3) preço vs mês anterior
   const ant = nomeMes(d.Mant);
-  let comp = ratio
-    ? `Em ${mes}, o prensado foi vendido a ${reais0(c.prensa.preco)}/t — **${nf(ratio, 1)} vezes** o preço do material a granel (${reais0(c.granel.preco)}/t).`
-    : `Em ${mes}, não houve venda de prensado e a granel para comparar preços.`;
+  // Curta (cabe em 2 linhas): o detalhe dos preços fica nos cards do slide
+  let comp = ratio ? `O prensado vale **${nf(ratio, 1)}×** o granel por tonelada` : 'Prensado × a granel';
   if (c.pctPrensado != null && a.pctPrensado != null) {
     const subiuComp = c.pctPrensado > a.pctPrensado + 0.5;
     comp += quedaComp
-      ? ` A parte prensada das vendas *caiu de ${pct(a.pctPrensado)} para ${pct(c.pctPrensado)}*`
+      ? `, mas sua parte nas vendas *caiu de ${pct(a.pctPrensado)} para ${pct(c.pctPrensado)}*`
       : subiuComp
-        ? ` A parte prensada das vendas **subiu de ${pct(a.pctPrensado)} para ${pct(c.pctPrensado)}**`
-        : ` A parte prensada das vendas ficou estável (${pct(c.pctPrensado)})`;
+        ? ` e sua parte nas vendas **subiu de ${pct(a.pctPrensado)} para ${pct(c.pctPrensado)}**`
+        : ` e sua parte nas vendas ficou estável (${pct(c.pctPrensado)})`;
     if (c.prensa.preco != null && a.prensa.preco != null) {
       const subiuPreco = c.prensa.preco > a.prensa.preco * 1.02;
-      comp += quedaPreco
-        ? ` e o preço do prensado *caiu* (${reais0(a.prensa.preco)}/t em ${ant}).`
-        : subiuPreco
-          ? ` e o preço do prensado **subiu** (${reais0(a.prensa.preco)}/t em ${ant}).`
-          : ` e o preço do prensado se manteve (${reais0(a.prensa.preco)}/t em ${ant}).`;
+      comp += quedaPreco ? `; o preço do prensado *caiu* frente a ${ant}.`
+        : subiuPreco ? `; o preço do prensado **subiu** frente a ${ant}.`
+          : `; preço do prensado estável frente a ${ant}.`;
     } else comp += '.';
-  }
+  } else comp += '.';
 
-  let prensa = `As prensas produziram ${destaque(`${nf(d.prod / 1000, 1)} t de ${tCap(d, d.capMes)} t`, atProd)} em ${mes}` +
-    (d.perdaCap > 0.5 ? ` (capacidade de ${nf(d.capNominal / 1000, 0)} t menos ${nf(d.perdaCap / 1000, 1)} t por manutenção).` : '.');
-  if (d.prensAntes != null && d.prensDepois != null) {
-    prensa += d.prensDepois < d.prensAntes
-      ? ' Desde o início do plano, o prensado vendido está *abaixo da média anterior*.'
-      : ' Desde o início do plano, o prensado vendido está **acima da média anterior**.';
+  // 1) produção × capacidade, já citando a prensa que mais parou; 2) prensado vendido do mês × média antes do plano
+  let prensa = `As prensas produziram ${destaque(`${nf(d.prod / 1000, 1)} t de ${tCap(d, d.capMes)} t`, atProd)} possíveis em ${mes}`;
+  const pior = [...d.prensasReduzidas].sort((x, y) => y.perda - x.perda)[0];
+  if (pior && pior.diasParado > 0) {
+    prensa += ` — a *${pior.e.nome}${pior.e.frota ? ' ' + pior.e.frota : ''} ficou ${pior.diasParado} dia${pior.diasParado > 1 ? 's' : ''} em manutenção*` +
+      (d.prensasReduzidas.length > 1 ? ` (−${nf(d.perdaCap / 1000, 1)} t de capacidade no total).` : ` (−${nf(pior.perda / 1000, 1)} t de capacidade).`);
+  } else prensa += d.perdaCap > 0.5 ? ` (−${nf(d.perdaCap / 1000, 1)} t de capacidade por restrição).` : '.';
+  if (d.prensAntes > 0) {
+    const vMes = varPct(c.prensa.vol, d.prensAntes);
+    prensa += ` Prensado vendido: ${nf(c.prensa.vol / 1000, 1)} t${d.emAndamento ? ` até ${ddmm(d.corte)}` : ''}, ` +
+      (vMes >= 0 ? `**${nf(vMes, 0)}% acima**` : `*${nf(Math.abs(vMes), 0)}% abaixo*`) + ` da média antes do plano (${nf(d.prensAntes / 1000, 1)} t/mês).`;
   }
 
   const nEq = d.eqs.length, nDisp = d.nOp + d.nRes;
-  let equip = nDisp === nEq ? `Os ${nEq} equipamentos estão disponíveis` : `*${nDisp} de ${nEq} equipamentos* disponíveis`;
+  const temParadas = d.dispMes != null && d.dispMes < 99.5 && d.comParada.length;
+  let equip = nDisp === nEq
+    ? (d.rotDisp === 'hoje' ? `Hoje os ${nEq} equipamentos estão disponíveis` : `No fim do mês, os ${nEq} equipamentos estavam disponíveis`)
+    : `*${nDisp} de ${nEq} equipamentos* disponíveis ${d.rotDisp}`;
+  if (temParadas) {
+    const p0 = d.comParada[0];
+    equip += `, mas a média do mês foi ${destaque(pct(d.dispMes, 0), d.dispMes >= 95 ? 100 : 60)} — *${p0.e.nome}${p0.e.frota ? ' ' + p0.e.frota : ''} parada em ${nf(p0.pct, 0)}% dos dias*`;
+  }
   if (d.colab != null) equip += d.colab < META_COLABORADORES
-    ? `; o ponto de atenção é a equipe, com *${d.colab} de ${META_COLABORADORES} colaboradores*.`
-    : `; equipe completa, com **${d.colab} de ${META_COLABORADORES} colaboradores**.`;
+    ? `. Equipe com *${d.colab} de ${META_COLABORADORES} colaboradores*.`
+    : `. Equipe completa, com **${d.colab} de ${META_COLABORADORES} colaboradores**.`;
   else equip += '.';
 
   return { resumo, fat, comp, prensa, equip, plano: 'Ações para recuperar faturamento e prensagem.' };
@@ -357,7 +372,9 @@ export function montarApresentacao(PptxGenJS, d, { img, frases: fr, textos, acoe
     const s = pptx.addSlide();
     fundo(s, img.conteudo);
     txt(s, 50, 31, 1250, 62, titulo, 50, COR.verde, { bold: true, valign: 'middle' });
-    txt(s, 50, 122, 1290, 70, runs(frase), 25, COR.txt2);
+    // Frase do topo: diminui a fonte quando o texto é longo, para não invadir o conteúdo (y ≥ 205)
+    const n = (frase || '').replace(/\*/g, '').length;
+    txt(s, 50, 118, 1290, 80, runs(frase), n > 240 ? 19 : n > 220 ? 21 : n > 200 ? 23 : 25, COR.txt2);
     return s;
   }
   const corAting = p => p == null ? COR.muted : p >= 100 ? COR.ok : p >= 70 ? COR.amarelo : COR.verm;
@@ -447,11 +464,18 @@ export function montarApresentacao(PptxGenJS, d, { img, frases: fr, textos, acoe
     cards.push({ label: 'Produção das prensas', valor: tn(d.prod), sub: `${pct(atProd)} da meta de ${tCap(d, d.capMes)} t (${d.prensas.length} prensas${d.perdaCap > 0.5 ? `, −${nf(d.perdaCap / 1000, 1)} t manutenção` : ''})`,
       pill: atProd != null ? `${nf(atProd, 0)}% da meta` : null, pillFg: pF, pillBg: pB,
       cmp1: falta > 0 ? `faltam ${tn(falta)}` : 'meta atingida', cmp2: d.emAndamento ? `em ${d.dr} dias úteis` : 'mês fechado', cmpCor: falta > 0 ? COR.verm : COR.ok });
+    // Valor grande = disponibilidade média do mês; a situação atual (ou do fim do mês) vem logo abaixo
     const alvo = d.eqs.find(e => e.st === 'parado') || d.eqs.find(e => e.st === 'restricao');
-    cards.push({ label: 'Disponibilidade', valor: pct(d.disp, 0), sub: `${d.nOp + d.nRes} de ${d.eqs.length} equipamentos · ${d.nRes} operando com restrição`,
-      pill: d.nPar ? `${d.nPar} parado${d.nPar > 1 ? 's' : ''}` : 'disponível', pillFg: d.nPar ? COR.verm : COR.ok, pillBg: d.nPar ? COR.vermBg : COR.okBg,
-      cmp1: alvo ? `${(alvo.nome || '').split(' ')[0]} ${alvo.frota || ''}`.trim() : 'todos operando', cmp2: alvo ? (alvo.st === 'parado' ? 'parado' : 'com restrição') : '',
-      cmpCor: alvo ? (alvo.st === 'parado' ? COR.verm : COR.amb) : COR.ok });
+    const p0 = d.comParada[0];
+    const temMedia = d.dispMes != null;
+    const pillDisp = d.nPar ? [`${d.nPar} parado${d.nPar > 1 ? 's' : ''} ${d.rotDisp}`, COR.verm, COR.vermBg]
+      : temMedia && d.dispMes < 99.5 ? ['houve paradas', COR.amb, COR.ambBg] : ['disponível', COR.ok, COR.okBg];
+    cards.push({ label: temMedia ? 'Disponibilidade no mês' : 'Disponibilidade', valor: pct(temMedia ? d.dispMes : d.disp, 0),
+      sub: `${temMedia ? 'média dos dias registrados · ' : ''}${d.rotDisp}: ${pct(d.disp, 0)} (${d.nOp + d.nRes} de ${d.eqs.length})`,
+      pill: pillDisp[0], pillFg: pillDisp[1], pillBg: pillDisp[2],
+      ...(p0 ? { cmp1: `${(p0.e.nome || '').split(' ')[0]} ${p0.e.frota || ''}`.trim(), cmp2: `parada em ${nf(p0.pct, 0)}% dos dias`, cmpCor: COR.verm }
+        : { cmp1: alvo ? `${(alvo.nome || '').split(' ')[0]} ${alvo.frota || ''}`.trim() : 'todos operando', cmp2: alvo ? (alvo.st === 'parado' ? 'parado' : 'com restrição') : '',
+          cmpCor: alvo ? (alvo.st === 'parado' ? COR.verm : COR.amb) : COR.ok }) });
     const incompleta = d.colab != null && d.colab < META_COLABORADORES;
     cards.push({ label: 'Equipe', valor: d.colab != null ? `${d.colab} / ${META_COLABORADORES}` : '—',
       sub: d.colab != null ? `${nf(d.colab / META_COLABORADORES * 100, 0)}% do quadro previsto` : 'sem registro no Plano de Expansão',
@@ -528,8 +552,10 @@ export function montarApresentacao(PptxGenJS, d, { img, frases: fr, textos, acoe
     };
     bloco(50, COR.verdeCl, null, 'PRENSADO', COR.verde, c.prensa, a.prensa, COR.verde);
     bloco(gx, COR.cinzaBg, COR.borda, 'A GRANEL', COR.muted, c.granel, a.granel, COR.txt);
+    // Cards = ticket real de tudo que foi vendido; barras = só materiais que podem ser prensados
+    txt(s, 50, 470, 1280, 20, 'Preços e volumes dos cards: todos os materiais vendidos (inclui sucata ferrosa no granel).', 13, COR.muted, { italic: true });
 
-    txt(s, 50, 500, 1280, 24, 'PARTICIPAÇÃO NO VOLUME VENDIDO', 14, COR.muted, { bold: true });
+    txt(s, 50, 500, 1280, 24, 'PARTICIPAÇÃO NO VOLUME VENDIDO · SÓ MATERIAIS PRENSÁVEIS (SEM SUCATA FERROSA)', 14, COR.muted, { bold: true });
     [[cap(ant), 534, a], [cap(mes) + (d.emAndamento ? '*' : ''), 604, c]].forEach(([rot, y, r]) => {
       txt(s, 50, y + 10, 135, 28, rot, 17, COR.txt2, { bold: true });
       const p = (r.pctPrensado ?? 0) / 100, larg = 1140, wp = Math.min(larg - 1, Math.max(larg * p, 1));
@@ -552,9 +578,9 @@ export function montarApresentacao(PptxGenJS, d, { img, frases: fr, textos, acoe
   {
     const s = conteudo('PRENSAGEM', fr.prensa);
     const mPlano = PLANO_INICIO.slice(0, 7);
-    // Capacidade nominal nos meses anteriores; no mês de referência, a capacidade disponível (descontada a manutenção)
-    const capNomT = +(d.capNominal / 1000).toFixed(2), capRefT = +(d.capMes / 1000).toFixed(2);
-    const nomeCap = `Capacidade ${d.prensas.length} prensas (${nf(d.capNominal / 1000, 0)} t${d.perdaCap > 0.5 ? `; ${abrevMes.toLowerCase()}: ${tCap(d, d.capMes)} t c/ manutenção` : ''})`;
+    // Linha de referência fixa na capacidade nominal (a capacidade descontada da manutenção fica no card ao lado)
+    const capNomT = +(d.capNominal / 1000).toFixed(2), capRefT = capNomT;
+    const nomeCap = `Capacidade nominal ${d.prensas.length} prensas (${nf(d.capNominal / 1000, 0)} t/mês)`;
     s.addChart([
       { type: pptx.ChartType.bar, data: [{ name: 'Prensado vendido (t)', labels: labelsAno, values: d.prensadoMes.map(v => +(v / 1000).toFixed(2)) }],
         options: optsBarras(d.mesesAno.map(mk => mk >= mPlano ? COR.lima : COR.verde), '0.0" t"') },
@@ -584,10 +610,16 @@ export function montarApresentacao(PptxGenJS, d, { img, frases: fr, textos, acoe
     txt(s, px + 22, 493, pw - 44, 22, b2[2], 14, COR.txt2);
 
     box(s, px, 541, pw, 118, 'FFFFFF', COR.borda);
-    txt(s, px + 22, 557, pw - 44, 20, 'MÉDIA MENSAL DE PRENSADO VENDIDO', 13, COR.muted, { bold: true });
-    const temMedias = d.prensAntes != null && d.prensDepois != null;
-    txt(s, px + 22, 581, pw - 44, 44, temMedias ? `${nf(d.prensAntes / 1000, 1)} t → ${nf(d.prensDepois / 1000, 1)} t` : '—', 30, COR.txt, { bold: true });
-    txt(s, px + 22, 625, pw - 44, 22, temMedias && d.prensAntes > 0 ? `antes do plano → desde ${ddmm(PLANO_INICIO)} (${nf(d.prensDepois / d.prensAntes * 100, 0)}%)` : 'antes × depois do plano', 14, COR.txt2);
+    // Prensado vendido no mês × média mensal antes do plano (o mês fala por si; a média do plano fica de apoio)
+    txt(s, px + 22, 557, pw - 44, 20, `PRENSADO VENDIDO EM ${mes.toUpperCase()}`, 13, COR.muted, { bold: true });
+    const vPlano = d.prensAntes > 0 ? varPct(d.cur.prensa.vol, d.prensAntes) : null;
+    txt(s, px + 22, 581, pw - 44, 44, [
+      { text: tn(d.cur.prensa.vol, 1), options: { bold: true, color: COR.txt } },
+      { text: vPlano == null ? '' : `  ${seta(vPlano)} ${nf(Math.abs(vPlano), 0)}%`, options: { bold: true, color: vPlano >= 0 ? COR.ok : COR.verm, fontSize: 20 } },
+    ], 30, COR.txt);
+    txt(s, px + 22, 623, pw - 44, 32, d.prensAntes > 0
+      ? `vs média antes do plano: ${nf(d.prensAntes / 1000, 1)} t/mês${d.prensDepois != null ? `\nmédia desde ${ddmm(PLANO_INICIO)}: ${nf(d.prensDepois / 1000, 1)} t/mês` : ''}`
+      : 'sem histórico antes do plano', 12.5, COR.txt2);
 
     txt(s, px, 672, pw, 22, 'ATINGIMENTO SEMANAL DAS PRENSAS', 13, COR.muted, { bold: true });
     barras(s, px, 700, pw, d.semProd.map(w => [`Sem ${w.i}${w.parcial ? '*' : ''}`, w.p, w.p == null ? '—' : `${nf(w.p, 0)}%`]), 28, 14);
@@ -601,8 +633,14 @@ export function montarApresentacao(PptxGenJS, d, { img, frases: fr, textos, acoe
     const s = conteudo('EQUIPAMENTOS E EQUIPE', fr.equip);
     box(s, 50, 205, 620, 620, 'FFFFFF', COR.borda);
     txt(s, 76, 225, 400, 22, 'EQUIPAMENTOS', 14, COR.muted, { bold: true });
-    txt(s, 76, 253, 180, 56, pct(d.disp, 0), 44, d.nPar ? COR.verm : COR.ok, { bold: true });
-    txt(s, 260, 263, 390, 50, `${d.nOp + d.nRes} de ${d.eqs.length} disponíveis\n${d.nOp} operando · ${d.nRes} com restrição · ${d.nPar} parado${d.nPar === 1 ? '' : 's'}`, 15, COR.txt2);
+    // Dois números: situação atual (ou do fim do mês) e média do mês pelos dias registrados
+    const corDisp = v => v == null ? COR.muted : v >= 99.5 ? COR.ok : v >= 90 ? COR.amb : COR.verm;
+    txt(s, 76, 253, 150, 56, pct(d.disp, 0), 40, d.nPar ? COR.verm : COR.ok, { bold: true });
+    txt(s, 222, 259, 140, 46, `${d.rotDisp === 'hoje' ? 'hoje' : 'fim do mês'}\n${d.nOp + d.nRes} de ${d.eqs.length} disponíveis`, 13, COR.txt2);
+    if (d.dispMes != null) {
+      txt(s, 380, 253, 150, 56, pct(d.dispMes, 0), 40, corDisp(d.dispMes), { bold: true });
+      txt(s, 526, 259, 140, 46, 'média do mês\ndias registrados', 13, COR.txt2);
+    } else txt(s, 380, 263, 280, 46, `${d.nOp} operando · ${d.nRes} com restrição · ${d.nPar} parado${d.nPar === 1 ? '' : 's'}`, 13, COR.txt2);
     const idsParada = new Set(d.comParada.map(x => x.e.id));
     const passo = Math.min(52, 410 / Math.max(1, d.eqs.length)), peq = passo < 40;
     d.eqs.forEach((e, k) => {
