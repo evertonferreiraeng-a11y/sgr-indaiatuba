@@ -313,8 +313,12 @@ export function frasesPadrao(d) {
     ? (d.rotDisp === 'hoje' ? `Hoje os ${nEq} equipamentos estão disponíveis` : `No fim do mês, os ${nEq} equipamentos estavam disponíveis`)
     : `*${nDisp} de ${nEq} equipamentos* disponíveis ${d.rotDisp}`;
   if (temParadas) {
-    const p0 = d.comParada[0];
-    equip += `, mas a média do mês foi ${destaque(pct(d.dispMes, 0), d.dispMes >= 95 ? 100 : 60)} — *${p0.e.nome}${p0.e.frota ? ' ' + p0.e.frota : ''} parada em ${nf(p0.pct, 0)}% dos dias*`;
+    // Cita os equipamentos que pararam no mês (até 3, do que mais parou ao que menos parou)
+    const nomeEq = x => `${x.e.nome}${x.e.frota ? ' ' + x.e.frota : ''}`;
+    const lista = d.comParada.slice(0, 3).map((x, k) => `*${nomeEq(x)}* ${k === 0 ? 'parada' : ''}${k === 0 ? ` em ${nf(x.pct, 0)}% dos dias` : `em ${nf(x.pct, 0)}%`}`);
+    const resto = d.comParada.length - lista.length;
+    const juntar = arr => arr.length > 1 ? `${arr.slice(0, -1).join(', ')} e ${arr[arr.length - 1]}` : arr[0];
+    equip += `, mas a média do mês foi ${destaque(pct(d.dispMes, 0), d.dispMes >= 95 ? 100 : 60)} — ${juntar(lista)}${resto > 0 ? ` (e mais ${resto})` : ''}`;
   }
   if (d.colab != null) equip += d.colab < META_COLABORADORES
     ? `. Equipe com *${d.colab} de ${META_COLABORADORES} colaboradores*.`
