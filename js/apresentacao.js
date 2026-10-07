@@ -226,10 +226,12 @@ export function calcularDados(rows, M, corteIn, hoje) {
   // "disp" é a situação atual (mês em andamento) ou a do último registro do mês (mês fechado)
   const rotDisp = emAndamento || fimMes >= hoje ? 'hoje' : 'no fim do mês';
 
-  // Equipe (RH): ativos na data de corte = admitidos até lá e não desligados até lá
-  const colab = colaboradores.length
-    ? colaboradores.filter(c => (!c.data_admissao || c.data_admissao <= corte) && (!c.demissao || c.demissao > corte)).length
-    : null;
+  // Equipe (RH). Mês em andamento: mesmo número do card "Colaboradores" do RH (todos sem demissão,
+  // inclusive contratados que ainda vão começar). Mês fechado: quem estava admitido e não desligado no corte.
+  const colab = !colaboradores.length ? null
+    : emAndamento || fimMes >= hoje
+      ? colaboradores.filter(c => !c.demissao).length
+      : colaboradores.filter(c => (!c.data_admissao || c.data_admissao <= corte) && (!c.demissao || c.demissao > corte)).length;
   // Quadro previsto e vagas abertas: Balanço de Vagas do RH (por cargo: total de vagas e o que falta preencher)
   const quadro = cargos.reduce((s, c) => s + (c.total_vagas ?? 0), 0) || META_COLABORADORES;
   const vagas = cargos.length
