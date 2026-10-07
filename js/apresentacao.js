@@ -1,8 +1,9 @@
 // Geração da apresentação do Comitê (modelo "Comitê UVR Indaiatuba").
 // Cálculo puro a partir das linhas do banco + montagem do .pptx com PptxGenJS.
 
-// Mesmos valores do Plano de Expansão (plano-expansao.html → META)
+// Início do plano de expansão (comparação de prensado antes × depois)
 export const PLANO_INICIO = '2026-08-14';
+// Quadro previsto quando não há cargos cadastrados no Balanço de Vagas do RH
 export const META_COLABORADORES = 13;
 export const STATUS_TAREFA = { pendente: 'A iniciar', em_andamento: 'Em andamento', concluida: 'Concluída', cancelada: 'Cancelada' };
 
@@ -56,7 +57,7 @@ const sinal = v => v > 0 ? '+' : '';
 
 // ══════════════════════════════════════════════════════════════════════════
 // Cálculo
-// rows = { vendas, metas, producao, equipamentos, materiais, colaboradores, cargos, config, snapshots }
+// rows = { vendas, metas, producao, equipamentos, materiais, colaboradores, cargos, snapshots }
 // ══════════════════════════════════════════════════════════════════════════
 export function periodoBusca(M) {
   const ano = M.slice(0, 4), iniAnt = `${mesDelta(M, -1)}-01`;
@@ -69,7 +70,7 @@ export function calcularDados(rows, M, corteIn, hoje) {
   const ano = M.slice(0, 4);
   const Mant = mesDelta(M, -1), iniAnt = `${Mant}-01`, fimAnt = fimDoMes(Mant);
   const emAndamento = corte < fimMes;
-  const { vendas, metas, producao, equipamentos, materiais, colaboradores = [], cargos = [], config = [] } = rows;
+  const { vendas, metas, producao, equipamentos, materiais, colaboradores = [], cargos = [] } = rows;
   // snapshotsTodos inclui registros anteriores ao mês (para herdar o status do dia sem registro)
   const snapshotsTodos = rows.snapshots || [];
   const snapshots = snapshotsTodos.filter(s => s.semana >= ini);
@@ -229,17 +230,17 @@ export function calcularDados(rows, M, corteIn, hoje) {
   const colab = colaboradores.length
     ? colaboradores.filter(c => (!c.data_admissao || c.data_admissao <= corte) && (!c.demissao || c.demissao > corte)).length
     : null;
-  // Vagas abertas: Balanço de Vagas do RH (total de vagas − preenchido, por cargo)
+  // Quadro previsto e vagas abertas: Balanço de Vagas do RH (por cargo: total de vagas e o que falta preencher)
+  const quadro = cargos.reduce((s, c) => s + (c.total_vagas ?? 0), 0) || META_COLABORADORES;
   const vagas = cargos.length
     ? cargos.reduce((s, c) => s + Math.max(0, (c.total_vagas ?? 0) - (c.preenchido ?? 0)), 0)
-    : (colab != null ? Math.max(0, META_COLABORADORES - colab) : null);
-  const proximos = (config[0]?.proximos_passos || '').split(/\s*·\s*|\n/).map(s => s.trim()).filter(Boolean);
+    : (colab != null ? Math.max(0, quadro - colab) : null);
 
   return {
     M, ini, fimMes, corte, emAndamento, Mant, fimAntMesmo, cur, antMesmo, antCheio, meta, du, dp, dr,
     estoqueKg, valorEstoque, projecao, mesesAno, fatMes, fatAno, metaAno, metaMes, melhor, nenhumAtingiu, semFat,
     prensas, capMes, capNominal, perdaCap, prensasReduzidas, metaDia, metaDiaNominal, metaDiaRestante, duPrensa, dpPrensa, prod, esperado, semProd, prensadoMes, prensAntes, prensDepois,
-    eqs, nOp, nRes, nPar, disp, dispMes, rotDisp, comParada, colab, vagas, proximos,
+    eqs, nOp, nRes, nPar, disp, dispMes, rotDisp, comParada, colab, quadro, vagas,
   };
 }
 
@@ -332,9 +333,9 @@ export function frasesPadrao(d) {
     const juntar = arr => arr.length > 1 ? `${arr.slice(0, -1).join(', ')} e ${arr[arr.length - 1]}` : arr[0];
     equip += `, mas a média do mês foi ${destaque(pct(d.dispMes, 0), d.dispMes >= 95 ? 100 : 60)} — ${juntar(lista)}${resto > 0 ? ` (e mais ${resto})` : ''}`;
   }
-  if (d.colab != null) equip += d.colab < META_COLABORADORES
-    ? `. Equipe com *${d.colab} de ${META_COLABORADORES} colaboradores*.`
-    : `. Equipe completa, com **${d.colab} de ${META_COLABORADORES} colaboradores**.`;
+  if (d.colab != null) equip += d.colab < d.quadro
+    ? `. Equipe com *${d.colab} de ${d.quadro} colaboradores*.`
+    : `. Equipe completa, com **${d.colab} de ${d.quadro} colaboradores**.`;
   else equip += '.';
 
   return { resumo, fat, comp, prensa, equip, plano: 'Ações para recuperar faturamento e prensagem.' };
@@ -492,9 +493,9 @@ export function montarApresentacao(PptxGenJS, d, { img, frases: fr, textos, acoe
       ...(p0 ? { cmp1: `${(p0.e.nome || '').split(' ')[0]} ${p0.e.frota || ''}`.trim(), cmp2: `parada em ${nf(p0.pct, 0)}% dos dias`, cmpCor: COR.verm }
         : { cmp1: alvo ? `${(alvo.nome || '').split(' ')[0]} ${alvo.frota || ''}`.trim() : 'todos operando', cmp2: alvo ? (alvo.st === 'parado' ? 'parado' : 'com restrição') : '',
           cmpCor: alvo ? (alvo.st === 'parado' ? COR.verm : COR.amb) : COR.ok }) });
-    const incompleta = d.colab != null && d.colab < META_COLABORADORES;
-    cards.push({ label: 'Equipe', valor: d.colab != null ? `${d.colab} / ${META_COLABORADORES}` : '—',
-      sub: d.colab != null ? `${nf(d.colab / META_COLABORADORES * 100, 0)}% do quadro previsto` : 'sem colaboradores no RH',
+    const incompleta = d.colab != null && d.colab < d.quadro;
+    cards.push({ label: 'Equipe', valor: d.colab != null ? `${d.colab} / ${d.quadro}` : '—',
+      sub: d.colab != null ? `${nf(d.colab / d.quadro * 100, 0)}% do quadro previsto` : 'sem colaboradores no RH',
       pill: d.colab == null ? null : incompleta ? 'incompleta' : 'completa', pillFg: incompleta ? COR.amb : COR.ok, pillBg: incompleta ? COR.ambBg : COR.okBg,
       cmp1: d.vagas ? `${d.vagas} vaga${d.vagas > 1 ? 's' : ''} em reposição` : 'sem vagas abertas', cmp2: textos.proximos[0] || '', cmpCor: d.vagas ? COR.amb : COR.ok });
     const W = 302, H = 300, g = 24, x0 = 50, y1 = 198, y2 = y1 + H + 18;
@@ -689,11 +690,11 @@ export function montarApresentacao(PptxGenJS, d, { img, frases: fr, textos, acoe
 
     box(s, 700, 205, 630, 620, 'FFFFFF', COR.borda);
     txt(s, 726, 225, 400, 22, 'EQUIPE', 14, COR.muted, { bold: true });
-    const incompleta = d.colab != null && d.colab < META_COLABORADORES;
-    txt(s, 726, 253, 300, 56, d.colab != null ? `${d.colab} / ${META_COLABORADORES}` : '—', 44, incompleta ? COR.amb : COR.ok, { bold: true });
-    txt(s, 726, 318, 580, 22, d.colab != null ? `colaboradores · ${nf(d.colab / META_COLABORADORES * 100, 0)}% do quadro previsto` : 'sem colaboradores no RH', 15, COR.txt2);
+    const incompleta = d.colab != null && d.colab < d.quadro;
+    txt(s, 726, 253, 300, 56, d.colab != null ? `${d.colab} / ${d.quadro}` : '—', 44, incompleta ? COR.amb : COR.ok, { bold: true });
+    txt(s, 726, 318, 580, 22, d.colab != null ? `colaboradores · ${nf(d.colab / d.quadro * 100, 0)}% do quadro previsto` : 'sem colaboradores no RH', 15, COR.txt2);
     box(s, 726, 350, 578, 16, COR.trilho, null, 0);
-    if (d.colab) box(s, 726, 350, 578 * Math.min(1, d.colab / META_COLABORADORES), 16, incompleta ? COR.amb : COR.ok, null, 0);
+    if (d.colab) box(s, 726, 350, 578 * Math.min(1, d.colab / d.quadro), 16, incompleta ? COR.amb : COR.ok, null, 0);
     if (textos.aconteceu.length) {
       txt(s, 726, 394, 580, 22, 'O QUE ACONTECEU', 13, COR.muted, { bold: true });
       txt(s, 726, 424, 578, 170, textos.aconteceu.map((t, k, arr) => ({ text: t, options: { bullet: { type: 'number' }, breakLine: k < arr.length - 1 } })), 16, COR.txt2, { paraSpaceAfter: 6 });
