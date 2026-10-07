@@ -56,7 +56,7 @@ const sinal = v => v > 0 ? '+' : '';
 
 // ══════════════════════════════════════════════════════════════════════════
 // Cálculo
-// rows = { vendas, metas, producao, equipamentos, materiais, marcos, config, snapshots }
+// rows = { vendas, metas, producao, equipamentos, materiais, colaboradores, cargos, config, snapshots }
 // ══════════════════════════════════════════════════════════════════════════
 export function periodoBusca(M) {
   const ano = M.slice(0, 4), iniAnt = `${mesDelta(M, -1)}-01`;
@@ -69,7 +69,7 @@ export function calcularDados(rows, M, corteIn, hoje) {
   const ano = M.slice(0, 4);
   const Mant = mesDelta(M, -1), iniAnt = `${Mant}-01`, fimAnt = fimDoMes(Mant);
   const emAndamento = corte < fimMes;
-  const { vendas, metas, producao, equipamentos, materiais, marcos = [], config = [] } = rows;
+  const { vendas, metas, producao, equipamentos, materiais, colaboradores = [], cargos = [], config = [] } = rows;
   // snapshotsTodos inclui registros anteriores ao mês (para herdar o status do dia sem registro)
   const snapshotsTodos = rows.snapshots || [];
   const snapshots = snapshotsTodos.filter(s => s.semana >= ini);
@@ -225,10 +225,14 @@ export function calcularDados(rows, M, corteIn, hoje) {
   // "disp" é a situação atual (mês em andamento) ou a do último registro do mês (mês fechado)
   const rotDisp = emAndamento || fimMes >= hoje ? 'hoje' : 'no fim do mês';
 
-  // Equipe: último registro do Plano de Expansão até a data de corte
-  const marco = marcos.filter(m => m.data <= corte).sort((a, b) => a.data.localeCompare(b.data)).pop() || null;
-  const colab = marco?.colaboradores_ativos ?? null;
-  const vagas = marco?.vagas_abertas ?? (colab != null ? Math.max(0, META_COLABORADORES - colab) : null);
+  // Equipe (RH): ativos na data de corte = admitidos até lá e não desligados até lá
+  const colab = colaboradores.length
+    ? colaboradores.filter(c => (!c.data_admissao || c.data_admissao <= corte) && (!c.demissao || c.demissao > corte)).length
+    : null;
+  // Vagas abertas: Balanço de Vagas do RH (total de vagas − preenchido, por cargo)
+  const vagas = cargos.length
+    ? cargos.reduce((s, c) => s + Math.max(0, (c.total_vagas ?? 0) - (c.preenchido ?? 0)), 0)
+    : (colab != null ? Math.max(0, META_COLABORADORES - colab) : null);
   const proximos = (config[0]?.proximos_passos || '').split(/\s*·\s*|\n/).map(s => s.trim()).filter(Boolean);
 
   return {
@@ -490,7 +494,7 @@ export function montarApresentacao(PptxGenJS, d, { img, frases: fr, textos, acoe
           cmpCor: alvo ? (alvo.st === 'parado' ? COR.verm : COR.amb) : COR.ok }) });
     const incompleta = d.colab != null && d.colab < META_COLABORADORES;
     cards.push({ label: 'Equipe', valor: d.colab != null ? `${d.colab} / ${META_COLABORADORES}` : '—',
-      sub: d.colab != null ? `${nf(d.colab / META_COLABORADORES * 100, 0)}% do quadro previsto` : 'sem registro no Plano de Expansão',
+      sub: d.colab != null ? `${nf(d.colab / META_COLABORADORES * 100, 0)}% do quadro previsto` : 'sem colaboradores no RH',
       pill: d.colab == null ? null : incompleta ? 'incompleta' : 'completa', pillFg: incompleta ? COR.amb : COR.ok, pillBg: incompleta ? COR.ambBg : COR.okBg,
       cmp1: d.vagas ? `${d.vagas} vaga${d.vagas > 1 ? 's' : ''} em reposição` : 'sem vagas abertas', cmp2: textos.proximos[0] || '', cmpCor: d.vagas ? COR.amb : COR.ok });
     const W = 302, H = 300, g = 24, x0 = 50, y1 = 198, y2 = y1 + H + 18;
@@ -687,7 +691,7 @@ export function montarApresentacao(PptxGenJS, d, { img, frases: fr, textos, acoe
     txt(s, 726, 225, 400, 22, 'EQUIPE', 14, COR.muted, { bold: true });
     const incompleta = d.colab != null && d.colab < META_COLABORADORES;
     txt(s, 726, 253, 300, 56, d.colab != null ? `${d.colab} / ${META_COLABORADORES}` : '—', 44, incompleta ? COR.amb : COR.ok, { bold: true });
-    txt(s, 726, 318, 580, 22, d.colab != null ? `colaboradores · ${nf(d.colab / META_COLABORADORES * 100, 0)}% do quadro previsto` : 'sem registro no Plano de Expansão', 15, COR.txt2);
+    txt(s, 726, 318, 580, 22, d.colab != null ? `colaboradores · ${nf(d.colab / META_COLABORADORES * 100, 0)}% do quadro previsto` : 'sem colaboradores no RH', 15, COR.txt2);
     box(s, 726, 350, 578, 16, COR.trilho, null, 0);
     if (d.colab) box(s, 726, 350, 578 * Math.min(1, d.colab / META_COLABORADORES), 16, incompleta ? COR.amb : COR.ok, null, 0);
     if (textos.aconteceu.length) {
