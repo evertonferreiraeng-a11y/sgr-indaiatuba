@@ -43,11 +43,7 @@
     /* Badge exp */
     .exp-badge { display:inline-flex; align-items:center; gap:4px; padding:2px 7px; border-radius:6px; font-size:10px; font-weight:700; margin-top:3px; }
 
-    .toggle-btn { width:100%; background:#f8fafc; border:none; border-top:1px solid #e2e8f0; padding:7px 16px; font-size:11px; font-weight:700; color:#94a3b8; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:5px; transition:background .15s; text-transform:uppercase; letter-spacing:.4px; }
-    .toggle-btn:hover { background:#f1f5f9; color:#475569; }
-
-    .colab-detail { display:none; border-top:2px solid #e2e8f0; }
-    .colab-detail.open { display:block; }
+    .colab-detail { border-top:2px solid #e2e8f0; }
     .detail-section { padding:16px; }
     .detail-section + .detail-section { border-top:1px solid #f1f5f9; }
     .detail-header  { display:flex; align-items:center; justify-content:space-between; margin-bottom:10px; }
@@ -585,16 +581,6 @@ function cardHTML(c, isAdm, hoje, iniMes, fimMes) {
     </div>`;
   }).join('') : '<p style="font-size:13px;color:#94a3b8;margin:0">Nenhuma avaliação registrada.</p>';
 
-  // Ocorrências HTML inline
-  const ocsHTML = ocColab.length ? ocColab.slice(0,10).map(o => `
-    <div class="oc-row">
-      <span class="oc-tipo" style="${TIPO_COR[o.tipo]||'background:#f1f5f9;color:#475569'}">${TIPO_LABEL[o.tipo]||o.tipo}</span>
-      <span style="color:#64748b;font-size:12px;white-space:nowrap">${dataBR(o.data)}</span>
-      <span style="flex:1;color:#374151">${o.descricao||''}</span>
-      ${isAdm ? `<button class="btn-icon" onclick="excluirOc('${o.id}')">${icon('trash',{size:15})}</button>` : ''}
-    </div>
-  `).join('') : '<p style="font-size:13px;color:#94a3b8;margin:0">Nenhuma ocorrência registrada.</p>';
-
   // Cores do avatar por situação
   const avatarBg = c.demissao ? '#94a3b8' : notaAtual === null ? '#64748b' : notaAtual >= 7 ? '#16a34a' : notaAtual >= 5 ? '#d97706' : '#dc2626';
   const notaStr  = notaAtual !== null && !isNaN(notaAtual) ? notaAtual.toFixed(1) : '—';
@@ -639,7 +625,6 @@ function cardHTML(c, isAdm, hoje, iniMes, fimMes) {
       </div>
       <div class="recomendacao ${rec.cls}">${rec.icon} ${rec.texto}</div>
     </div>
-    <button class="toggle-btn" onclick="toggleCard(this)">▼ detalhes</button>
     <div class="colab-detail">
       <div class="detail-section">
         <div class="detail-header">
@@ -649,11 +634,10 @@ function cardHTML(c, isAdm, hoje, iniMes, fimMes) {
         ${avalsHTML}
       </div>
       <div class="detail-section">
-        <div class="detail-header">
-          <h5 style="display:flex;align-items:center;gap:6px;cursor:pointer" class="oc-link-title" onclick="abrirHistoricoOc('${c.id}')" title="Ver histórico completo, calendário e filtros por período">${icon('pin',{size:13})}Ocorrências / Faltas</h5>
+        <div class="detail-header" style="margin-bottom:0">
+          <h5 style="display:flex;align-items:center;gap:6px;cursor:pointer" class="oc-link-title" onclick="abrirHistoricoOc('${c.id}')" title="Ver histórico completo, calendário e filtros por período">${icon('pin',{size:13})}Ocorrências / Faltas ›</h5>
           ${isAdm ? `<button class="btn btn-primary" style="padding:4px 12px;font-size:12px" onclick="novaOcPara('${c.id}')">+ Ocorrência</button>` : ''}
         </div>
-        ${ocsHTML}
       </div>
     </div>
   </div>`;
@@ -665,12 +649,6 @@ function badge(bg, cor, texto) {
 
 window.abrirHistoricoOc = colabId => {
   window.open('colaborador-ocorrencias.html?id=' + colabId, '_blank');
-};
-
-window.toggleCard = btn => {
-  const detail = btn.nextElementSibling;
-  const open   = detail.classList.toggle('open');
-  btn.textContent = open ? '▲ Ocultar detalhes' : '▼ Ver avaliações e ocorrências';
 };
 
 // ── Cálculos ──────────────────────────────────────────────────────────────────
