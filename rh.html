@@ -418,10 +418,10 @@ async function recarregarTudo() {
     if (r4.error) console.warn('ocorrencias:', r4.error?.message);
 
     // Selects de colaborador
-    const colabOpts = colabData.map(c => `<option value="${c.id}">${c.nome}</option>`).join('');
-    const setEl = (sel, prefix) => { const el = document.querySelector(sel); if(el) el.innerHTML = prefix + colabOpts; };
-    setEl('#form-aval [name="colaborador_id"]', '<option value="">Selecione…</option>');
-    setEl('#form-oc [name="colaborador_id"]',   '<option value="">Selecione…</option>');
+    const opts = lista => lista.map(c => `<option value="${c.id}">${c.nome}</option>`).join('');
+    const setEl = (sel, html) => { const el = document.querySelector(sel); if(el) el.innerHTML = '<option value="">Selecione…</option>' + html; };
+    setEl('#form-aval [name="colaborador_id"]', opts(colabData.filter(c => !c.demissao)));
+    setEl('#form-oc [name="colaborador_id"]',   opts(colabData));
 
     // Select de cargos
     const cargoOpts = cargoData.map(c => `<option value="${c.id}">${c.nome}</option>`).join('');
@@ -860,6 +860,7 @@ document.getElementById('btn-salvar-colab').addEventListener('click', async () =
 window.novaAvalPara = colabId => {
   document.getElementById('modal-aval-title').textContent = 'Nova Avaliação de Desempenho';
   document.getElementById('form-aval').reset();
+  document.querySelectorAll('#form-aval [name="colaborador_id"] option').forEach(o => { if (o.text.endsWith('(desligado)')) o.remove(); });
   document.querySelector('#form-aval [name="id"]').value = '';
   document.querySelector('#form-aval [name="data_avaliacao"]').value = hojeISO();
   document.querySelector('#form-aval [name="colaborador_id"]').value = colabId;
@@ -872,6 +873,12 @@ window.editarAval = id => {
   document.getElementById('modal-aval-title').textContent = 'Editar Avaliação';
   const f = document.getElementById('form-aval');
   const set = (n,v) => { const el = f.querySelector(`[name="${n}"]`); if(el) el.value = v ?? ''; };
+  // Avaliação antiga de desligado: o select só lista ativos, então inclui ele só para esta edição
+  const selColab = f.querySelector('[name="colaborador_id"]');
+  if (![...selColab.options].some(o => o.value === a.colaborador_id)) {
+    const c = colabData.find(x => x.id === a.colaborador_id);
+    if (c) selColab.add(new Option(c.nome + ' (desligado)', c.id));
+  }
   set('id',a.id); set('colaborador_id',a.colaborador_id); set('periodo',a.periodo);
   set('data_avaliacao',a.data_avaliacao); set('avaliador',a.avaliador);
   CRITERIOS.forEach(c => set(c, a[c]));
