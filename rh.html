@@ -43,11 +43,9 @@
     /* Badge exp */
     .exp-badge { display:inline-flex; align-items:center; gap:4px; padding:2px 7px; border-radius:6px; font-size:10px; font-weight:700; margin-top:3px; }
 
-    .colab-detail { border-top:2px solid #e2e8f0; }
-    .detail-section { padding:16px; }
-    .detail-section + .detail-section { border-top:1px solid #f1f5f9; }
-    .detail-header  { display:flex; align-items:center; justify-content:space-between; margin-bottom:10px; }
-    .detail-header h5 { margin:0; font-size:13px; font-weight:700; color:#374151; }
+    .colab-card { cursor:pointer; }
+    .colab-stat-nota { cursor:pointer; }
+    .colab-stat-nota:hover { background:#eef2ff !important; }
 
     .aval-item { background:#f8fafc; border-radius:8px; padding:12px; margin-bottom:8px; }
     .aval-item:last-child { margin-bottom:0; }
@@ -59,11 +57,14 @@
     .crit-pill .cn { font-size:13px; font-weight:700; }
     .crit-pill .cl { font-size:9px; color:#94a3b8; line-height:1.2; }
 
-    .oc-link-title:hover { text-decoration:underline; color:#006636; }
-
-    .oc-row { display:flex; align-items:flex-start; gap:10px; padding:8px 0; border-bottom:1px solid #f1f5f9; font-size:13px; }
-    .oc-row:last-child { border-bottom:none; }
-    .oc-tipo { font-size:11px; font-weight:600; padding:2px 8px; border-radius:10px; white-space:nowrap; }
+    /* Lançar faltas */
+    .faltas-table th { font-size:11px; text-transform:uppercase; letter-spacing:.4px; color:#64748b; text-align:left; padding:8px 10px; border-bottom:2px solid #e2e8f0; }
+    .faltas-table td { padding:6px 10px; border-bottom:1px solid #f1f5f9; font-size:13px; vertical-align:middle; }
+    .faltas-nome { font-weight:600; color:#0f172a; cursor:pointer; }
+    .faltas-nome:hover { text-decoration:underline; color:#006636; }
+    .faltas-sit { border:1px solid #e2e8f0; border-radius:20px; padding:4px 10px; font-size:12px; font-weight:700; cursor:pointer; }
+    .faltas-obs { width:100%; border:1px solid #e2e8f0; border-radius:6px; padding:5px 8px; font-size:12px; }
+    tr.faltas-alterada td { background:#fffbeb; }
 
     .nota-input { width:60px; border:1px solid #e2e8f0; border-radius:6px; padding:4px 6px; font-size:14px; text-align:center; }
 
@@ -77,7 +78,12 @@
   <div class="main-content">
     <div class="page-header">
       <div><h2>Recursos Humanos</h2><p>Colaboradores, avaliações e ocorrências</p></div>
-      <button class="btn btn-primary" id="btn-novo-colab">+ Novo Colaborador</button>
+      <div style="display:flex;gap:8px;flex-wrap:wrap">
+        <button class="btn btn-outline so-adm" id="btn-nova-oc">+ Ocorrência</button>
+        <button class="btn btn-outline so-adm" id="btn-lancar-faltas">Lançar Faltas</button>
+        <button class="btn btn-outline so-adm" id="btn-nova-aval">+ Avaliação</button>
+        <button class="btn btn-primary" id="btn-novo-colab">+ Novo Colaborador</button>
+      </div>
     </div>
     <div class="page-body">
 
@@ -117,10 +123,6 @@
             <option value="exp">Em experiência</option>
             <option value="demitido">Demitidos</option>
           </select>
-        </div>
-        <div class="form-group">
-          <label style="display:flex;align-items:center;gap:4px"><span class="icon" style="width:11px;height:11px"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg></span>Data das Presenças</label>
-          <input type="date" id="presenca-data" />
         </div>
         <div class="form-group" style="justify-content:flex-end"><label>&nbsp;</label>
           <button class="btn btn-primary" id="btn-filtrar-colab">Filtrar</button>
@@ -290,6 +292,44 @@
   </div>
 </div>
 
+<!-- Modal: Lançar Faltas -->
+<div class="modal-backdrop" id="modal-faltas">
+  <div class="modal" style="max-width:820px">
+    <div class="modal-header">
+      <h3>Lançar Faltas</h3>
+      <button class="modal-close" data-close="modal-faltas">✕</button>
+    </div>
+    <div class="modal-body">
+      <div style="display:flex;align-items:flex-end;gap:16px;flex-wrap:wrap;margin-bottom:14px">
+        <div class="form-group" style="margin:0"><label>Data *</label><input type="date" id="faltas-data" /></div>
+        <p id="faltas-resumo" style="margin:0 0 8px;font-size:12px;color:#64748b"></p>
+      </div>
+      <div class="table-scroll">
+        <table class="faltas-table">
+          <thead><tr><th>Colaborador</th><th>Cargo</th><th style="width:170px">Situação</th><th>Observação</th></tr></thead>
+          <tbody id="tbody-faltas"></tbody>
+        </table>
+      </div>
+      <p style="margin:10px 0 0;font-size:12px;color:#94a3b8">Clique no nome para abrir o calendário e o histórico do colaborador.</p>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-outline" data-close="modal-faltas">Cancelar</button>
+      <button class="btn btn-primary" id="btn-salvar-faltas">Salvar</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal: Avaliações do colaborador -->
+<div class="modal-backdrop" id="modal-avals-colab">
+  <div class="modal" style="max-width:640px">
+    <div class="modal-header">
+      <h3 id="modal-avals-colab-title">Avaliações</h3>
+      <button class="modal-close" data-close="modal-avals-colab">✕</button>
+    </div>
+    <div class="modal-body" id="avals-colab-body"></div>
+  </div>
+</div>
+
 <!-- Modal: Cargo -->
 <div class="modal-backdrop" id="modal-cargo">
   <div class="modal" style="max-width:400px">
@@ -334,12 +374,10 @@ import { icon } from './js/icons.js';
 
 await initPage();
 
-let perfil, colabData = [], cargoData = [], avalData = [], ocData = [], presencaMap = {};
+let perfil, colabData = [], cargoData = [], avalData = [], ocData = [];
 
 const CRITERIOS       = ['relacionamento','responsabilidade','cooperacao','conhecimento_trabalho','interesse','atitude_profissional','produtividade'];
 const CRITERIOS_LABEL = ['Relac.','Resp.','Coop.','Conhec.','Inter.','Atitude','Produt.'];
-const TIPO_LABEL = { falta:'Falta', atestado:'Justificada', advertencia:'Advertência', elogio:'Outro', outro:'Presente' };
-const TIPO_COR   = { falta:'background:#fee2e2;color:#991b1b', atestado:'background:#fef3c7;color:#92400e', advertencia:'background:#fee2e2;color:#991b1b', elogio:'background:#f1f5f9;color:#475569', outro:'background:#dcfce7;color:#166534' };
 
 const _hoje       = new Date();
 const anoAtualVal = _hoje.getFullYear();
@@ -366,19 +404,15 @@ async function init() {
 
 async function recarregarTudo() {
   try {
-    const dataPresenca = document.getElementById('presenca-data').value;
     const r1 = await supabase.from('cargos').select('*').order('nome');
     const r2 = await supabase.from('colaboradores').select('*').order('nome');
     const r3 = await supabase.from('colaborador_avaliacoes').select('*').order('data_avaliacao', { ascending: false });
     const r4 = await supabase.from('ocorrencias').select('*').order('data', { ascending: false });
-    const r5 = await supabase.from('presenca_diaria').select('*').eq('data', dataPresenca);
 
     cargoData = r1.data || [];
     colabData = r2.data || [];
     avalData  = r3.data || [];
     ocData    = r4.data || [];
-    presencaMap = {};
-    (r5.data || []).forEach(p => { presencaMap[p.colaborador_id] = p; });
 
     if (r2.error) console.error('colaboradores:', r2.error.message);
     if (r4.error) console.warn('ocorrencias:', r4.error?.message);
@@ -554,39 +588,12 @@ function cardHTML(c, isAdm, hoje, iniMes, fimMes) {
   else
     rec = { cls:'rec-no', icon:icon('x-circle',{size:13}), texto:`NÃO RECOMENDADO (${notaAtual.toFixed(1)}) — Avaliar desligamento` };
 
-  // Avaliações HTML inline
-  const avalsHTML = avals.length ? avals.map(a => {
-    const media = calcMediaAval(a);
-    const cor   = media >= 7 ? '#16a34a' : media >= 5 ? '#d97706' : '#dc2626';
-    const per   = a.periodo === '45dias' ? '1º Per. (45d)' : a.periodo === '90dias' ? '2º Per. (90d)' : (a.periodo||'');
-    return `<div class="aval-item">
-      <div class="aval-top">
-        <div>
-          <span style="font-size:12px;color:#64748b">${dataBR(a.data_avaliacao)||''}${a.avaliador ? ` · ${a.avaliador}` : ''}</span>
-        </div>
-        <div style="display:flex;align-items:center;gap:6px">
-          <span class="aval-nota" style="color:${cor}">${media !== null ? media.toFixed(1) : '—'}</span>
-          ${isAdm ? `<button class="btn-icon" onclick="editarAval('${a.id}')">${icon('edit',{size:15})}</button>
-                     <button class="btn-icon danger" onclick="excluirAval('${a.id}')">${icon('trash',{size:15})}</button>` : ''}
-        </div>
-      </div>
-      <div class="aval-criterios">
-        ${CRITERIOS.map((cr,i) => {
-          const n = parseFloat(a[cr]);
-          const cc = n >= 7 ? '#16a34a' : n >= 5 ? '#d97706' : n > 0 ? '#dc2626' : '#94a3b8';
-          return `<div class="crit-pill"><div class="cn" style="color:${cc}">${isNaN(n) ? '—' : n}</div><div class="cl">${CRITERIOS_LABEL[i]}</div></div>`;
-        }).join('')}
-      </div>
-      ${a.observacoes ? `<p style="margin-top:8px;font-size:12px;color:#475569;background:#fff;padding:6px 10px;border-radius:6px;border:1px solid #e2e8f0">${a.observacoes}</p>` : ''}
-    </div>`;
-  }).join('') : '<p style="font-size:13px;color:#94a3b8;margin:0">Nenhuma avaliação registrada.</p>';
-
   // Cores do avatar por situação
   const avatarBg = c.demissao ? '#94a3b8' : notaAtual === null ? '#64748b' : notaAtual >= 7 ? '#16a34a' : notaAtual >= 5 ? '#d97706' : '#dc2626';
   const notaStr  = notaAtual !== null && !isNaN(notaAtual) ? notaAtual.toFixed(1) : '—';
   const notaCor  = notaAtual === null ? '#94a3b8' : notaAtual >= 7 ? '#16a34a' : notaAtual >= 5 ? '#d97706' : '#dc2626';
 
-  return `<div class="colab-card">
+  return `<div class="colab-card" onclick="abrirHistoricoOc('${c.id}')" title="Abrir calendário e histórico">
     <div class="colab-summary">
       <div class="colab-top">
         <div class="colab-avatar" style="background:${avatarBg}">${c.nome.charAt(0).toUpperCase()}</div>
@@ -596,7 +603,7 @@ function cardHTML(c, isAdm, hoje, iniMes, fimMes) {
           <p class="sub">Admissão: ${dataBR(c.data_admissao)||'—'}</p>
           ${expTag ? `<div style="margin-top:4px">${expTag}</div>` : ''}
         </div>
-        ${isAdm ? `<div class="colab-actions">
+        ${isAdm ? `<div class="colab-actions" onclick="event.stopPropagation()">
           <button class="btn-icon" onclick="editarColab('${c.id}')">${icon('edit',{size:15})}</button>
           <button class="btn-icon danger" onclick="excluirColab('${c.id}')">${icon('trash',{size:15})}</button>
         </div>` : ''}
@@ -618,29 +625,41 @@ function cardHTML(c, isAdm, hoje, iniMes, fimMes) {
           <div class="val" style="color:#475569">${outroC}</div>
           <div class="lbl">Outros</div>
         </div>
-        <div class="colab-stat" style="background:#f8faff">
+        <div class="colab-stat colab-stat-nota" style="background:#f8faff" onclick="event.stopPropagation();verAvaliacoes('${c.id}')" title="Ver avaliações (${avals.length})">
           <div class="val" style="color:${notaCor}">${notaStr}</div>
           <div class="lbl" style="color:#6366f1">Nota</div>
         </div>
       </div>
       <div class="recomendacao ${rec.cls}">${rec.icon} ${rec.texto}</div>
     </div>
-    <div class="colab-detail">
-      <div class="detail-section">
-        <div class="detail-header">
-          <h5 style="display:flex;align-items:center;gap:6px">${icon('list',{size:13})}Avaliações de Desempenho</h5>
-          ${isAdm ? `<button class="btn btn-primary" style="padding:4px 12px;font-size:12px" onclick="novaAvalPara('${c.id}')">+ Avaliação</button>` : ''}
-        </div>
-        ${avalsHTML}
-      </div>
-      <div class="detail-section">
-        <div class="detail-header" style="margin-bottom:0">
-          <h5 style="display:flex;align-items:center;gap:6px;cursor:pointer" class="oc-link-title" onclick="abrirHistoricoOc('${c.id}')" title="Ver histórico completo, calendário e filtros por período">${icon('pin',{size:13})}Ocorrências / Faltas ›</h5>
-          ${isAdm ? `<button class="btn btn-primary" style="padding:4px 12px;font-size:12px" onclick="novaOcPara('${c.id}')">+ Ocorrência</button>` : ''}
-        </div>
-      </div>
-    </div>
   </div>`;
+}
+
+function avalsColabHTML(avals, isAdm) {
+  return avals.length ? avals.map(a => {
+    const media = calcMediaAval(a);
+    const cor   = media >= 7 ? '#16a34a' : media >= 5 ? '#d97706' : '#dc2626';
+    return `<div class="aval-item">
+      <div class="aval-top">
+        <div>
+          <span style="font-size:12px;color:#64748b">${dataBR(a.data_avaliacao)||''}${a.avaliador ? ` · ${a.avaliador}` : ''}</span>
+        </div>
+        <div style="display:flex;align-items:center;gap:6px">
+          <span class="aval-nota" style="color:${cor}">${media !== null ? media.toFixed(1) : '—'}</span>
+          ${isAdm ? `<button class="btn-icon" onclick="editarAval('${a.id}')">${icon('edit',{size:15})}</button>
+                     <button class="btn-icon danger" onclick="excluirAval('${a.id}')">${icon('trash',{size:15})}</button>` : ''}
+        </div>
+      </div>
+      <div class="aval-criterios">
+        ${CRITERIOS.map((cr,i) => {
+          const n = parseFloat(a[cr]);
+          const cc = n >= 7 ? '#16a34a' : n >= 5 ? '#d97706' : n > 0 ? '#dc2626' : '#94a3b8';
+          return `<div class="crit-pill"><div class="cn" style="color:${cc}">${isNaN(n) ? '—' : n}</div><div class="cl">${CRITERIOS_LABEL[i]}</div></div>`;
+        }).join('')}
+      </div>
+      ${a.observacoes ? `<p style="margin-top:8px;font-size:12px;color:#475569;background:#fff;padding:6px 10px;border-radius:6px;border:1px solid #e2e8f0">${a.observacoes}</p>` : ''}
+    </div>`;
+  }).join('') : '<p style="font-size:13px;color:#94a3b8;margin:0">Nenhuma avaliação registrada.</p>';
 }
 
 function badge(bg, cor, texto) {
@@ -650,6 +669,124 @@ function badge(bg, cor, texto) {
 window.abrirHistoricoOc = colabId => {
   window.open('colaborador-ocorrencias.html?id=' + colabId, '_blank');
 };
+
+// ── Avaliações de um colaborador (abre pela Nota do card) ─────────────────────
+let avalsColabAberto = null;
+window.verAvaliacoes = colabId => {
+  avalsColabAberto = colabId;
+  renderAvalsColab();
+  abrirModal('modal-avals-colab');
+};
+function renderAvalsColab() {
+  const c = colabData.find(x => x.id === avalsColabAberto); if (!c) return;
+  const isAdm = perfil?.role === 'admin';
+  const avals = avalData.filter(a => a.colaborador_id === c.id)
+                        .sort((a,b) => (b.data_avaliacao||'') > (a.data_avaliacao||'') ? 1 : -1);
+  document.getElementById('modal-avals-colab-title').textContent = 'Avaliações — ' + c.nome;
+  document.getElementById('avals-colab-body').innerHTML =
+    (isAdm ? `<div style="display:flex;justify-content:flex-end;margin-bottom:10px"><button class="btn btn-primary" style="padding:4px 12px;font-size:12px" onclick="novaAvalPara('${c.id}')">+ Avaliação</button></div>` : '')
+    + avalsColabHTML(avals, isAdm);
+}
+
+// ── Botões do topo ────────────────────────────────────────────────────────────
+document.getElementById('btn-nova-oc').addEventListener('click', () => novaOcPara(''));
+document.getElementById('btn-nova-aval').addEventListener('click', () => novaAvalPara(''));
+document.getElementById('btn-lancar-faltas').addEventListener('click', () => {
+  const el = document.getElementById('faltas-data');
+  if (!el.value) el.value = hojeISO();
+  renderFaltas();
+  abrirModal('modal-faltas');
+});
+
+// ── Lançar faltas (tabela de todos os colaboradores) ──────────────────────────
+// Cada linha vira uma ocorrência do dia (Presente / Falta / Justificada), que é
+// o que aparece no calendário do colaborador, mais o registro em presenca_diaria.
+const SITUACOES = { outro:'Presente', falta:'Falta injustificada', atestado:'Justificada' };
+const SIT_COR   = { outro:'background:#dcfce7;color:#166534', falta:'background:#fee2e2;color:#991b1b', atestado:'background:#fef3c7;color:#92400e' };
+let faltasOriginal = {};
+
+function hojeISO() {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+}
+
+function renderFaltas() {
+  const data   = document.getElementById('faltas-data').value;
+  const ativos = colabData.filter(c => !c.demissao && (!c.data_admissao || c.data_admissao <= data))
+                          .sort((a,b) => a.nome.localeCompare(b.nome));
+  faltasOriginal = {};
+  let lancados = 0;
+  document.getElementById('tbody-faltas').innerHTML = ativos.length ? ativos.map(c => {
+    const oc  = ocData.find(o => o.colaborador_id === c.id && o.data === data && SITUACOES[o.tipo]);
+    if (oc) lancados++;
+    const sit = oc?.tipo || 'outro';
+    const obs = oc?.descricao || '';
+    faltasOriginal[c.id] = { sit, obs, ocId: oc?.id || null };
+    const cargo = c.cargo || cargoData.find(x => x.id === c.cargo_id)?.nome || '—';
+    return `<tr data-colab-id="${c.id}">
+      <td><span class="faltas-nome" onclick="abrirHistoricoOc('${c.id}')" title="Abrir calendário e histórico">${c.nome}</span>${c.em_ferias ? ` ${badge('#dbeafe','#1e40af','Férias')}` : ''}</td>
+      <td style="color:#64748b;font-size:12px">${cargo}</td>
+      <td><select class="faltas-sit" style="${SIT_COR[sit]}" onchange="marcarFaltaAlterada(this)">
+        ${Object.entries(SITUACOES).map(([v,l]) => `<option value="${v}" ${v===sit?'selected':''}>${l}</option>`).join('')}
+      </select></td>
+      <td><input class="faltas-obs" type="text" value="${obs.replace(/"/g,'&quot;')}" placeholder="Observação…" oninput="marcarFaltaAlterada(this)" /></td>
+    </tr>`;
+  }).join('') : '<tr><td colspan="4" style="padding:20px;text-align:center;color:#94a3b8">Nenhum colaborador ativo nesta data.</td></tr>';
+  document.getElementById('faltas-resumo').textContent =
+    `${lancados} de ${ativos.length} já lançados neste dia · sem lançamento aparece como Presente`;
+}
+
+window.marcarFaltaAlterada = el => {
+  const tr  = el.closest('tr');
+  const o   = faltasOriginal[tr.dataset.colabId];
+  const sel = tr.querySelector('.faltas-sit');
+  const obs = tr.querySelector('.faltas-obs').value.trim();
+  sel.style.cssText = SIT_COR[sel.value];
+  tr.classList.toggle('faltas-alterada', sel.value !== o.sit || obs !== o.obs);
+};
+
+document.getElementById('faltas-data').addEventListener('change', renderFaltas);
+
+document.getElementById('btn-salvar-faltas').addEventListener('click', async () => {
+  const data = document.getElementById('faltas-data').value;
+  if (!data) { toast('Informe a data', 'error'); return; }
+  const btn = document.getElementById('btn-salvar-faltas');
+  const inserts = [], updates = [], presencas = [];
+  document.querySelectorAll('#tbody-faltas tr[data-colab-id]').forEach(tr => {
+    const id  = tr.dataset.colabId;
+    const o   = faltasOriginal[id];
+    const sit = tr.querySelector('.faltas-sit').value;
+    const obs = tr.querySelector('.faltas-obs').value.trim();
+    // Já lançado e sem mudança: nada a fazer. Sem lançamento: grava o que estiver na linha.
+    if (o.ocId && sit === o.sit && obs === o.obs) return;
+    const payload = { colaborador_id:id, data, tipo:sit, descricao:obs||null, conta_como_falta: sit === 'falta' };
+    if (o.ocId) updates.push({ id:o.ocId, payload }); else inserts.push(payload);
+    presencas.push({ colaborador_id:id, data, presente: sit === 'outro', observacao: obs||null });
+  });
+  if (!presencas.length) { toast('Nada a salvar'); fecharModal('modal-faltas'); return; }
+
+  btn.disabled = true;
+  try {
+    if (inserts.length) {
+      const { error } = await supabase.from('ocorrencias').insert(inserts);
+      if (error) throw error;
+    }
+    for (const u of updates) {
+      const { error } = await supabase.from('ocorrencias').update(u.payload).eq('id', u.id);
+      if (error) throw error;
+    }
+    const { error: presErr } = await supabase.from('presenca_diaria').upsert(presencas, { onConflict: 'colaborador_id,data' });
+    if (presErr) toast('Erro ao salvar presença: ' + presErr.message, 'error');
+    const ausencias = presencas.filter(p => !p.presente).length;
+    toast(`Lançamento salvo: ${presencas.length} colaborador(es), ${ausencias} ausência(s)`);
+    fecharModal('modal-faltas');
+    await recarregarTudo();
+  } catch (e) {
+    toast('Erro ao salvar: ' + e.message, 'error');
+  } finally {
+    btn.disabled = false;
+  }
+});
 
 // ── Cálculos ──────────────────────────────────────────────────────────────────
 function calcMediaAval(a) {
@@ -724,8 +861,9 @@ window.novaAvalPara = colabId => {
   document.getElementById('modal-aval-title').textContent = 'Nova Avaliação de Desempenho';
   document.getElementById('form-aval').reset();
   document.querySelector('#form-aval [name="id"]').value = '';
-  document.querySelector('#form-aval [name="data_avaliacao"]').value = new Date().toISOString().split('T')[0];
+  document.querySelector('#form-aval [name="data_avaliacao"]').value = hojeISO();
   document.querySelector('#form-aval [name="colaborador_id"]').value = colabId;
+  fecharModal('modal-avals-colab');
   abrirModal('modal-aval');
 };
 
@@ -740,6 +878,7 @@ window.editarAval = id => {
   const media = calcMediaAval(a);
   set('nota_media', media !== null ? media.toFixed(1) : '');
   set('observacoes', a.observacoes);
+  fecharModal('modal-avals-colab');
   abrirModal('modal-aval');
 };
 
@@ -749,6 +888,7 @@ window.excluirAval = async id => {
   if (error) { toast('Erro ao excluir','error'); return; }
   toast('Avaliação excluída!');
   await recarregarTudo();
+  renderAvalsColab();
 };
 
 document.getElementById('btn-salvar-aval').addEventListener('click', async () => {
@@ -785,7 +925,7 @@ window.novaOcPara = colabId => {
   document.getElementById('chk-conta-falta').checked = false;
   document.getElementById('sel-presenca-oc').value = 'true';
   document.querySelector('#form-oc [name="id"]').value = '';
-  document.querySelector('#form-oc [name="data"]').value = presencaDataEl.value;
+  document.querySelector('#form-oc [name="data"]').value = hojeISO();
   document.querySelector('#form-oc [name="colaborador_id"]').value = colabId;
   abrirModal('modal-oc');
 };
@@ -836,7 +976,6 @@ document.getElementById('btn-salvar-oc').addEventListener('click', async () => {
     { onConflict: 'colaborador_id,data' }
   );
   if (presErr) { toast('Erro ao salvar presença: ' + presErr.message, 'error'); }
-  else { presencaMap[fd.colaborador_id] = { colaborador_id: fd.colaborador_id, data: fd.data, presente, observacao: fd.descricao||null }; }
   fecharModal('modal-oc');
   await recarregarTudo();
 });
@@ -848,37 +987,7 @@ document.querySelectorAll('[data-close]').forEach(btn => btn.addEventListener('c
 document.querySelectorAll('.modal-backdrop').forEach(m => m.addEventListener('click', e => { if(e.target===m) fecharModal(m.id); }));
 
 await init();
-
-// ── Presenças inline nos cards ────────────────────────────────────────────────
-const presencaDataEl = document.getElementById('presenca-data');
-presencaDataEl.value = new Date().toISOString().split('T')[0];
-presencaDataEl.addEventListener('change', recarregarTudo);
-
-window.salvarPresencaCard = async (colabId, sel) => {
-  sel.style.color = sel.value === 'true' ? '#16a34a' : '#dc2626';
-  const data = presencaDataEl.value;
-  const obsEl = document.querySelector(`.presenca-card-obs[data-colab-id="${colabId}"]`);
-  const obs   = obsEl?.value.trim() || null;
-  const { error } = await supabase.from('presenca_diaria').upsert(
-    [{ colaborador_id: colabId, data, presente: sel.value === 'true', observacao: obs }],
-    { onConflict: 'colaborador_id,data' }
-  );
-  if (error) { toast('Erro ao salvar presença', 'error'); return; }
-  presencaMap[colabId] = { colaborador_id: colabId, data, presente: sel.value === 'true', observacao: obs };
-  toast('Presença salva!');
-};
-
-window.salvarPresencaCardObs = async (colabId, input) => {
-  const data = presencaDataEl.value;
-  const selEl = document.querySelector(`.presenca-card-sel[data-colab-id="${colabId}"]`);
-  const presente = selEl ? selEl.value === 'true' : true;
-  const { error } = await supabase.from('presenca_diaria').upsert(
-    [{ colaborador_id: colabId, data, presente, observacao: input.value.trim() || null }],
-    { onConflict: 'colaborador_id,data' }
-  );
-  if (error) { toast('Erro ao salvar observação', 'error'); return; }
-  presencaMap[colabId] = { colaborador_id: colabId, data, presente, observacao: input.value.trim() || null };
-};
+if (perfil?.role !== 'admin') document.querySelectorAll('.so-adm').forEach(b => b.style.display = 'none');
 
 // ── Balanço de Vagas ─────────────────────────────────────────────────────────
 function renderBalancoVagas() {
