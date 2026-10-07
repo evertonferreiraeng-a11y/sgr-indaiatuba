@@ -107,8 +107,10 @@ import { initPage, supabase, moeda, ton, toast } from './js/config.js?v=3';
 
 await initPage();
 
-// Quadro previsto de colaboradores
+// Quadro previsto de colaboradores: soma das vagas por cargo (Balanço de Vagas do RH);
+// 13 só quando não há cargos cadastrados
 const META_COLABORADORES = 13;
+let quadroPrevisto = META_COLABORADORES;
 
 const MESES = ['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
 const MESES_ABREV = ['jan','fev','mar','abr','mai','jun','jul','ago','set','out','nov','dez'];
@@ -242,6 +244,10 @@ async function buscarDados(ini, fim) {
   try {
     snapshots = await fetchAll('equipamentos_snapshot', 'semana, equipamento_id, status', [['gte', 'semana', ini], ['lte', 'semana', fim]]);
   } catch (_) { /* tabela pode não existir */ }
+  try {
+    const cargos = await fetchAll('cargos', 'total_vagas');
+    quadroPrevisto = cargos.reduce((s, c) => s + (c.total_vagas ?? 0), 0) || META_COLABORADORES;
+  } catch (_) { quadroPrevisto = META_COLABORADORES; }
 
   const metaMes = {};
   metas.forEach(m => { metaMes[m.periodo] = parseFloat(m.valor_meta || 0); });
@@ -361,7 +367,7 @@ const INDICADORES = [
       return partes.join(' · ');
     } },
   { grupo: 'Pessoas', label: 'Colaboradores', val: s => s.colab, fmt: fmtNum,
-    meta: s => ({ meta: META_COLABORADORES, ating: s.colab / META_COLABORADORES * 100, txt: `Meta ${META_COLABORADORES} colaboradores` }) },
+    meta: s => ({ meta: quadroPrevisto, ating: s.colab / quadroPrevisto * 100, txt: `Meta ${quadroPrevisto} colaboradores` }) },
 ];
 
 // ── Render ──
