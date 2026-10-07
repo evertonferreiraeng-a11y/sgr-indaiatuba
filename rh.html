@@ -421,7 +421,7 @@ async function recarregarTudo() {
     const opts = lista => lista.map(c => `<option value="${c.id}">${c.nome}</option>`).join('');
     const setEl = (sel, html) => { const el = document.querySelector(sel); if(el) el.innerHTML = '<option value="">Selecione…</option>' + html; };
     setEl('#form-aval [name="colaborador_id"]', opts(colabData.filter(c => !c.demissao)));
-    setEl('#form-oc [name="colaborador_id"]',   opts(colabData));
+    setEl('#form-oc [name="colaborador_id"]',   opts(colabData.filter(c => !c.demissao)));
 
     // Select de cargos
     const cargoOpts = cargoData.map(c => `<option value="${c.id}">${c.nome}</option>`).join('');
