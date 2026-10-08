@@ -565,18 +565,15 @@ export function montarApresentacao(PptxGenJS, d, { img, frases: fr, textos, acoe
     const vTxt = v => v == null ? '' : ` (${seta(v)} ${nf(Math.abs(v), 0)}%)`;
 
     // Faturamento: início do mês → compara com o mês anterior no mesmo ponto; depois → com a meta proporcional.
-    // Mês em andamento: volume e ticket médio comparados com o mês anterior no mesmo ponto; mês fechado: com o mês cheio.
+    // Duas linhas: a comparação do faturamento e o ticket médio (faturamento ÷ toneladas vendidas)
     const atFatProp = d.emAndamento && d.du > 0 && d.dp > 0 && atFat != null ? atFat / (d.dp / d.du) : atFat;
     const ref = d.emAndamento ? d.antMesmo : d.antCheio;
-    const rotRef = d.emAndamento ? `${ant.slice(0, 3)}. mesmo ponto` : cap(ant);
     const linhasFat = [
       d.inicioMes ? [`${cap(ant)} no mesmo ponto`, `${mil(ref.fat)}${vTxt(varPct(c.fat, ref.fat))} · fechou em ${mil(d.antCheio.fat)}`]
         : d.emAndamento ? ['Projeção no ritmo atual', `${mil(d.projecao)}${d.meta ? ` (${pct(d.projecao / d.meta * 100, 0)} da meta)` : ''}`]
           : [`vs ${ant}`, `${mil(ref.fat)}${vTxt(varPct(c.fat, ref.fat))}`],
-      ['Volume vendido', `${tn(c.vol, 1)} · ${rotRef}: ${tn(ref.vol, 1)}${vTxt(varPct(c.vol, ref.vol))}`],
-      ['Ticket médio', `${c.preco ? `${reais0(c.preco)}/t` : '—'} · ${rotRef}: ${ref.preco ? `${reais0(ref.preco)}/t` : '—'}`],
-      d.emAndamento ? ['Potencial com estoque', `${mil(c.fat + d.valorEstoque)}${d.meta ? ` (${pct((c.fat + d.valorEstoque) / d.meta * 100, 0)} da meta)` : ''} · estoque ${mil(d.valorEstoque)}`] : null,
-    ].filter(Boolean);
+      ['Ticket médio', c.preco ? `${reais0(c.preco)}/t` : '—'],
+    ];
     ind.push({ label: 'Faturamento', st: semPct(d.inicioMes ? (ref.fat > 0 ? c.fat / ref.fat * 100 : null) : d.emAndamento ? atFatProp : atFat),
       valor: mil(c.fat), sub: d.emAndamento ? `${d.meta ? `${pct(atFat, 0)} da meta · ` : ''}${d.dp} de ${d.du} dias úteis` : d.meta ? `${pct(atFat, 0)} da meta de ${mil(d.meta)}` : 'sem meta cadastrada',
       ctx: linhasFat });
