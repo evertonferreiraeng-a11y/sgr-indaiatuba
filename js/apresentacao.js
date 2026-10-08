@@ -565,18 +565,18 @@ export function montarApresentacao(PptxGenJS, d, { img, frases: fr, textos, acoe
     const vTxt = v => v == null ? '' : ` (${seta(v)} ${nf(Math.abs(v), 0)}%)`;
 
     // Faturamento: início do mês → compara com o mês anterior no mesmo ponto; depois → com a meta proporcional.
-    // Duas linhas: a comparação do faturamento e o ticket médio (faturamento ÷ toneladas vendidas)
+    // Ticket médio (faturamento ÷ toneladas vendidas) na linha de baixo do valor; a comparação fica abaixo do tracejado
     const atFatProp = d.emAndamento && d.du > 0 && d.dp > 0 && atFat != null ? atFat / (d.dp / d.du) : atFat;
     const ref = d.emAndamento ? d.antMesmo : d.antCheio;
-    const linhasFat = [
-      d.inicioMes ? [`${cap(ant)} no mesmo ponto`, `${mil(ref.fat)}${vTxt(varPct(c.fat, ref.fat))} · fechou em ${mil(d.antCheio.fat)}`]
-        : d.emAndamento ? ['Projeção no ritmo atual', `${mil(d.projecao)}${d.meta ? ` (${pct(d.projecao / d.meta * 100, 0)} da meta)` : ''}`]
-          : [`vs ${ant}`, `${mil(ref.fat)}${vTxt(varPct(c.fat, ref.fat))}`],
-      ['Ticket médio', c.preco ? `${reais0(c.preco)}/t` : '—'],
-    ];
+    const ticket = c.preco ? ` · ticket médio ${reais0(c.preco)}/t` : '';
     ind.push({ label: 'Faturamento', st: semPct(d.inicioMes ? (ref.fat > 0 ? c.fat / ref.fat * 100 : null) : d.emAndamento ? atFatProp : atFat),
-      valor: mil(c.fat), sub: d.emAndamento ? `${d.meta ? `${pct(atFat, 0)} da meta · ` : ''}${d.dp} de ${d.du} dias úteis` : d.meta ? `${pct(atFat, 0)} da meta de ${mil(d.meta)}` : 'sem meta cadastrada',
-      ctx: linhasFat });
+      valor: mil(c.fat),
+      sub: (d.emAndamento ? `${d.meta ? `${pct(atFat, 0)} da meta · ` : ''}${d.dp} de ${d.du} dias úteis` : d.meta ? `${pct(atFat, 0)} da meta de ${mil(d.meta)}` : 'sem meta cadastrada') + ticket,
+      ctx: [
+        d.inicioMes ? [`${cap(ant)} no mesmo ponto`, `${mil(ref.fat)}${vTxt(varPct(c.fat, ref.fat))} · fechou em ${mil(d.antCheio.fat)}`]
+          : d.emAndamento ? ['Projeção no ritmo atual', `${mil(d.projecao)}${d.meta ? ` (${pct(d.projecao / d.meta * 100, 0)} da meta)` : ''}`]
+            : [`vs ${ant}`, `${mil(ref.fat)}${vTxt(varPct(c.fat, ref.fat))}`],
+      ] });
 
     // Prensagem: produção × previsto até o corte (mês fechado: × capacidade do mês).
     // Início do mês: no máximo "Atenção" — poucos dias de produção ainda não definem o mês.
