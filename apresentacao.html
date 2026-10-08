@@ -101,7 +101,7 @@ import { initPage, supabase, toast } from './js/config.js?v=3';
 import {
   STATUS_TAREFA, calcularDados, frasesPadrao, textoPerdaCap, montarApresentacao, periodoBusca,
   isoLocal, addDias, fimDoMes, ddmm, ddmmaaaa, nomeMes, mil, tn, pct, reais0, nf,
-} from './js/apresentacao.js?v=16';
+} from './js/apresentacao.js?v=17';
 
 await initPage();
 
@@ -161,7 +161,7 @@ async function carregar() {
       fetchAll('metas', 'periodo, valor_meta', [['eq', 'indicador', 'faturamento'], ['gte', 'periodo', ini.slice(0, 7)], ['lte', 'periodo', M]]),
       fetchAll('producao', 'data, peso_produzido_kg, equipamento_id', [['gte', 'data', iniMes], ['lte', 'data', fimBusca]]),
       fetchAll('equipamentos', 'id, nome, frota, status, capacidade_kg_mes, capacidade_pct'),
-      fetchAll('materiais', 'estoque_kg, valor_unitario', [['eq', 'no_estoque', true]]),
+      fetchAll('materiais', 'nome, estoque_kg, valor_unitario', [['eq', 'no_estoque', true]]),
       fetchAll('colaboradores', 'data_admissao, demissao'),
       fetchOpcional('cargos', 'preenchido, total_vagas'),
       fetchOpcional('equipamentos_snapshot', 'semana, equipamento_id, status', [['gte', 'semana', addDias(iniMes, -60)], ['lte', 'semana', fimBusca]]),
