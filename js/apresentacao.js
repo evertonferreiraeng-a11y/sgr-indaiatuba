@@ -232,7 +232,7 @@ export function calcularDados(rows, M, corteIn, hoje) {
       p += prodPorDia[dt] || 0;
       m += metaPorDia[dt] || 0;
     }
-    return { i: i + 1, s, parcial: s.fim > corte, p: m > 0 ? p / m * 100 : null };
+    return { i: i + 1, s, parcial: s.fim > corte, prod: p, meta: m, p: m > 0 ? p / m * 100 : null };
   });
   const prensadoMes = fatMes.map(r => r.prensa.vol);
   const mPlano = PLANO_INICIO.slice(0, 7);
@@ -870,12 +870,23 @@ export function montarApresentacao(PptxGenJS, d, { img, frases: fr, textos, acoe
     const atEsp = d.esperado > 0 ? d.prod / d.esperado * 100 : null;
     const ritmo = d.dpPrensa > 0 ? d.prod / d.dpPrensa : 0;
     const pProd = d.emAndamento ? atEsp : atProd;
-    cardP(205, 190, d.emAndamento ? `PRODUÇÃO ATÉ ${ddmm(d.corte)}` : `PRODUÇÃO EM ${mes.toUpperCase()}`, tn(d.prod, 1), [
+    cardP(205, 300, d.emAndamento ? `PRODUÇÃO ATÉ ${ddmm(d.corte)}` : `PRODUÇÃO EM ${mes.toUpperCase()}`, tn(d.prod, 1), [
       { text: d.emAndamento ? `de ${tn(d.esperado, 1)} previstas · ${pct(atEsp, 0)}` : `de ${tCap(d, d.capMes)} t de capacidade · ${pct(atProd, 0)}`, options: { breakLine: true } },
       { text: `ritmo ${nf(ritmo / 1000, 1)} t/dia · meta ${nf(d.metaDia / 1000, 1)} t/dia`, options: { color: COR.muted } },
     ]);
     box(s, px + 22, 345, pw - 44, 12, COR.trilho, null, 0);
     if (pProd > 0) box(s, px + 22, 345, Math.max(6, (pw - 44) * Math.min(pProd, 100) / 100), 12, corAting(d.inicioMes ? Math.max(pProd, 70) : pProd), null, 0);
+    // Por semana: % da meta das prensas e toneladas produzidas × meta (semana parcial: meta só até o corte)
+    txt(s, px + 22, 370, pw - 44, 18, 'POR SEMANA', 11, COR.muted, { bold: true });
+    const nSem = Math.max(1, d.semProd.length), passoS = Math.min(22, 108 / nSem);
+    d.semProd.forEach((w, k) => {
+      const y = 392 + k * passoS, xb = px + 82, wb = 120;
+      txt(s, px + 22, y, 60, 18, `Sem ${w.i}${w.parcial ? '*' : ''}`, 12, COR.txt2);
+      box(s, xb, y + 4, wb, 10, COR.trilho, null, 0);
+      if (w.p > 0) box(s, xb, y + 4, Math.max(4, wb * Math.min(w.p, 100) / 100), 10, corAting(w.p), null, 0);
+      txt(s, xb + wb + 8, y, 42, 18, w.p == null ? '—' : `${nf(w.p, 0)}%`, 12, COR.txt, { bold: true, align: 'right' });
+      txt(s, xb + wb + 56, y, pw - (xb - px) - wb - 56 - 22, 18, w.meta > 0 ? `${nf(w.prod / 1000, 1)} de ${nf(w.meta / 1000, 1)} t` : '', 11, COR.muted, { align: 'right' });
+    });
 
     // 2) Ritmo para fechar a meta do mês (mês fechado: resultado)
     const falta = Math.max(0, d.capMes - d.prod);
@@ -887,11 +898,11 @@ export function montarApresentacao(PptxGenJS, d, { img, frases: fr, textos, acoe
       const [cT, cB] = nec > d.metaDiaRestante * 1.3 ? [COR.verm, COR.vermBg] : [COR.amb, COR.ambBg];
       b2 = ['PARA FECHAR O MÊS', `${nf(nec / 1000, 1)} t/dia`, `nos ${d.dr} dias úteis restantes · meta ${tCap(d, d.capMes)} t${nec > d.metaDiaRestante * 2 ? ' — inviável' : ''}`, cT, cB];
     } else b2 = ['RESULTADO DO MÊS', `faltaram ${nf(falta / 1000, 1)} t`, `${pct(atProd)} da meta`, COR.verm, COR.vermBg];
-    cardP(409, 160, b2[0], b2[1], b2[2], b2[3], b2[4], b2[3]);
+    cardP(519, 118, b2[0], b2[1], b2[2], b2[3], b2[4], b2[3]);
 
     // 3) Prensado vendido × antes do plano, e o estoque prensado que ainda pode sair
     const vPlano = d.prensAntes > 0 ? varPct(d.cur.prensa.vol, d.prensAntesProp) : null;
-    cardP(583, 226, d.emAndamento ? `PRENSADO VENDIDO ATÉ ${ddmm(d.corte)}` : `PRENSADO VENDIDO EM ${mes.toUpperCase()}`, [
+    cardP(651, 160, d.emAndamento ? `PRENSADO VENDIDO ATÉ ${ddmm(d.corte)}` : `PRENSADO VENDIDO EM ${mes.toUpperCase()}`, [
       { text: tn(d.cur.prensa.vol, 1), options: {} },
       { text: vPlano == null ? '' : `  ${seta(vPlano)} ${nf(Math.abs(vPlano), 0)}%`, options: { color: vPlano >= 0 ? COR.ok : COR.verm, fontSize: 20 } },
     ], [
