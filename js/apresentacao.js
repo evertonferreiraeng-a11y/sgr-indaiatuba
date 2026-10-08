@@ -709,37 +709,39 @@ export function montarApresentacao(PptxGenJS, d, { img, frases: fr, textos, acoe
     const c = d.cur, a = d.antCheio;
     // Três grupos que somam o volume vendido. Prensado × a granel = só materiais prensáveis;
     // a sucata ferrosa (não prensa) aparece à parte, com volume, preço e valor próprios.
-    const quandoMes = d.emAndamento ? `${cap(mes)} (até ${ddmm(d.corte)})` : cap(mes);
-    const cw = 410, cgap = 25;
-    const cartao = (k, rot, sub, fill, line, corRot, corValor) => {
+    // Card enxuto: preço do mês (grande), selo com a variação e uma linha com o preço do mês anterior.
+    // Volume e faturamento de cada grupo ficam nas barras abaixo e nas anotações.
+    const cw = 410, cgap = 25, ch = 190;
+    const cartao = (k, rot, fill, line, corRot, corValor) => {
       const x = 50 + k.i * (cw + cgap), r = c.g[k.g], rA = a.g[k.g];
-      box(s, x, 205, cw, 235, fill, line);
-      txt(s, x + 24, 222, cw - 48, 20, rot, 13, corRot, { bold: true });
-      txt(s, x + 24, 246, cw - 48, 56, r.preco ? `${reais0(r.preco)}/t` : '—', 38, corValor, { bold: true });
-      txt(s, x + 24, 302, cw - 48, 18, sub, 12, COR.muted);
+      box(s, x, 205, cw, ch, fill, line);
+      txt(s, x + 24, 225, cw - 170, 20, rot, 13, corRot, { bold: true });
       const v = varPct(r.preco, rA.preco);
       // Queda do prensado causada só pelo mix de materiais: não pinta de vermelho e diz o motivo
       const porMix = k.g === 'prensado' && v != null && v < -2 && d.mixPrensado?.porMix;
-      const corV = v == null || Math.abs(v) < 2 ? COR.muted : porMix ? COR.amb : v > 0 ? COR.ok : COR.verm;
-      txt(s, x + 24, 332, cw - 48, 96, [
-        { text: `${quandoMes}: `, options: { color: COR.muted } },
-        { text: `${tn(r.vol)} · ${mil(r.fat)}`, options: { bold: true, color: COR.txt2, breakLine: true } },
+      if (v != null) {
+        const [fg, bg] = Math.abs(v) < 2 ? [COR.muted, COR.trilho] : porMix ? [COR.amb, COR.ambBg] : v > 0 ? [COR.ok, COR.okBg] : [COR.verm, COR.vermBg];
+        const t = Math.abs(v) < 2 ? 'estável' : `${seta(v)} ${nf(Math.abs(v), 0)}%${porMix ? ' · mix' : ''}`;
+        const wp = Math.max(60, t.length * 13 * 0.62 + 28);
+        pill(s, x + cw - 24 - wp, 220, t, fg, bg, 13);
+      }
+      if (r.preco) txt(s, x + 24, 256, cw - 48, 56, `${reais0(r.preco)}/t`, 40, corValor, { bold: true });
+      else txt(s, x + 24, 266, cw - 48, 40, `sem vendas em ${mes}`, 22, COR.muted, { bold: true });
+      linha(s, x + 24, 330, x + cw - 24, COR.borda, 'dash');
+      txt(s, x + 24, 344, cw - 48, 24, [
         { text: `${cap(ant)}: `, options: { color: COR.muted } },
-        { text: `${tn(rA.vol)} · ${mil(rA.fat)}`, options: { bold: true, color: COR.txt2, breakLine: true } },
-        { text: `Preço em ${ant}: `, options: { color: COR.muted } },
-        { text: rA.preco ? `${reais0(rA.preco)}/t` : '—', options: { bold: true, color: COR.txt2 } },
-        { text: v == null ? '' : `  ${seta(v)} ${nf(Math.abs(v), 1)}%${porMix ? ' (mix)' : ''}`, options: { bold: true, color: corV } },
-      ], 14, COR.txt2, { paraSpaceAfter: 4 });
+        { text: rA.preco ? `${reais0(rA.preco)}/t` : 'sem vendas', options: { bold: true, color: COR.txt2 } },
+      ], 15, COR.txt2);
     };
-    cartao({ i: 0, g: 'prensado' }, 'PRENSADO', `preço médio em ${mes}`, COR.verdeCl, null, COR.verde, COR.verde);
-    cartao({ i: 1, g: 'granel' }, 'A GRANEL · MATERIAIS PRENSÁVEIS', `preço médio em ${mes}`, COR.cinzaBg, COR.borda, COR.muted, COR.txt);
-    cartao({ i: 2, g: 'sucata' }, 'SUCATA FERROSA · NÃO PRENSA', `preço médio em ${mes}`, 'FFFFFF', COR.borda, COR.muted, COR.txt2);
+    cartao({ i: 0, g: 'prensado' }, 'PRENSADO', COR.verdeCl, null, COR.verde, COR.verde);
+    cartao({ i: 1, g: 'granel' }, 'A GRANEL', COR.cinzaBg, COR.borda, COR.muted, COR.txt);
+    cartao({ i: 2, g: 'sucata' }, 'SUCATA FERROSA', 'FFFFFF', COR.borda, COR.muted, COR.txt2);
 
     // Barra = só materiais prensáveis (prensado | a granel), com volume e %; a sucata ferrosa fica à direita
-    txt(s, 50, 462, 1280, 22, 'COMPOSIÇÃO DO VOLUME VENDIDO', 14, COR.muted, { bold: true });
+    txt(s, 50, 430, 1280, 22, 'COMPOSIÇÃO DO VOLUME VENDIDO', 14, COR.muted, { bold: true });
     const segs = [['prensado', 'prensado', COR.verde, 'FFFFFF'], ['granel', 'a granel', COR.verdeBarra, COR.txt2]];
     const larg = 960, x0 = 200;
-    [[cap(ant), 494, a], [cap(mes) + (d.emAndamento ? '*' : ''), 560, c]].forEach(([rot, y, r]) => {
+    [[cap(ant), 462, a], [cap(mes), 528, c]].forEach(([rot, y, r]) => {
       const totalVend = Object.values(r.g).reduce((t, x) => t + x.vol, 0);
       const prensaveis = segs.reduce((t, [k]) => t + r.g[k].vol, 0);
       txt(s, 50, y + 2, 145, 24, rot, 16, COR.txt2, { bold: true });
@@ -761,10 +763,12 @@ export function montarApresentacao(PptxGenJS, d, { img, frases: fr, textos, acoe
     const precoGeral = c.preco && a.preco
       ? `Preço médio geral (todos os materiais): ${reais0(c.preco)}/t em ${mes} — R$ ${nf(Math.abs(dif), 0)}/t ${dif >= 0 ? 'a mais' : 'a menos'} que em ${ant} (${reais0(a.preco)}/t).`
       : `Preço médio geral (todos os materiais): ${c.preco ? reais0(c.preco) + '/t' : '—'} em ${mes}.`;
-    txt(s, 50, 640, 1280, 30, precoGeral, 17, COR.txt2);
+    txt(s, 50, 608, 1280, 30, precoGeral, 17, COR.txt2);
     const mx = d.mixPrensado;
+    const grupo = (nome, k) => `${nome}: ${tn(c.g[k].vol)} · ${mil(c.g[k].fat)} em ${mes} (${ant}: ${tn(a.g[k].vol)} · ${mil(a.g[k].fat)}).`;
     fala(s, { min: 4, etapa: 'Faturamento e vendas (2 de 5)', frase: fr.comp,
       apoio: [
+        grupo('Prensado', 'prensado'), grupo('A granel', 'granel'), grupo('Sucata ferrosa (não prensa)', 'sucata'),
         `Prensado: ${c.g.prensado.preco ? `${reais0(c.g.prensado.preco)}/t` : '—'} em ${mes} (${ant}: ${a.g.prensado.preco ? `${reais0(a.g.prensado.preco)}/t` : '—'}).`,
         mx?.porMix && mx.efeitoPreco != null ? `No mesmo material, o preço variou ${sinal(mx.efeitoPreco)}${nf(mx.efeitoPreco, 0)}% — a queda da média é de mix (quais materiais saíram), não de preço.` : '',
         mx?.faltamEstoque.length ? `Em estoque, de maior valor: ${mx.faltamEstoque.map(x => `${nomeMat(x.nome)} (${tn(x.estoqueKg, 1)})`).join(', ')}.` : '',
