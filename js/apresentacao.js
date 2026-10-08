@@ -247,6 +247,22 @@ export function calcularDados(rows, M, corteIn, hoje) {
   // Preço do prensado: separa o efeito do mix (quais materiais saíram) do preço do mesmo material
   const mixPrensado = analiseMix(cur.g.prensado, antCheio.g.prensado, materiais);
 
+  // Estoque por grupo (prensado / a granel / sucata ferrosa). O cadastro do material não tem acondicionamento,
+  // então vale como o material mais foi vendido no histórico carregado; sem histórico, conta como prensado.
+  const acondHist = {};
+  vendas.forEach(v => {
+    const nm = v.materiais?.nome; if (!nm || !v.acondicionamento) return;
+    const h = (acondHist[nm] = acondHist[nm] || { prensa: 0, granel: 0 });
+    h[v.acondicionamento] += pesoVenda(v);
+  });
+  const estoqueGrupo = { prensado: { kg: 0, val: 0 }, granel: { kg: 0, val: 0 }, sucata: { kg: 0, val: 0 } };
+  materiais.forEach(m => {
+    const kg = parseFloat(m.estoque_kg || 0); if (!(kg > 0)) return;
+    const h = acondHist[m.nome];
+    const g = semAcento(m.nome).includes('SUCATA FERROSA') ? 'sucata' : h && h.granel > h.prensa ? 'granel' : 'prensado';
+    estoqueGrupo[g].kg += kg; estoqueGrupo[g].val += kg * parseFloat(m.valor_unitario || 0);
+  });
+
   // Equipamentos: situação atual (mês em andamento) ou último registro diário do mês
   const statusPorEq = {};
   if (!emAndamento && fimMes < hoje && snapshots.length) {
@@ -285,7 +301,7 @@ export function calcularDados(rows, M, corteIn, hoje) {
 
   return {
     M, ini, fimMes, corte, emAndamento, Mant, fimAntMesmo, cur, antMesmo, antCheio, meta, du, dp, dr,
-    estoqueKg, valorEstoque, projecao, inicioMes, fatFech, metaFech, fracMes, prensAntesProp, mixPrensado, mesesAno, fatMes, fatAno, metaAno, metaMes, melhor, nenhumAtingiu, semFat,
+    estoqueKg, valorEstoque, projecao, inicioMes, fatFech, metaFech, fracMes, prensAntesProp, mixPrensado, estoqueGrupo, mesesAno, fatMes, fatAno, metaAno, metaMes, melhor, nenhumAtingiu, semFat,
     prensas, capMes, capNominal, perdaCap, prensasReduzidas, metaDia, metaDiaNominal, metaDiaRestante, duPrensa, dpPrensa, prod, esperado, semProd, prensadoMes, prensAntes, prensDepois,
     eqs, nOp, nRes, nPar, disp, dispMes, rotDisp, comParada, colab, quadro, vagas,
   };
@@ -711,7 +727,8 @@ export function montarApresentacao(PptxGenJS, d, { img, frases: fr, textos, acoe
     // a sucata ferrosa (não prensa) aparece à parte, com volume, preço e valor próprios.
     // Card enxuto: preço do mês (grande), selo com a variação e uma linha com o preço do mês anterior.
     // Volume e faturamento de cada grupo ficam nas barras abaixo e nas anotações.
-    const cw = 410, cgap = 25, ch = 190;
+    // Embaixo: estoque do grupo (t e R$/t) e o ticket médio simulado = (vendido + estoque) ÷ (t vendidas + t em estoque).
+    const cw = 410, cgap = 25, ch = 250;
     const cartao = (k, rot, fill, line, corRot, corValor) => {
       const x = 50 + k.i * (cw + cgap), r = c.g[k.g], rA = a.g[k.g];
       box(s, x, 205, cw, ch, fill, line);
@@ -732,16 +749,29 @@ export function montarApresentacao(PptxGenJS, d, { img, frases: fr, textos, acoe
         { text: `${cap(ant)}: `, options: { color: COR.muted } },
         { text: rA.preco ? `${reais0(rA.preco)}/t` : 'sem vendas', options: { bold: true, color: COR.txt2 } },
       ], 15, COR.txt2);
+      const e = d.estoqueGrupo[k.g];
+      txt(s, x + 24, 370, cw - 48, 24, [
+        { text: 'Estoque: ', options: { color: COR.muted } },
+        { text: e.kg > 0 ? `${tn(e.kg, 1)} a ${reais0(e.val / (e.kg / 1000))}/t` : 'sem estoque', options: { bold: true, color: COR.txt2 } },
+      ], 15, COR.txt2);
+      if (e.kg > 0) {
+        const sim = (r.fat + e.val) / ((r.vol + e.kg) / 1000), vs = varPct(sim, r.preco);
+        txt(s, x + 24, 400, cw - 48, 26, [
+          { text: 'Vendido + estoque: ', options: { color: COR.muted } },
+          { text: `${reais0(sim)}/t`, options: { bold: true, color: COR.verde } },
+          { text: vs == null || Math.abs(vs) < 1 ? '' : `  ${seta(vs)} ${nf(Math.abs(vs), 0)}%`, options: { bold: true, color: vs > 0 ? COR.ok : COR.verm, fontSize: 13 } },
+        ], 16, COR.txt2);
+      }
     };
     cartao({ i: 0, g: 'prensado' }, 'PRENSADO', COR.verdeCl, null, COR.verde, COR.verde);
     cartao({ i: 1, g: 'granel' }, 'A GRANEL', COR.cinzaBg, COR.borda, COR.muted, COR.txt);
     cartao({ i: 2, g: 'sucata' }, 'SUCATA FERROSA', 'FFFFFF', COR.borda, COR.muted, COR.txt2);
 
     // Barra = só materiais prensáveis (prensado | a granel), com volume e %; a sucata ferrosa fica à direita
-    txt(s, 50, 430, 1280, 22, 'COMPOSIÇÃO DO VOLUME VENDIDO', 14, COR.muted, { bold: true });
+    txt(s, 50, 486, 1280, 22, 'COMPOSIÇÃO DO VOLUME VENDIDO', 14, COR.muted, { bold: true });
     const segs = [['prensado', 'prensado', COR.verde, 'FFFFFF'], ['granel', 'a granel', COR.verdeBarra, COR.txt2]];
     const larg = 960, x0 = 200;
-    [[cap(ant), 462, a], [cap(mes), 528, c]].forEach(([rot, y, r]) => {
+    [[cap(ant), 518, a], [cap(mes), 584, c]].forEach(([rot, y, r]) => {
       const totalVend = Object.values(r.g).reduce((t, x) => t + x.vol, 0);
       const prensaveis = segs.reduce((t, [k]) => t + r.g[k].vol, 0);
       txt(s, 50, y + 2, 145, 24, rot, 16, COR.txt2, { bold: true });
@@ -763,12 +793,13 @@ export function montarApresentacao(PptxGenJS, d, { img, frases: fr, textos, acoe
     const precoGeral = c.preco && a.preco
       ? `Preço médio geral (todos os materiais): ${reais0(c.preco)}/t em ${mes} — R$ ${nf(Math.abs(dif), 0)}/t ${dif >= 0 ? 'a mais' : 'a menos'} que em ${ant} (${reais0(a.preco)}/t).`
       : `Preço médio geral (todos os materiais): ${c.preco ? reais0(c.preco) + '/t' : '—'} em ${mes}.`;
-    txt(s, 50, 608, 1280, 30, precoGeral, 17, COR.txt2);
+    txt(s, 50, 664, 1280, 30, precoGeral, 17, COR.txt2);
     const mx = d.mixPrensado;
     const grupo = (nome, k) => `${nome}: ${tn(c.g[k].vol)} · ${mil(c.g[k].fat)} em ${mes} (${ant}: ${tn(a.g[k].vol)} · ${mil(a.g[k].fat)}).`;
     fala(s, { min: 4, etapa: 'Faturamento e vendas (2 de 5)', frase: fr.comp,
       apoio: [
         grupo('Prensado', 'prensado'), grupo('A granel', 'granel'), grupo('Sucata ferrosa (não prensa)', 'sucata'),
+        '"Vendido + estoque" simula o ticket médio do grupo se o estoque atual for vendido pelo valor cadastrado: (faturado + valor do estoque) ÷ (t vendidas + t em estoque). O estoque entra no grupo em que o material mais foi vendido.',
         `Prensado: ${c.g.prensado.preco ? `${reais0(c.g.prensado.preco)}/t` : '—'} em ${mes} (${ant}: ${a.g.prensado.preco ? `${reais0(a.g.prensado.preco)}/t` : '—'}).`,
         mx?.porMix && mx.efeitoPreco != null ? `No mesmo material, o preço variou ${sinal(mx.efeitoPreco)}${nf(mx.efeitoPreco, 0)}% — a queda da média é de mix (quais materiais saíram), não de preço.` : '',
         mx?.faltamEstoque.length ? `Em estoque, de maior valor: ${mx.faltamEstoque.map(x => `${nomeMat(x.nome)} (${tn(x.estoqueKg, 1)})`).join(', ')}.` : '',
