@@ -168,7 +168,7 @@ export function calcularDados(rows, M, corteIn, hoje) {
     const r = agg(s.ini, fimS);
     // Semana parcial: meta só dos dias úteis até o corte (senão compara 4 dias com a meta de 5)
     const metaSem = du > 0 ? meta / du * diasUteis(s.ini, fimS) : 0;
-    return { i: i + 1, s, parcial: s.fim > corte, p: metaSem > 0 ? r.fat / metaSem * 100 : null };
+    return { i: i + 1, s, parcial: s.fim > corte, fat: r.fat, meta: metaSem, p: metaSem > 0 ? r.fat / metaSem * 100 : null };
   });
 
   // Prensas
@@ -321,10 +321,10 @@ export function frasesMix(d) {
   const e = mx.efeitoPreco;
   const mesmo = e == null ? '' : Math.abs(e) < 3 ? `no mesmo material o preço **se manteve**`
     : e > 0 ? `no mesmo material o preço **subiu ${nf(e, 0)}%**` : `no mesmo material a variação foi de só ${nf(e, 0)}%`;
-  const lista = (mx.faltamEstoque.length ? mx.faltamEstoque : mx.faltam).slice(0, 2).map(x => nomeMat(x.nome));
+  const lista = (mx.faltamEstoque.length ? mx.faltamEstoque : mx.faltam).slice(0, 2).map(x => nomeMat(x.nome).replace(/\s*\([^)]*\)/g, '')); // sem o "(Limpa)": a frase cabe em 2 linhas
   const kgEst = mx.faltamEstoque.reduce((s, x) => s + x.estoqueKg, 0);
   const volta = !lista.length ? '' : mx.faltamEstoque.length
-    ? `com a venda do ${juntarE(lista)} em estoque (${tn(kgEst, 1)}), a média **volta a subir**`
+    ? `com a venda de ${juntarE(lista)} em estoque (${tn(kgEst, 1)}), a média **volta a subir**`
     : `quando sair ${juntarE(lista)}, a média **volta a subir**`;
   return { motivo, mesmo, volta };
 }
@@ -485,12 +485,14 @@ export function montarApresentacao(PptxGenJS, d, { img, frases: fr, textos, acoe
   }
   const corAting = p => p == null ? COR.muted : p >= 100 ? COR.ok : p >= 70 ? COR.amarelo : COR.verm;
   function barras(s, x, y, w, itens, passo = 38, fs = 15) {
-    itens.forEach(([rot, v, lab], k) => {
-      const yy = y + k * passo, bw = w - 150 - 90;
+    itens.forEach(([rot, v, lab, det], k) => {
+      // det (opcional): texto pequeno sob a barra, ex.: "R$ 7,7 mil de R$ 16,1 mil" — a barra fica mais fina
+      const yy = y + k * passo, bw = w - 150 - 90, yb = det ? yy + 3 : yy + 5, hb = det ? 14 : 18;
       txt(s, x, yy, 150, 26, rot, fs, COR.txt2);
-      box(s, x + 150, yy + 5, bw, 18, COR.trilho, null, 0);
-      if (v > 0) box(s, x + 150, yy + 5, Math.max(8, bw * Math.min(v, 100) / 100), 18, corAting(v), null, 0);
+      box(s, x + 150, yb, bw, hb, COR.trilho, null, 0);
+      if (v > 0) box(s, x + 150, yb, Math.max(8, bw * Math.min(v, 100) / 100), hb, corAting(v), null, 0);
       txt(s, x + w - 80, yy, 80, 26, lab, fs, COR.txt, { bold: true, align: 'right' });
+      if (det) txt(s, x + 150, yy + 19, bw + 90, 18, det, 12, COR.txt2);
     });
   }
   function card(s, x, y, w, h, c) {
@@ -631,8 +633,12 @@ export function montarApresentacao(PptxGenJS, d, { img, frases: fr, textos, acoe
       txt(s, px + 22, y + 86, pw - 44, 22, b[2], 14, COR.txt2);
     });
     txt(s, px, 607, pw, 22, 'ATINGIMENTO DA META SEMANAL', 13, COR.muted, { bold: true });
-    barras(s, px, 639, pw, d.semFat.map(w => [`Sem ${w.i} (${+w.s.ini.slice(8)}–${+w.s.fim.slice(8)})${w.parcial ? '*' : ''}`, w.p, w.p == null ? '—' : `${nf(w.p, 0)}%`]),
-      d.semFat.length > 4 ? 36 : 38);
+    // Sob cada barra: realizado × meta da semana (semana parcial: meta só até o corte) e quanto faltou/sobrou
+    const k1 = v => nf(v / 1000, 1);
+    const detSem = w => !(w.meta > 0) ? '' : `R$ ${k1(w.fat)} de ${k1(w.meta)} mil` +
+      (w.fat < w.meta ? ` · faltam ${k1(w.meta - w.fat)} mil` : ` · ${k1(w.fat - w.meta)} mil acima`);
+    barras(s, px, 639, pw, d.semFat.map(w => [`Sem ${w.i} (${+w.s.ini.slice(8)}–${+w.s.fim.slice(8)})${w.parcial ? '*' : ''}`, w.p, w.p == null ? '—' : `${nf(w.p, 0)}%`, detSem(w)]),
+      d.semFat.length > 4 ? 39 : 42);
     // Mês em andamento: acumulado só dos meses fechados (faturamento parcial × meta cheia distorce o %)
     const fatAc = d.emAndamento ? d.fatFech : d.fatAno, metaAc = d.emAndamento ? d.metaFech : d.metaAno;
     const pAno = metaAc > 0 ? fatAc / metaAc * 100 : null;
@@ -708,30 +714,7 @@ export function montarApresentacao(PptxGenJS, d, { img, frases: fr, textos, acoe
     txt(s, 50, yTxt, 1280, 30, c.preco && a.preco
       ? `Preço médio geral (todos os materiais): ${reais0(c.preco)}/t em ${mes} — R$ ${nf(Math.abs(dif), 0)}/t ${dif >= 0 ? 'a mais' : 'a menos'} que em ${ant} (${reais0(a.preco)}/t).`
       : `Preço médio geral (todos os materiais): ${c.preco ? reais0(c.preco) + '/t' : '—'} em ${mes}.`, 17, COR.txt2);
-    // Preço do prensado por material: mostra que a média mudou pelo mix (quais materiais saíram), não pelo preço
-    const mx = d.mixPrensado;
-    let yObs = yTxt + 60;
-    if (mx && Math.abs(mx.varMedia) >= 2) {
-      const nomes = [...new Set([...mx.cur, ...mx.ant].map(x => x.nome))];
-      const curPor = Object.fromEntries(mx.cur.map(x => [x.nome, x]));
-      const estPor = Object.fromEntries(mx.faltamEstoque.map(x => [x.nome, x.estoqueKg]));
-      const linhas = nomes.map(nome => ({ nome, peso: (curPor[nome]?.fat || 0) + (mx.antPor[nome]?.fat || 0) }))
-        .sort((p, q) => q.peso - p.peso).slice(0, 3).map(({ nome }) => {
-          const x = curPor[nome], y = mx.antPor[nome];
-          return [
-            { text: `${cap(nomeMat(nome))}: `, options: { bold: true, color: COR.txt } },
-            { text: x ? `${quandoMes} ${tn(x.vol)} a ${reais0(x.preco)}/t` : `ainda não vendido em ${mes}`, options: { color: x ? COR.txt2 : COR.amb } },
-            { text: y ? ` · ${ant}: ${tn(y.vol)} a ${reais0(y.preco)}/t` : ` · não vendido em ${ant}`, options: { color: COR.muted } },
-            { text: estPor[nome] ? ` · em estoque: ${tn(estPor[nome], 1)}` : '', options: { bold: true, color: COR.verde, breakLine: true } },
-          ];
-        });
-      txt(s, 50, yTxt + 44, 1280, 22, 'PREÇO DO PRENSADO POR MATERIAL', 14, COR.muted, { bold: true });
-      // breakLine no último trecho de cada linha (menos a última)
-      const runsMat = linhas.flatMap((l, k) => k === linhas.length - 1 ? l.map((p, j) => j === l.length - 1 ? { ...p, options: { ...p.options, breakLine: false } } : p) : l);
-      txt(s, 50, yTxt + 70, 1280, linhas.length * 26, runsMat, 15, COR.txt2);
-      yObs = yTxt + 78 + linhas.length * 26;
-    }
-    if (d.emAndamento) txt(s, 50, Math.min(yObs, 812), 1290, 30, `* Obs.: ${mes} parcial — dados até ${ddmmaaaa(d.corte)}, mês ainda não fechado.`, 17, COR.muted, { italic: true });
+    if (d.emAndamento) txt(s, 50, yTxt + 60, 1290, 30, `* Obs.: ${mes} parcial — dados até ${ddmmaaaa(d.corte)}, mês ainda não fechado.`, 17, COR.muted, { italic: true });
   }
 
   // ── 6. Prensagem ──
