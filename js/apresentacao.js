@@ -735,6 +735,29 @@ export function montarApresentacao(PptxGenJS, d, { img, frases: fr, textos, acoe
       const x = 50 + k.i * (cw + cgap), r = c.g[k.g], rA = a.g[k.g];
       box(s, x, 205, cw, ch, fill, line);
       txt(s, x + 24, 225, cw - 170, 20, rot, 13, corRot, { bold: true });
+      // 1) Mês atual: preço grande + estoque e simulação logo abaixo (a % da simulação é contra o preço atual)
+      if (r.preco) txt(s, x + 24, 250, cw - 48, 56, `${reais0(r.preco)}/t`, 40, corValor, { bold: true });
+      else txt(s, x + 24, 260, cw - 48, 40, `sem vendas em ${mes}`, 22, COR.muted, { bold: true });
+      const e = d.estoqueGrupo[k.g];
+      txt(s, x + 24, 312, cw - 48, 24, [
+        { text: 'Estoque: ', options: { color: COR.muted } },
+        { text: e.kg > 0 ? `${tn(e.kg, 1)} a ${reais0(e.val / (e.kg / 1000))}/t` : 'sem estoque', options: { bold: true, color: COR.txt2 } },
+      ], 15, COR.txt2);
+      if (e.kg > 0) {
+        const sim = (r.fat + e.val) / ((r.vol + e.kg) / 1000), vs = varPct(sim, r.preco);
+        txt(s, x + 24, 338, cw - 48, 26, [
+          { text: 'Vendido + estoque: ', options: { color: COR.muted } },
+          { text: `${reais0(sim)}/t`, options: { bold: true, color: COR.verde } },
+          { text: vs == null || Math.abs(vs) < 1 ? '' : `  ${seta(vs)} ${nf(Math.abs(vs), 0)}% vs atual`, options: { bold: true, color: vs > 0 ? COR.ok : COR.verm, fontSize: 12 } },
+        ], 15, COR.txt2);
+      }
+
+      // 2) Mês de comparação: separado por uma linha, com a variação do preço ao lado
+      linha(s, x + 24, 386, x + cw - 24, COR.borda);
+      txt(s, x + 24, 404, cw - 170, 24, [
+        { text: `${cap(ant)}: `, options: { color: COR.muted } },
+        { text: rA.preco ? `${reais0(rA.preco)}/t` : 'sem vendas', options: { bold: true, color: COR.txt2 } },
+      ], 15, COR.txt2);
       const v = varPct(r.preco, rA.preco);
       // Queda do prensado causada só pelo mix de materiais: não pinta de vermelho e diz o motivo
       const porMix = k.g === 'prensado' && v != null && v < -2 && d.mixPrensado?.porMix;
@@ -742,27 +765,7 @@ export function montarApresentacao(PptxGenJS, d, { img, frases: fr, textos, acoe
         const [fg, bg] = Math.abs(v) < 2 ? [COR.muted, COR.trilho] : porMix ? [COR.amb, COR.ambBg] : v > 0 ? [COR.ok, COR.okBg] : [COR.verm, COR.vermBg];
         const t = Math.abs(v) < 2 ? 'estável' : `${seta(v)} ${nf(Math.abs(v), 0)}%${porMix ? ' · mix' : ''}`;
         const wp = Math.max(60, t.length * 13 * 0.62 + 28);
-        pill(s, x + cw - 24 - wp, 220, t, fg, bg, 13);
-      }
-      if (r.preco) txt(s, x + 24, 256, cw - 48, 56, `${reais0(r.preco)}/t`, 40, corValor, { bold: true });
-      else txt(s, x + 24, 266, cw - 48, 40, `sem vendas em ${mes}`, 22, COR.muted, { bold: true });
-      linha(s, x + 24, 330, x + cw - 24, COR.borda, 'dash');
-      txt(s, x + 24, 344, cw - 48, 24, [
-        { text: `${cap(ant)}: `, options: { color: COR.muted } },
-        { text: rA.preco ? `${reais0(rA.preco)}/t` : 'sem vendas', options: { bold: true, color: COR.txt2 } },
-      ], 15, COR.txt2);
-      const e = d.estoqueGrupo[k.g];
-      txt(s, x + 24, 370, cw - 48, 24, [
-        { text: 'Estoque: ', options: { color: COR.muted } },
-        { text: e.kg > 0 ? `${tn(e.kg, 1)} a ${reais0(e.val / (e.kg / 1000))}/t` : 'sem estoque', options: { bold: true, color: COR.txt2 } },
-      ], 15, COR.txt2);
-      if (e.kg > 0) {
-        const sim = (r.fat + e.val) / ((r.vol + e.kg) / 1000), vs = varPct(sim, r.preco);
-        txt(s, x + 24, 400, cw - 48, 26, [
-          { text: 'Vendido + estoque: ', options: { color: COR.muted } },
-          { text: `${reais0(sim)}/t`, options: { bold: true, color: COR.verde } },
-          { text: vs == null || Math.abs(vs) < 1 ? '' : `  ${seta(vs)} ${nf(Math.abs(vs), 0)}%`, options: { bold: true, color: vs > 0 ? COR.ok : COR.verm, fontSize: 13 } },
-        ], 16, COR.txt2);
+        pill(s, x + cw - 24 - wp, 401, t, fg, bg, 13);
       }
     };
     cartao({ i: 0, g: 'prensado' }, 'PRENSADO', COR.verdeCl, null, COR.verde, COR.verde);
