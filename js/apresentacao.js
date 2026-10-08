@@ -344,7 +344,7 @@ export function frasesPadrao(d) {
     : atFat != null && d.emAndamento && d.du > 0 && d.dp > 0 ? atFat / (d.dp / d.du) : atFat;
   const atProdProp = d.emAndamento ? (d.esperado > 0 ? d.prod / d.esperado * 100 : null) : atProd;
   const resumo = (d.emAndamento
-    ? `${quando} (${d.dp} de ${d.du} dias úteis): faturamento em ${atFat == null ? 'meta não cadastrada' : destaque(`${nf(atFat, 0)}% da meta do mês`, atFatProp)} e prensas em ${destaque(`${nf(atProdProp, 0)}% do previsto até ${ddmm(d.corte)}`, atProdProp)}`
+    ? `${quando} (${d.dp} de ${d.du} dias úteis): faturamento em ${atFat == null ? 'meta não cadastrada' : destaque(`${nf(atFat, 0)}% da meta do mês`, atFatProp)} e prensas em ${destaque(`${nf(atProdProp, 0)}% do previsto até ${ddmm(d.corte)}`, d.inicioMes && atProdProp != null ? Math.max(atProdProp, 70) : atProdProp)}`
     : `${quando}: faturamento em ${atFat == null ? 'meta não cadastrada' : destaque(`${nf(atFat, 0)}% da meta`, atFat)} e prensas em ${destaque(`${nf(atProd, 0)}% da capacidade`, atProd)}`) + ` — volume vendido ${vVol == null ? 'sem comparação' : vVol >= 0 ? 'cresce' : 'cai'}, preço médio ${vPreco == null ? 'sem comparação' : vPreco >= 0 ? 'sobe' : 'cai'}.`;
 
   let fat;
@@ -561,29 +561,42 @@ export function montarApresentacao(PptxGenJS, d, { img, frases: fr, textos, acoe
     const semPct = p => p == null ? 'nd' : p >= 100 ? 'ok' : p >= 70 ? 'amb' : 'verm';
     const ind = [];
 
-    // Faturamento: início do mês → compara com o mês anterior no mesmo ponto; depois → com a meta proporcional
-    const atFatProp = d.emAndamento && d.du > 0 && d.dp > 0 && atFat != null ? atFat / (d.dp / d.du) : atFat;
-    if (d.inicioMes) {
-      const ref = d.antMesmo.fat, v = varPct(c.fat, ref);
-      ind.push({ label: 'Faturamento', st: semPct(ref > 0 ? c.fat / ref * 100 : null), valor: mil(c.fat),
-        sub: `${d.meta ? `${pct(atFat, 0)} da meta · ` : ''}${d.dp} de ${d.du} dias úteis`,
-        ctx: `${cap(ant)} no mesmo ponto: ${mil(ref)}${v != null ? ` (${seta(v)} ${nf(Math.abs(v), 0)}%)` : ''} · fechou em ${mil(d.antCheio.fat)}` });
-    } else if (d.emAndamento) {
-      ind.push({ label: 'Faturamento', st: semPct(atFatProp), valor: mil(c.fat),
-        sub: `${d.meta ? `${pct(atFat, 0)} da meta · ` : ''}${d.dp} de ${d.du} dias úteis`,
-        ctx: `Projeção no ritmo atual: ${mil(d.projecao)}${d.meta ? ` (${pct(d.projecao / d.meta * 100, 0)} da meta)` : ''}` });
-    } else {
-      const v = varPct(c.fat, d.antCheio.fat);
-      ind.push({ label: 'Faturamento', st: semPct(atFat), valor: mil(c.fat), sub: d.meta ? `${pct(atFat, 0)} da meta de ${mil(d.meta)}` : 'sem meta cadastrada',
-        ctx: v == null ? '' : `${seta(v)} ${nf(Math.abs(v), 0)}% vs ${ant} (${mil(d.antCheio.fat)})` });
-    }
+    // ctx = linhas [rótulo, valor] abaixo do tracejado. Variação "▲ 12%" pronta para a linha.
+    const vTxt = v => v == null ? '' : ` (${seta(v)} ${nf(Math.abs(v), 0)}%)`;
 
-    // Prensagem: produção × previsto até o corte (mês fechado: × capacidade do mês)
+    // Faturamento: início do mês → compara com o mês anterior no mesmo ponto; depois → com a meta proporcional.
+    // Mês em andamento: volume e ticket médio comparados com o mês anterior no mesmo ponto; mês fechado: com o mês cheio.
+    const atFatProp = d.emAndamento && d.du > 0 && d.dp > 0 && atFat != null ? atFat / (d.dp / d.du) : atFat;
+    const ref = d.emAndamento ? d.antMesmo : d.antCheio;
+    const rotRef = d.emAndamento ? `${ant.slice(0, 3)}. mesmo ponto` : cap(ant);
+    const linhasFat = [
+      d.inicioMes ? [`${cap(ant)} no mesmo ponto`, `${mil(ref.fat)}${vTxt(varPct(c.fat, ref.fat))} · fechou em ${mil(d.antCheio.fat)}`]
+        : d.emAndamento ? ['Projeção no ritmo atual', `${mil(d.projecao)}${d.meta ? ` (${pct(d.projecao / d.meta * 100, 0)} da meta)` : ''}`]
+          : [`vs ${ant}`, `${mil(ref.fat)}${vTxt(varPct(c.fat, ref.fat))}`],
+      ['Volume vendido', `${tn(c.vol, 1)} · ${rotRef}: ${tn(ref.vol, 1)}${vTxt(varPct(c.vol, ref.vol))}`],
+      ['Ticket médio', `${c.preco ? `${reais0(c.preco)}/t` : '—'} · ${rotRef}: ${ref.preco ? `${reais0(ref.preco)}/t` : '—'}`],
+      d.emAndamento ? ['Potencial com estoque', `${mil(c.fat + d.valorEstoque)}${d.meta ? ` (${pct((c.fat + d.valorEstoque) / d.meta * 100, 0)} da meta)` : ''} · estoque ${mil(d.valorEstoque)}`] : null,
+    ].filter(Boolean);
+    ind.push({ label: 'Faturamento', st: semPct(d.inicioMes ? (ref.fat > 0 ? c.fat / ref.fat * 100 : null) : d.emAndamento ? atFatProp : atFat),
+      valor: mil(c.fat), sub: d.emAndamento ? `${d.meta ? `${pct(atFat, 0)} da meta · ` : ''}${d.dp} de ${d.du} dias úteis` : d.meta ? `${pct(atFat, 0)} da meta de ${mil(d.meta)}` : 'sem meta cadastrada',
+      ctx: linhasFat });
+
+    // Prensagem: produção × previsto até o corte (mês fechado: × capacidade do mês).
+    // Início do mês: no máximo "Atenção" — poucos dias de produção ainda não definem o mês.
     const atProdRef = d.emAndamento ? (d.esperado > 0 ? d.prod / d.esperado * 100 : null) : atProd;
     const vPl = d.prensAntes > 0 ? varPct(c.prensa.vol, d.prensAntesProp) : null;
-    ind.push({ label: 'Prensagem', st: semPct(atProdRef), valor: `${nf(d.prod / 1000, 1)} t produzidas`,
+    const ritmoP = d.dpPrensa > 0 ? d.prod / d.dpPrensa : 0;
+    let stProd = semPct(atProdRef);
+    if (d.inicioMes && stProd === 'verm') stProd = 'amb';
+    ind.push({ label: 'Prensagem', st: stProd, valor: `${nf(d.prod / 1000, 1)} t produzidas`,
       sub: d.emAndamento ? `${pct(atProdRef, 0)} do previsto até ${ddmm(d.corte)} (${nf(d.esperado / 1000, 1)} t)` : `${pct(atProd, 0)} da capacidade de ${tCap(d, d.capMes)} t`,
-      ctx: `Prensado vendido: ${tn(c.prensa.vol, 1)}${vPl == null ? '' : Math.abs(vPl) < 5 ? ' · em linha com a média antes do plano' : ` · ${nf(Math.abs(vPl), 0)}% ${vPl > 0 ? 'acima' : 'abaixo'} da média antes do plano`}` });
+      ctx: [
+        ['Ritmo', `${nf(ritmoP / 1000, 1)} t/dia útil · meta ${nf(d.metaDia / 1000, 1)} t/dia`],
+        // Prensado VENDIDO no período × o que se vendia de prensado, em média, antes do plano de expansão (proporcional aos dias)
+        d.prensAntes > 0 ? ['Prensado vendido',
+          `${tn(c.prensa.vol, 1)} · antes do plano: ${tn(d.emAndamento ? d.prensAntesProp : d.prensAntes, 1)}${d.emAndamento ? ' no período' : '/mês'}${vTxt(vPl)}`]
+          : ['Prensado vendido', tn(c.prensa.vol, 1)],
+      ] });
 
     // Equipamentos: situação atual + quem mais parou no mês
     const p0 = d.comParada[0];
@@ -592,13 +605,13 @@ export function montarApresentacao(PptxGenJS, d, { img, frases: fr, textos, acoe
     ind.push({ label: 'Equipamentos', st: !d.eqs.length ? 'nd' : d.nPar ? 'verm' : d.nRes || (d.dispMes != null && d.dispMes < 99.5) ? 'amb' : 'ok',
       valor: `${d.nOp + d.nRes} de ${d.eqs.length} disponíveis`,
       sub: `${d.rotDisp}${d.dispMes != null ? ` · média do mês ${pct(d.dispMes, 0)}` : ''}`,
-      ctx: p0 ? `${nomeEq(p0.e)} parada em ${nf(p0.pct, 0)}% dos dias` : alvo ? `${nomeEq(alvo)} ${alvo.st === 'parado' ? 'parada' : 'com restrição'}` : 'Todos operando no mês' });
+      ctx: [[p0 ? 'Mais parado no mês' : alvo ? 'Atenção' : 'Situação', p0 ? `${nomeEq(p0.e)}: ${nf(p0.pct, 0)}% dos dias` : alvo ? `${nomeEq(alvo)} ${alvo.st === 'parado' ? 'parada' : 'com restrição'}` : 'todos operando no mês']] });
 
     // Equipe: quadro do RH
     const incompleta = d.colab != null && d.colab < d.quadro;
     ind.push({ label: 'Equipe', st: d.colab == null ? 'nd' : incompleta ? 'amb' : 'ok', valor: d.colab != null ? `${d.colab} de ${d.quadro} colaboradores` : '—',
       sub: d.colab != null ? `${nf(d.colab / d.quadro * 100, 0)}% do quadro previsto` : 'sem colaboradores no RH',
-      ctx: d.vagas ? `${d.vagas} vaga${d.vagas > 1 ? 's' : ''} em reposição${textos.proximos[0] ? ` · ${textos.proximos[0]}` : ''}` : 'Sem vagas abertas' });
+      ctx: [['Vagas', d.vagas ? `${d.vagas} em reposição` : 'sem vagas abertas'], textos.proximos[0] ? ['Próximo passo', textos.proximos[0]] : null].filter(Boolean) });
 
     const W = 630, H = 298, gx = 20, gy = 20, x0 = 50, y0 = 208;
     ind.forEach((k, i) => {
@@ -609,14 +622,20 @@ export function montarApresentacao(PptxGenJS, d, { img, frases: fr, textos, acoe
       txt(s, x + 34, y + 26, 300, 24, k.label.toUpperCase(), 15, COR.muted, { bold: true });
       const wp = Math.max(60, rot.length * 14 * 0.62 + 28);
       pill(s, x + W - 26 - wp, y + 22, rot, fg, bg, 14);
-      txt(s, x + 34, y + 70, W - 60, 60, k.valor, 38, COR.txt, { bold: true });
-      txt(s, x + 34, y + 140, W - 60, 28, k.sub, 18, COR.txt2);
-      linha(s, x + 34, y + 192, x + W - 26, COR.borda, 'dash');
-      txt(s, x + 34, y + 206, W - 60, 70, k.ctx, 15, COR.txt2);
+      txt(s, x + 34, y + 60, W - 60, 56, k.valor, 36, COR.txt, { bold: true });
+      txt(s, x + 34, y + 120, W - 60, 26, k.sub, 17, COR.txt2);
+      linha(s, x + 34, y + 162, x + W - 26, COR.borda, 'dash');
+      // Linhas de contexto: rótulo em cinza + valor em negrito
+      txt(s, x + 34, y + 174, W - 60, 110, k.ctx.flatMap(([r, v], j) => [
+        { text: `${r}: `, options: { color: COR.muted } },
+        { text: v, options: { bold: true, color: COR.txt2, breakLine: j < k.ctx.length - 1 } },
+      ]), 14, COR.txt2, { paraSpaceAfter: 5 });
     });
     fala(s, { min: 4, etapa: 'Resumo (1 de 5)', frase: fr.resumo,
       apoio: [
-        ...ind.map(k => `${k.label} — ${SEM[k.st][0]}: ${k.valor}; ${k.sub}. ${k.ctx}`),
+        ...ind.map(k => `${k.label} — ${SEM[k.st][0]}: ${k.valor}; ${k.sub}. ${k.ctx.map(([r, v]) => `${r}: ${v}`).join('; ')}.`),
+        d.inicioMes && atProdRef < 70 ? `Prensagem marcada como "Atenção" (e não "Crítico") porque ainda é início do mês: ${pct(atProdRef, 0)} do previsto em ${d.dp} dias úteis.` : '',
+        d.prensAntes > 0 ? `"Prensado vendido × antes do plano": toneladas de prensado vendidas no período comparadas com a média mensal de prensado vendido antes do plano de expansão (${tn(d.prensAntes, 1)}/mês)${d.emAndamento ? `, proporcional aos ${d.dp} dias úteis já passados` : ''}. Mostra se o plano aumentou a venda de prensado.` : '',
         d.emAndamento ? `Mês em andamento: dados até ${ddmmaaaa(d.corte)}; comparações com ${ant} até ${ddmm(d.fimAntMesmo)} (mesmo ponto do mês).` : '',
       ],
       proximo: 'Agora o porquê de cada número, começando pelo faturamento.' });
