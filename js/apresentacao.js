@@ -420,8 +420,18 @@ export function frasesPadrao(d) {
     prensa += ` — a *${pior.e.nome}${pior.e.frota ? ' ' + pior.e.frota : ''} ficou ${pior.diasParado} dia${pior.diasParado > 1 ? 's' : ''} em manutenção*` +
       (d.prensasReduzidas.length > 1 ? ` (−${nf(d.perdaCap / 1000, 1)} t de capacidade no total).` : ` (−${nf(pior.perda / 1000, 1)} t de capacidade).`);
   } else prensa += d.perdaCap > 0.5 ? ` (−${nf(d.perdaCap / 1000, 1)} t de capacidade por restrição).` : '.';
-  if (d.prensAntes > 0) {
-    // Mês em andamento: média antes do plano proporcional aos dias úteis já passados
+  const estPrensado = d.emAndamento ? d.estoqueGrupo?.prensado.kg || 0 : 0;
+  if (d.emAndamento) {
+    // Frase curta: produção × previsto (início do mês sem vermelho) e prensado vendido × antes do plano + estoque a vender
+    prensa = `Até ${ddmm(d.corte)}: ${destaque(`${nf(d.prod / 1000, 1)} t produzidas de ${nf(d.esperado / 1000, 1)} t previstas`, d.inicioMes && atProdProp != null ? Math.max(atProdProp, 70) : atProdProp)} (${pct(atProdProp, 0)}).`;
+    if (d.prensAntes > 0) {
+      const vMes = varPct(c.prensa.vol, d.prensAntesProp);
+      prensa += ` Prensado vendido ${Math.abs(vMes) < 5 ? 'em linha com o' : vMes > 0 ? `**${nf(vMes, 0)}% acima** do` : `*${nf(Math.abs(vMes), 0)}% abaixo* do`} ritmo de antes do plano`;
+      prensa += estPrensado > 0 ? `, com mais **${nf(estPrensado / 1000, 1)} t prensadas em estoque** para vender.` : '.';
+    } else if (estPrensado > 0) prensa += ` Há **${nf(estPrensado / 1000, 1)} t prensadas em estoque** para vender.`;
+    if (pior && pior.diasParado > 0) prensa += ` *${pior.e.nome}${pior.e.frota ? ' ' + pior.e.frota : ''}: ${pior.diasParado} dia${pior.diasParado > 1 ? 's' : ''} em manutenção*.`;
+  } else if (d.prensAntes > 0) {
+    // Mês fechado: compara com a média mensal antes do plano
     const vMes = varPct(c.prensa.vol, d.prensAntesProp);
     const varTxt = Math.abs(vMes) < 5 ? 'em linha com' : vMes > 0 ? `**${nf(vMes, 0)}% acima**` : `*${nf(Math.abs(vMes), 0)}% abaixo*`;
     prensa += d.emAndamento
@@ -819,31 +829,55 @@ export function montarApresentacao(PptxGenJS, d, { img, frases: fr, textos, acoe
   {
     const s = conteudo('PRENSAGEM', fr.prensa, 2, true);
     const mPlano = PLANO_INICIO.slice(0, 7);
-    // Linha de referência fixa na capacidade nominal (a capacidade descontada da manutenção fica no card ao lado)
-    const capNomT = +(d.capNominal / 1000).toFixed(2), capRefT = capNomT;
-    const nomeCap = `Capacidade nominal ${d.prensas.length} prensas (${nf(d.capNominal / 1000, 0)} t/mês)`;
+    // Estoque prensado (a vender): só faz sentido sobre o mês em andamento (é a foto de hoje)
+    const estP = d.emAndamento ? d.estoqueGrupo.prensado.kg : 0;
+    const valsT = d.prensadoMes.map(v => +(v / 1000).toFixed(2));
+    const iCur = d.mesesAno.indexOf(d.M);
+    // Eixo com máximo fixo e área do gráfico fixa: assim dá para desenhar a caixa do estoque exatamente sobre a barra
+    const capNomT = +(d.capNominal / 1000).toFixed(2);
+    const maxT = Math.max(capNomT, ...valsT, (valsT[iCur] || 0) + estP / 1000);
+    const passoEixo = maxT > 120 ? 20 : 10, valMax = Math.ceil((maxT * 1.12) / passoEixo) * passoEixo;
+    const G = { x: 40, y: 205, w: 860, h: 600 }, L = { x: 0.06, y: 0.09, w: 0.92, h: 0.74 };
     s.addChart([
-      { type: pptx.ChartType.bar, data: [{ name: 'Prensado vendido (t)', labels: labelsAno, values: d.prensadoMes.map(v => +(v / 1000).toFixed(2)) }],
+      { type: pptx.ChartType.bar, data: [{ name: 'Prensado vendido (t)', labels: labelsAno, values: valsT }],
         options: optsBarras(d.mesesAno.map(mk => mk >= mPlano ? COR.lima : COR.verde), '0.0" t"') },
-      { type: pptx.ChartType.line, data: [{ name: nomeCap, labels: labelsAno, values: d.mesesAno.map(mk => mk === d.M ? capRefT : capNomT) }], options: optsLinha },
-    ], { ...optsGrafico(`Volume prensado vendido por mês (t) · verde-claro: plano de expansão (desde ${ddmm(PLANO_INICIO)})`), valAxisLabelFormatCode: '0' });
+      { type: pptx.ChartType.line, data: [{ name: `Capacidade ${d.prensas.length} prensas (${nf(d.capNominal / 1000, 0)} t/mês)`, labels: labelsAno, values: d.mesesAno.map(() => capNomT) }], options: optsLinha },
+    ], { ...optsGrafico(`Prensado vendido por mês (t) · verde-claro: plano de expansão`), valAxisLabelFormatCode: '0',
+      valAxisMaxVal: valMax, valAxisMajorUnit: passoEixo, layout: L });
+    if (estP > 0 && iCur >= 0) {
+      // Caixa tracejada em cima da barra do mês: o estoque prensado que ainda pode ser vendido
+      const px0 = G.x + L.x * G.w, pW = L.w * G.w, py0 = G.y + L.y * G.h, pH = L.h * G.h;
+      const catW = pW / d.mesesAno.length, barW = catW / 1.6, bx = px0 + iCur * catW + (catW - barW) / 2;
+      const yDe = t => py0 + pH * (1 - t / valMax);
+      const vend = valsT[iCur] || 0, total = vend + estP / 1000;
+      s.addShape(pptx.ShapeType.rect, { x: I(bx), y: I(yDe(total)), w: I(barW), h: I(yDe(vend) - yDe(total)),
+        fill: { color: COR.lima, transparency: 82 }, line: { color: COR.verde, width: 1.5, dashType: 'dash' } });
+      txt(s, bx - 60, yDe(total) - 42, barW + 120, 40, [
+        { text: `${nf(total, 1)} t`, options: { bold: true, color: COR.verde, breakLine: true } },
+        { text: `+${nf(estP / 1000, 1)} t em estoque`, options: { color: COR.txt2, fontSize: 11 } },
+      ], 14, COR.txt, { align: 'center' });
+    }
 
+    // Coluna da direita: três cards no mesmo formato (rótulo · número grande · uma ou duas linhas)
     const px = 940, pw = 390;
-    box(s, px, 205, pw, 190, 'FFFFFF', COR.borda);
-    txt(s, px + 22, 221, pw - 44, 20, `PRODUÇÃO DAS PRENSAS · ${mes.toUpperCase()}`, 13, COR.muted, { bold: true });
-    // Mês em andamento: compara com o previsto até o corte; a meta do mês inteiro fica como apoio
+    const cardP = (y, h, rot, valor, linhas, cor = COR.txt, fill = 'FFFFFF', corRot = COR.muted) => {
+      box(s, px, y, pw, h, fill, fill === 'FFFFFF' ? COR.borda : null);
+      txt(s, px + 22, y + 16, pw - 44, 20, rot, 13, corRot, { bold: true });
+      txt(s, px + 22, y + 40, pw - 44, 46, valor, 32, cor, { bold: true });
+      txt(s, px + 22, y + 92, pw - 44, h - 100, linhas, 14, COR.txt2, { paraSpaceAfter: 3 });
+    };
+    // 1) Produção × previsto até o corte (mês fechado: × capacidade do mês), com barra de progresso
     const atEsp = d.esperado > 0 ? d.prod / d.esperado * 100 : null;
-    txt(s, px + 22, 247, pw - 44, 46, d.emAndamento ? `${nf(d.prod / 1000, 1)} t de ${nf(d.esperado / 1000, 1)} t` : `${nf(d.prod / 1000, 2)} t de ${tCap(d, d.capMes)} t`, 30, COR.txt, { bold: true });
-    box(s, px + 22, 305, pw - 44, 16, COR.trilho, null, 0);
-    const pBarra = d.emAndamento ? atEsp : atProd;
-    if (pBarra > 0) box(s, px + 22, 305, Math.max(6, (pw - 44) * Math.min(pBarra, 100) / 100), 16, corAting(d.emAndamento ? atEsp : atProd / pEsperadoProd * 100), null, 0);
-    const atraso = d.esperado - d.prod, ritmo = d.dpPrensa > 0 ? d.prod / d.dpPrensa : 0;
-    const linhaCap = d.perdaCap > 0.5 ? `\ncapacidade ${nf(d.capNominal / 1000, 0)} t − ${nf(d.perdaCap / 1000, 1)} t em manutenção` : '';
-    const linha1 = d.emAndamento
-      ? `${pct(atEsp, 0)} do previsto até ${ddmm(d.corte)} · meta do mês: ${tCap(d, d.capMes)} t`
-      : `${pct(atProd)} da meta${atraso > 0 ? ` · atraso de ${nf(atraso / 1000, 1)} t` : ''}`;
-    txt(s, px + 22, 328, pw - 44, linhaCap ? 62 : 50, `${linha1}\nritmo: ${nf(ritmo / 1000, 1)} t/dia útil (meta ${nf(d.metaDia / 1000, 1)} t/dia)${linhaCap}`, linhaCap ? 12.5 : 14, COR.txt2);
+    const ritmo = d.dpPrensa > 0 ? d.prod / d.dpPrensa : 0;
+    const pProd = d.emAndamento ? atEsp : atProd;
+    cardP(205, 190, d.emAndamento ? `PRODUÇÃO ATÉ ${ddmm(d.corte)}` : `PRODUÇÃO EM ${mes.toUpperCase()}`, tn(d.prod, 1), [
+      { text: d.emAndamento ? `de ${tn(d.esperado, 1)} previstas · ${pct(atEsp, 0)}` : `de ${tCap(d, d.capMes)} t de capacidade · ${pct(atProd, 0)}`, options: { breakLine: true } },
+      { text: `ritmo ${nf(ritmo / 1000, 1)} t/dia · meta ${nf(d.metaDia / 1000, 1)} t/dia`, options: { color: COR.muted } },
+    ]);
+    box(s, px + 22, 345, pw - 44, 12, COR.trilho, null, 0);
+    if (pProd > 0) box(s, px + 22, 345, Math.max(6, (pw - 44) * Math.min(pProd, 100) / 100), 12, corAting(d.inicioMes ? Math.max(pProd, 70) : pProd), null, 0);
 
+    // 2) Ritmo para fechar a meta do mês (mês fechado: resultado)
     const falta = Math.max(0, d.capMes - d.prod);
     let b2;
     if (falta <= 0) b2 = ['META DO MÊS', 'Atingida', `${pct(atProd)} da capacidade`, COR.ok, COR.okBg];
@@ -851,31 +885,24 @@ export function montarApresentacao(PptxGenJS, d, { img, frases: fr, textos, acoe
       const nec = falta / d.dr;
       // Vermelho só quando o ritmo necessário passa bem da meta diária; perto dela é atenção (âmbar)
       const [cT, cB] = nec > d.metaDiaRestante * 1.3 ? [COR.verm, COR.vermBg] : [COR.amb, COR.ambBg];
-      b2 = ['PARA FECHAR A META DO MÊS', `${nf(nec / 1000, 1)} t/dia`, `nos ${d.dr} dias úteis restantes${nec > d.metaDiaRestante * 2 ? ' — inviável' : ''}`, cT, cB];
+      b2 = ['PARA FECHAR O MÊS', `${nf(nec / 1000, 1)} t/dia`, `nos ${d.dr} dias úteis restantes · meta ${tCap(d, d.capMes)} t${nec > d.metaDiaRestante * 2 ? ' — inviável' : ''}`, cT, cB];
     } else b2 = ['RESULTADO DO MÊS', `faltaram ${nf(falta / 1000, 1)} t`, `${pct(atProd)} da meta`, COR.verm, COR.vermBg];
-    box(s, px, 409, pw, 118, b2[4], null);
-    txt(s, px + 22, 425, pw - 44, 20, b2[0], 13, b2[3], { bold: true });
-    txt(s, px + 22, 449, pw - 44, 44, b2[1], 30, b2[3], { bold: true });
-    txt(s, px + 22, 493, pw - 44, 22, b2[2], 14, COR.txt2);
+    cardP(409, 160, b2[0], b2[1], b2[2], b2[3], b2[4], b2[3]);
 
-    box(s, px, 541, pw, 118, 'FFFFFF', COR.borda);
-    // Prensado vendido no mês × média mensal antes do plano (o mês fala por si; a média do plano fica de apoio)
-    txt(s, px + 22, 557, pw - 44, 20, d.emAndamento ? `PRENSADO VENDIDO ATÉ ${ddmm(d.corte)}` : `PRENSADO VENDIDO EM ${mes.toUpperCase()}`, 13, COR.muted, { bold: true });
-    // Mês em andamento: compara com a média antes do plano proporcional aos dias úteis passados
+    // 3) Prensado vendido × antes do plano, e o estoque prensado que ainda pode sair
     const vPlano = d.prensAntes > 0 ? varPct(d.cur.prensa.vol, d.prensAntesProp) : null;
-    txt(s, px + 22, 581, pw - 44, 44, [
-      { text: tn(d.cur.prensa.vol, 1), options: { bold: true, color: COR.txt } },
-      { text: vPlano == null ? '' : `  ${seta(vPlano)} ${nf(Math.abs(vPlano), 0)}%`, options: { bold: true, color: vPlano >= 0 ? COR.ok : COR.verm, fontSize: 20 } },
-    ], 30, COR.txt);
-    txt(s, px + 22, 623, pw - 44, 32, d.prensAntes > 0
-      ? (d.emAndamento
-        ? `vs ${nf(d.prensAntesProp / 1000, 1)} t esperadas em ${d.dp} dias úteis\n(antes do plano: ${nf(d.prensAntes / 1000, 1)} t/mês${d.prensDepois != null ? ` · depois: ${nf(d.prensDepois / 1000, 1)} t/mês` : ''})`
-        : `vs média antes do plano: ${nf(d.prensAntes / 1000, 1)} t/mês${d.prensDepois != null ? `\nmédia desde ${ddmm(PLANO_INICIO)}: ${nf(d.prensDepois / 1000, 1)} t/mês` : ''}`)
-      : 'sem histórico antes do plano', 12.5, COR.txt2);
-
-    txt(s, px, 672, pw, 22, 'ATINGIMENTO SEMANAL DAS PRENSAS', 13, COR.muted, { bold: true });
-    // Passo menor quando o mês tem 5–6 semanas, para não encostar na barra do roteiro (y 836)
-    barras(s, px, 698, pw, d.semProd.map(w => [`Sem ${w.i}${w.parcial ? '*' : ''}`, w.p, w.p == null ? '—' : `${nf(w.p, 0)}%`]), Math.min(28, 132 / Math.max(1, d.semProd.length)), 14);
+    cardP(583, 226, d.emAndamento ? `PRENSADO VENDIDO ATÉ ${ddmm(d.corte)}` : `PRENSADO VENDIDO EM ${mes.toUpperCase()}`, [
+      { text: tn(d.cur.prensa.vol, 1), options: {} },
+      { text: vPlano == null ? '' : `  ${seta(vPlano)} ${nf(Math.abs(vPlano), 0)}%`, options: { color: vPlano >= 0 ? COR.ok : COR.verm, fontSize: 20 } },
+    ], [
+      { text: d.prensAntes > 0 ? `vs ${tn(d.emAndamento ? d.prensAntesProp : d.prensAntes, 1)} antes do plano${d.emAndamento ? ' no período' : ''}` : 'sem histórico antes do plano', options: { breakLine: true } },
+      ...(estP > 0 ? [
+        { text: 'Em estoque: ', options: { color: COR.muted } },
+        { text: `${tn(estP, 1)} prensadas`, options: { bold: true, color: COR.verde, breakLine: true } },
+        { text: 'Se vender: ', options: { color: COR.muted } },
+        { text: `${tn(d.cur.prensa.vol + estP, 1)} no mês`, options: { bold: true, color: COR.verde } },
+      ] : []),
+    ]);
     fala(s, { min: 5, etapa: 'Prensagem (3 de 5)', frase: fr.prensa,
       apoio: [
         d.emAndamento ? `Produção: ${tn(d.prod, 1)} de ${tn(d.esperado, 1)} previstas até ${ddmm(d.corte)} (${pct(atEsp, 0)}); meta do mês: ${tCap(d, d.capMes)} t.`
@@ -883,8 +910,10 @@ export function montarApresentacao(PptxGenJS, d, { img, frases: fr, textos, acoe
         `Ritmo: ${nf(ritmo / 1000, 1)} t/dia útil; meta: ${nf(d.metaDia / 1000, 1)} t/dia.`,
         `${cap(b2[0].toLowerCase())}: ${b2[1]} ${b2[2]}.`,
         d.prensAntes > 0 ? `Prensado vendido: ${tn(d.cur.prensa.vol, 1)}; média antes do plano ${d.emAndamento ? `no mesmo período: ${tn(d.prensAntesProp, 1)}` : `: ${tn(d.prensAntes, 1)}/mês`}${d.prensDepois != null ? `; média desde ${ddmm(PLANO_INICIO)}: ${tn(d.prensDepois, 1)}/mês` : ''}.` : '',
+        estP > 0 ? `Estoque prensado a vender: ${tn(estP, 1)} (caixa tracejada no gráfico); vendendo, o mês vai a ${tn(d.cur.prensa.vol + estP, 1)} de prensado vendido.` : '',
+        d.semProd.length ? `Atingimento semanal das prensas: ${d.semProd.map(w => `sem ${w.i}${w.parcial ? ' (parcial)' : ''} ${w.p == null ? '—' : pct(w.p, 0)}`).join(' · ')}.` : '',
         d.perdaCap > 0.5 ? `Meta do mês descontada a manutenção: ${textoPerdaCap(d)}.` : '',
-        'Atenção: o gráfico é o prensado VENDIDO (Comercial); os cards à direita são a PRODUÇÃO das prensas (Produção).',
+        'Atenção: o gráfico é o prensado VENDIDO (Comercial); os dois primeiros cards à direita são a PRODUÇÃO das prensas (Produção).',
       ],
       proximo: 'O que sustenta a produção: equipamentos e equipe.' });
   }
