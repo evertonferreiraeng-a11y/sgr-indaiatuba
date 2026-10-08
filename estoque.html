@@ -53,6 +53,7 @@
             <thead>
               <tr>
                 <th>Material</th>
+                <th>Acondicionamento</th>
                 <th class="text-right">Kg em Estoque</th>
                 <th class="text-right">Valor Unitário (R$/kg)</th>
                 <th class="text-right">Valor Total</th>
@@ -126,7 +127,7 @@ function renderTabela() {
   const tb = document.getElementById('tb-estoque');
 
   if (!matsData.length) {
-    tb.innerHTML = `<tr><td colspan="6" class="table-empty">Nenhum material adicionado ao estoque. Clique em "+ Adicionar Material".</td></tr>`;
+    tb.innerHTML = `<tr><td colspan="7" class="table-empty">Nenhum material adicionado ao estoque. Clique em "+ Adicionar Material".</td></tr>`;
     document.getElementById('tf-estoque').innerHTML = '';
     document.getElementById('kpi-kg').textContent    = '0';
     document.getElementById('kpi-valor').textContent = 'R$ 0,00';
@@ -156,12 +157,22 @@ function renderTabela() {
          </td>`
       : `<td>${m.observacao || '—'}</td>`;
 
+    // Prensado / A granel: define em qual card da Composição de Vendas (Apresentação) o estoque entra
+    const ACOND = { prensa: 'Prensado', granel: 'A granel' };
+    const tdAcond = isAdmin
+      ? `<td><select class="inline-input" style="width:auto;min-width:120px" onchange="editAcond(this,'${m.id}')">
+           <option value=""${!m.acondicionamento ? ' selected' : ''}>Não informado</option>
+           ${Object.entries(ACOND).map(([v, t]) => `<option value="${v}"${m.acondicionamento === v ? ' selected' : ''}>${t}</option>`).join('')}
+         </select></td>`
+      : `<td>${ACOND[m.acondicionamento] || '—'}</td>`;
+
     const tdAcoes = isAdmin
       ? `<td><button class="btn-icon danger" title="Remover do estoque" onclick="removerDoEstoque('${m.id}')">${icon('trash',{size:15})}</button></td>`
       : '<td></td>';
 
     return `<tr>
       <td><strong>${m.nome}</strong></td>
+      ${tdAcond}
       ${tdKg}
       ${tdVu}
       <td class="text-right fw-600${vTotal > 0 ? ' text-green' : ''}">${fmtMoeda(vTotal)}</td>
@@ -173,6 +184,7 @@ function renderTabela() {
   document.getElementById('tf-estoque').innerHTML = `
     <tr style="background:#f8fafc;font-weight:700;border-top:2px solid #e2e8f0">
       <td>TOTAL</td>
+      <td></td>
       <td class="text-right">${fmtKg(totalKg)}</td>
       <td></td>
       <td class="text-right" style="color:#16a34a">${fmtMoeda(totalValor)}</td>
@@ -230,6 +242,19 @@ window.editTxt = (td, matId, campo, valorAtual) => {
     if (e.key === 'Enter')  { e.preventDefault(); inp.blur(); }
     if (e.key === 'Escape') { td.innerHTML = orig; }
   });
+};
+
+// ── Acondicionamento (select) ─────────────────────────────────────────────────
+window.editAcond = async (sel, matId) => {
+  const val = sel.value || null;
+  const { error } = await supabase.from('materiais').update({ acondicionamento: val }).eq('id', matId);
+  if (error) {
+    toast(/acondicionamento/.test(error.message) ? 'Execute o supabase-patch34.sql no Supabase para habilitar este campo' : 'Erro: ' + error.message, 'error');
+    renderTabela(); return;
+  }
+  const m = matsData.find(x => x.id === matId);
+  if (m) m.acondicionamento = val;
+  toast('Acondicionamento salvo');
 };
 
 // ── Adicionar / Remover ───────────────────────────────────────────────────────

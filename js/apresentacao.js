@@ -247,8 +247,8 @@ export function calcularDados(rows, M, corteIn, hoje) {
   // Preço do prensado: separa o efeito do mix (quais materiais saíram) do preço do mesmo material
   const mixPrensado = analiseMix(cur.g.prensado, antCheio.g.prensado, materiais);
 
-  // Estoque por grupo (prensado / a granel / sucata ferrosa). O cadastro do material não tem acondicionamento,
-  // então vale como o material mais foi vendido no histórico carregado; sem histórico, conta como prensado.
+  // Estoque por grupo (prensado / a granel / sucata ferrosa): vale o acondicionamento informado na tela Estoque;
+  // em branco, como o material mais foi vendido no histórico carregado; sem histórico, conta como prensado.
   const acondHist = {};
   vendas.forEach(v => {
     const nm = v.materiais?.nome; if (!nm || !v.acondicionamento) return;
@@ -259,7 +259,9 @@ export function calcularDados(rows, M, corteIn, hoje) {
   materiais.forEach(m => {
     const kg = parseFloat(m.estoque_kg || 0); if (!(kg > 0)) return;
     const h = acondHist[m.nome];
-    const g = semAcento(m.nome).includes('SUCATA FERROSA') ? 'sucata' : h && h.granel > h.prensa ? 'granel' : 'prensado';
+    const g = semAcento(m.nome).includes('SUCATA FERROSA') ? 'sucata'
+      : m.acondicionamento === 'granel' ? 'granel' : m.acondicionamento === 'prensa' ? 'prensado'
+        : h && h.granel > h.prensa ? 'granel' : 'prensado';
     estoqueGrupo[g].kg += kg; estoqueGrupo[g].val += kg * parseFloat(m.valor_unitario || 0);
   });
 
@@ -799,7 +801,7 @@ export function montarApresentacao(PptxGenJS, d, { img, frases: fr, textos, acoe
     fala(s, { min: 4, etapa: 'Faturamento e vendas (2 de 5)', frase: fr.comp,
       apoio: [
         grupo('Prensado', 'prensado'), grupo('A granel', 'granel'), grupo('Sucata ferrosa (não prensa)', 'sucata'),
-        '"Vendido + estoque" simula o ticket médio do grupo se o estoque atual for vendido pelo valor cadastrado: (faturado + valor do estoque) ÷ (t vendidas + t em estoque). O estoque entra no grupo em que o material mais foi vendido.',
+        '"Vendido + estoque" simula o ticket médio do grupo se o estoque atual for vendido pelo valor cadastrado: (faturado + valor do estoque) ÷ (t vendidas + t em estoque). O estoque entra no grupo informado em Estoque (Acondicionamento); em branco, no grupo em que o material mais foi vendido.',
         `Prensado: ${c.g.prensado.preco ? `${reais0(c.g.prensado.preco)}/t` : '—'} em ${mes} (${ant}: ${a.g.prensado.preco ? `${reais0(a.g.prensado.preco)}/t` : '—'}).`,
         mx?.porMix && mx.efeitoPreco != null ? `No mesmo material, o preço variou ${sinal(mx.efeitoPreco)}${nf(mx.efeitoPreco, 0)}% — a queda da média é de mix (quais materiais saíram), não de preço.` : '',
         mx?.faltamEstoque.length ? `Em estoque, de maior valor: ${mx.faltamEstoque.map(x => `${nomeMat(x.nome)} (${tn(x.estoqueKg, 1)})`).join(', ')}.` : '',
