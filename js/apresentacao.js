@@ -340,19 +340,22 @@ export function frasesMix(d) {
     ? `${ate} só saiu **${nomeMat(top.nome)}**${barato}`
     : `${ate} o **${nomeMat(top.nome)}** foi ${pct(share, 0)} do prensado vendido${barato}`;
   const e = mx.efeitoPreco;
-  const mesmo = e == null ? '' : Math.abs(e) < 3 ? `no mesmo material o preço **se manteve**`
-    : e > 0 ? `no mesmo material o preço **subiu ${nf(e, 0)}%**` : `no mesmo material a variação foi de só ${nf(e, 0)}%`;
-  const lista = (mx.faltamEstoque.length ? mx.faltamEstoque : mx.faltam).slice(0, 2).map(x => nomeMat(x.nome).replace(/\s*\([^)]*\)/g, '')); // sem o "(Limpa)": a frase cabe em 2 linhas
-  const kgEst = mx.faltamEstoque.reduce((s, x) => s + x.estoqueKg, 0);
-  const volta = !lista.length ? '' : mx.faltamEstoque.length
-    ? `com a venda de ${juntarE(lista)} em estoque (${tn(kgEst, 1)}), a média **volta a subir**`
-    : `quando sair ${juntarE(lista)}, a média **volta a subir**`;
+  const mesmo = e == null ? '' : Math.abs(e) < 3 ? `no mesmo material, preço **estável**`
+    : e > 0 ? `no mesmo material, **+${nf(e, 0)}%**` : `no mesmo material, só ${nf(e, 0)}%`;
+  // Estoque prensado TOTAL (o mesmo número do card): se vendido, para quanto vai a média do prensado
+  const eP = d.estoqueGrupo?.prensado, cP = d.cur.g.prensado;
+  const sim = eP?.kg > 0 ? (cP.fat + eP.val) / ((cP.vol + eP.kg) / 1000) : null;
+  const lista = mx.faltam.slice(0, 2).map(x => nomeMat(x.nome).replace(/\s*\([^)]*\)/g, '')); // sem o "(Limpa)": a frase cabe em 2 linhas
+  const volta = sim != null && sim > cP.preco * 1.02
+    ? `vendendo o estoque prensado (${tn(eP.kg, 1)}), a média **sobe para ${reais0(sim)}/t**`
+    : lista.length ? `quando sair ${juntarE(lista)}, a média **volta a subir**` : '';
   return { motivo, mesmo, volta };
 }
 
 const destaque = (texto, p) => p == null ? texto : p >= 100 ? `**${texto}**` : p < 70 ? `*${texto}*` : texto;
 
-export function frasesPadrao(d) {
+// tarefas (opcional): usadas para dizer se o equipamento com problema já está no plano de ação
+export function frasesPadrao(d, tarefas = []) {
   const mes = nomeMes(d.M);
   const atFat = d.meta > 0 ? d.cur.fat / d.meta * 100 : null;
   const atProd = d.capMes > 0 ? d.prod / d.capMes * 100 : null;
@@ -364,9 +367,22 @@ export function frasesPadrao(d) {
   const atFatProp = d.inicioMes ? (d.antMesmo.fat > 0 ? d.cur.fat / d.antMesmo.fat * 100 : null)
     : atFat != null && d.emAndamento && d.du > 0 && d.dp > 0 ? atFat / (d.dp / d.du) : atFat;
   const atProdProp = d.emAndamento ? (d.esperado > 0 ? d.prod / d.esperado * 100 : null) : atProd;
-  const resumo = (d.emAndamento
-    ? `${quando} (${d.dp} de ${d.du} dias úteis): faturamento em ${atFat == null ? 'meta não cadastrada' : destaque(`${nf(atFat, 0)}% da meta do mês`, atFatProp)} e prensas em ${destaque(`${nf(atProdProp, 0)}% do previsto até ${ddmm(d.corte)}`, d.inicioMes && atProdProp != null ? Math.max(atProdProp, 70) : atProdProp)}`
-    : `${quando}: faturamento em ${atFat == null ? 'meta não cadastrada' : destaque(`${nf(atFat, 0)}% da meta`, atFat)} e prensas em ${destaque(`${nf(atProd, 0)}% da capacidade`, atProd)}`) + ` — volume vendido ${vVol == null ? 'sem comparação' : vVol >= 0 ? 'cresce' : 'cai'}, preço médio ${vPreco == null ? 'sem comparação' : vPreco >= 0 ? 'sobe' : 'cai'}.`;
+  // Resumo: mesma comparação dos selos dos cards (mês anterior no mesmo período; mês fechado: mês inteiro; ±5% = estável)
+  const refR = d.emAndamento ? d.antMesmo : d.antCheio;
+  const refProdR = d.emAndamento ? d.prodAntMesmo : d.prodAntCheio;
+  const vFatR = refR.fat > 0 ? varPct(d.cur.fat, refR.fat) : null;
+  const vProdR = refProdR > 0 ? varPct(d.prod, refProdR) : null;
+  const tend = v => v == null ? null : v > 5 ? 'acima' : v < -5 ? 'abaixo' : 'estavel';
+  const tF = tend(vFatR), tP = tend(vProdR);
+  const refTxt = d.emAndamento ? `${nomeMes(d.Mant)} no mesmo período` : nomeMes(d.Mant);
+  const marca = (t, txt) => t === 'acima' ? `**${txt}**` : t === 'abaixo' ? `*${txt}*` : txt;
+  let corpo;
+  if (tF && tF === tP) corpo = `faturamento e prensagem ${marca(tF, tF === 'acima' ? `acima de ${refTxt}` : tF === 'abaixo' ? `abaixo de ${refTxt}` : `estáveis em relação a ${refTxt}`)}`;
+  else if (tF && tP) corpo = `faturamento ${marca(tF, tF === 'estavel' ? 'estável' : tF)} e prensagem ${marca(tP, tP === 'estavel' ? 'estável' : tP)} em relação a ${refTxt}`;
+  else if (tF) corpo = `faturamento ${marca(tF, tF === 'acima' ? `acima de ${refTxt}` : tF === 'abaixo' ? `abaixo de ${refTxt}` : `estável em relação a ${refTxt}`)}`;
+  else corpo = `faturamento em ${atFat == null ? 'meta não cadastrada' : `${nf(atFat, 0)}% da meta`}`;
+  const vTicket = varPct(d.cur.preco, refR.preco);
+  const resumo = `${quando}: ${corpo}; ticket médio ${vTicket == null ? 'sem comparação' : vTicket > 2 ? 'sobe' : vTicket < -2 ? 'cai' : 'estável'}.`;
 
   let fat;
   if (d.inicioMes) {
@@ -410,7 +426,7 @@ export function frasesPadrao(d) {
   // Preço do prensado caiu só porque mudou o mix de materiais: explica em vez de alarmar
   if (quedaPreco && d.mixPrensado?.porMix) {
     const fm = frasesMix(d);
-    comp = `Prensado em ${reais0(cP.preco)}/t porque ${fm.motivo}${fm.mesmo ? ` — ${fm.mesmo}` : ''}.${fm.volta ? ` ${cap(fm.volta)}.` : ''}`;
+    comp = `Prensado em ${reais0(cP.preco)}/t: ${fm.motivo}${fm.mesmo ? ` (${fm.mesmo})` : ''}.${fm.volta ? ` ${cap(fm.volta)}.` : ''}`;
   }
 
   // 1) produção × capacidade, já citando a prensa que mais parou; 2) prensado vendido do mês × média antes do plano
@@ -447,6 +463,15 @@ export function frasesPadrao(d) {
   let equip = nDisp === nEq
     ? (d.rotDisp === 'hoje' ? `Hoje os ${nEq} equipamentos estão disponíveis` : `No fim do mês, os ${nEq} equipamentos estavam disponíveis`)
     : `*${nDisp} de ${nEq} equipamentos* disponíveis ${d.rotDisp}`;
+  // Equipamentos parados ou com restrição agora: cita pelo nome e, se houver tarefa sobre ele, que está no plano de ação
+  const problema = d.eqs.filter(e => e.st === 'parado' || e.st === 'restricao');
+  if (problema.length) {
+    const nomeE = e => `${e.nome}${e.frota ? ' ' + e.frota : ''}`;
+    const noPlano = e => tarefas.some(t => t.status !== 'cancelada' && t.status !== 'concluida' &&
+      semAcento(t.titulo).includes(semAcento(e.frota || e.nome)));
+    const partes = problema.slice(0, 2).map(e => `*${nomeE(e)}* ${e.st === 'parado' ? 'está parada' : 'está com restrição'}${noPlano(e) ? ' (no plano de ação)' : ''}`);
+    equip += `${nDisp === nEq ? ', mas' : ':'} ${juntarE(partes)}${problema.length > 2 ? ` e mais ${problema.length - 2}` : ''}`;
+  }
   if (temParadas) {
     // Cita os equipamentos que pararam no mês (até 3, do que mais parou ao que menos parou)
     const nomeEq = x => `${x.e.nome}${x.e.frota ? ' ' + x.e.frota : ''}`;
@@ -460,7 +485,7 @@ export function frasesPadrao(d) {
     : `. Equipe completa, com **${d.colab} de ${d.quadro} colaboradores**.`;
   else equip += '.';
 
-  return { resumo, fat, comp, prensa, equip, plano: 'Ações para recuperar faturamento e prensagem.' };
+  return { resumo, fat, comp, prensa, equip, plano: 'Ações em andamento na unidade.' };
 }
 
 // ══════════════════════════════════════════════════════════════════════════
@@ -691,7 +716,7 @@ export function montarApresentacao(PptxGenJS, d, { img, frases: fr, textos, acoe
     const blocos = d.inicioMes ? [
       [`REALIZADO ATÉ ${ddmm(d.corte)}`, mil(d.cur.fat), `${d.meta ? pct(atFat) + ' da meta · ' : ''}${d.dp} de ${d.du} dias úteis`, COR.txt, 'FFFFFF'],
       [`${ant.toUpperCase()} NO MESMO PONTO`, mil(d.antMesmo.fat), `até ${ddmm(d.fimAntMesmo)} · fechou o mês em ${mil(d.antCheio.fat)}`, COR.txt, 'FFFFFF'],
-      d.meta ? ['PARA BATER A META', `${mil(d.dr > 0 ? faltaMeta / d.dr : faltaMeta)}/dia`, `faltam ${mil(faltaMeta)} · estoque ${mil(d.valorEstoque)}`, COR.verde, COR.verdeCl]
+      d.meta ? ['PARA BATER A META', `${mil(d.dr > 0 ? faltaMeta / d.dr : faltaMeta)}/dia`, `faltam ${mil(faltaMeta)} · estoque ${mil(d.valorEstoque)}`, COR.amb, COR.ambBg]
         : ['ESTOQUE PRONTO PARA VENDA', mil(d.valorEstoque), tn(d.estoqueKg), COR.verde, COR.verdeCl],
     ] : d.emAndamento ? [
       [`REALIZADO ATÉ ${ddmm(d.corte)}`, mil(d.cur.fat), d.meta ? `${pct(atFat)} da meta` : 'sem meta', COR.txt, 'FFFFFF'],

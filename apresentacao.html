@@ -101,7 +101,7 @@ import { initPage, supabase, toast } from './js/config.js?v=3';
 import {
   STATUS_TAREFA, calcularDados, frasesPadrao, textoPerdaCap, montarApresentacao, periodoBusca,
   isoLocal, addDias, fimDoMes, ddmm, ddmmaaaa, nomeMes, mil, tn, pct, reais0, nf,
-} from './js/apresentacao.js?v=30';
+} from './js/apresentacao.js?v=32';
 
 await initPage();
 
@@ -207,7 +207,7 @@ function renderConferencia() {
   ];
   document.getElementById('ap-num').innerHTML = linhas.map(([a, b]) => `<tr><td>${a}</td><td>${b}</td></tr>`).join('');
 
-  const fp = frasesPadrao(d);
+  const fp = frasesPadrao(d, tarefasCache);
   document.getElementById('ap-frases').innerHTML = FRASES.map(([k, l]) =>
     `<div class="form-group"><label for="fr-${k}">${l}</label><textarea id="fr-${k}" rows="2" style="min-height:52px"></textarea></div>`).join('');
   FRASES.forEach(([k]) => { document.getElementById(`fr-${k}`).value = fp[k]; });
