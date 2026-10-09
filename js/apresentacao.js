@@ -716,14 +716,11 @@ export function montarApresentacao(PptxGenJS, d, { img, frases: fr, textos, acoe
     const blocos = d.inicioMes ? [
       [`REALIZADO ATÉ ${ddmm(d.corte)}`, mil(d.cur.fat), `${d.meta ? pct(atFat) + ' da meta · ' : ''}${d.dp} de ${d.du} dias úteis`, COR.txt, 'FFFFFF'],
       [`${ant.toUpperCase()} NO MESMO PONTO`, mil(d.antMesmo.fat), `até ${ddmm(d.fimAntMesmo)} · fechou o mês em ${mil(d.antCheio.fat)}`, COR.txt, 'FFFFFF'],
-      // Sem estoque: o que falta ÷ dias úteis restantes. Abaixo: o mesmo cálculo descontando a venda do estoque
-      d.meta ? ['PARA BATER A META', `${mil(d.dr > 0 ? faltaMeta / d.dr : faltaMeta)}/dia`, [
-        { text: `faltam ${mil(faltaMeta)} em ${d.dr} dias úteis`, options: { breakLine: true } },
-        ...(d.valorEstoque > 0 ? [
-          { text: `vendendo o estoque (${mil(d.valorEstoque)}): `, options: { color: COR.muted } },
-          { text: `${mil(Math.max(0, faltaMeta - d.valorEstoque) / Math.max(1, d.dr))}/dia`, options: { bold: true, color: COR.amb } },
-        ] : []),
-      ], COR.amb, COR.ambBg, true]
+      // O que falta no mês para a meta; abaixo, quanto falta se o estoque for vendido
+      d.meta ? ['FALTA PARA A META', mil(faltaMeta), d.valorEstoque > 0 ? [
+        { text: 'vendendo o estoque, ', options: { color: COR.muted } },
+        { text: `faltam ${mil(Math.max(0, faltaMeta - d.valorEstoque))}`, options: { bold: true, color: COR.amb } },
+      ] : `meta do mês: ${mil(d.meta)}`, COR.amb, COR.ambBg]
         : ['ESTOQUE PRONTO PARA VENDA', mil(d.valorEstoque), tn(d.estoqueKg), COR.verde, COR.verdeCl],
     ] : d.emAndamento ? [
       [`REALIZADO ATÉ ${ddmm(d.corte)}`, mil(d.cur.fat), d.meta ? `${pct(atFat)} da meta` : 'sem meta', COR.txt, 'FFFFFF'],
@@ -764,7 +761,7 @@ export function montarApresentacao(PptxGenJS, d, { img, frases: fr, textos, acoe
       apoio: [
         `Realizado: ${mil(d.cur.fat)}${d.meta ? ` (${pct(atFat)} da meta de ${mil(d.meta)})` : ''}${d.emAndamento ? ` em ${d.dp} de ${d.du} dias úteis` : ''}.`,
         d.emAndamento ? `${cap(ant)} no mesmo ponto (até ${ddmm(d.fimAntMesmo)}): ${mil(d.antMesmo.fat)}; fechou o mês em ${mil(d.antCheio.fat)}.` : '',
-        d.emAndamento && d.meta && d.dr > 0 ? `Para bater a meta: ${mil(Math.max(0, d.meta - d.cur.fat) / d.dr)} por dia útil nos ${d.dr} dias restantes; estoque pronto para venda: ${mil(d.valorEstoque)} (${tn(d.estoqueKg)}).` : '',
+        d.emAndamento && d.meta ? `Falta para a meta: ${mil(Math.max(0, d.meta - d.cur.fat))}; vendendo o estoque (${mil(d.valorEstoque)}, ${tn(d.estoqueKg)}), faltariam ${mil(Math.max(0, d.meta - d.cur.fat - d.valorEstoque))}.` : '',
         semAtual && semAtual.meta > 0 ? `Semana ${semAtual.i}${semAtual.parcial ? ' (em andamento)' : ''}: ${mil(semAtual.fat)} de ${mil(semAtual.meta)} (${pct(semAtual.p, 0)}).` : '',
         d.inicioMes ? `Por que não há projeção: só ${d.dp} de ${d.du} dias úteis e as vendas saem em cargas; a média dos primeiros dias não representa o mês.`
           : d.emAndamento ? `Projeção = faturamento até ${ddmm(d.corte)} ÷ ${d.dp} dias úteis × ${d.du} dias úteis do mês.` : '',
