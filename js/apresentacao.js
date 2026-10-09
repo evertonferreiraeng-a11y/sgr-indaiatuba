@@ -71,7 +71,7 @@ export const nomeMat = s => s && s === s.toUpperCase() ? s.toLowerCase().replace
 // Variação do preço médio de um grupo (ex.: prensado) entre dois períodos, separando:
 // - efeito preço: o mesmo material vendido mais caro/barato (só materiais vendidos nos dois períodos)
 // - efeito mix: mudou a proporção dos materiais (ex.: só papelão, sem o plástico que vale mais)
-function analiseMix(cG, aG, materiais) {
+function analiseMix(cG, aG, materiais, aGran = null) {
   const lista = G => Object.entries(G.mat || {}).filter(([, x]) => x.vol > 0)
     .map(([nome, x]) => ({ nome, vol: x.vol, fat: x.fat, preco: x.fat / (x.vol / 1000) })).sort((p, q) => q.vol - p.vol);
   const cur = lista(cG), ant = lista(aG);
@@ -89,7 +89,19 @@ function analiseMix(cG, aG, materiais) {
   const faltamEstoque = faltam.filter(x => est[x.nome] > 0).map(x => ({ ...x, estoqueKg: est[x.nome] }));
   // Queda "por mix": o mesmo material segurou o preço (caiu menos da metade da queda da média) ou não há base comum
   const porMix = varMedia < -2 && (efeitoPreco == null ? faltam.length > 0 : efeitoPreco > varMedia / 2);
-  return { cur, ant, antPor, efeitoPreco, varMedia, faltam, faltamEstoque, porMix };
+  // Ganho de prensar: preço do prensado atual × o mesmo material no mês anterior somando prensado + a granel
+  // (mostra que vender prensado, em vez de a granel, valoriza o material)
+  let efeitoPrensar = null;
+  if (aGran) {
+    const tudo = {};
+    [aG, aGran].forEach(G => Object.entries(G.mat || {}).forEach(([nome, x]) => {
+      const t = (tudo[nome] = tudo[nome] || { vol: 0, fat: 0 }); t.vol += x.vol; t.fat += x.fat;
+    }));
+    const base = cur.filter(x => tudo[x.nome]?.vol > 0);
+    const fatRef = base.reduce((s, x) => s + x.vol / 1000 * (tudo[x.nome].fat / (tudo[x.nome].vol / 1000)), 0);
+    if (fatRef > 0) efeitoPrensar = (base.reduce((s, x) => s + x.fat, 0) / fatRef - 1) * 100;
+  }
+  return { cur, ant, antPor, efeitoPreco, efeitoPrensar, varMedia, faltam, faltamEstoque, porMix };
 }
 
 export function calcularDados(rows, M, corteIn, hoje) {
@@ -255,7 +267,7 @@ export function calcularDados(rows, M, corteIn, hoje) {
     : media(mesesAno.filter(mk => mk < mPlano).map(mk => agg(`${mk}-01`, ateNDiaUtil(mk, dp)).prensa.vol));
 
   // Preço do prensado: separa o efeito do mix (quais materiais saíram) do preço do mesmo material
-  const mixPrensado = analiseMix(cur.g.prensado, antCheio.g.prensado, materiais);
+  const mixPrensado = analiseMix(cur.g.prensado, antCheio.g.prensado, materiais, antCheio.g.granel);
 
   // Estoque por grupo (prensado / a granel / sucata ferrosa): vale o acondicionamento informado na tela Estoque;
   // em branco, como o material mais foi vendido no histórico carregado; sem histórico, conta como prensado.
@@ -346,9 +358,11 @@ export function frasesMix(d) {
   const motivo = mx.cur.length === 1
     ? `${ate} só saiu **${nomeMat(top.nome)}**${barato}`
     : `${ate} o **${nomeMat(top.nome)}** foi ${pct(share, 0)} do prensado vendido${barato}`;
-  const e = mx.efeitoPreco;
-  const mesmo = e == null ? '' : Math.abs(e) < 3 ? `no mesmo material, preço **estável**`
-    : e > 0 ? `no mesmo material, **+${nf(e, 0)}%**` : `no mesmo material, só ${nf(e, 0)}%`;
+  // Preferência: prensado atual × mesmo material no mês anterior (prensado + a granel); sem base, × só o prensado
+  const usaPrensar = mx.efeitoPrensar != null, e = usaPrensar ? mx.efeitoPrensar : mx.efeitoPreco;
+  const refM = usaPrensar ? `vs o mesmo material em ${nomeMes(d.Mant)}, prensado + a granel:` : 'no mesmo material,';
+  const mesmo = e == null ? '' : Math.abs(e) < 3 ? `${refM} preço **estável**`
+    : e > 0 ? `${refM} **+${nf(e, 0)}%**` : `${refM} ${nf(e, 0)}%`;
   // Estoque prensado TOTAL (o mesmo número do card): se vendido, para quanto vai a média do prensado
   const eP = d.estoqueGrupo?.prensado, cP = d.cur.g.prensado;
   const sim = eP?.kg > 0 ? (cP.fat + eP.val) / ((cP.vol + eP.kg) / 1000) : null;
@@ -871,6 +885,7 @@ export function montarApresentacao(PptxGenJS, d, { img, frases: fr, textos, acoe
         '"Vendido + estoque" simula o ticket médio do grupo se o estoque atual for vendido pelo valor cadastrado: (faturado + valor do estoque) ÷ (t vendidas + t em estoque). O estoque entra no grupo informado em Estoque (Acondicionamento); em branco, no grupo em que o material mais foi vendido.',
         `Prensado: ${c.g.prensado.preco ? `${reais0(c.g.prensado.preco)}/t` : '—'} em ${mes} (${ant}: ${a.g.prensado.preco ? `${reais0(a.g.prensado.preco)}/t` : '—'}).`,
         mx?.porMix && mx.efeitoPreco != null ? `No mesmo material, o preço variou ${sinal(mx.efeitoPreco)}${nf(mx.efeitoPreco, 0)}% — a queda da média é de mix (quais materiais saíram), não de preço.` : '',
+        mx?.efeitoPrensar != null ? `Prensado de ${mes} × o mesmo material em ${ant} somando prensado + a granel: ${sinal(mx.efeitoPrensar)}${nf(mx.efeitoPrensar, 0)}% — mostra o ganho de vender prensado em vez de a granel.` : '',
         mx?.faltamEstoque.length ? `Em estoque, de maior valor: ${mx.faltamEstoque.map(x => `${nomeMat(x.nome)} (${tn(x.estoqueKg, 1)})`).join(', ')}.` : '',
         c.pctPrensado != null ? `Participação do prensado nos materiais prensáveis: ${pct(c.pctPrensado)} (${ant}: ${pct(a.pctPrensado)}).` : '',
         precoGeral,
