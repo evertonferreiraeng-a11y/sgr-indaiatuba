@@ -61,7 +61,7 @@ const sinal = v => v > 0 ? '+' : '';
 // ══════════════════════════════════════════════════════════════════════════
 export function periodoBusca(M) {
   const ano = M.slice(0, 4), iniAnt = `${mesDelta(M, -1)}-01`;
-  return { ini: iniAnt < `${ano}-01-01` ? iniAnt : `${ano}-01-01`, iniMes: `${M}-01` };
+  return { ini: iniAnt < `${ano}-01-01` ? iniAnt : `${ano}-01-01`, iniAnt, iniMes: `${M}-01` };
 }
 
 // Nome do material legível em frase: "PLÁSTICO PEAD" → "plástico PEAD"
@@ -193,6 +193,9 @@ export function calcularDados(rows, M, corteIn, hoje) {
     const st = statusNoDia(e, dt);
     return st === 'parado' ? 0 : st === 'restricao' ? (parseFloat(e.capacidade_pct) || 50) / 100 : 1;
   };
+  // Produção das prensas no mês anterior: até o mesmo dia (mês em andamento) e no mês cheio
+  const prodEntre = (a, b) => producao.reduce((s, r) => s + (r.data >= a && r.data <= b && idsPrensas.has(r.equipamento_id) ? parseFloat(r.peso_produzido_kg || 0) : 0), 0);
+  const prodAntMesmo = prodEntre(iniAnt, fimAntMesmo), prodAntCheio = prodEntre(iniAnt, fimAnt);
   const prodPorDia = {};
   producao.forEach(r => {
     if (r.data < ini || r.data > corte || !idsPrensas.has(r.equipamento_id)) return;
@@ -304,7 +307,7 @@ export function calcularDados(rows, M, corteIn, hoje) {
   return {
     M, ini, fimMes, corte, emAndamento, Mant, fimAntMesmo, cur, antMesmo, antCheio, meta, du, dp, dr,
     estoqueKg, valorEstoque, projecao, inicioMes, fatFech, metaFech, fracMes, prensAntesProp, mixPrensado, estoqueGrupo, mesesAno, fatMes, fatAno, metaAno, metaMes, melhor, nenhumAtingiu, semFat,
-    prensas, capMes, capNominal, perdaCap, prensasReduzidas, metaDia, metaDiaNominal, metaDiaRestante, duPrensa, dpPrensa, prod, esperado, semProd, prensadoMes, prensAntes, prensDepois,
+    prodAntMesmo, prodAntCheio, prensas, capMes, capNominal, perdaCap, prensasReduzidas, metaDia, metaDiaNominal, metaDiaRestante, duPrensa, dpPrensa, prod, esperado, semProd, prensadoMes, prensAntes, prensDepois,
     eqs, nOp, nRes, nPar, disp, dispMes, rotDisp, comParada, colab, quadro, vagas,
   };
 }
@@ -585,37 +588,42 @@ export function montarApresentacao(PptxGenJS, d, { img, frases: fr, textos, acoe
     // Quatro indicadores com semáforo (um por etapa do roteiro); o detalhe fica nos slides seguintes
     const s = conteudo('RESUMO EXECUTIVO', fr.resumo, 0, true);
     const c = d.cur;
-    const SEM = { ok: ['OK', COR.ok, COR.okBg], amb: ['ATENÇÃO', COR.amb, COR.ambBg], verm: ['CRÍTICO', COR.verm, COR.vermBg], nd: ['SEM DADOS', COR.muted, COR.cinzaBg] };
-    const semPct = p => p == null ? 'nd' : p >= 100 ? 'ok' : p >= 70 ? 'amb' : 'verm';
+    // Faturamento e prensagem: tendência vs o mesmo período do mês anterior (±5% = estável).
+    // Equipamentos e equipe: situação (OK / Atenção / Crítico).
+    const SEM = {
+      cresc: ['CRESCENDO', COR.ok, COR.okBg], est: ['ESTÁVEL', COR.muted, COR.trilho], abaixo: ['ABAIXO', COR.verm, COR.vermBg],
+      ok: ['OK', COR.ok, COR.okBg], amb: ['ATENÇÃO', COR.amb, COR.ambBg], verm: ['CRÍTICO', COR.verm, COR.vermBg], nd: ['SEM BASE', COR.muted, COR.cinzaBg],
+    };
+    const tendencia = v => v == null ? 'nd' : v > 5 ? 'cresc' : v < -5 ? 'abaixo' : 'est';
     const ind = [];
 
     // ctx = linhas [rótulo, valor] abaixo do tracejado. Variação "▲ 12%" pronta para a linha.
     const vTxt = v => v == null ? '' : ` (${seta(v)} ${nf(Math.abs(v), 0)}%)`;
+    // Mês em andamento: mês anterior até o mesmo dia; mês fechado: mês anterior inteiro
+    const rotRef = d.emAndamento ? `${cap(ant)} no mesmo período` : cap(ant);
 
-    // Faturamento: início do mês → compara com o mês anterior no mesmo ponto; depois → com a meta proporcional.
-    // Ticket médio (faturamento ÷ toneladas vendidas) na linha de baixo do valor; a comparação fica abaixo do tracejado
-    const atFatProp = d.emAndamento && d.du > 0 && d.dp > 0 && atFat != null ? atFat / (d.dp / d.du) : atFat;
+    // Faturamento — ticket médio (faturamento ÷ toneladas vendidas) na linha de baixo do valor
     const ref = d.emAndamento ? d.antMesmo : d.antCheio;
+    const vFat = ref.fat > 0 ? varPct(c.fat, ref.fat) : null;
     const ticket = c.preco ? ` · ticket médio ${reais0(c.preco)}/t` : '';
-    ind.push({ label: 'Faturamento', st: semPct(d.inicioMes ? (ref.fat > 0 ? c.fat / ref.fat * 100 : null) : d.emAndamento ? atFatProp : atFat),
+    ind.push({ label: 'Faturamento', st: tendencia(vFat),
       valor: mil(c.fat),
       sub: (d.emAndamento ? `${d.meta ? `${pct(atFat, 0)} da meta · ` : ''}${d.dp} de ${d.du} dias úteis` : d.meta ? `${pct(atFat, 0)} da meta de ${mil(d.meta)}` : 'sem meta cadastrada') + ticket,
       ctx: [
-        d.inicioMes ? [`${cap(ant)} no mesmo ponto`, `${mil(ref.fat)}${vTxt(varPct(c.fat, ref.fat))} · fechou em ${mil(d.antCheio.fat)}`]
-          : d.emAndamento ? ['Projeção no ritmo atual', `${mil(d.projecao)}${d.meta ? ` (${pct(d.projecao / d.meta * 100, 0)} da meta)` : ''}`]
-            : [`vs ${ant}`, `${mil(ref.fat)}${vTxt(varPct(c.fat, ref.fat))}`],
-      ] });
+        [rotRef, `${mil(ref.fat)}${vTxt(vFat)}${d.emAndamento ? ` · fechou em ${mil(d.antCheio.fat)}` : ''}`],
+        !d.inicioMes && d.emAndamento ? ['Projeção no ritmo atual', `${mil(d.projecao)}${d.meta ? ` (${pct(d.projecao / d.meta * 100, 0)} da meta)` : ''}`] : null,
+      ].filter(Boolean) });
 
-    // Prensagem: produção × previsto até o corte (mês fechado: × capacidade do mês).
-    // Início do mês: no máximo "Atenção" — poucos dias de produção ainda não definem o mês.
+    // Prensagem — produção das prensas vs o mesmo período do mês anterior
     const atProdRef = d.emAndamento ? (d.esperado > 0 ? d.prod / d.esperado * 100 : null) : atProd;
     const vPl = d.prensAntes > 0 ? varPct(c.prensa.vol, d.prensAntesProp) : null;
     const ritmoP = d.dpPrensa > 0 ? d.prod / d.dpPrensa : 0;
-    let stProd = semPct(atProdRef);
-    if (d.inicioMes && stProd === 'verm') stProd = 'amb';
-    ind.push({ label: 'Prensagem', st: stProd, valor: `${nf(d.prod / 1000, 1)} t produzidas`,
+    const refProd = d.emAndamento ? d.prodAntMesmo : d.prodAntCheio;
+    const vProd = refProd > 0 ? varPct(d.prod, refProd) : null;
+    ind.push({ label: 'Prensagem', st: tendencia(vProd), valor: `${nf(d.prod / 1000, 1)} t produzidas`,
       sub: d.emAndamento ? `${pct(atProdRef, 0)} do previsto até ${ddmm(d.corte)} (${nf(d.esperado / 1000, 1)} t)` : `${pct(atProd, 0)} da capacidade de ${tCap(d, d.capMes)} t`,
       ctx: [
+        [rotRef, refProd > 0 ? `${tn(refProd, 1)}${vTxt(vProd)}${d.emAndamento ? ` · fechou em ${tn(d.prodAntCheio, 1)}` : ''}` : 'sem produção registrada'],
         ['Ritmo', `${nf(ritmoP / 1000, 1)} t/dia útil · meta ${nf(d.metaDia / 1000, 1)} t/dia`],
         // Prensado VENDIDO no período × o que se vendia de prensado, em média, antes do plano de expansão (proporcional aos dias)
         d.prensAntes > 0 ? ['Prensado vendido',
@@ -659,7 +667,7 @@ export function montarApresentacao(PptxGenJS, d, { img, frases: fr, textos, acoe
     fala(s, { min: 4, etapa: 'Resumo (1 de 5)', frase: fr.resumo,
       apoio: [
         ...ind.map(k => `${k.label} — ${SEM[k.st][0]}: ${k.valor}; ${k.sub}. ${k.ctx.map(([r, v]) => `${r}: ${v}`).join('; ')}.`),
-        d.inicioMes && atProdRef < 70 ? `Prensagem marcada como "Atenção" (e não "Crítico") porque ainda é início do mês: ${pct(atProdRef, 0)} do previsto em ${d.dp} dias úteis.` : '',
+        `Selos de faturamento e prensagem: comparação com ${d.emAndamento ? `${ant} até ${ddmm(d.fimAntMesmo)} (mesmo período)` : `${ant} inteiro`} — Crescendo acima de +5%, Estável entre −5% e +5%, Abaixo de −5%.`,
         d.prensAntes > 0 ? `"Prensado vendido × antes do plano": toneladas de prensado vendidas no período comparadas com a média mensal de prensado vendido antes do plano de expansão (${tn(d.prensAntes, 1)}/mês)${d.emAndamento ? `, proporcional aos ${d.dp} dias úteis já passados` : ''}. Mostra se o plano aumentou a venda de prensado.` : '',
         d.emAndamento ? `Mês em andamento: dados até ${ddmmaaaa(d.corte)}; comparações com ${ant} até ${ddmm(d.fimAntMesmo)} (mesmo ponto do mês).` : '',
       ],
