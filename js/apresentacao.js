@@ -841,31 +841,15 @@ export function montarApresentacao(PptxGenJS, d, { img, frases: fr, textos, acoe
     const precoGeral = c.preco && a.preco
       ? `Preço médio geral (todos os materiais): ${reais0(c.preco)}/t em ${mes} — R$ ${nf(Math.abs(dif), 0)}/t ${dif >= 0 ? 'a mais' : 'a menos'} que em ${ant} (${reais0(a.preco)}/t).`
       : `Preço médio geral (todos os materiais): ${c.preco ? reais0(c.preco) + '/t' : '—'} em ${mes}.`;
-    // Destaque: preço médio geral da unidade (todos os materiais) × mês anterior, e para quanto vai vendendo todo o estoque
-    {
-      const yB = 664, hB = 130, vG = varPct(c.preco, a.preco);
-      const sobe = vG != null && vG > 1, cai = vG != null && vG < -1;
-      box(s, 50, yB, 1280, hB, sobe ? COR.verdeCl : COR.cinzaBg, sobe ? null : COR.borda);
-      txt(s, 76, yB + 20, 420, 20, 'PREÇO MÉDIO GERAL · TODOS OS MATERIAIS', 13, sobe ? COR.verde : COR.muted, { bold: true });
-      txt(s, 76, yB + 46, 380, 60, c.preco ? `${reais0(c.preco)}/t` : '—', 44, sobe ? COR.verde : COR.txt, { bold: true });
-      s.addShape(pptx.ShapeType.line, { x: I(480), y: I(yB + 22), w: 0, h: I(hB - 44), line: { color: sobe ? 'B7D9C3' : COR.borda, width: 1 } });
-      if (vG != null) {
-        const tP = `${seta(vG)} R$ ${nf(Math.abs(dif), 0)}/t (${sinal(vG)}${nf(vG, 0)}%) vs ${ant}`;
-        const [fg, bg] = sobe ? [COR.ok, 'FFFFFF'] : cai ? [COR.verm, COR.vermBg] : [COR.muted, COR.trilho];
-        pill(s, 510, yB + 34, Math.abs(vG) <= 1 ? `estável vs ${ant}` : tP, fg, bg, 16);
-        txt(s, 510, yB + 82, 380, 24, [
-          { text: `${cap(ant)}: `, options: { color: COR.muted } },
-          { text: `${reais0(a.preco)}/t`, options: { bold: true, color: COR.txt2 } },
-        ], 15, COR.txt2);
-      }
-      if (d.estoqueKg > 0 && c.vol > 0) {
-        const simG = (c.fat + d.valorEstoque) / ((c.vol + d.estoqueKg) / 1000);
-        s.addShape(pptx.ShapeType.line, { x: I(930), y: I(yB + 22), w: 0, h: I(hB - 44), line: { color: sobe ? 'B7D9C3' : COR.borda, width: 1 } });
-        txt(s, 960, yB + 20, 350, 20, 'VENDENDO TODO O ESTOQUE', 13, COR.muted, { bold: true });
-        txt(s, 960, yB + 46, 350, 44, `${reais0(simG)}/t`, 30, COR.txt, { bold: true });
-        txt(s, 960, yB + 90, 350, 22, `+${tn(d.estoqueKg, 1)} a ${reais0(d.valorEstoque / (d.estoqueKg / 1000))}/t`, 13, COR.muted);
-      }
-    }
+    // Uma linha, como antes, só com o preço e a variação em destaque (verde quando sobe, vermelho quando cai)
+    const vG = varPct(c.preco, a.preco), corG = vG == null || Math.abs(vG) <= 1 ? COR.txt2 : vG > 0 ? COR.verde : COR.verm;
+    txt(s, 50, 664, 1280, 30, c.preco && a.preco ? [
+      { text: 'Preço médio geral (todos os materiais): ', options: { color: COR.txt2 } },
+      { text: `${reais0(c.preco)}/t`, options: { bold: true, color: corG } },
+      { text: ` em ${mes} — `, options: { color: COR.txt2 } },
+      { text: `R$ ${nf(Math.abs(dif), 0)}/t ${dif >= 0 ? 'a mais' : 'a menos'}`, options: { bold: true, color: corG } },
+      { text: ` que em ${ant} (${reais0(a.preco)}/t).`, options: { color: COR.txt2 } },
+    ] : precoGeral, 17, COR.txt2);
     const mx = d.mixPrensado;
     const grupo = (nome, k) => `${nome}: ${tn(c.g[k].vol)} · ${mil(c.g[k].fat)} em ${mes} (${ant}: ${tn(a.g[k].vol)} · ${mil(a.g[k].fat)}).`;
     fala(s, { min: 4, etapa: 'Faturamento e vendas (2 de 5)', frase: fr.comp,
