@@ -716,7 +716,14 @@ export function montarApresentacao(PptxGenJS, d, { img, frases: fr, textos, acoe
     const blocos = d.inicioMes ? [
       [`REALIZADO ATÉ ${ddmm(d.corte)}`, mil(d.cur.fat), `${d.meta ? pct(atFat) + ' da meta · ' : ''}${d.dp} de ${d.du} dias úteis`, COR.txt, 'FFFFFF'],
       [`${ant.toUpperCase()} NO MESMO PONTO`, mil(d.antMesmo.fat), `até ${ddmm(d.fimAntMesmo)} · fechou o mês em ${mil(d.antCheio.fat)}`, COR.txt, 'FFFFFF'],
-      d.meta ? ['PARA BATER A META', `${mil(d.dr > 0 ? faltaMeta / d.dr : faltaMeta)}/dia`, `faltam ${mil(faltaMeta)} · estoque ${mil(d.valorEstoque)}`, COR.amb, COR.ambBg]
+      // Sem estoque: o que falta ÷ dias úteis restantes. Abaixo: o mesmo cálculo descontando a venda do estoque
+      d.meta ? ['PARA BATER A META', `${mil(d.dr > 0 ? faltaMeta / d.dr : faltaMeta)}/dia`, [
+        { text: `faltam ${mil(faltaMeta)} em ${d.dr} dias úteis`, options: { breakLine: true } },
+        ...(d.valorEstoque > 0 ? [
+          { text: `vendendo o estoque (${mil(d.valorEstoque)}): `, options: { color: COR.muted } },
+          { text: `${mil(Math.max(0, faltaMeta - d.valorEstoque) / Math.max(1, d.dr))}/dia`, options: { bold: true, color: COR.amb } },
+        ] : []),
+      ], COR.amb, COR.ambBg, true]
         : ['ESTOQUE PRONTO PARA VENDA', mil(d.valorEstoque), tn(d.estoqueKg), COR.verde, COR.verdeCl],
     ] : d.emAndamento ? [
       [`REALIZADO ATÉ ${ddmm(d.corte)}`, mil(d.cur.fat), d.meta ? `${pct(atFat)} da meta` : 'sem meta', COR.txt, 'FFFFFF'],
@@ -732,7 +739,9 @@ export function montarApresentacao(PptxGenJS, d, { img, frases: fr, textos, acoe
       box(s, px, y, pw, 118, b[4], COR.borda);
       txt(s, px + 22, y + 16, pw - 44, 20, b[0], 13, COR.muted, { bold: true });
       txt(s, px + 22, y + 40, pw - 44, 44, b[1], 32, b[3], { bold: true });
-      txt(s, px + 22, y + 86, pw - 44, 22, b[2], 14, COR.txt2);
+      // b[5] = duas linhas embaixo do valor (fonte menor para caber no card)
+      if (b[5]) txt(s, px + 22, y + 80, pw - 44, 36, b[2], 13, COR.txt2);
+      else txt(s, px + 22, y + 86, pw - 44, 22, b[2], 14, COR.txt2);
     });
     txt(s, px, 607, pw, 22, 'ATINGIMENTO DA META SEMANAL', 13, COR.muted, { bold: true });
     // Sob cada barra: realizado × meta da semana (semana parcial: meta só até o corte) e quanto faltou/sobrou
