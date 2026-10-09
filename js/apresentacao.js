@@ -880,8 +880,8 @@ export function montarApresentacao(PptxGenJS, d, { img, frases: fr, textos, acoe
     txt(s, px + 22, 370, pw - 44, 18, 'POR SEMANA', 11, COR.muted, { bold: true });
     const nSem = Math.max(1, d.semProd.length), passoS = Math.min(22, 108 / nSem);
     d.semProd.forEach((w, k) => {
-      const y = 392 + k * passoS, xb = px + 82, wb = 120;
-      txt(s, px + 22, y, 60, 18, `Sem ${w.i}${w.parcial ? '*' : ''}`, 12, COR.txt2);
+      const y = 392 + k * passoS, xb = px + 114, wb = 96;
+      txt(s, px + 22, y, 92, 18, `Sem ${w.i} (${+w.s.ini.slice(8)}–${+w.s.fim.slice(8)})${w.parcial ? '*' : ''}`, 12, COR.txt2);
       box(s, xb, y + 4, wb, 10, COR.trilho, null, 0);
       if (w.p > 0) box(s, xb, y + 4, Math.max(4, wb * Math.min(w.p, 100) / 100), 10, corAting(w.p), null, 0);
       txt(s, xb + wb + 8, y, 42, 18, w.p == null ? '—' : `${nf(w.p, 0)}%`, 12, COR.txt, { bold: true, align: 'right' });
