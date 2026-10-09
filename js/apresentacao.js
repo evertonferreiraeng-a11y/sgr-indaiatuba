@@ -243,9 +243,16 @@ export function calcularDados(rows, M, corteIn, hoje) {
   const prensAntes = media(mesesAno.map((mk, i) => mk < mPlano ? prensadoMes[i] : null).filter(v => v != null));
   // Média do plano só com meses fechados (o mês em andamento puxaria a média para baixo)
   const prensDepois = media(mesesAno.map((mk, i) => mk >= mPlano && (mk !== M || !emAndamento) ? prensadoMes[i] : null).filter(v => v != null));
-  // Mês em andamento: média antes do plano proporcional aos dias úteis já passados (comparação justa com o parcial)
   const fracMes = emAndamento && du > 0 ? dp / du : 1;
-  const prensAntesProp = prensAntes != null ? prensAntes * fracMes : null;
+  // Mês em andamento: média do prensado REALMENTE vendido nos mesmos primeiros N dias úteis de cada mês antes do plano
+  // (N = dias úteis já passados no mês de referência). Mês fechado: média do mês inteiro.
+  const ateNDiaUtil = (mk, n) => {
+    const fim = fimDoMes(mk); let k = 0;
+    for (let dt = `${mk}-01`; dt <= fim; dt = addDias(dt, 1)) if (ehUtil(dt) && ++k >= n) return dt;
+    return fim;
+  };
+  const prensAntesProp = !emAndamento ? prensAntes
+    : media(mesesAno.filter(mk => mk < mPlano).map(mk => agg(`${mk}-01`, ateNDiaUtil(mk, dp)).prensa.vol));
 
   // Preço do prensado: separa o efeito do mix (quais materiais saíram) do preço do mesmo material
   const mixPrensado = analiseMix(cur.g.prensado, antCheio.g.prensado, materiais);
@@ -454,7 +461,7 @@ export function frasesPadrao(d, tarefas = []) {
     const vMes = varPct(c.prensa.vol, d.prensAntesProp);
     const varTxt = Math.abs(vMes) < 5 ? 'em linha com' : vMes > 0 ? `**${nf(vMes, 0)}% acima**` : `*${nf(Math.abs(vMes), 0)}% abaixo*`;
     prensa += d.emAndamento
-      ? ` Prensado vendido: ${nf(c.prensa.vol / 1000, 1)} t até ${ddmm(d.corte)}, ${varTxt}${Math.abs(vMes) < 5 ? ' a' : ' da'} média antes do plano no mesmo período (${nf(d.prensAntesProp / 1000, 1)} t em ${d.dp} dias úteis).`
+      ? ` Prensado vendido: ${nf(c.prensa.vol / 1000, 1)} t até ${ddmm(d.corte)}, ${varTxt}${Math.abs(vMes) < 5 ? ' a' : ' da'} média antes do plano nos mesmos ${d.dp} dias úteis (${nf(d.prensAntesProp / 1000, 1)} t).`
       : ` Prensado vendido: ${nf(c.prensa.vol / 1000, 1)} t, ${varTxt}${Math.abs(vMes) < 5 ? ' a' : ' da'} média antes do plano (${nf(d.prensAntes / 1000, 1)} t/mês).`;
   }
 
@@ -650,7 +657,7 @@ export function montarApresentacao(PptxGenJS, d, { img, frases: fr, textos, acoe
       ctx: [
         [rotRef, refProd > 0 ? `${tn(refProd, 1)}${vTxt(vProd)}${d.emAndamento ? ` · fechou em ${tn(d.prodAntCheio, 1)}` : ''}` : 'sem produção registrada'],
         ['Ritmo', `${nf(ritmoP / 1000, 1)} t/dia útil · meta ${nf(d.metaDia / 1000, 1)} t/dia`],
-        // Prensado VENDIDO no período × o que se vendia de prensado, em média, antes do plano de expansão (proporcional aos dias)
+        // Prensado VENDIDO no período × o que se vendia de prensado, em média, nos mesmos dias úteis dos meses antes do plano
         d.prensAntes > 0 ? ['Prensado vendido',
           `${tn(c.prensa.vol, 1)} · antes do plano: ${tn(d.emAndamento ? d.prensAntesProp : d.prensAntes, 1)}${d.emAndamento ? ' no período' : '/mês'}${vTxt(vPl)}`]
           : ['Prensado vendido', tn(c.prensa.vol, 1)],
@@ -693,7 +700,7 @@ export function montarApresentacao(PptxGenJS, d, { img, frases: fr, textos, acoe
       apoio: [
         ...ind.map(k => `${k.label} — ${SEM[k.st][0]}: ${k.valor}; ${k.sub}. ${k.ctx.map(([r, v]) => `${r}: ${v}`).join('; ')}.`),
         `Selos de faturamento e prensagem: comparação com ${d.emAndamento ? `${ant} até ${ddmm(d.fimAntMesmo)} (mesmo período)` : `${ant} inteiro`} — Crescendo acima de +5%, Estável entre −5% e +5%, Abaixo de −5%.`,
-        d.prensAntes > 0 ? `"Prensado vendido × antes do plano": toneladas de prensado vendidas no período comparadas com a média mensal de prensado vendido antes do plano de expansão (${tn(d.prensAntes, 1)}/mês)${d.emAndamento ? `, proporcional aos ${d.dp} dias úteis já passados` : ''}. Mostra se o plano aumentou a venda de prensado.` : '',
+        d.prensAntes > 0 ? `"Prensado vendido × antes do plano": toneladas de prensado vendidas no período comparadas com ${d.emAndamento ? `a média vendida nos primeiros ${d.dp} dias úteis de cada mês antes do plano de expansão (${tn(d.prensAntesProp, 1)}; mês cheio: ${tn(d.prensAntes, 1)}/mês)` : `a média mensal de prensado vendido antes do plano de expansão (${tn(d.prensAntes, 1)}/mês)`}. Mostra se o plano aumentou a venda de prensado.` : '',
         d.emAndamento ? `Mês em andamento: dados até ${ddmmaaaa(d.corte)}; comparações com ${ant} até ${ddmm(d.fimAntMesmo)} (mesmo ponto do mês).` : '',
       ],
       proximo: 'Agora o porquê de cada número, começando pelo faturamento.' });
