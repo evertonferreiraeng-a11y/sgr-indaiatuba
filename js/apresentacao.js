@@ -412,10 +412,11 @@ export function frasesPadrao(d, tarefas = []) {
     fat = `${cap(mes)} ainda no início: ${mil(d.cur.fat)} faturados até ${ddmm(d.corte)} (${d.dp} de ${d.du} dias úteis), cedo para projetar o fechamento.` +
       (ac > 0 ? ` Em ${nomeMes(d.Mant)}, no mesmo ponto, eram ${mil(am)} — e o mês fechou em **${mil(ac)}**.` : '');
   } else if (d.emAndamento) {
-    const pProj = d.meta > 0 ? d.projecao / d.meta * 100 : null;
+    // Projeção já somando a venda do estoque (número único, o mesmo do card)
     const comEst = d.projecao + d.valorEstoque, pEst = d.meta > 0 ? comEst / d.meta * 100 : null;
-    fat = `No ritmo atual, ${mes} fecha em **~R$ ${nf(d.projecao / 1000, 0)} mil${pProj != null ? ` (${nf(pProj, 0)}% da meta)` : ''}**` +
-      (d.estoqueKg > 0 ? `. Vendendo o estoque de ${tn(d.estoqueKg)}, chega a **~R$ ${nf(comEst / 1000, 0)} mil${pEst != null ? ` (${nf(pEst, 0)}%)` : ''}**.` : '.');
+    fat = d.estoqueKg > 0
+      ? `No ritmo atual e vendendo o estoque (${tn(d.estoqueKg)}), ${mes} fecha em **~R$ ${nf(comEst / 1000, 0)} mil${pEst != null ? ` (${nf(pEst, 0)}% da meta)` : ''}**.`
+      : `No ritmo atual, ${mes} fecha em **~R$ ${nf(comEst / 1000, 0)} mil${pEst != null ? ` (${nf(pEst, 0)}% da meta)` : ''}**.`;
   } else {
     fat = `${cap(mes)} fechou em ${destaque(`${mil(d.cur.fat)}${atFat != null ? ` (${nf(atFat, 0)}% da meta)` : ''}`, atFat)}.`;
   }
@@ -657,7 +658,7 @@ export function montarApresentacao(PptxGenJS, d, { img, frases: fr, textos, acoe
       sub: (d.emAndamento ? `${d.meta ? `${pct(atFat, 0)} da meta · ` : ''}${d.dp} de ${d.du} dias úteis` : d.meta ? `${pct(atFat, 0)} da meta de ${mil(d.meta)}` : 'sem meta cadastrada') + ticket,
       ctx: [
         [rotRef, `${mil(ref.fat)}${vTxt(vFat)}${d.emAndamento ? ` · fechou em ${mil(d.antCheio.fat)}` : ''}`],
-        !d.inicioMes && d.emAndamento ? ['Projeção no ritmo atual', `${mil(d.projecao)}${d.meta ? ` (${pct(d.projecao / d.meta * 100, 0)} da meta)` : ''}`] : null,
+        !d.inicioMes && d.emAndamento ? [d.valorEstoque > 0 ? 'Projeção + venda do estoque' : 'Projeção no ritmo atual', `${mil(d.projecao + d.valorEstoque)}${d.meta ? ` (${pct((d.projecao + d.valorEstoque) / d.meta * 100, 0)} da meta)` : ''}`] : null,
       ].filter(Boolean) });
 
     // Prensagem — produção das prensas vs o mesmo período do mês anterior
@@ -745,8 +746,9 @@ export function montarApresentacao(PptxGenJS, d, { img, frases: fr, textos, acoe
         : ['ESTOQUE PRONTO PARA VENDA', mil(d.valorEstoque), tn(d.estoqueKg), COR.verde, COR.verdeCl],
     ] : d.emAndamento ? [
       [`REALIZADO ATÉ ${ddmm(d.corte)}`, mil(d.cur.fat), d.meta ? `${pct(atFat)} da meta` : 'sem meta', COR.txt, 'FFFFFF'],
-      ['PROJEÇÃO NO RITMO ATUAL', mil(d.projecao), `${d.meta ? pct(d.projecao / d.meta * 100) + ' · ' : ''}${d.du} dias úteis`, COR.txt, 'FFFFFF'],
-      ['PROJEÇÃO + VENDA DO ESTOQUE', mil(d.projecao + d.valorEstoque), `${d.meta ? pct((d.projecao + d.valorEstoque) / d.meta * 100) + ' · ' : ''}estoque de ${mil(d.valorEstoque)}`, COR.verde, COR.verdeCl],
+      // Projeção já somando o estoque (sem card separado do ritmo atual)
+      [d.valorEstoque > 0 ? 'PROJEÇÃO + VENDA DO ESTOQUE' : 'PROJEÇÃO NO RITMO ATUAL', mil(d.projecao + d.valorEstoque),
+        `${d.meta ? pct((d.projecao + d.valorEstoque) / d.meta * 100) + ' da meta' : ''}${d.valorEstoque > 0 ? ` · estoque de ${mil(d.valorEstoque)}` : ''}`, COR.verde, COR.verdeCl],
     ] : [
       ['REALIZADO NO MÊS', mil(d.cur.fat), d.meta ? `${pct(atFat)} da meta` : 'sem meta', COR.txt, 'FFFFFF'],
       [`ACUMULADO JAN–${abrevMes.toUpperCase()}`, mil(d.fatAno), d.metaAno ? `${pct(d.fatAno / d.metaAno * 100)} da meta do período` : '', COR.txt, 'FFFFFF'],
@@ -761,12 +763,14 @@ export function montarApresentacao(PptxGenJS, d, { img, frases: fr, textos, acoe
       if (b[5]) txt(s, px + 22, y + 80, pw - 44, 36, b[2], 13, COR.txt2);
       else txt(s, px + 22, y + 86, pw - 44, 22, b[2], 14, COR.txt2);
     });
-    txt(s, px, 607, pw, 22, 'ATINGIMENTO DA META SEMANAL', 13, COR.muted, { bold: true });
+    // Semanal logo abaixo dos cards (sobe quando há só dois cards)
+    const ySem = 205 + blocos.length * 132 + 6;
+    txt(s, px, ySem, pw, 22, 'ATINGIMENTO DA META SEMANAL', 13, COR.muted, { bold: true });
     // Sob cada barra: realizado × meta da semana (semana parcial: meta só até o corte) e quanto faltou/sobrou
     const k1 = v => nf(v / 1000, 1);
     const detSem = w => !(w.meta > 0) ? '' : `R$ ${k1(w.fat)} de ${k1(w.meta)} mil` +
       (w.fat < w.meta ? ` · faltam ${k1(w.meta - w.fat)} mil` : ` · ${k1(w.fat - w.meta)} mil acima`);
-    barras(s, px, 639, pw, d.semFat.map(w => [`Sem ${w.i} (${+w.s.ini.slice(8)}–${+w.s.fim.slice(8)})${w.parcial ? '*' : ''}`, w.p, w.p == null ? '—' : `${nf(w.p, 0)}%`, detSem(w)]),
+    barras(s, px, ySem + 32, pw, d.semFat.map(w => [`Sem ${w.i} (${+w.s.ini.slice(8)}–${+w.s.fim.slice(8)})${w.parcial ? '*' : ''}`, w.p, w.p == null ? '—' : `${nf(w.p, 0)}%`, detSem(w)]),
       d.semFat.length > 4 ? 39 : 42);
     // Mês em andamento: acumulado só dos meses fechados (faturamento parcial × meta cheia distorce o %)
     const fatAc = d.emAndamento ? d.fatFech : d.fatAno, metaAc = d.emAndamento ? d.metaFech : d.metaAno;
