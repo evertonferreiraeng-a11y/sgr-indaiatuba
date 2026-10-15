@@ -855,8 +855,15 @@ export function montarApresentacao(PptxGenJS, d, { img, frases: fr, textos, acoe
       segs.forEach(([k, nome, fill, cor]) => {
         const vol = r.g[k].vol; if (!(vol > 0) || !(prensaveis > 0)) return;
         const w = larg * vol / prensaveis, p = vol / prensaveis * 100;
-        const rotSeg = w > 230 ? `${nf(vol / 1000, 1)} t ${nome} · ${pct(p)}` : w > 120 ? `${nf(vol / 1000, 1)} t · ${pct(p, 0)}` : w > 50 ? pct(p, 0) : '';
-        s.addText(rotSeg, { x: I(x), y: I(y), w: I(Math.max(w, 1)), h: I(48), fill: { color: fill }, fontFace: FONT, fontSize: 13, bold: k === 'prensado', color: cor, align: 'center', valign: 'middle', margin: 0 });
+        // Rótulo sempre com peso e tipo: largo → uma linha; médio → duas linhas; estreito → fora da barra, logo abaixo
+        const tTxt = `${nf(vol / 1000, 1)} t ${nome}`;
+        const rotSeg = w > 230 ? `${tTxt} · ${pct(p)}` : w > 100 ? `${tTxt}\n${pct(p, 0)}` : '';
+        s.addText(rotSeg, { x: I(x), y: I(y), w: I(Math.max(w, 1)), h: I(48), fill: { color: fill }, fontFace: FONT, fontSize: w > 230 ? 13 : 11.5, bold: k === 'prensado', color: cor, align: 'center', valign: 'middle', margin: 0 });
+        if (w <= 100) {
+          // Fora da barra: alinhado ao fim do segmento (ou ao início, se for o primeiro e estreito)
+          const wl = 200, xl = x + w - wl - 30 < x0 ? x : x + w - wl - 30;
+          txt(s, xl, y + 50, wl + 30, 17, `${tTxt} · ${pct(p, 0)}`, 12.5, COR.txt2, { align: xl === x ? 'left' : 'right', bold: true });
+        }
         x += w;
       });
       // Sucata ferrosa: volume e % do total vendido
