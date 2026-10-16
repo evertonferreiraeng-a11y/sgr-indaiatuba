@@ -463,7 +463,8 @@ export function frasesPadrao(d, tarefas = []) {
   const pProdF = d.emAndamento ? atProdProp : atProd;
   let prensa = `${d.emAndamento ? `Até ${ddmm(d.corte)}` : cap(mes)}: **${nf(c.prensa.vol / 1000, 1)} t de prensado vendido**${vPVTxt}` +
     `${estPrensado > 0 ? ` e mais ${nf(estPrensado / 1000, 1)} t prensadas em estoque` : ''}.` +
-    ` Prensas em ${destaque(`${pct(pProdF, 0)} ${d.emAndamento ? 'do previsto' : 'da capacidade'}`, d.inicioMes && pProdF != null ? Math.max(pProdF, 70) : pProdF)}.`;
+    ` Prensas em ${destaque(`${pct(pProdF, 0)} ${d.emAndamento ? 'do previsto' : 'da capacidade'}`, d.inicioMes && pProdF != null ? Math.max(pProdF, 70) : pProdF)}` +
+    (d.emAndamento ? ` (${nf(d.prod / 1000, 1)} de ${nf(d.esperado / 1000, 1)} t até ${ddmm(d.corte)})` : ` (${nf(d.prod / 1000, 1)} de ${tCap(d, d.capMes)} t)`) + '.';
   const pior = [...d.prensasReduzidas].sort((x, y) => y.perda - x.perda)[0];
   if (pior && pior.diasParado > 0) prensa += ` *${pior.e.nome}${pior.e.frota ? ' ' + pior.e.frota : ''}: ${pior.diasParado} dia${pior.diasParado > 1 ? 's' : ''} em manutenção*.`;
 
@@ -936,17 +937,20 @@ export function montarApresentacao(PptxGenJS, d, { img, frases: fr, textos, acoe
     const atEsp = d.esperado > 0 ? d.prod / d.esperado * 100 : null;
     const ritmo = d.dpPrensa > 0 ? d.prod / d.dpPrensa : 0;
     const pProd = d.emAndamento ? atEsp : atProd;
-    cardP(205, 300, d.emAndamento ? `PRODUÇÃO ATÉ ${ddmm(d.corte)}` : `PRODUÇÃO EM ${mes.toUpperCase()}`, tn(d.prod, 1), [
+    cardP(205, 314, d.emAndamento ? `PRODUÇÃO ATÉ ${ddmm(d.corte)}` : `PRODUÇÃO EM ${mes.toUpperCase()}`, tn(d.prod, 1), [
       { text: d.emAndamento ? `de ${tn(d.esperado, 1)} previstas · ${pct(atEsp, 0)}` : `de ${tCap(d, d.capMes)} t de capacidade · ${pct(atProd, 0)}`, options: { breakLine: true } },
-      { text: `ritmo ${nf(ritmo / 1000, 1)} t/dia · meta ${nf(d.metaDia / 1000, 1)} t/dia`, options: { color: COR.muted } },
+      { text: `ritmo ${nf(ritmo / 1000, 1)} t/dia · meta ${nf(d.metaDia / 1000, 1)} t/dia`, options: { color: COR.muted, breakLine: true } },
+      // Produzido no mês × capacidade instalada das prensas (72 t/mês)
+      { text: `${tn(d.prod, 1)} de ${nf(d.capNominal / 1000, 0)} t de capacidade instalada: `, options: { color: COR.txt2 } },
+      { text: pct(d.capNominal > 0 ? d.prod / d.capNominal * 100 : null, 0), options: { bold: true, color: COR.txt } },
     ]);
-    box(s, px + 22, 345, pw - 44, 12, COR.trilho, null, 0);
-    if (pProd > 0) box(s, px + 22, 345, Math.max(6, (pw - 44) * Math.min(pProd, 100) / 100), 12, corAting(d.inicioMes ? Math.max(pProd, 70) : pProd), null, 0);
+    box(s, px + 22, 362, pw - 44, 12, COR.trilho, null, 0);
+    if (pProd > 0) box(s, px + 22, 362, Math.max(6, (pw - 44) * Math.min(pProd, 100) / 100), 12, corAting(d.inicioMes ? Math.max(pProd, 70) : pProd), null, 0);
     // Por semana: % da meta das prensas e toneladas produzidas × meta (semana parcial: meta só até o corte)
-    txt(s, px + 22, 370, pw - 44, 18, 'POR SEMANA', 11, COR.muted, { bold: true });
+    txt(s, px + 22, 386, pw - 44, 18, 'POR SEMANA', 11, COR.muted, { bold: true });
     const nSem = Math.max(1, d.semProd.length), passoS = Math.min(22, 108 / nSem);
     d.semProd.forEach((w, k) => {
-      const y = 392 + k * passoS, xb = px + 114, wb = 96;
+      const y = 406 + k * passoS, xb = px + 114, wb = 96;
       txt(s, px + 22, y, 92, 18, `Sem ${w.i} (${+w.s.ini.slice(8)}–${+w.s.fim.slice(8)})${w.parcial ? '*' : ''}`, 12, COR.txt2);
       box(s, xb, y + 4, wb, 10, COR.trilho, null, 0);
       if (w.p > 0) box(s, xb, y + 4, Math.max(4, wb * Math.min(w.p, 100) / 100), 10, corAting(w.p), null, 0);
@@ -961,7 +965,7 @@ export function montarApresentacao(PptxGenJS, d, { img, frases: fr, textos, acoe
     // 2) Prensado vendido × mês anterior no mesmo período (mesma régua do Resumo), e o estoque prensado que ainda pode sair
     const refPV = d.emAndamento ? d.antMesmo.prensa.vol : d.antCheio.prensa.vol;
     const vPV = refPV > 0 ? varPct(d.cur.prensa.vol, refPV) : null;
-    cardP(519, 190, d.emAndamento ? `PRENSADO VENDIDO ATÉ ${ddmm(d.corte)}` : `PRENSADO VENDIDO EM ${mes.toUpperCase()}`, [
+    cardP(533, 190, d.emAndamento ? `PRENSADO VENDIDO ATÉ ${ddmm(d.corte)}` : `PRENSADO VENDIDO EM ${mes.toUpperCase()}`, [
       { text: tn(d.cur.prensa.vol, 1), options: {} },
       { text: vPV == null ? '' : Math.abs(vPV) <= 5 ? '  estável' : `  ${seta(vPV)} ${nf(Math.abs(vPV), 0)}%`, options: { color: vPV == null || Math.abs(vPV) <= 5 ? COR.muted : vPV > 0 ? COR.ok : COR.verm, fontSize: 20 } },
     ], [
