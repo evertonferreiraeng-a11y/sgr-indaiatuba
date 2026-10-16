@@ -93,7 +93,7 @@ function analiseMix(cG, aG, materiais, aGran = null) {
   const porMix = varMedia < -2 && (efeitoPreco == null ? faltam.length > 0 : efeitoPreco > varMedia / 2);
   // Ganho de prensar: preço do prensado atual × o mesmo material no mês anterior somando prensado + a granel
   // (mostra que vender prensado, em vez de a granel, valoriza o material)
-  let efeitoPrensar = null;
+  let efeitoPrensar = null, granelAnt = false;
   if (aGran) {
     const tudo = {};
     [aG, aGran].forEach(G => Object.entries(G.mat || {}).forEach(([nome, x]) => {
@@ -102,8 +102,10 @@ function analiseMix(cG, aG, materiais, aGran = null) {
     const base = cur.filter(x => tudo[x.nome]?.vol > 0);
     const fatRef = base.reduce((s, x) => s + x.vol / 1000 * (tudo[x.nome].fat / (tudo[x.nome].vol / 1000)), 0);
     if (fatRef > 0) efeitoPrensar = (base.reduce((s, x) => s + x.fat, 0) / fatRef - 1) * 100;
+    // Houve venda a granel desses materiais no mês anterior? (para explicar a comparação na frase)
+    granelAnt = base.some(x => aGran.mat?.[x.nome]?.vol > 0);
   }
-  return { cur, ant, antPor, efeitoPreco, efeitoPrensar, varMedia, faltam, faltamEstoque, porMix };
+  return { cur, ant, antPor, efeitoPreco, efeitoPrensar, granelAnt, varMedia, faltam, faltamEstoque, porMix };
 }
 
 export function calcularDados(rows, M, corteIn, hoje) {
@@ -356,15 +358,17 @@ export function frasesMix(d) {
   const mx = d.mixPrensado; if (!mx) return {};
   const ate = d.emAndamento ? `até ${ddmm(d.corte)}` : `em ${nomeMes(d.M)}`;
   const top = mx.cur[0], share = top.vol / mx.cur.reduce((s, x) => s + x.vol, 0) * 100;
-  const barato = top.preco < d.antCheio.g.prensado.preco * 0.98 ? ', de menor preço' : '';
+  // Frase em linguagem direta: 1) o que mais saiu; 2) quanto a tonelada rendeu a mais/menos que no mês anterior
+  // (no mês anterior conta prensado + a granel do mesmo material); 3) para quanto vai a média vendendo o estoque
   const motivo = mx.cur.length === 1
-    ? `${ate} só saiu **${nomeMat(top.nome)}**${barato}`
-    : `${ate} o **${nomeMat(top.nome)}** foi ${pct(share, 0)} do prensado vendido${barato}`;
-  // Preferência: prensado atual × mesmo material no mês anterior (prensado + a granel); sem base, × só o prensado
+    ? `${ate} só saiu **${nomeMat(top.nome)}** prensado`
+    : `${ate} o **${nomeMat(top.nome)}** foi ${pct(share, 0)} do prensado vendido`;
   const usaPrensar = mx.efeitoPrensar != null, e = usaPrensar ? mx.efeitoPrensar : mx.efeitoPreco;
-  const refM = usaPrensar ? `vs o mesmo material em ${nomeMes(d.Mant)}, prensado + a granel:` : 'no mesmo material,';
-  const mesmo = e == null ? '' : Math.abs(e) < 3 ? `${refM} preço **estável**`
-    : e > 0 ? `${refM} **+${nf(e, 0)}%**` : `${refM} ${nf(e, 0)}%`;
+  const quem = mx.cur.length === 1 ? 'a tonelada dele' : 'material por material, a tonelada';
+  const ant = nomeMes(d.Mant), porque = usaPrensar && mx.granelAnt ? `, quando parte saiu a granel` : '';
+  const mesmo = e == null ? '' : Math.abs(e) < 3 ? `${cap(quem)} valeu o mesmo que em ${ant}${porque}`
+    : e > 0 ? `${cap(quem)} rendeu **${nf(e, 0)}% a mais** que em ${ant}${porque}`
+      : `${cap(quem)} rendeu ${nf(Math.abs(e), 0)}% a menos que em ${ant}`;
   // Estoque prensado TOTAL (o mesmo número do card): se vendido, para quanto vai a média do prensado
   const eP = d.estoqueGrupo?.prensado, cP = d.cur.g.prensado;
   const sim = eP?.kg > 0 ? (cP.fat + eP.val) / ((cP.vol + eP.kg) / 1000) : null;
@@ -450,7 +454,7 @@ export function frasesPadrao(d, tarefas = []) {
   // Preço do prensado caiu só porque mudou o mix de materiais: explica em vez de alarmar
   if (quedaPreco && d.mixPrensado?.porMix) {
     const fm = frasesMix(d);
-    comp = `Prensado em ${reais0(cP.preco)}/t: ${fm.motivo}${fm.mesmo ? ` (${fm.mesmo})` : ''}.${fm.volta ? ` ${cap(fm.volta)}.` : ''}`;
+    comp = `Prensado a ${reais0(cP.preco)}/t: ${fm.motivo}.${fm.mesmo ? ` ${fm.mesmo}.` : ''}${fm.volta ? ` ${cap(fm.volta)}.` : ''}`;
   }
   // Frase simples, na ordem do slide: prensado vendido (o gráfico) × mês anterior no mesmo período,
   // estoque prensado a vender e, por último, a produção das prensas × previsto (cards da direita)
