@@ -567,6 +567,7 @@
 <div id="toast-container"></div>
 <script type="module">
 import { initPage, supabase, moeda, peso, ton, dataBR, toast, abrirModal, fecharModal, mesAtual, anoAtual } from './js/config.js?v=3';
+import { ehDiaUtil } from './js/feriados.js?v=1';
 import { icon } from './js/icons.js';
 
 
@@ -1039,15 +1040,18 @@ function semanaDoMesMapa(mesKey) {
   const ultimoDia = new Date(Date.UTC(ano, mes, 0)).getUTCDate();
   const diaParaSemana = {};
   const faixas = {};
+  const uteis = {}; // dias úteis por semana (sem feriados) — base da meta semanal
   let idx = 1;
   for (let dia = 1; dia <= ultimoDia; dia++) {
     const dow = new Date(Date.UTC(ano, mes - 1, dia)).getUTCDay(); // 0=Dom..6=Sáb
     if (dow === 1 && dia !== 1) idx++;
     if (dow === 0 || dow === 6) continue;
-    diaParaSemana[dia] = idx;
+    diaParaSemana[dia] = idx; // feriado continua na semana: venda lançada nele entra no total
+    if (!ehDiaUtil(`${mesKey}-${String(dia).padStart(2, '0')}`)) continue;
     faixas[idx] = faixas[idx] ? [faixas[idx][0], dia] : [dia, dia];
+    uteis[idx] = (uteis[idx] || 0) + 1;
   }
-  return { diaParaSemana, faixas };
+  return { diaParaSemana, faixas, uteis };
 }
 
 function faixaLabel(faixas, i) {
@@ -1164,7 +1168,7 @@ async function renderAcompanhamentoSemanalMes() {
     return;
   }
 
-  const { diaParaSemana, faixas } = semanaDoMesMapa(mes);
+  const { diaParaSemana, faixas, uteis } = semanaDoMesMapa(mes);
   const map = agruparPorSemanaMes(vendaData, diaParaSemana);
   // Sempre lista todas as semanas do mês (mesmo sem venda), não só as que têm dado.
   const semanas = Object.keys(faixas).map(Number).sort((a, b) => a - b);
@@ -1177,7 +1181,7 @@ async function renderAcompanhamentoSemanalMes() {
 
   const { data: metaRows } = await supabase.from('metas').select('valor_meta').eq('indicador', 'faturamento').eq('periodo', mes).limit(1);
   const metaMensal = metaRows?.[0]?.valor_meta ? parseFloat(metaRows[0].valor_meta) : 0;
-  const totalDiasUteis = Object.keys(diaParaSemana).length;
+  const totalDiasUteis = Object.values(uteis).reduce((s, n) => s + n, 0);
   const metaDiaria = totalDiasUteis > 0 ? metaMensal / totalDiasUteis : 0;
 
   const totalVol = semanas.reduce((s, i) => s + (map[i]?.vol || 0), 0);
@@ -1200,7 +1204,7 @@ async function renderAcompanhamentoSemanalMes() {
     const pctFat = totalFat > 0 ? (w.fat / totalFat * 100).toFixed(1) : '0.0';
     const precoMedio = w.vol > 0 ? moeda(w.fat / (w.vol / 1000)) : '—';
 
-    const diasNaSemana = faixas[i][1] - faixas[i][0] + 1;
+    const diasNaSemana = uteis[i] || 0;
     const metaSemana = metaDiaria * diasNaSemana;
     const semanaInicioStr = `${mes}-${String(faixas[i][0]).padStart(2, '0')}`;
     const semanaFimStr = `${mes}-${String(faixas[i][1]).padStart(2, '0')}`;

@@ -298,6 +298,7 @@
 <div id="toast-container"></div>
 <script type="module">
 import { initPage, supabase, peso, ton, dataBR, toast, abrirModal, fecharModal, mesAtual } from './js/config.js?v=3';
+import { ehDiaUtil } from './js/feriados.js?v=1';
 import { icon } from './js/icons.js';
 
 await initPage();
@@ -503,9 +504,10 @@ function diasUteisDoMes(ano, mes1a12, extraDias = []) {
   for (let d = 1; d <= totalDias; d++) {
     const dt = new Date(ano, mes1a12 - 1, d);
     const dow = dt.getDay();
-    if (dow !== 0 && dow !== 6) dias.add(`${ano}-${String(mes1a12).padStart(2, '0')}-${String(d).padStart(2, '0')}`);
+    const iso = `${ano}-${String(mes1a12).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
+    if (dow !== 0 && dow !== 6 && ehDiaUtil(iso)) dias.add(iso); // feriados (js/feriados.js) ficam fora
   }
-  // Sábado/domingo em que houve lançamento também conta como dia útil.
+  // Sábado/domingo ou feriado em que houve lançamento também conta como dia útil.
   extraDias.forEach(d => dias.add(d));
   return [...dias].sort();
 }
@@ -682,7 +684,7 @@ function renderMetaPrensas() {
   const prensas = (equipamentos || []).filter(e => (e.nome || '').toLowerCase().includes('prensa') && e.capacidade_kg_mes && (!idsFiltro || idsFiltro.has(e.id)));
   const idsPrensas = prensas.map(eq => eq.id);
   const fimDeSemanaComLancamento = [...new Set(producaoData.filter(r => idsPrensas.includes(r.equipamento_id)).map(r => r.data))]
-    .filter(d => { const dow = new Date(d + 'T00:00:00').getDay(); return dow === 0 || dow === 6; });
+    .filter(d => !ehDiaUtil(d)); // fim de semana ou feriado com lançamento
 
   const diasUteis = diasUteisDoMes(ano, mesNum, fimDeSemanaComLancamento);
   const semanas = agruparPorSemana(diasUteis);

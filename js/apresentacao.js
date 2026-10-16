@@ -1,5 +1,6 @@
 // Geração da apresentação do Comitê (modelo "Comitê UVR Indaiatuba").
 // Cálculo puro a partir das linhas do banco + montagem do .pptx com PptxGenJS.
+import { ehDiaUtil } from './feriados.js?v=1';
 
 // Início do plano de expansão (comparação de prensado antes × depois)
 export const PLANO_INICIO = '2026-08-14';
@@ -28,16 +29,17 @@ export const ddmm = s => { const [, m, d] = s.split('-'); return `${d}/${m}`; };
 export const ddmmaaaa = s => { const [y, m, d] = s.split('-'); return `${d}/${m}/${y}`; };
 export const fimDoMes = ym => { const [y, m] = ym.split('-').map(Number); return `${ym}-${pad(new Date(y, m, 0).getDate())}`; };
 export const mesDelta = (ym, n) => { const [y, m] = ym.split('-').map(Number); const d = new Date(y, m - 1 + n, 1); return `${d.getFullYear()}-${pad(d.getMonth() + 1)}`; };
-const ehUtil = s => { const w = parseD(s).getDay(); return w !== 0 && w !== 6; };
+// Dia útil: segunda a sexta, fora feriados (js/feriados.js)
+const ehUtil = ehDiaUtil;
 function diasUteis(a, b) { let n = 0; for (let d = a; d <= b; d = addDias(d, 1)) if (ehUtil(d)) n++; return n; }
 
-// Semanas úteis do mês (mesma regra do Comercial): nova semana a cada segunda; sáb/dom fora
+// Semanas úteis do mês (mesma regra do Comercial): nova semana a cada segunda; sáb/dom e feriados fora
 function semanasDoMes(ym) {
   const fim = fimDoMes(ym); const faixas = []; let atual = null;
   for (let d = `${ym}-01`; d <= fim; d = addDias(d, 1)) {
     const w = parseD(d).getDay();
     if (w === 1 && atual) { faixas.push(atual); atual = null; }
-    if (w === 0 || w === 6) continue;
+    if (!ehUtil(d)) continue;
     if (!atual) atual = { ini: d, fim: d, dias: 0 };
     atual.fim = d; atual.dias++;
   }

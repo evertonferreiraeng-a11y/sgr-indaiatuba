@@ -104,6 +104,7 @@
 
 <script type="module">
 import { initPage, supabase, moeda, ton, toast } from './js/config.js?v=3';
+import { ehDiaUtil as ehUtilFeriado } from './js/feriados.js?v=1';
 
 await initPage();
 
@@ -152,16 +153,16 @@ const labelMesCurto = ym => { const [y, m] = ym.split('-'); return `${MESES_ABRE
 const labelSemana = seg => `Semana ${semanaISO(seg)} · ${ddmm(seg)} a ${ddmm(addDias(seg, 6))}`;
 const labelSemanaCurto = seg => `S${semanaISO(seg)} (${ddmm(seg)})`;
 
-// Dias úteis (seg–sex) do mês — mesma regra da meta semanal do Comercial e da meta das prensas
+// Dias úteis (seg–sex, fora feriados) do mês — mesma regra da meta semanal do Comercial e da meta das prensas
 const _cacheDU = {};
 function diasUteisMes(ym) {
   if (_cacheDU[ym] != null) return _cacheDU[ym];
   const { ini, fim } = rangeMes(ym);
   let n = 0;
-  for (let d = ini; d <= fim; d = addDias(d, 1)) { const w = parseD(d).getDay(); if (w !== 0 && w !== 6) n++; }
+  for (let d = ini; d <= fim; d = addDias(d, 1)) if (ehUtilFeriado(d)) n++;
   return (_cacheDU[ym] = n);
 }
-const ehDiaUtil = s => { const w = parseD(s).getDay(); return w !== 0 && w !== 6; };
+const ehDiaUtil = s => ehUtilFeriado(s); // seg–sex, fora feriados (js/feriados.js)
 
 // ── Estado / controles ──
 let modo = 'mes';
