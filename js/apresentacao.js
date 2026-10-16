@@ -737,10 +737,13 @@ export function montarApresentacao(PptxGenJS, d, { img, frases: fr, textos, acoe
       [`REALIZADO ATÉ ${ddmm(d.corte)}`, mil(d.cur.fat), `${d.meta ? pct(atFat) + ' da meta · ' : ''}${d.dp} de ${d.du} dias úteis`, COR.txt, 'FFFFFF'],
       [`${ant.toUpperCase()} NO MESMO PONTO`, mil(d.antMesmo.fat), `até ${ddmm(d.fimAntMesmo)} · fechou o mês em ${mil(d.antCheio.fat)}`, COR.txt, 'FFFFFF'],
       // O que falta no mês para a meta; abaixo, quanto falta se o estoque for vendido
+      // Duas linhas: o estoque (valor e peso) e quanto falta se ele for vendido
       d.meta ? ['FALTA PARA A META', mil(faltaMeta), d.valorEstoque > 0 ? [
+        { text: 'estoque: ', options: { color: COR.muted } },
+        { text: `${mil(d.valorEstoque)} (${tn(d.estoqueKg, 1)})`, options: { bold: true, color: COR.txt2, breakLine: true } },
         { text: 'vendendo o estoque, ', options: { color: COR.muted } },
         { text: `faltam ${mil(Math.max(0, faltaMeta - d.valorEstoque))}`, options: { bold: true, color: COR.amb } },
-      ] : `meta do mês: ${mil(d.meta)}`, COR.amb, COR.ambBg]
+      ] : `meta do mês: ${mil(d.meta)}`, COR.amb, COR.ambBg, d.valorEstoque > 0]
         : ['ESTOQUE PRONTO PARA VENDA', mil(d.valorEstoque), tn(d.estoqueKg), COR.verde, COR.verdeCl],
     ] : d.emAndamento ? [
       [`REALIZADO ATÉ ${ddmm(d.corte)}`, mil(d.cur.fat), d.meta ? `${pct(atFat)} da meta` : 'sem meta', COR.txt, 'FFFFFF'],
