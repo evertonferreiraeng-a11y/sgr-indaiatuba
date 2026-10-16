@@ -673,11 +673,7 @@ export function montarApresentacao(PptxGenJS, d, { img, frases: fr, textos, acoe
       sub: d.emAndamento ? `${pct(atProdRef, 0)} do previsto até ${ddmm(d.corte)} (${nf(d.esperado / 1000, 1)} t)` : `${pct(atProd, 0)} da capacidade de ${tCap(d, d.capMes)} t`,
       ctx: [
         [rotRef, refProd > 0 ? `${tn(refProd, 1)}${vTxt(vProd)}${d.emAndamento ? ` · fechou em ${tn(d.prodAntCheio, 1)}` : ''}` : 'sem produção registrada'],
-        ['Ritmo', `${nf(ritmoP / 1000, 1)} t/dia útil · meta ${nf(d.metaDia / 1000, 1)} t/dia`],
-        // Prensado VENDIDO no período × o que se vendia de prensado, em média, nos mesmos dias úteis dos meses antes do plano
-        d.prensAntes > 0 ? ['Prensado vendido',
-          `${tn(c.prensa.vol, 1)} · antes do plano: ${tn(d.emAndamento ? d.prensAntesProp : d.prensAntes, 1)}${d.emAndamento ? ' no período' : '/mês'}${vTxt(vPl)}`]
-          : ['Prensado vendido', tn(c.prensa.vol, 1)],
+        // Ritmo e prensado vendido ficam no slide de Prensagem (card enxuto, igual ao de faturamento)
       ] });
 
     // Equipamentos: situação atual + quem mais parou no mês
