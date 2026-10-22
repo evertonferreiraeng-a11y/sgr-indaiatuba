@@ -460,30 +460,27 @@ export function frasesPadrao(d, tarefas = []) {
   const ratio = cP.preco && cG.preco ? cP.preco / cG.preco : null;
   const quedaPreco = cP.preco != null && aP.preco != null && cP.preco < aP.preco * 0.98;
   const quedaComp = c.pctPrensado != null && a.pctPrensado != null && c.pctPrensado < a.pctPrensado - 0.5;
-  // Frase em três ideias, na ordem do slide: 1) quanto saiu prensado (as barras); 2) o que isso rendeu
-  // (mesmo material por tonelada e preço médio geral); 3) a média do prensado e, se caiu por mix, o porquê e o efeito do estoque
+  // Frase curta, só a mensagem: 1) quanto saiu prensado (as barras) e o preço médio geral;
+  // 2) se a média do prensado caiu só pelo mix, o porquê. Os detalhes (mesmo material por tonelada,
+  // vendido + estoque) ficam nos cards e nas anotações do apresentador
   const ant = nomeMes(d.Mant), mx = d.mixPrensado;
   const frases = [];
   let p1 = ratio ? `O prensado vale **${nf(ratio, 1)}×** o mesmo material a granel` : '';
   if (c.pctPrensado != null && a.pctPrensado != null) {
-    p1 = quedaComp ? `*Só ${pct(c.pctPrensado, 0)} do volume saiu prensado* (${pct(a.pctPrensado, 0)} em ${ant})`
-      : c.pctPrensado > a.pctPrensado + 0.5 ? `**${pct(c.pctPrensado, 0)} do volume saiu prensado** (${pct(a.pctPrensado, 0)} em ${ant})`
+    const ref = ` (${pct(a.pctPrensado, 0)} em ${ant})`;
+    p1 = quedaComp ? `*Só ${pct(c.pctPrensado, 0)} do volume saiu prensado*${ref}`
+      : c.pctPrensado > a.pctPrensado + 0.5
+        ? (c.pctPrensado >= 80 ? `**Quase tudo saiu prensado: ${pct(c.pctPrensado, 0)}**${ref}` : `**${pct(c.pctPrensado, 0)} do volume saiu prensado**${ref}`)
         : `${pct(c.pctPrensado, 0)} do volume saiu prensado, como em ${ant}`;
   }
-  const ganhos = [];
-  if (mx?.efeitoPrensar != null && Math.abs(mx.efeitoPrensar) >= 3) ganhos.push(mx.efeitoPrensar > 0
-    ? `o mesmo material rendeu **${nf(mx.efeitoPrensar, 0)}% a mais por tonelada**` : `o mesmo material rendeu *${nf(-mx.efeitoPrensar, 0)}% a menos por tonelada*`);
   const difG = c.preco && a.preco ? c.preco - a.preco : null;
-  if (difG != null && Math.abs(difG) >= 10) ganhos.push(difG > 0
-    ? `o preço médio geral subiu **R$ ${nf(difG, 0)}/t**` : `o preço médio geral caiu *R$ ${nf(-difG, 0)}/t*`);
-  if (p1 || ganhos.length) frases.push(`${p1 ? cap(p1) : ''}${p1 && ganhos.length ? ': ' : ''}${ganhos.length ? (p1 ? juntarE(ganhos) : cap(juntarE(ganhos))) : ''}.`);
+  const geral = difG == null || Math.abs(difG) < 10 ? '' : difG > 0 ? `o preço médio geral subiu **R$ ${nf(difG, 0)}/t**` : `o preço médio geral caiu *R$ ${nf(-difG, 0)}/t*`;
+  if (p1 || geral) frases.push(p1 && geral ? `${p1}, e ${geral}.` : `${cap(p1 || geral)}.`);
   if (cP.preco != null && aP.preco != null) {
     if (quedaPreco && mx?.porMix) {
-      // Queda só de mix: diz qual material puxou a média e para quanto ela vai vendendo o estoque prensado
+      // Queda só de mix: diz qual material puxou a média para baixo
       const top = mx.cur[0], share = top.vol / mx.cur.reduce((s, x) => s + x.vol, 0) * 100;
-      const eP = d.estoqueGrupo?.prensado, sim = eP?.kg > 0 ? (cP.fat + eP.val) / ((cP.vol + eP.kg) / 1000) : null;
-      frases.push(`A média do prensado (${reais0(cP.preco)}/t) caiu pelo mix: ${pct(share, 0)} foi ${nomeMat(top.nome)}${top.preco < aP.preco ? ', que vale menos' : ''}` +
-        (sim != null && sim > cP.preco * 1.02 ? `; vendendo o estoque prensado (${tn(eP.kg, 1)}), **sobe para ${reais0(sim)}/t**.` : '.'));
+      frases.push(`A média do prensado caiu para ${reais0(cP.preco)}/t só pelo mix: ${pct(share, 0)} foi ${nomeMat(top.nome)}${top.preco < aP.preco ? ', que vale menos' : ''}.`);
     } else if (quedaPreco) frases.push(`O prensado *caiu para ${reais0(cP.preco)}/t* (${reais0(aP.preco)}/t em ${ant}).`);
     else if (cP.preco > aP.preco * 1.02) frases.push(`O prensado subiu para **${reais0(cP.preco)}/t** (${reais0(aP.preco)}/t em ${ant}).`);
   }
