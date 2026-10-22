@@ -217,11 +217,13 @@ export function calcularDados(rows, M, corteIn, hoje) {
   const snapPorEq = {};
   snapshotsTodos.forEach(s => { if (idsPrensas.has(s.equipamento_id)) (snapPorEq[s.equipamento_id] = snapPorEq[s.equipamento_id] || []).push(s); });
   Object.values(snapPorEq).forEach(l => l.sort((a, b) => a.semana.localeCompare(b.semana)));
+  // Previsão de conserto escrita na observação: a partir dessa data a prensa volta a contar na capacidade
+  const prevConserto = Object.fromEntries(prensas.map(e => [e.id, separaObs((e.observacao_dia || e.observacao || '').trim(), ano).prev]));
   const statusNoDia = (e, dt) => {
     const lista = snapPorEq[e.id] || [];
     const exato = lista.find(s => s.semana === dt);
     if (exato) return exato.status;
-    if (dt >= hoje) return e.status || 'operando';
+    if (dt >= hoje) return prevConserto[e.id] && dt >= prevConserto[e.id] ? 'operando' : e.status || 'operando';
     let ult = null; for (const s of lista) { if (s.semana < dt) ult = s; else break; }
     return ult?.status || 'operando';
   };
@@ -255,7 +257,8 @@ export function calcularDados(rows, M, corteIn, hoje) {
       perda += parseFloat(e.capacidade_kg_mes || 0) / duPrensa * (1 - f);
       if (f === 0) diasParado++; else if (f < 1) diasRestr++;
     });
-    return { e, perda, diasParado, diasRestr };
+    // ateFim: ainda parada/com restrição hoje e sem previsão de conserto — a conta considera até o fim do mês
+    return { e, perda, diasParado, diasRestr, prev: prevConserto[e.id], ateFim: e.status !== 'operando' && !prevConserto[e.id] };
   }).filter(x => x.perda > 0.5);
   const metaDia = duPrensa > 0 ? capMes / duPrensa : 0;
   const metaDiaNominal = duPrensa > 0 ? capNominal / duPrensa : 0;
@@ -482,8 +485,15 @@ export function frasesPadrao(d, tarefas = []) {
     `${estPrensado > 0 ? ` e mais ${nf(estPrensado / 1000, 1)} t prensadas em estoque` : ''}.` +
     ` Prensas em ${destaque(`${pct(pProdF, 0)} ${d.emAndamento ? 'do previsto' : 'da capacidade'}`, d.inicioMes && pProdF != null ? Math.max(pProdF, 70) : pProdF)}` +
     (d.emAndamento ? ` (${nf(d.prod / 1000, 1)} de ${nf(d.esperado / 1000, 1)} t até ${ddmm(d.corte)})` : ` (${nf(d.prod / 1000, 1)} de ${tCap(d, d.capMes)} t)`) + '.';
-  const pior = [...d.prensasReduzidas].sort((x, y) => y.perda - x.perda)[0];
-  if (pior && pior.diasParado > 0) prensa += ` *${pior.e.nome}${pior.e.frota ? ' ' + pior.e.frota : ''}: ${pior.diasParado} dia${pior.diasParado > 1 ? 's' : ''} em manutenção*.`;
+  // Impacto da manutenção: quanto a capacidade do mês cai com as prensas paradas/com restrição
+  // (dias até a previsão de conserto escrita na observação; sem previsão, até o fim do mês)
+  if (d.perdaCap > 0.5) {
+    const quem = [...d.prensasReduzidas].sort((x, y) => y.perda - x.perda).slice(0, 2).map(({ e, diasParado, diasRestr, prev, ateFim }) => {
+      const dias = diasParado || diasRestr;
+      return `${nomeCurtoEq(e)} ${diasParado ? 'parada' : 'com restrição'} ${dias} dia${dias > 1 ? 's' : ''}${prev ? ` (volta ${ddmm(prev)})` : ateFim ? ' (sem previsão de volta)' : ''}`;
+    });
+    prensa += ` *${juntarE(quem)}: capacidade do mês cai de ${nf(d.capNominal / 1000, 0)} t para ${tCap(d, d.capMes)} t (−${nf(d.perdaCap / 1000, 1)} t)*.`;
+  }
 
   // Frase curta: 1) quantos disponíveis e, para cada um com problema, até quando (previsão escrita na observação);
   // 2) disponibilidade média do mês; 3) equipe. O detalhe (problema, desde, % parado) fica na tabela do slide
@@ -952,9 +962,15 @@ export function montarApresentacao(PptxGenJS, d, { img, frases: fr, textos, acoe
     cardP(205, 314, d.emAndamento ? `PRODUÇÃO ATÉ ${ddmm(d.corte)}` : `PRODUÇÃO EM ${mes.toUpperCase()}`, tn(d.prod, 1), [
       { text: d.emAndamento ? `de ${tn(d.esperado, 1)} previstas · ${pct(atEsp, 0)}` : `de ${tCap(d, d.capMes)} t de capacidade · ${pct(atProd, 0)}`, options: { breakLine: true } },
       { text: `ritmo ${nf(ritmo / 1000, 1)} t/dia · meta ${nf(d.metaDia / 1000, 1)} t/dia`, options: { color: COR.muted, breakLine: true } },
-      // Produzido no mês × capacidade instalada das prensas (72 t/mês)
-      { text: `${tn(d.prod, 1)} de ${nf(d.capNominal / 1000, 0)} t de capacidade instalada: `, options: { color: COR.txt2 } },
-      { text: pct(d.capNominal > 0 ? d.prod / d.capNominal * 100 : null, 0), options: { bold: true, color: COR.txt } },
+      // Capacidade do mês: a instalada (72 t) descontada a manutenção, quando houver prensa parada/com restrição
+      ...(d.perdaCap > 0.5 ? [
+        { text: 'Capacidade do mês: ', options: { color: COR.txt2 } },
+        { text: `${tCap(d, d.capMes)} t`, options: { bold: true, color: COR.verm } },
+        { text: ` de ${nf(d.capNominal / 1000, 0)} t (−${nf(d.perdaCap / 1000, 1)} t)`, options: { color: COR.txt2 } },
+      ] : [
+        { text: `${tn(d.prod, 1)} de ${nf(d.capNominal / 1000, 0)} t de capacidade instalada: `, options: { color: COR.txt2 } },
+        { text: pct(d.capNominal > 0 ? d.prod / d.capNominal * 100 : null, 0), options: { bold: true, color: COR.txt } },
+      ]),
     ]);
     box(s, px + 22, 362, pw - 44, 12, COR.trilho, null, 0);
     if (pProd > 0) box(s, px + 22, 362, Math.max(6, (pw - 44) * Math.min(pProd, 100) / 100), 12, corAting(d.inicioMes ? Math.max(pProd, 70) : pProd), null, 0);
