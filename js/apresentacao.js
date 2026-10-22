@@ -765,8 +765,8 @@ export function montarApresentacao(PptxGenJS, d, { img, frases: fr, textos, acoe
       ] : `meta do mês: ${mil(d.meta)}`, COR.amb, COR.ambBg, d.valorEstoque > 0]
         : ['ESTOQUE PRONTO PARA VENDA', mil(d.valorEstoque), tn(d.estoqueKg), COR.verde, COR.verdeCl],
     ] : d.emAndamento ? [
-      // b[6] = selo de ritmo (realizado × esperado até aqui = meta proporcional aos dias úteis)
-      [`REALIZADO ATÉ ${ddmm(d.corte)}`, mil(d.cur.fat), d.meta ? `${pct(atFat, 0)} da meta · esperado até aqui: ${pct(espAq * 100, 0)}` : 'sem meta', COR.txt, 'FFFFFF', false, d.meta ? atFat / espAq : null],
+      // b[6] = selo de ritmo (só no Realizado + estoque: o ritmo é medido pela soma)
+      [`REALIZADO ATÉ ${ddmm(d.corte)}`, mil(d.cur.fat), d.meta ? `${pct(atFat, 0)} da meta · esperado até aqui: ${pct(espAq * 100, 0)}` : 'sem meta', COR.txt, 'FFFFFF'],
       // Estoque pronto para vender: valor e toneladas por grupo
       ...(d.valorEstoque > 0 ? [
         ['ESTOQUE DISPONÍVEL PARA VENDA', mil(d.valorEstoque), [['prensado', 'prensado'], ['granel', 'a granel'], ['sucata', 'sucata']]
