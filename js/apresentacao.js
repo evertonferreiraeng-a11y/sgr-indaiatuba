@@ -108,6 +108,26 @@ function analiseMix(cG, aG, materiais, aGran = null) {
   return { cur, ant, antPor, efeitoPreco, efeitoPrensar, granelAnt, varMedia, faltam, faltamEstoque, porMix };
 }
 
+// A observação do equipamento traz o problema, quando aconteceu e a previsão de conserto, ex.:
+// "Quebrou o rolamento em 21/10, manutenção iniciada, previsão para conserto em 27/10".
+// Previsão = trecho com "previsão/agendada/prazo/retorno/conserto" (ou a última data); a outra data = desde quando
+const reData = /\b(\d{1,2})\/(\d{1,2})(?:\/(\d{2,4}))?\b/;
+const reDataTxt = /\s*\b(?:em|desde|dia|no dia)?\s*\d{1,2}\/\d{1,2}(?:\/\d{2,4})?\b/gi;
+function separaObs(obs, ano) {
+  const iso = p => { const [, dd, mm, aa] = p.match(reData); return `${aa ? (aa.length === 2 ? '20' + aa : aa) : ano}-${mm.padStart(2, '0')}-${dd.padStart(2, '0')}`; };
+  const partes = obs.split(/\s*[,;]\s*|\.\s+|\s+-\s+/).map(p => p.replace(/\.$/, '').trim()).filter(Boolean);
+  const comData = partes.map((p, j) => reData.test(p) ? j : -1).filter(j => j >= 0);
+  let kPrev = comData.find(j => /previs|agend|prazo|retorno|consert/i.test(partes[j]));
+  if (kPrev == null && comData.length > 1) kPrev = comData[comData.length - 1];
+  const kDesde = comData.find(j => j !== kPrev);
+  const prob = partes.filter((_, j) => j !== kPrev).map(p => p.replace(reDataTxt, '').trim()).filter(Boolean).join(', ');
+  return { prob, prev: kPrev != null ? iso(partes[kPrev]) : null, desde: kDesde != null ? iso(partes[kDesde]) : null };
+}
+// "Esteira Transportadora 107-U011" → "Esteira 107-U011"
+const nomeCurtoEq = e => `${(e.nome || '').split(' ')[0]}${e.frota ? ' ' + e.frota : ''}`;
+const nomeEqCompleto = e => `${e.nome || ''}${e.frota ? ' ' + e.frota : ''}`;
+const corta = (t, n) => t.length > n ? t.slice(0, n - 1).trimEnd() + '…' : t;
+
 export function calcularDados(rows, M, corteIn, hoje) {
   const ini = `${M}-01`, fimMes = fimDoMes(M);
   const corte = corteIn > fimMes ? fimMes : corteIn;
@@ -315,6 +335,13 @@ export function calcularDados(rows, M, corteIn, hoje) {
     const regs = snapshots.filter(s => s.equipamento_id === e.id && s.semana <= corte).sort((a, b) => b.semana.localeCompare(a.semana));
     for (const r of regs) { if (r.status !== e.st) break; desdePorEq[e.id] = r.semana; }
   });
+  // Equipamentos parados/com restrição: problema, desde quando (data da observação ou dos registros diários),
+  // previsão de conserto e % dos dias parado no mês — usados no Resumo, na frase e no slide de Equipamentos
+  const problemas = [...eqs.filter(e => e.st === 'parado'), ...eqs.filter(e => e.st === 'restricao')].map(e => {
+    const o = separaObs((e.observacao_dia || e.observacao || '').trim(), M.slice(0, 4));
+    const par = comParada.find(x => x.e.id === e.id);
+    return { e, prob: o.prob, prev: o.prev, desde: o.desde || desdePorEq[e.id] || null, pctPar: par ? par.pct : 0, diasPar: par ? par.dias : 0 };
+  });
   // Disponibilidade média do mês: dias-equipamento não parados ÷ dias-equipamento registrados
   const hs = Object.values(hist), regT = hs.reduce((s, h) => s + h.t, 0), regP = hs.reduce((s, h) => s + h.p, 0);
   const dispMes = regT > 0 ? (regT - regP) / regT * 100 : null;
@@ -337,7 +364,7 @@ export function calcularDados(rows, M, corteIn, hoje) {
     M, ini, fimMes, corte, emAndamento, Mant, fimAntMesmo, cur, antMesmo, antCheio, meta, du, dp, dr,
     estoqueKg, valorEstoque, projecao, inicioMes, fatFech, metaFech, fracMes, prensAntesProp, mixPrensado, estoqueGrupo, mesesAno, fatMes, fatAno, metaAno, metaMes, melhor, nenhumAtingiu, semFat,
     prodAntMesmo, prodAntCheio, prensas, capMes, capNominal, perdaCap, prensasReduzidas, metaDia, metaDiaNominal, metaDiaRestante, duPrensa, dpPrensa, prod, esperado, semProd, prensadoMes, prensAntes, prensDepois,
-    eqs, nOp, nRes, nPar, disp, dispMes, rotDisp, comParada, desdePorEq, colab, quadro, vagas,
+    eqs, nOp, nRes, nPar, disp, dispMes, rotDisp, comParada, problemas, colab, quadro, vagas,
   };
 }
 
@@ -358,32 +385,7 @@ export function textoPerdaCap(d) {
   return `${nf(d.perdaCap / 1000, 1)} t a menos por manutenção/restrição${det ? ` (${det})` : ''}`;
 }
 
-// Explicação da variação do preço do prensado pelo mix de materiais (frase e slide)
 const juntarE = arr => arr.length > 1 ? `${arr.slice(0, -1).join(', ')} e ${arr[arr.length - 1]}` : (arr[0] || '');
-export function frasesMix(d) {
-  const mx = d.mixPrensado; if (!mx) return {};
-  const ate = d.emAndamento ? `até ${ddmm(d.corte)}` : `em ${nomeMes(d.M)}`;
-  const top = mx.cur[0], share = top.vol / mx.cur.reduce((s, x) => s + x.vol, 0) * 100;
-  // Frase em linguagem direta: 1) o que mais saiu; 2) quanto a tonelada rendeu a mais/menos que no mês anterior
-  // (no mês anterior conta prensado + a granel do mesmo material); 3) para quanto vai a média vendendo o estoque
-  const motivo = mx.cur.length === 1
-    ? `${ate} só saiu **${nomeMat(top.nome)}** prensado`
-    : `${ate} o **${nomeMat(top.nome)}** foi ${pct(share, 0)} do prensado vendido`;
-  const usaPrensar = mx.efeitoPrensar != null, e = usaPrensar ? mx.efeitoPrensar : mx.efeitoPreco;
-  const quem = mx.cur.length === 1 ? 'a tonelada dele' : 'material por material, a tonelada';
-  const ant = nomeMes(d.Mant), porque = usaPrensar && mx.granelAnt ? `, quando parte saiu a granel` : '';
-  const mesmo = e == null ? '' : Math.abs(e) < 3 ? `${cap(quem)} valeu o mesmo que em ${ant}${porque}`
-    : e > 0 ? `${cap(quem)} rendeu **${nf(e, 0)}% a mais** que em ${ant}${porque}`
-      : `${cap(quem)} rendeu ${nf(Math.abs(e), 0)}% a menos que em ${ant}`;
-  // Estoque prensado TOTAL (o mesmo número do card): se vendido, para quanto vai a média do prensado
-  const eP = d.estoqueGrupo?.prensado, cP = d.cur.g.prensado;
-  const sim = eP?.kg > 0 ? (cP.fat + eP.val) / ((cP.vol + eP.kg) / 1000) : null;
-  const lista = mx.faltam.slice(0, 2).map(x => nomeMat(x.nome).replace(/\s*\([^)]*\)/g, '')); // sem o "(Limpa)": a frase cabe em 2 linhas
-  const volta = sim != null && sim > cP.preco * 1.02
-    ? `vendendo o estoque prensado (${tn(eP.kg, 1)}), a média **sobe para ${reais0(sim)}/t**`
-    : lista.length ? `quando sair ${juntarE(lista)}, a média **volta a subir**` : '';
-  return { motivo, mesmo, volta };
-}
 
 const destaque = (texto, p) => p == null ? texto : p >= 100 ? `**${texto}**` : p < 70 ? `*${texto}*` : texto;
 
@@ -439,29 +441,34 @@ export function frasesPadrao(d, tarefas = []) {
   const ratio = cP.preco && cG.preco ? cP.preco / cG.preco : null;
   const quedaPreco = cP.preco != null && aP.preco != null && cP.preco < aP.preco * 0.98;
   const quedaComp = c.pctPrensado != null && a.pctPrensado != null && c.pctPrensado < a.pctPrensado - 0.5;
-  // Frase em linguagem corrida: 1) quanto o prensado vale a mais; 2) participação nas vendas; 3) preço vs mês anterior
-  const ant = nomeMes(d.Mant);
-  // Curta (cabe em 2 linhas): o detalhe dos preços fica nos cards do slide
-  let comp = ratio ? `O prensado vale **${nf(ratio, 1)}×** o mesmo material a granel` : 'Prensado × a granel';
+  // Frase em três ideias, na ordem do slide: 1) quanto saiu prensado (as barras); 2) o que isso rendeu
+  // (mesmo material por tonelada e preço médio geral); 3) a média do prensado e, se caiu por mix, o porquê e o efeito do estoque
+  const ant = nomeMes(d.Mant), mx = d.mixPrensado;
+  const frases = [];
+  let p1 = ratio ? `O prensado vale **${nf(ratio, 1)}×** o mesmo material a granel` : '';
   if (c.pctPrensado != null && a.pctPrensado != null) {
-    const subiuComp = c.pctPrensado > a.pctPrensado + 0.5;
-    comp += quedaComp
-      ? `, mas sua parte nas vendas *caiu de ${pct(a.pctPrensado)} para ${pct(c.pctPrensado)}*`
-      : subiuComp
-        ? ` e sua parte nas vendas **subiu de ${pct(a.pctPrensado)} para ${pct(c.pctPrensado)}**`
-        : ` e sua parte nas vendas ficou estável (${pct(c.pctPrensado)})`;
-    if (cP.preco != null && aP.preco != null) {
-      const subiuPreco = cP.preco > aP.preco * 1.02;
-      comp += quedaPreco ? `; o preço do prensado *caiu* frente a ${ant}.`
-        : subiuPreco ? `; o preço do prensado **subiu** frente a ${ant}.`
-          : `; preço do prensado estável frente a ${ant}.`;
-    } else comp += '.';
-  } else comp += '.';
-  // Preço do prensado caiu só porque mudou o mix de materiais: explica em vez de alarmar
-  if (quedaPreco && d.mixPrensado?.porMix) {
-    const fm = frasesMix(d);
-    comp = `Prensado a ${reais0(cP.preco)}/t: ${fm.motivo}.${fm.mesmo ? ` ${fm.mesmo}.` : ''}${fm.volta ? ` ${cap(fm.volta)}.` : ''}`;
+    p1 = quedaComp ? `*Só ${pct(c.pctPrensado, 0)} do volume saiu prensado* (${pct(a.pctPrensado, 0)} em ${ant})`
+      : c.pctPrensado > a.pctPrensado + 0.5 ? `**${pct(c.pctPrensado, 0)} do volume saiu prensado** (${pct(a.pctPrensado, 0)} em ${ant})`
+        : `${pct(c.pctPrensado, 0)} do volume saiu prensado, como em ${ant}`;
   }
+  const ganhos = [];
+  if (mx?.efeitoPrensar != null && Math.abs(mx.efeitoPrensar) >= 3) ganhos.push(mx.efeitoPrensar > 0
+    ? `o mesmo material rendeu **${nf(mx.efeitoPrensar, 0)}% a mais por tonelada**` : `o mesmo material rendeu *${nf(-mx.efeitoPrensar, 0)}% a menos por tonelada*`);
+  const difG = c.preco && a.preco ? c.preco - a.preco : null;
+  if (difG != null && Math.abs(difG) >= 10) ganhos.push(difG > 0
+    ? `o preço médio geral subiu **R$ ${nf(difG, 0)}/t**` : `o preço médio geral caiu *R$ ${nf(-difG, 0)}/t*`);
+  if (p1 || ganhos.length) frases.push(`${p1 ? cap(p1) : ''}${p1 && ganhos.length ? ': ' : ''}${ganhos.length ? (p1 ? juntarE(ganhos) : cap(juntarE(ganhos))) : ''}.`);
+  if (cP.preco != null && aP.preco != null) {
+    if (quedaPreco && mx?.porMix) {
+      // Queda só de mix: diz qual material puxou a média e para quanto ela vai vendendo o estoque prensado
+      const top = mx.cur[0], share = top.vol / mx.cur.reduce((s, x) => s + x.vol, 0) * 100;
+      const eP = d.estoqueGrupo?.prensado, sim = eP?.kg > 0 ? (cP.fat + eP.val) / ((cP.vol + eP.kg) / 1000) : null;
+      frases.push(`A média do prensado (${reais0(cP.preco)}/t) caiu pelo mix: ${pct(share, 0)} foi ${nomeMat(top.nome)}${top.preco < aP.preco ? ', que vale menos' : ''}` +
+        (sim != null && sim > cP.preco * 1.02 ? `; vendendo o estoque prensado (${tn(eP.kg, 1)}), **sobe para ${reais0(sim)}/t**.` : '.'));
+    } else if (quedaPreco) frases.push(`O prensado *caiu para ${reais0(cP.preco)}/t* (${reais0(aP.preco)}/t em ${ant}).`);
+    else if (cP.preco > aP.preco * 1.02) frases.push(`O prensado subiu para **${reais0(cP.preco)}/t** (${reais0(aP.preco)}/t em ${ant}).`);
+  }
+  const comp = frases.join(' ') || 'Prensado × a granel.';
   // Frase simples, na ordem do slide: prensado vendido (o gráfico) × mês anterior no mesmo período,
   // estoque prensado a vender e, por último, a produção das prensas × previsto (cards da direita)
   const estPrensado = d.emAndamento ? d.estoqueGrupo?.prensado.kg || 0 : 0;
@@ -478,32 +485,26 @@ export function frasesPadrao(d, tarefas = []) {
   const pior = [...d.prensasReduzidas].sort((x, y) => y.perda - x.perda)[0];
   if (pior && pior.diasParado > 0) prensa += ` *${pior.e.nome}${pior.e.frota ? ' ' + pior.e.frota : ''}: ${pior.diasParado} dia${pior.diasParado > 1 ? 's' : ''} em manutenção*.`;
 
+  // Frase curta: 1) quantos disponíveis e, para cada um com problema, até quando (previsão escrita na observação);
+  // 2) disponibilidade média do mês; 3) equipe. O detalhe (problema, desde, % parado) fica na tabela do slide
   const nEq = d.eqs.length, nDisp = d.nOp + d.nRes;
-  const temParadas = d.dispMes != null && d.dispMes < 99.5 && d.comParada.length;
   let equip = nDisp === nEq
-    ? (d.rotDisp === 'hoje' ? `Hoje os ${nEq} equipamentos estão disponíveis` : `No fim do mês, os ${nEq} equipamentos estavam disponíveis`)
-    : `*${nDisp} de ${nEq} equipamentos* disponíveis ${d.rotDisp}`;
-  // Equipamentos parados ou com restrição agora: cita pelo nome e, se houver tarefa sobre ele, que está no plano de ação
-  const problema = d.eqs.filter(e => e.st === 'parado' || e.st === 'restricao');
-  if (problema.length) {
-    const nomeE = e => `${e.nome}${e.frota ? ' ' + e.frota : ''}`;
+    ? `**${d.rotDisp === 'hoje' ? `Os ${nEq} equipamentos estão disponíveis hoje` : `Os ${nEq} equipamentos estavam disponíveis no fim do mês`}**`
+    : `*${nDisp} de ${nEq} equipamentos disponíveis ${d.rotDisp}*`;
+  if (d.problemas.length) {
     const noPlano = e => tarefas.some(t => t.status !== 'cancelada' && t.status !== 'concluida' &&
       semAcento(t.titulo).includes(semAcento(e.frota || e.nome)));
-    const partes = problema.slice(0, 2).map(e => `*${nomeE(e)}* ${e.st === 'parado' ? 'está parada' : 'está com restrição'}${noPlano(e) ? ' (no plano de ação)' : ''}`);
-    equip += `${nDisp === nEq ? ', mas' : ':'} ${juntarE(partes)}${problema.length > 2 ? ` e mais ${problema.length - 2}` : ''}`;
+    const partes = d.problemas.slice(0, 2).map(({ e, prev }) => {
+      const est = e.st === 'parado' ? 'parada' : 'com restrição';
+      return `${nomeCurtoEq(e)} (${prev ? `${est} até ${ddmm(prev)}` : `${est}, ${noPlano(e) ? 'no plano de ação' : 'sem previsão'}`})`;
+    });
+    equip += `: ${juntarE(partes)}${d.problemas.length > 2 ? ` e mais ${d.problemas.length - 2}` : ''}`;
   }
-  if (temParadas) {
-    // Cita os equipamentos que pararam no mês (até 3, do que mais parou ao que menos parou)
-    const nomeEq = x => `${x.e.nome}${x.e.frota ? ' ' + x.e.frota : ''}`;
-    const lista = d.comParada.slice(0, 3).map((x, k) => `*${nomeEq(x)}* ${k === 0 ? 'parada' : ''}${k === 0 ? ` em ${nf(x.pct, 0)}% dos dias` : `em ${nf(x.pct, 0)}%`}`);
-    const resto = d.comParada.length - lista.length;
-    const juntar = arr => arr.length > 1 ? `${arr.slice(0, -1).join(', ')} e ${arr[arr.length - 1]}` : arr[0];
-    equip += `, mas a média do mês foi ${destaque(pct(d.dispMes, 0), d.dispMes >= 95 ? 100 : 60)} — ${juntar(lista)}${resto > 0 ? ` (e mais ${resto})` : ''}`;
-  }
+  equip += '.';
+  if (d.dispMes != null) equip += ` No mês, a frota ficou disponível ${destaque(`${pct(d.dispMes, 0)} do tempo`, d.dispMes >= 95 ? 100 : 60)}.`;
   if (d.colab != null) equip += d.colab < d.quadro
-    ? `. Equipe com *${d.colab} de ${d.quadro} colaboradores*.`
-    : `. Equipe completa, com **${d.colab} de ${d.quadro} colaboradores**.`;
-  else equip += '.';
+    ? ` Equipe com *${d.colab} de ${d.quadro}*${d.vagas ? ` (${d.vagas} vaga${d.vagas > 1 ? 's' : ''} em reposição)` : ''}.`
+    : ` Equipe completa: **${d.colab} de ${d.quadro}**.`;
 
   return { resumo, fat, comp, prensa, equip, plano: 'Ações em andamento na unidade.' };
 }
@@ -673,35 +674,13 @@ export function montarApresentacao(PptxGenJS, d, { img, frases: fr, textos, acoe
       ] });
 
     // Equipamentos: mini-tabela dos parados/com restrição — problema, desde quando, previsão de conserto e % dos dias parado no mês
-    const nomeCurto = e => `${(e.nome || '').split(' ')[0]}${e.frota ? ' ' + e.frota : ''}`;
-    const problema = [...d.eqs.filter(e => e.st === 'parado'), ...d.eqs.filter(e => e.st === 'restricao')];
-    const corta = (t, n) => t.length > n ? t.slice(0, n - 1).trimEnd() + '…' : t;
-    // A observação traz o problema, quando aconteceu e a previsão de conserto, ex.:
-    // "Quebrou o rolamento em 21/10, manutenção iniciada, previsão para conserto em 27/10".
-    // Previsão = trecho com "previsão/agendada/prazo/retorno/conserto" (ou a última data); a data do problema vira o "Desde"
-    const reData = /\b(\d{1,2})\/(\d{1,2})(?:\/(\d{2,4}))?\b/;
-    const reDataTxt = /\s*\b(?:em|desde|dia|no dia)?\s*\d{1,2}\/\d{1,2}(?:\/\d{2,4})?\b/gi;
-    const iso = p => { const [, dd, mm, aa] = p.match(reData); return `${aa ? (aa.length === 2 ? '20' + aa : aa) : d.M.slice(0, 4)}-${mm.padStart(2, '0')}-${dd.padStart(2, '0')}`; };
-    const separaObs = obs => {
-      const partes = obs.split(/\s*[,;]\s*|\.\s+|\s+-\s+/).map(p => p.replace(/\.$/, '').trim()).filter(Boolean);
-      const comData = partes.map((p, j) => reData.test(p) ? j : -1).filter(j => j >= 0);
-      let kPrev = comData.find(j => /previs|agend|prazo|retorno|consert/i.test(partes[j]));
-      if (kPrev == null && comData.length > 1) kPrev = comData[comData.length - 1];
-      const kDesde = comData.find(j => j !== kPrev);
-      const prob = partes.filter((_, j) => j !== kPrev).map(p => p.replace(reDataTxt, '').trim()).filter(Boolean).join(', ');
-      return { prob, prev: kPrev != null ? iso(partes[kPrev]) : null, desde: kDesde != null ? iso(partes[kDesde]) : null };
-    };
-    const tabEq = problema.slice(0, 3).map(e => {
-      const par = d.comParada.find(x => x.e.id === e.id);
-      const { prob, prev, desde } = separaObs((e.observacao_dia || e.observacao || '').trim());
-      return { e, obs: corta(prob, 55), desde: desde || d.desdePorEq[e.id], prev, pctPar: par ? par.pct : 0 };
-    });
+    const tabEq = d.problemas.slice(0, 3).map(r => ({ ...r, obs: corta(r.prob, 55) }));
     ind.push({ label: 'Equipamentos', st: !d.eqs.length ? 'nd' : d.nPar ? 'verm' : d.nRes || (d.dispMes != null && d.dispMes < 99.5) ? 'amb' : 'ok',
       valor: `${d.nOp + d.nRes} de ${d.eqs.length} disponíveis`,
       sub: `${d.rotDisp}${d.dispMes != null ? ` · média do mês ${pct(d.dispMes, 0)}` : ''}`,
-      tabela: tabEq.length ? tabEq : null, mais: Math.max(0, problema.length - 3),
+      tabela: tabEq.length ? tabEq : null, mais: Math.max(0, d.problemas.length - 3),
       // ctx: usado nas anotações do apresentador (e no card, quando não há equipamento com problema)
-      ctx: tabEq.length ? tabEq.map(r => [`${r.e.nome}${r.e.frota ? ' ' + r.e.frota : ''}${r.e.st === 'restricao' ? ' (restrição)' : ''}`,
+      ctx: tabEq.length ? tabEq.map(r => [`${nomeEqCompleto(r.e)}${r.e.st === 'restricao' ? ' (restrição)' : ''}`,
         `${r.obs || 'sem observação'}; desde ${r.desde ? ddmm(r.desde) : '—'}; previsão ${r.prev ? ddmm(r.prev) : 'a definir'}; parada em ${nf(r.pctPar, 0)}% dos dias`])
         : [['Situação', `todos operando ${d.rotDisp}`]] });
 
@@ -728,7 +707,7 @@ export function montarApresentacao(PptxGenJS, d, { img, frases: fr, textos, acoe
         const cols = [['EQUIPAMENTO', 128], ['PROBLEMA', 236], ['DESDE', 62], ['PREVISÃO', 76], ['PARADO', 68]];
         const cab = cols.map(([t], j) => ({ text: t, options: { bold: true, fontSize: 10, color: COR.muted, align: j > 1 ? 'center' : 'left' } }));
         const lin = k.tabela.map(r => [
-          { text: nomeCurto(r.e), options: { bold: true, color: r.e.st === 'parado' ? COR.verm : COR.amb } },
+          { text: nomeCurtoEq(r.e), options: { bold: true, color: r.e.st === 'parado' ? COR.verm : COR.amb } },
           { text: r.obs || 'sem observação', options: { color: r.obs ? COR.txt2 : COR.cinza, italic: !r.obs } },
           { text: r.desde ? ddmm(r.desde) : '—', options: { align: 'center', color: COR.txt2 } },
           r.prev ? { text: ddmm(r.prev), options: { align: 'center', bold: true, color: r.prev < hoje ? COR.verm : COR.txt } }
@@ -1050,49 +1029,118 @@ export function montarApresentacao(PptxGenJS, d, { img, frases: fr, textos, acoe
   // ── 7. Equipamentos e equipe ──
   {
     const s = conteudo('EQUIPAMENTOS E EQUIPE', fr.equip, 3, true);
-    box(s, 50, 205, 620, 620, 'FFFFFF', COR.borda);
-    txt(s, 76, 225, 400, 22, 'EQUIPAMENTOS', 14, COR.muted, { bold: true });
-    // Dois números: situação atual (ou do fim do mês) e média do mês pelos dias registrados
     const corDisp = v => v == null ? COR.muted : v >= 99.5 ? COR.ok : v >= 90 ? COR.amb : COR.verm;
-    txt(s, 76, 253, 150, 56, pct(d.disp, 0), 40, d.nPar ? COR.verm : COR.ok, { bold: true });
-    txt(s, 222, 259, 140, 46, `${d.rotDisp === 'hoje' ? 'hoje' : 'fim do mês'}\n${d.nOp + d.nRes} de ${d.eqs.length} disponíveis`, 13, COR.txt2);
-    if (d.dispMes != null) {
-      txt(s, 380, 253, 150, 56, pct(d.dispMes, 0), 40, corDisp(d.dispMes), { bold: true });
-      txt(s, 526, 259, 140, 46, 'média do mês\ndias registrados', 13, COR.txt2);
-    } else txt(s, 380, 263, 280, 46, `${d.nOp} operando · ${d.nRes} com restrição · ${d.nPar} parado${d.nPar === 1 ? '' : 's'}`, 13, COR.txt2);
-    const idsParada = new Set(d.comParada.map(x => x.e.id));
-    const passo = Math.min(52, 410 / Math.max(1, d.eqs.length)), peq = passo < 40;
+    const pillW = (t, size) => Math.max(60, t.length * size * 0.62 + 28);
+    const titulo = (x, y, t) => txt(s, x, y, 600, 20, t, 13, COR.muted, { bold: true });
+
+    // Faixa de 4 números: disponíveis agora, média do mês, equipe e vagas
+    const incompleta = d.colab != null && d.colab < d.quadro;
+    const kpis = [
+      [`DISPONÍVEIS ${d.rotDisp === 'hoje' ? 'HOJE' : 'NO FIM DO MÊS'}`, `${d.nOp + d.nRes} de ${d.eqs.length}`, d.nPar ? COR.verm : d.nRes ? COR.amb : COR.ok,
+        [d.nPar ? `${d.nPar} parado${d.nPar > 1 ? 's' : ''}` : '', d.nRes ? `${d.nRes} com restrição` : ''].filter(Boolean).join(' · ') || 'todos operando'],
+      ['MÉDIA DO MÊS', d.dispMes != null ? pct(d.dispMes, 0) : '—', corDisp(d.dispMes), 'da frota disponível nos dias registrados'],
+      ['EQUIPE', d.colab != null ? `${d.colab} de ${d.quadro}` : '—', d.colab == null ? COR.muted : incompleta ? COR.amb : COR.ok,
+        d.colab != null ? `${nf(d.colab / d.quadro * 100, 0)}% do quadro previsto` : 'sem colaboradores no RH'],
+      ['VAGAS EM ABERTO', d.vagas != null ? String(d.vagas) : '—', d.vagas ? COR.amb : COR.ok, d.vagas ? 'em reposição' : 'quadro completo'],
+    ];
+    kpis.forEach(([rot, val, cor, sub], k) => {
+      const x = 50 + k * 325;
+      box(s, x, 205, 305, 104, 'FFFFFF', COR.borda);
+      box(s, x, 205, 8, 104, cor, null, 0);
+      txt(s, x + 26, 219, 270, 18, rot, 12, COR.muted, { bold: true });
+      txt(s, x + 26, 240, 270, 40, val, 32, cor, { bold: true });
+      txt(s, x + 26, 282, 270, 18, sub, 12.5, COR.txt2);
+    });
+
+    // Esquerda: equipamentos com problema (tabela) e dias parados no mês (barras)
+    const xL = 50, yP = 329, wL = 830, hP = 496;
+    box(s, xL, yP, wL, hP, 'FFFFFF', COR.borda);
+    titulo(xL + 26, yP + 20, 'EQUIPAMENTOS COM PROBLEMA');
+    let yy = yP + 50;
+    if (d.problemas.length) {
+      const lista = d.problemas.slice(0, 4);
+      const cols = [['EQUIPAMENTO', 200], ['PROBLEMA', 330], ['DESDE', 80], ['PREVISÃO', 90], ['PARADO NO MÊS', 78]];
+      const cab = cols.map(([t], j) => ({ text: t, options: { bold: true, fontSize: 11, color: COR.muted, fill: { color: COR.cinzaBg }, align: j > 1 ? 'center' : 'left' } }));
+      const lin = lista.map(({ e, prob, desde, prev, pctPar, diasPar }) => [
+        { text: [
+          { text: e.nome || '—', options: { bold: true, color: e.st === 'parado' ? COR.verm : COR.amb, breakLine: true } },
+          { text: `${e.frota || ''}${e.st === 'restricao' ? `${e.frota ? ' · ' : ''}com restrição${e.capacidade_pct ? ` (${e.capacidade_pct}%)` : ''}` : ''}`, options: { fontSize: 11, color: COR.muted } },
+        ] },
+        { text: prob ? corta(prob, 95) : 'sem observação', options: { fontSize: 14, color: prob ? COR.txt2 : COR.cinza, italic: !prob } },
+        { text: desde ? ddmm(desde) : '—', options: { align: 'center', color: COR.txt2 } },
+        prev ? { text: [
+          { text: ddmm(prev), options: { bold: true, color: prev < hoje ? COR.verm : COR.txt, breakLine: prev < hoje } },
+          ...(prev < hoje ? [{ text: 'vencida', options: { fontSize: 10, color: COR.verm } }] : []),
+        ], options: { align: 'center' } } : { text: 'a definir', options: { align: 'center', italic: true, color: COR.cinza } },
+        { text: [
+          { text: `${nf(pctPar, 0)}%`, options: { bold: true, color: pctPar > 0 ? COR.verm : COR.muted, breakLine: diasPar > 0 } },
+          ...(diasPar > 0 ? [{ text: `${diasPar} dia${diasPar > 1 ? 's' : ''}`, options: { fontSize: 10, color: COR.muted } }] : []),
+        ], options: { align: 'center' } },
+      ]);
+      const rowH = Math.min(66, 264 / lin.length);
+      s.addTable([cab, ...lin], {
+        x: I(xL + 24), y: I(yy), w: I(778), colW: cols.map(([, w]) => I(w)), rowH: [I(28), ...lin.map(() => I(rowH))],
+        fontFace: FONT, fontSize: 15, valign: 'middle', margin: [0, 0.1, 0, 0.1],
+        border: [{ type: 'none' }, { type: 'none' }, { type: 'solid', color: COR.trilho, pt: 1 }, { type: 'none' }],
+      });
+      yy += 28 + lin.length * rowH + 6;
+      if (d.problemas.length > lista.length) { txt(s, xL + 26, yy, 600, 16, `+ ${d.problemas.length - lista.length} equipamento(s) com problema`, 11, COR.muted, { italic: true }); yy += 18; }
+    } else {
+      box(s, xL + 24, yy, 778, 56, COR.okBg, null, 10);
+      txt(s, xL + 44, yy, 740, 56, `Todos os ${d.eqs.length} equipamentos operando ${d.rotDisp}.`, 16, COR.ok, { bold: true, valign: 'middle' });
+      yy += 56;
+    }
+    // Barras: % dos dias parado no mês, do que mais parou ao que menos parou (cor = situação atual)
+    const paradas = d.comParada.slice(0, 4);
+    yy += 22;
+    titulo(xL + 26, yy, 'DIAS PARADOS NO MÊS');
+    yy += 30;
+    if (paradas.length) {
+      const maxP = Math.max(25, ...paradas.map(x => x.pct));
+      paradas.forEach(({ e, pct: p, dias }) => {
+        const bw = 440, cor = e.st === 'parado' ? COR.verm : e.st === 'restricao' ? COR.amb : COR.cinza;
+        txt(s, xL + 26, yy, 220, 26, nomeCurtoEq(e), 15, COR.txt2, { valign: 'middle' });
+        box(s, xL + 250, yy + 3, bw, 20, COR.trilho, null, 0);
+        box(s, xL + 250, yy + 3, Math.max(6, bw * p / maxP), 20, cor, null, 0);
+        txt(s, xL + 250 + bw + 12, yy, 120, 26, `${nf(p, 0)}% · ${dias} dia${dias > 1 ? 's' : ''}${e.st === 'operando' ? ' ✓' : ''}`, 14, COR.txt, { bold: true, valign: 'middle' });
+        yy += 38;
+      });
+      if (paradas.some(x => x.e.st === 'operando')) { txt(s, xL + 26, yy, 600, 16, '✓ = já voltou a operar', 11, COR.muted); yy += 18; }
+    } else { txt(s, xL + 26, yy, 600, 22, 'Nenhuma parada registrada no mês.', 14, COR.ok, { bold: true }); yy += 26; }
+    if (textos.obsEquip) txt(s, xL + 26, Math.max(yy + 6, yP + hP - 50), wL - 52, 40, textos.obsEquip, 12.5, COR.muted);
+
+    // Direita: situação de toda a frota e, se houver, notas da equipe
+    const xR = 900, wR = 430;
+    box(s, xR, yP, wR, hP, 'FFFFFF', COR.borda);
+    titulo(xR + 24, yP + 20, `SITUAÇÃO DA FROTA (${d.eqs.length})`);
+    const notas = [...textos.aconteceu, ...textos.proximos.map(t => `Próximo passo: ${t}`)];
+    const hNotas = notas.length ? Math.min(170, 46 + notas.length * 34) : 0;
+    const passo = Math.min(52, (hP - 66 - hNotas) / Math.max(1, d.eqs.length)), fsE = passo < 34 ? 12.5 : 14;
     d.eqs.forEach((e, k) => {
-      const y = 330 + k * passo;
-      linha(s, 76, y - 6, 644, 'F1F5F9');
-      txt(s, 76, y, 270, 26, e.nome || '—', peq ? 13 : 16, COR.txt);
-      txt(s, 350, y, 130, 26, e.frota || '—', peq ? 12 : 15, COR.muted);
+      const y = yP + 54 + k * passo;
+      if (k) linha(s, xR + 24, y - 4, xR + wR - 24, 'F1F5F9');
+      txt(s, xR + 24, y, 250, passo - 6, [
+        { text: e.nome || '—', options: { color: COR.txt } },
+        { text: e.frota ? `  ${e.frota}` : '', options: { color: COR.muted, fontSize: fsE - 2 } },
+      ], fsE, COR.txt, { valign: 'middle' });
       const rot = e.st === 'parado' ? 'Parado' : e.st === 'restricao' ? 'Restrição' : 'Operando';
       const [fg, bg] = e.st === 'parado' ? [COR.verm, COR.vermBg] : e.st === 'restricao' ? [COR.amb, COR.ambBg] : [COR.ok, COR.okBg];
-      pill(s, 490, y - 2, rot + (idsParada.has(e.id) ? '*' : ''), fg, bg, peq ? 11 : 13);
+      const ps = fsE < 14 ? 11 : 12;
+      pill(s, xR + wR - 24 - pillW(rot, ps), y + (passo - 6 - ps - 14) / 2, rot, fg, bg, ps);
     });
-    if (textos.obsEquip) txt(s, 76, 752, 570, 60, (idsParada.size ? '* ' : '') + textos.obsEquip, 13, COR.muted);
+    if (notas.length) {
+      const yN = yP + hP - hNotas;
+      box(s, xR + 16, yN, wR - 32, hNotas - 16, COR.verdeCl, null, 10);
+      txt(s, xR + 32, yN + 12, wR - 64, 18, 'EQUIPE', 12, COR.verde, { bold: true });
+      txt(s, xR + 32, yN + 36, wR - 64, hNotas - 60, notas.map((t, k, arr) => ({ text: t, options: { bullet: true, breakLine: k < arr.length - 1 } })), 13, COR.txt2, { paraSpaceAfter: 3 });
+    }
 
-    box(s, 700, 205, 630, 620, 'FFFFFF', COR.borda);
-    txt(s, 726, 225, 400, 22, 'EQUIPE', 14, COR.muted, { bold: true });
-    const incompleta = d.colab != null && d.colab < d.quadro;
-    txt(s, 726, 253, 300, 56, d.colab != null ? `${d.colab} / ${d.quadro}` : '—', 44, incompleta ? COR.amb : COR.ok, { bold: true });
-    txt(s, 726, 318, 580, 22, d.colab != null ? `colaboradores · ${nf(d.colab / d.quadro * 100, 0)}% do quadro previsto` : 'sem colaboradores no RH', 15, COR.txt2);
-    box(s, 726, 350, 578, 16, COR.trilho, null, 0);
-    if (d.colab) box(s, 726, 350, 578 * Math.min(1, d.colab / d.quadro), 16, incompleta ? COR.amb : COR.ok, null, 0);
-    if (textos.aconteceu.length) {
-      txt(s, 726, 394, 580, 22, 'O QUE ACONTECEU', 13, COR.muted, { bold: true });
-      txt(s, 726, 424, 578, 170, textos.aconteceu.map((t, k, arr) => ({ text: t, options: { bullet: { type: 'number' }, breakLine: k < arr.length - 1 } })), 16, COR.txt2, { paraSpaceAfter: 6 });
-    }
-    if (textos.proximos.length) {
-      box(s, 726, 600, 578, 150, COR.verdeCl, null);
-      txt(s, 748, 616, 540, 22, 'PRÓXIMOS PASSOS', 13, COR.verde, { bold: true });
-      txt(s, 748, 644, 540, 100, textos.proximos.join('\n'), 16, COR.txt2);
-    }
     fala(s, { min: 5, etapa: 'Equipamentos e equipe (4 de 5)', frase: fr.equip,
       apoio: [
         `Equipamentos: ${d.nOp + d.nRes} de ${d.eqs.length} disponíveis ${d.rotDisp}${d.dispMes != null ? `; média do mês ${pct(d.dispMes, 0)}` : ''}.`,
-        ...d.comParada.slice(0, 3).map(x => `${x.e.nome}${x.e.frota ? ' ' + x.e.frota : ''}: parada em ${nf(x.pct, 0)}% dos dias (${x.dias} dia${x.dias > 1 ? 's' : ''}).`),
+        ...d.problemas.map(r => `${nomeEqCompleto(r.e)} (${r.e.st === 'parado' ? 'parada' : 'com restrição'}): ${r.prob || 'sem observação'}; desde ${r.desde ? ddmm(r.desde) : '—'}; previsão ${r.prev ? ddmm(r.prev) : 'a definir'}; parada em ${nf(r.pctPar, 0)}% dos dias do mês.`),
+        ...d.comParada.filter(x => x.e.st === 'operando').map(x => `${nomeEqCompleto(x.e)}: parou ${x.dias} dia${x.dias > 1 ? 's' : ''} no mês (${nf(x.pct, 0)}%) e já voltou a operar.`),
+        'Média do mês = dias-equipamento disponíveis ÷ dias-equipamento registrados no relatório diário.',
         textos.obsEquip,
         d.colab != null ? `Equipe: ${d.colab} de ${d.quadro} colaboradores${d.vagas ? `; ${d.vagas} vaga${d.vagas > 1 ? 's' : ''} em reposição` : ''}.` : '',
         ...textos.aconteceu,
