@@ -439,14 +439,13 @@ export function frasesPadrao(d, tarefas = []) {
     fat = `${cap(mes)} ainda no início: ${mil(d.cur.fat)} faturados até ${ddmm(d.corte)} (${d.dp} de ${d.du} dias úteis), cedo para projetar o fechamento.` +
       (ac > 0 ? ` Em ${nomeMes(d.Mant)}, no mesmo ponto, eram ${mil(am)} — e o mês fechou em **${mil(ac)}**.` : '');
   } else if (d.emAndamento) {
-    // Destaque no realizado e no ritmo (realizado × esperado até aqui); com estoque, para onde ele leva.
-    // A projeção do mês fica no card do slide, não na frase
+    // Mesma régua do card do Resumo: faturado + estoque (pronto para vender) contra o esperado até aqui,
+    // com os dois valores separados na frase. A projeção do mês fica no card do slide, não na frase
     const ritmoTxt = p => Math.round(p) >= 97 ? '**no ritmo**' : Math.round(p) >= 90 ? 'um pouco abaixo do ritmo' : '*abaixo do ritmo*';
     if (atFat == null) fat = `Até ${ddmm(d.corte)}: **${mil(d.cur.fat)}** faturados (meta não cadastrada).`;
-    else {
-      fat = `Até ${ddmm(d.corte)}: **${mil(d.cur.fat)}** faturados, ${pct(atFat, 0)} da meta: ${ritmoTxt(atFat / espR)} (esperado até aqui: ${pct(espR * 100, 0)}).`;
-      if (comEstR) fat += ` Com o estoque (${mil(d.valorEstoque)}), chega a ${pct(atFatEstR, 0)}: ${ritmoTxt(atFatEstR / espR)}.`;
-    }
+    else if (comEstR) fat = `Até ${ddmm(d.corte)}: **${mil(d.cur.fat)}** faturados + ${mil(d.valorEstoque)} em estoque = **${mil(d.cur.fat + d.valorEstoque)}**, ` +
+      `${pct(atFatEstR, 0)} da meta: ${ritmoTxt(atFatEstR / espR)} (esperado até aqui: ${pct(espR * 100, 0)}).`;
+    else fat = `Até ${ddmm(d.corte)}: **${mil(d.cur.fat)}** faturados, ${pct(atFat, 0)} da meta: ${ritmoTxt(atFat / espR)} (esperado até aqui: ${pct(espR * 100, 0)}).`;
   } else {
     fat = `${cap(mes)} fechou em ${destaque(`${mil(d.cur.fat)}${atFat != null ? ` (${nf(atFat, 0)}% da meta)` : ''}`, atFat)}.`;
   }
