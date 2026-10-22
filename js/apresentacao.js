@@ -687,8 +687,10 @@ export function montarApresentacao(PptxGenJS, d, { img, frases: fr, textos, acoe
       sub: d.emAndamento ? `${pct(atProdRef, 0)} do previsto até ${ddmm(d.corte)} (${nf(d.esperado / 1000, 1)} t)` : `${pct(atProd, 0)} da capacidade de ${tCap(d, d.capMes)} t`,
       ctx: [
         [rotRef, refProd > 0 ? `${tn(refProd, 1)}${vTxt(vProd)}${d.emAndamento ? ` · fechou em ${tn(d.prodAntCheio, 1)}` : ''}` : 'sem produção registrada'],
+        // Mês em andamento: também o quanto já foi feito da capacidade do mês inteiro (descontada a manutenção)
+        d.emAndamento && d.capMes > 0 ? ['Capacidade do mês', `${tCap(d, d.capMes)} t · produzido até agora: ${pct(d.prod / d.capMes * 100, 0)}`] : null,
         // Ritmo e prensado vendido ficam no slide de Prensagem (card enxuto, igual ao de faturamento)
-      ] });
+      ].filter(Boolean) });
 
     // Equipamentos: uma linha com quem está parado/com restrição e quando volta (o detalhe fica no slide de Equipamentos)
     const lst = d.problemas.slice(0, 3).map(({ e, prev }) =>
