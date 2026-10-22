@@ -930,9 +930,11 @@ export function montarApresentacao(PptxGenJS, d, { img, frases: fr, textos, acoe
     const mPlano = PLANO_INICIO.slice(0, 7);
     // Estoque prensado (a vender): só faz sentido sobre o mês em andamento (é a foto de hoje)
     const estP = d.emAndamento ? d.estoqueGrupo.prensado.kg : 0;
-    // Gráfico: produção das prensas por mês (a partir do primeiro mês com produção lançada) × capacidade.
+    // Gráfico: produção das prensas por mês × capacidade, só a sequência contínua de meses com produção lançada
+    // até o mês atual (meses sem lançamento antes dela = produção ainda não registrada no sistema, não produção zero).
     // Capacidade: a instalada nos meses anteriores; no mês atual, descontada a manutenção (a linha cai)
-    const i0 = Math.max(0, d.prodMesAno.findIndex(v => v > 0));
+    let i0 = Math.max(0, d.mesesAno.indexOf(d.M));
+    while (i0 > 0 && d.prodMesAno[i0 - 1] > 0) i0--;
     const meses = d.mesesAno.slice(i0), labels = labelsAno.slice(i0);
     const valsT = d.prodMesAno.slice(i0).map(v => +(v / 1000).toFixed(2));
     const capT = meses.map(mk => +((mk === d.M ? d.capMes : d.capNominal) / 1000).toFixed(2));
@@ -1039,6 +1041,9 @@ export function montarApresentacao(PptxGenJS, d, { img, frases: fr, textos, acoe
     // período do mês anterior dá % exagerado). Mês fechado: mês anterior inteiro com a variação.
     const antV = d.antCheio.prensa.vol, curV = d.cur.prensa.vol;
     const vPV = antV > 0 ? varPct(curV, antV) : null;
+    // Vendido + estoque prensado acima do produzido: a diferença é prensado que não saiu das prensas no mês
+    // (= estoque prensado do início do mês + carga já prensada recebida)
+    const deFora = d.emAndamento ? curV + estP - d.prod : 0;
     cardP(564, 261, d.emAndamento ? `PRENSADO VENDIDO ATÉ ${ddmm(d.corte)}` : `PRENSADO VENDIDO EM ${mes.toUpperCase()}`, tn(curV, 1), [
       ...(antV <= 0 ? [{ text: `sem venda de prensado em ${ant}`, options: { breakLine: true } }]
         : d.emAndamento ? [
@@ -1053,7 +1058,12 @@ export function montarApresentacao(PptxGenJS, d, { img, frases: fr, textos, acoe
         { text: 'Em estoque: ', options: { color: COR.muted } },
         { text: `${tn(estP, 1)} prensadas`, options: { bold: true, color: COR.verde, breakLine: true } },
         { text: 'Se vender: ', options: { color: COR.muted } },
-        { text: `${tn(curV + estP, 1)} no mês`, options: { bold: true, color: COR.verde } },
+        { text: `${tn(curV + estP, 1)} no mês`, options: { bold: true, color: COR.verde, breakLine: deFora > 500 } },
+      ] : []),
+      ...(deFora > 500 ? [
+        { text: `${tn(d.prod, 1)} produzidas + `, options: { color: COR.muted, fontSize: 12.5 } },
+        { text: `${tn(deFora, 1)} de fora da produção do mês`, options: { bold: true, color: COR.txt2, fontSize: 12.5, breakLine: true } },
+        { text: '(carga já prensada recebida ou estoque anterior)', options: { color: COR.muted, fontSize: 11.5 } },
       ] : []),
     ]);
     fala(s, { min: 5, etapa: 'Prensagem (3 de 5)', frase: fr.prensa,
@@ -1067,6 +1077,7 @@ export function montarApresentacao(PptxGenJS, d, { img, frases: fr, textos, acoe
         d.perdaCap > 0.5 ? `Capacidade descontada a manutenção: ${textoPerdaCap(d)}.` : '',
         antV > 0 ? `Prensado vendido: ${tn(curV, 1)}; ${ant} inteiro: ${tn(antV, 1)}.` : '',
         estP > 0 ? `Estoque prensado a vender: ${tn(estP, 1)}; vendendo, o mês vai a ${tn(curV + estP, 1)} de prensado vendido.` : '',
+        deFora > 500 ? `Vendido + estoque (${tn(curV + estP, 1)}) passa o produzido (${tn(d.prod, 1)}) em ${tn(deFora, 1)}: prensado que não saiu das prensas no mês — carga já prensada recebida (ex.: Cargill) ou estoque prensado anterior.` : '',
         d.semProd.length ? `Atingimento semanal das prensas: ${d.semProd.map(w => `sem ${w.i}${w.parcial ? ' (parcial)' : ''} ${w.p == null ? '—' : pct(w.p, 0)}`).join(' · ')}.` : '',
         'Gráfico: produção das prensas por mês (tela Produção); a linha vermelha é a capacidade — no mês atual, já descontada a manutenção.',
       ],
