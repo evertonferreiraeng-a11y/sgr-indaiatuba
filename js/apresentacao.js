@@ -676,21 +676,25 @@ export function montarApresentacao(PptxGenJS, d, { img, frases: fr, textos, acoe
     const nomeCurto = e => `${(e.nome || '').split(' ')[0]}${e.frota ? ' ' + e.frota : ''}`;
     const problema = [...d.eqs.filter(e => e.st === 'parado'), ...d.eqs.filter(e => e.st === 'restricao')];
     const corta = (t, n) => t.length > n ? t.slice(0, n - 1).trimEnd() + '…' : t;
-    // A previsão de conserto vem escrita na observação ("..., manutenção agendada para 28/10"):
-    // o trecho com a data vira a coluna Previsão e o resto fica como o problema
+    // A observação traz o problema, quando aconteceu e a previsão de conserto, ex.:
+    // "Quebrou o rolamento em 21/10, manutenção iniciada, previsão para conserto em 27/10".
+    // Previsão = trecho com "previsão/agendada/prazo/retorno/conserto" (ou a última data); a data do problema vira o "Desde"
     const reData = /\b(\d{1,2})\/(\d{1,2})(?:\/(\d{2,4}))?\b/;
-    const separaPrev = obs => {
-      const partes = obs.split(/\s*[,;]\s*|\.\s+|\s+-\s+/).filter(Boolean);
-      const k = partes.findIndex(p => reData.test(p));
-      if (k < 0) return { prob: obs.replace(/\.$/, ''), prev: null };
-      const [, dd, mm, aa] = partes[k].match(reData);
-      const ano = aa ? (aa.length === 2 ? '20' + aa : aa) : d.M.slice(0, 4);
-      return { prob: partes.filter((_, j) => j !== k).join(', ').replace(/\.$/, ''), prev: `${ano}-${mm.padStart(2, '0')}-${dd.padStart(2, '0')}` };
+    const reDataTxt = /\s*\b(?:em|desde|dia|no dia)?\s*\d{1,2}\/\d{1,2}(?:\/\d{2,4})?\b/gi;
+    const iso = p => { const [, dd, mm, aa] = p.match(reData); return `${aa ? (aa.length === 2 ? '20' + aa : aa) : d.M.slice(0, 4)}-${mm.padStart(2, '0')}-${dd.padStart(2, '0')}`; };
+    const separaObs = obs => {
+      const partes = obs.split(/\s*[,;]\s*|\.\s+|\s+-\s+/).map(p => p.replace(/\.$/, '').trim()).filter(Boolean);
+      const comData = partes.map((p, j) => reData.test(p) ? j : -1).filter(j => j >= 0);
+      let kPrev = comData.find(j => /previs|agend|prazo|retorno|consert/i.test(partes[j]));
+      if (kPrev == null && comData.length > 1) kPrev = comData[comData.length - 1];
+      const kDesde = comData.find(j => j !== kPrev);
+      const prob = partes.filter((_, j) => j !== kPrev).map(p => p.replace(reDataTxt, '').trim()).filter(Boolean).join(', ');
+      return { prob, prev: kPrev != null ? iso(partes[kPrev]) : null, desde: kDesde != null ? iso(partes[kDesde]) : null };
     };
     const tabEq = problema.slice(0, 3).map(e => {
       const par = d.comParada.find(x => x.e.id === e.id);
-      const { prob, prev } = separaPrev((e.observacao_dia || e.observacao || '').trim());
-      return { e, obs: corta(prob, 55), desde: d.desdePorEq[e.id], prev, pctPar: par ? par.pct : 0 };
+      const { prob, prev, desde } = separaObs((e.observacao_dia || e.observacao || '').trim());
+      return { e, obs: corta(prob, 55), desde: desde || d.desdePorEq[e.id], prev, pctPar: par ? par.pct : 0 };
     });
     ind.push({ label: 'Equipamentos', st: !d.eqs.length ? 'nd' : d.nPar ? 'verm' : d.nRes || (d.dispMes != null && d.dispMes < 99.5) ? 'amb' : 'ok',
       valor: `${d.nOp + d.nRes} de ${d.eqs.length} disponíveis`,
