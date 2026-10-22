@@ -666,14 +666,21 @@ export function montarApresentacao(PptxGenJS, d, { img, frases: fr, textos, acoe
         // Ritmo e prensado vendido ficam no slide de Prensagem (card enxuto, igual ao de faturamento)
       ] });
 
-    // Equipamentos: situação atual + quem mais parou no mês
-    const p0 = d.comParada[0];
-    const alvo = d.eqs.find(e => e.st === 'parado') || d.eqs.find(e => e.st === 'restricao');
+    // Equipamentos: situação atual + observação de cada um parado/com restrição e % dos dias parado no mês
     const nomeEq = e => `${e.nome || ''}${e.frota ? ' ' + e.frota : ''}`;
+    const problema = [...d.eqs.filter(e => e.st === 'parado'), ...d.eqs.filter(e => e.st === 'restricao')];
+    const corta = (t, n) => t.length > n ? t.slice(0, n - 1).trimEnd() + '…' : t;
+    const ctxEq = problema.slice(0, 3).map(e => {
+      const obs = (e.observacao_dia || e.observacao || '').trim();
+      const par = d.comParada.find(x => x.e.id === e.id);
+      return [`${nomeEq(e)}${e.st === 'restricao' ? ' (restrição)' : ''}`,
+        [obs ? corta(obs, 60) : 'sem observação', par ? `parada em ${nf(par.pct, 0)}% dos dias` : ''].filter(Boolean).join(' · ')];
+    });
+    if (problema.length > 3) ctxEq.push(['E mais', `${problema.length - 3} equipamento(s)`]);
     ind.push({ label: 'Equipamentos', st: !d.eqs.length ? 'nd' : d.nPar ? 'verm' : d.nRes || (d.dispMes != null && d.dispMes < 99.5) ? 'amb' : 'ok',
       valor: `${d.nOp + d.nRes} de ${d.eqs.length} disponíveis`,
       sub: `${d.rotDisp}${d.dispMes != null ? ` · média do mês ${pct(d.dispMes, 0)}` : ''}`,
-      ctx: [[p0 ? 'Mais parado no mês' : alvo ? 'Atenção' : 'Situação', p0 ? `${nomeEq(p0.e)}: ${nf(p0.pct, 0)}% dos dias` : alvo ? `${nomeEq(alvo)} ${alvo.st === 'parado' ? 'parada' : 'com restrição'}` : 'todos operando no mês']] });
+      ctx: ctxEq.length ? ctxEq : [['Situação', `todos operando ${d.rotDisp}`]] });
 
     // Equipe: quadro do RH
     const incompleta = d.colab != null && d.colab < d.quadro;

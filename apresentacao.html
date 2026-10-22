@@ -160,7 +160,7 @@ async function carregar() {
       fetchAll('vendas', 'data, peso_kg, unidade, valor_total, acondicionamento, materiais(nome)', [['gte', 'data', ini], ['lte', 'data', fimBusca]]),
       fetchAll('metas', 'periodo, valor_meta', [['eq', 'indicador', 'faturamento'], ['gte', 'periodo', ini.slice(0, 7)], ['lte', 'periodo', M]]),
       fetchAll('producao', 'data, peso_produzido_kg, equipamento_id', [['gte', 'data', iniAnt], ['lte', 'data', fimBusca]]),
-      fetchAll('equipamentos', 'id, nome, frota, status, capacidade_kg_mes, capacidade_pct'),
+      fetchAll('equipamentos', 'id, nome, frota, status, capacidade_kg_mes, capacidade_pct, observacao, observacao_dia'),
       // "acondicionamento" vem do patch 34; sem ele, carrega o estoque sem essa coluna
       fetchAll('materiais', 'nome, estoque_kg, valor_unitario, acondicionamento', [['eq', 'no_estoque', true]])
         .catch(() => fetchAll('materiais', 'nome, estoque_kg, valor_unitario', [['eq', 'no_estoque', true]])),
