@@ -776,9 +776,9 @@ export function montarApresentacao(PptxGenJS, d, { img, frases: fr, textos, acoe
         ['REALIZADO + ESTOQUE', mil(d.cur.fat + d.valorEstoque), d.meta ? `${pct((d.cur.fat + d.valorEstoque) / d.meta * 100, 0)} da meta · esperado até aqui: ${pct(espAq * 100, 0)}` : '',
           COR.verde, COR.verdeCl, false, d.meta ? (d.cur.fat + d.valorEstoque) / d.meta * 100 / espAq : null],
       ] : []),
-      // Projeção do mês só pelo faturamento no ritmo atual; com o estoque, na linha de baixo
-      ['PROJEÇÃO DO MÊS (RITMO ATUAL)', mil(d.projecao),
-        `${d.meta ? `${pct(d.projecao / d.meta * 100, 0)} da meta` : ''}${d.valorEstoque > 0 ? `${d.meta ? ' · ' : ''}com o estoque: ${mil(d.projecao + d.valorEstoque)}${d.meta ? ` (${pct((d.projecao + d.valorEstoque) / d.meta * 100, 0)})` : ''}` : ''}`, COR.txt, 'FFFFFF'],
+      // Projeção do mês no ritmo atual já somando o estoque; só o ritmo, na linha de baixo
+      [d.valorEstoque > 0 ? 'PROJEÇÃO DO MÊS + ESTOQUE' : 'PROJEÇÃO DO MÊS (RITMO ATUAL)', mil(d.projecao + d.valorEstoque),
+        `${d.meta ? `${pct((d.projecao + d.valorEstoque) / d.meta * 100, 0)} da meta` : ''}${d.valorEstoque > 0 ? `${d.meta ? ' · ' : ''}só o ritmo: ${mil(d.projecao)}${d.meta ? ` (${pct(d.projecao / d.meta * 100, 0)})` : ''}` : ''}`, COR.txt, 'FFFFFF'],
     ] : [
       ['REALIZADO NO MÊS', mil(d.cur.fat), d.meta ? `${pct(atFat)} da meta` : 'sem meta', COR.txt, 'FFFFFF'],
       [`ACUMULADO JAN–${abrevMes.toUpperCase()}`, mil(d.fatAno), d.metaAno ? `${pct(d.fatAno / d.metaAno * 100)} da meta do período` : '', COR.txt, 'FFFFFF'],
@@ -790,7 +790,8 @@ export function montarApresentacao(PptxGenJS, d, { img, frases: fr, textos, acoe
     blocos.forEach((b, k) => {
       const y = 205 + k * passoB;
       box(s, px, y, pw, hB, b[4], COR.borda);
-      txt(s, px + 22, y + (nB > 3 ? 11 : 14), pw - 160, 20, b[0], nB > 3 ? 12 : 13, COR.muted, { bold: true });
+      // Título: só reserva espaço para o selo quando o card tem selo (senão o título quebra e invade o valor)
+      txt(s, px + 22, y + (nB > 3 ? 11 : 14), b[6] != null ? pw - 160 : pw - 44, 20, b[0], nB > 3 ? 12 : 13, COR.muted, { bold: true });
       if (b[6] != null) {
         const [rot, fg, bg] = seloRitmo(b[6]), wp = Math.max(60, rot.length * 11 * 0.62 + 28);
         pill(s, px + pw - 18 - wp, y + 8, rot, fg, bg, 11);
