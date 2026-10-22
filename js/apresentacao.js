@@ -413,30 +413,18 @@ export function frasesPadrao(d, tarefas = []) {
   const mes = nomeMes(d.M);
   const atFat = d.meta > 0 ? d.cur.fat / d.meta * 100 : null;
   const atProd = d.capMes > 0 ? d.prod / d.capMes * 100 : null;
-  const vVol = varPct(d.cur.vol, d.antMesmo.vol), vPreco = varPct(d.cur.preco, d.antMesmo.preco);
   const quando = d.emAndamento ? `${cap(mes)} até ${ddmm(d.corte)}` : cap(mes);
 
   // Mês em andamento: compara com o esperado até o corte (proporcional aos dias úteis), não com o mês cheio
-  // Início do mês: a cor segue a comparação com o mês anterior no mesmo ponto (mesma regra do card do Resumo)
-  const atFatProp = d.inicioMes ? (d.antMesmo.fat > 0 ? d.cur.fat / d.antMesmo.fat * 100 : null)
-    : atFat != null && d.emAndamento && d.du > 0 && d.dp > 0 ? atFat / (d.dp / d.du) : atFat;
   const atProdProp = d.emAndamento ? (d.esperado > 0 ? d.prod / d.esperado * 100 : null) : atProd;
-  // Resumo: mesma comparação dos selos dos cards (mês anterior no mesmo período; mês fechado: mês inteiro; ±5% = estável)
-  const refR = d.emAndamento ? d.antMesmo : d.antCheio;
-  const refProdR = d.emAndamento ? d.prodAntMesmo : d.prodAntCheio;
-  const vFatR = refR.fat > 0 ? varPct(d.cur.fat, refR.fat) : null;
-  const vProdR = refProdR > 0 ? varPct(d.prod, refProdR) : null;
-  const tend = v => v == null ? null : v > 5 ? 'acima' : v < -5 ? 'abaixo' : 'estavel';
-  const tF = tend(vFatR), tP = tend(vProdR);
-  const refTxt = d.emAndamento ? `${nomeMes(d.Mant)} no mesmo período` : nomeMes(d.Mant);
-  const marca = (t, txt) => t === 'acima' ? `**${txt}**` : t === 'abaixo' ? `*${txt}*` : txt;
-  let corpo;
-  if (tF && tF === tP) corpo = `faturamento e prensagem ${marca(tF, tF === 'acima' ? `acima de ${refTxt}` : tF === 'abaixo' ? `abaixo de ${refTxt}` : `estáveis em relação a ${refTxt}`)}`;
-  else if (tF && tP) corpo = `faturamento ${marca(tF, tF === 'estavel' ? 'estável' : tF)} e prensagem ${marca(tP, tP === 'estavel' ? 'estável' : tP)} em relação a ${refTxt}`;
-  else if (tF) corpo = `faturamento ${marca(tF, tF === 'acima' ? `acima de ${refTxt}` : tF === 'abaixo' ? `abaixo de ${refTxt}` : `estável em relação a ${refTxt}`)}`;
-  else corpo = `faturamento em ${atFat == null ? 'meta não cadastrada' : `${nf(atFat, 0)}% da meta`}`;
-  const vTicket = varPct(d.cur.preco, refR.preco);
-  const resumo = `${quando}: ${corpo}; ticket médio ${vTicket == null ? 'sem comparação' : vTicket > 2 ? 'sobe' : vTicket < -2 ? 'cai' : 'estável'}.`;
+  // Resumo: sem comparação com o mês anterior — faturamento × meta (com o esperado até aqui) e prensas × previsto.
+  // Cor igual aos selos dos cards: verde no ritmo (≥ 97%), vermelho abaixo (< 90%)
+  const marcaR = (txt, p) => p == null ? txt : Math.round(p) >= 97 ? `**${txt}**` : Math.round(p) < 90 ? `*${txt}*` : txt;
+  const pFat = atFat != null && d.emAndamento && d.du > 0 && d.dp > 0 ? atFat / (d.dp / d.du) : atFat;
+  const fatR = atFat == null ? `faturamento de ${mil(d.cur.fat)} (meta não cadastrada)`
+    : `faturamento em ${marcaR(`${pct(atFat, 0)} da meta`, pFat)}${d.emAndamento && d.dp < d.du ? ` (esperado até aqui: ${pct(d.dp / d.du * 100, 0)})` : ''}`;
+  const prodR = atProdProp == null ? '' : `; prensas em ${marcaR(`${pct(atProdProp, 0)} ${d.emAndamento ? 'do previsto' : 'da capacidade'}`, atProdProp)}`;
+  const resumo = `${quando}: ${fatR}${prodR}.`;
 
   let fat;
   if (d.inicioMes) {
@@ -651,42 +639,33 @@ export function montarApresentacao(PptxGenJS, d, { img, frases: fr, textos, acoe
     // Quatro indicadores com semáforo (um por etapa do roteiro); o detalhe fica nos slides seguintes
     const s = conteudo('RESUMO EXECUTIVO', fr.resumo, 0, true);
     const c = d.cur;
-    // Faturamento e prensagem: tendência vs o mesmo período do mês anterior (±5% = estável).
+    // Sem comparação com o mês anterior. Faturamento e prensagem: selo pelo ritmo contra a meta / o previsto
+    // até o corte (mês fechado: o mês inteiro) — NO RITMO ≥ 97%, ATENÇÃO ≥ 90%, ABAIXO < 90%.
     // Equipamentos e equipe: situação (OK / Atenção / Crítico).
     const SEM = {
-      cresc: ['CRESCENDO', COR.ok, COR.okBg], est: ['ESTÁVEL', COR.muted, COR.trilho], abaixo: ['ABAIXO', COR.verm, COR.vermBg],
+      ritmo: ['NO RITMO', COR.ok, COR.okBg], abaixo: ['ABAIXO', COR.verm, COR.vermBg],
       ok: ['OK', COR.ok, COR.okBg], amb: ['ATENÇÃO', COR.amb, COR.ambBg], verm: ['CRÍTICO', COR.verm, COR.vermBg], nd: ['SEM BASE', COR.muted, COR.cinzaBg],
     };
-    const tendencia = v => v == null ? 'nd' : v > 5 ? 'cresc' : v < -5 ? 'abaixo' : 'est';
+    // Arredondado como aparece escrito no card (96,9% mostra "97%" e tem de ficar no ritmo)
+    const noRitmo = p => p == null ? 'nd' : Math.round(p) >= 97 ? 'ritmo' : Math.round(p) >= 90 ? 'amb' : 'abaixo';
     const ind = [];
 
-    // ctx = linhas [rótulo, valor] abaixo do tracejado. Variação "▲ 12%" pronta para a linha.
-    const vTxt = v => v == null ? '' : ` (${seta(v)} ${nf(Math.abs(v), 0)}%)`;
-    // Mês em andamento: mês anterior até o mesmo dia; mês fechado: mês anterior inteiro
-    const rotRef = d.emAndamento ? `${cap(ant)} no mesmo período` : cap(ant);
-
     // Faturamento — ticket médio (faturamento ÷ toneladas vendidas) na linha de baixo do valor
-    const ref = d.emAndamento ? d.antMesmo : d.antCheio;
-    const vFat = ref.fat > 0 ? varPct(c.fat, ref.fat) : null;
+    const atFatRitmo = atFat != null && d.emAndamento && d.du > 0 && d.dp > 0 ? atFat / (d.dp / d.du) : atFat;
     const ticket = c.preco ? ` · ticket médio ${reais0(c.preco)}/t` : '';
-    ind.push({ label: 'Faturamento', st: tendencia(vFat),
+    ind.push({ label: 'Faturamento', st: noRitmo(atFatRitmo),
       valor: mil(c.fat),
       sub: (d.emAndamento ? `${d.meta ? `${pct(atFat, 0)} da meta · ` : ''}${d.dp} de ${d.du} dias úteis` : d.meta ? `${pct(atFat, 0)} da meta de ${mil(d.meta)}` : 'sem meta cadastrada') + ticket,
       ctx: [
-        [rotRef, `${mil(ref.fat)}${vTxt(vFat)}${d.emAndamento ? ` · fechou em ${mil(d.antCheio.fat)}` : ''}`],
+        d.emAndamento && d.meta ? ['Esperado até aqui', `${pct(d.dp / d.du * 100, 0)} da meta (${mil(d.meta * d.dp / d.du)})`] : null,
         !d.inicioMes && d.emAndamento ? [d.valorEstoque > 0 ? 'Projeção + venda do estoque' : 'Projeção no ritmo atual', `${mil(d.projecao + d.valorEstoque)}${d.meta ? ` (${pct((d.projecao + d.valorEstoque) / d.meta * 100, 0)} da meta)` : ''}`] : null,
       ].filter(Boolean) });
 
-    // Prensagem — produção das prensas vs o mesmo período do mês anterior
+    // Prensagem — produção das prensas × previsto até o corte (mês fechado: × capacidade do mês)
     const atProdRef = d.emAndamento ? (d.esperado > 0 ? d.prod / d.esperado * 100 : null) : atProd;
-    const vPl = d.prensAntes > 0 ? varPct(c.prensa.vol, d.prensAntesProp) : null;
-    const ritmoP = d.dpPrensa > 0 ? d.prod / d.dpPrensa : 0;
-    const refProd = d.emAndamento ? d.prodAntMesmo : d.prodAntCheio;
-    const vProd = refProd > 0 ? varPct(d.prod, refProd) : null;
-    ind.push({ label: 'Prensagem', st: tendencia(vProd), valor: `${nf(d.prod / 1000, 1)} t produzidas`,
+    ind.push({ label: 'Prensagem', st: noRitmo(atProdRef), valor: `${nf(d.prod / 1000, 1)} t produzidas`,
       sub: d.emAndamento ? `${pct(atProdRef, 0)} do previsto até ${ddmm(d.corte)} (${nf(d.esperado / 1000, 1)} t)` : `${pct(atProd, 0)} da capacidade de ${tCap(d, d.capMes)} t`,
       ctx: [
-        [rotRef, refProd > 0 ? `${tn(refProd, 1)}${vTxt(vProd)}${d.emAndamento ? ` · fechou em ${tn(d.prodAntCheio, 1)}` : ''}` : 'sem produção registrada'],
         // Mês em andamento: também o quanto já foi feito da capacidade do mês inteiro (descontada a manutenção)
         d.emAndamento && d.capMes > 0 ? ['Capacidade do mês', `${tCap(d, d.capMes)} t · produzido até agora: ${pct(d.prod / d.capMes * 100, 0)}`] : null,
         // Ritmo e prensado vendido ficam no slide de Prensagem (card enxuto, igual ao de faturamento)
@@ -721,17 +700,16 @@ export function montarApresentacao(PptxGenJS, d, { img, frases: fr, textos, acoe
       txt(s, x + 34, y + 120, W - 60, 26, k.sub, 17, COR.txt2);
       linha(s, x + 34, y + 162, x + W - 26, COR.borda, 'dash');
       // Linhas de contexto: rótulo em cinza + valor em negrito
-      txt(s, x + 34, y + 174, W - 60, 110, k.ctx.flatMap(([r, v], j) => [
+      if (k.ctx.length) txt(s, x + 34, y + 174, W - 60, 110, k.ctx.flatMap(([r, v], j) => [
         { text: `${r}: `, options: { color: COR.muted } },
         { text: v, options: { bold: true, color: COR.txt2, breakLine: j < k.ctx.length - 1 } },
       ]), 14, COR.txt2, { paraSpaceAfter: 5 });
     });
     fala(s, { min: 4, etapa: 'Resumo (1 de 5)', frase: fr.resumo,
       apoio: [
-        ...ind.map(k => `${k.label} — ${SEM[k.st][0]}: ${k.valor}; ${k.sub}. ${k.ctx.map(([r, v]) => `${r}: ${v}`).join('; ')}.`),
-        `Selos de faturamento e prensagem: comparação com ${d.emAndamento ? `${ant} até ${ddmm(d.fimAntMesmo)} (mesmo período)` : `${ant} inteiro`} — Crescendo acima de +5%, Estável entre −5% e +5%, Abaixo de −5%.`,
-        d.prensAntes > 0 ? `"Prensado vendido × antes do plano": toneladas de prensado vendidas no período comparadas com ${d.emAndamento ? `a média vendida nos primeiros ${d.dp} dias úteis de cada mês antes do plano de expansão (${tn(d.prensAntesProp, 1)}; mês cheio: ${tn(d.prensAntes, 1)}/mês)` : `a média mensal de prensado vendido antes do plano de expansão (${tn(d.prensAntes, 1)}/mês)`}. Mostra se o plano aumentou a venda de prensado.` : '',
-        d.emAndamento ? `Mês em andamento: dados até ${ddmmaaaa(d.corte)}; comparações com ${ant} até ${ddmm(d.fimAntMesmo)} (mesmo ponto do mês).` : '',
+        ...ind.map(k => `${k.label} — ${SEM[k.st][0]}: ${k.valor}; ${k.sub}.${k.ctx.length ? ` ${k.ctx.map(([r, v]) => `${r}: ${v}`).join('; ')}.` : ''}`),
+        `Selos de faturamento e prensagem: ritmo contra ${d.emAndamento ? `o esperado até ${ddmm(d.corte)} (meta / capacidade proporcional aos dias úteis)` : 'a meta / capacidade do mês'} — No ritmo a partir de 97%, Atenção de 90% a 97%, Abaixo de 90%.`,
+        d.emAndamento ? `Mês em andamento: dados até ${ddmmaaaa(d.corte)}.` : '',
       ],
       proximo: 'Agora o porquê de cada número, começando pelo faturamento.' });
   }
