@@ -427,7 +427,9 @@ export function frasesPadrao(d, tarefas = []) {
   const fatR = atFat == null ? `faturamento de ${mil(d.cur.fat)} (meta não cadastrada)`
     : comEstR ? `faturamento em ${pct(atFat, 0)} da meta; ${marcaR(`com o estoque, ${pct(atFatEstR, 0)}`, atFatEstR / espR)} (esperado até aqui: ${pct(espR * 100, 0)})`
       : `faturamento em ${marcaR(`${pct(atFat, 0)} da meta`, atFat / espR)}${d.emAndamento && d.dp < d.du ? ` (esperado até aqui: ${pct(espR * 100, 0)})` : ''}`;
-  const prodR = atProdProp == null ? '' : `; prensas em ${marcaR(`${pct(atProdProp, 0)} ${d.emAndamento ? 'do previsto' : 'da capacidade'}`, atProdProp)}`;
+  // Prensagem no mesmo formato: % da capacidade do mês e o esperado até aqui; a cor vai pelo produzido ÷ previsto
+  const prodR = atProdProp == null || atProd == null ? '' : `; prensagem em ${marcaR(`${pct(atProd, 0)} da capacidade do mês`, atProdProp)}` +
+    (d.emAndamento ? ` (esperado até aqui: ${pct(d.esperado / d.capMes * 100, 0)})` : '');
   const resumo = `${quando}: ${fatR}${prodR}.`;
 
   let fat;
@@ -673,17 +675,18 @@ export function montarApresentacao(PptxGenJS, d, { img, frases: fr, textos, acoe
       ctx: [
         comEst ? ['Só o faturado', `${d.meta ? `${pct(atFat, 0)} da meta · ` : ''}${d.dp} de ${d.du} dias úteis${ticket}`] : null,
         !comEst && d.emAndamento && d.meta ? ['Esperado até aqui', `${pct(espAqui * 100, 0)} da meta (${mil(d.meta * espAqui)})`] : null,
-        !d.inicioMes && d.emAndamento ? [d.valorEstoque > 0 ? 'Projeção + venda do estoque' : 'Projeção no ritmo atual', `${mil(d.projecao + d.valorEstoque)}${d.meta ? ` (${pct((d.projecao + d.valorEstoque) / d.meta * 100, 0)} da meta)` : ''}`] : null,
+        // A projeção fica no slide de Faturamento
       ].filter(Boolean) });
 
-    // Prensagem — produção das prensas × previsto até o corte (mês fechado: × capacidade do mês)
+    // Prensagem — mesmo formato do faturamento: % da capacidade do mês × esperado até aqui (o previsto até o corte
+    // ÷ capacidade do mês); selo = produzido ÷ previsto até o corte (mês fechado: × capacidade do mês)
     const atProdRef = d.emAndamento ? (d.esperado > 0 ? d.prod / d.esperado * 100 : null) : atProd;
+    const ritmoR = d.dpPrensa > 0 ? d.prod / d.dpPrensa : 0;
     ind.push({ label: 'Prensagem', st: noRitmo(atProdRef), valor: `${nf(d.prod / 1000, 1)} t produzidas`,
-      sub: d.emAndamento ? `${pct(atProdRef, 0)} do previsto até ${ddmm(d.corte)} (${nf(d.esperado / 1000, 1)} t)` : `${pct(atProd, 0)} da capacidade de ${tCap(d, d.capMes)} t`,
+      sub: d.capMes > 0 ? `${pct(atProd, 0)} da capacidade do mês${d.emAndamento ? ` (esperado até aqui: ${pct(d.esperado / d.capMes * 100, 0)})` : ` de ${tCap(d, d.capMes)} t`}` : 'sem capacidade cadastrada',
       ctx: [
-        // Mês em andamento: também o quanto já foi feito da capacidade do mês inteiro (descontada a manutenção)
-        d.emAndamento && d.capMes > 0 ? ['Capacidade do mês', `${tCap(d, d.capMes)} t · produzido até agora: ${pct(d.prod / d.capMes * 100, 0)}`] : null,
-        // Ritmo e prensado vendido ficam no slide de Prensagem (card enxuto, igual ao de faturamento)
+        d.dpPrensa > 0 ? ['Ritmo atual', `${nf(ritmoR / 1000, 1)} t/dia · meta ${nf(d.metaDia / 1000, 1)} t/dia`] : null,
+        d.emAndamento && d.capMes > 0 ? ['Capacidade do mês', `${tCap(d, d.capMes)} t${d.perdaCap > 0.5 ? ` (${nf(d.capNominal / 1000, 0)} t − ${nf(d.perdaCap / 1000, 1)} t manutenção)` : ''}`] : null,
       ].filter(Boolean) });
 
     // Equipamentos: uma linha com quem está parado/com restrição e quando volta (o detalhe fica no slide de Equipamentos)
