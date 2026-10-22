@@ -776,9 +776,9 @@ export function montarApresentacao(PptxGenJS, d, { img, frases: fr, textos, acoe
         ['REALIZADO + ESTOQUE', mil(d.cur.fat + d.valorEstoque), d.meta ? `${pct((d.cur.fat + d.valorEstoque) / d.meta * 100, 0)} da meta · esperado até aqui: ${pct(espAq * 100, 0)}` : '',
           COR.verde, COR.verdeCl, false, d.meta ? (d.cur.fat + d.valorEstoque) / d.meta * 100 / espAq : null],
       ] : []),
-      // Projeção do mês no ritmo atual já somando o estoque; só o ritmo, na linha de baixo
+      // Projeção do mês no ritmo atual já somando o estoque
       [d.valorEstoque > 0 ? 'PROJEÇÃO DO MÊS + ESTOQUE' : 'PROJEÇÃO DO MÊS (RITMO ATUAL)', mil(d.projecao + d.valorEstoque),
-        `${d.meta ? `${pct((d.projecao + d.valorEstoque) / d.meta * 100, 0)} da meta` : ''}${d.valorEstoque > 0 ? `${d.meta ? ' · ' : ''}só o ritmo: ${mil(d.projecao)}${d.meta ? ` (${pct(d.projecao / d.meta * 100, 0)})` : ''}` : ''}`, COR.txt, 'FFFFFF'],
+        d.meta ? `${pct((d.projecao + d.valorEstoque) / d.meta * 100, 0)} da meta` : '', COR.txt, 'FFFFFF'],
     ] : [
       ['REALIZADO NO MÊS', mil(d.cur.fat), d.meta ? `${pct(atFat)} da meta` : 'sem meta', COR.txt, 'FFFFFF'],
       [`ACUMULADO JAN–${abrevMes.toUpperCase()}`, mil(d.fatAno), d.metaAno ? `${pct(d.fatAno / d.metaAno * 100)} da meta do período` : '', COR.txt, 'FFFFFF'],
