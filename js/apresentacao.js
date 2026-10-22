@@ -697,7 +697,8 @@ export function montarApresentacao(PptxGenJS, d, { img, frases: fr, textos, acoe
       `${nomeCurtoEq(e)} (${e.st === 'restricao' ? 'restrição, ' : ''}${prev ? `volta ${ddmm(prev)}` : 'sem previsão'})`);
     ind.push({ label: 'Equipamentos', st: !d.eqs.length ? 'nd' : d.nPar ? 'verm' : d.nRes || (d.dispMes != null && d.dispMes < 99.5) ? 'amb' : 'ok',
       valor: `${d.nOp + d.nRes} de ${d.eqs.length} disponíveis`,
-      sub: `${d.rotDisp}${d.dispMes != null ? ` · média do mês ${pct(d.dispMes, 0)}` : ''}`,
+      // % disponível agora (operando + com restrição ÷ total) e a média do mês pelos dias registrados
+      sub: `${d.disp != null ? `${pct(d.disp, 0)} disponíveis ${d.rotDisp}` : d.rotDisp}${d.dispMes != null ? ` · média do mês ${pct(d.dispMes, 0)}` : ''}`,
       ctx: lst.length ? [[d.problemas.every(r => r.e.st === 'parado') ? 'Parados' : 'Com problema',
         lst.join(' · ') + (d.problemas.length > 3 ? ` · e mais ${d.problemas.length - 3}` : '')]]
         : [['Situação', `todos operando ${d.rotDisp}`]] });
