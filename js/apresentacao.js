@@ -1031,62 +1031,57 @@ export function montarApresentacao(PptxGenJS, d, { img, frases: fr, textos, acoe
       txt(s, x + 26, 282, 270, 18, sub, 12.5, COR.txt2);
     });
 
-    // Esquerda: equipamentos com problema (tabela) e dias parados no mês (barras)
+    // Esquerda: equipamentos com problema (tabela com o % e os dias parados no mês) e, embaixo,
+    // os que pararam no mês mas já voltaram a operar (não aparecem na tabela)
     const xL = 50, yP = 329, wL = 830, hP = 496;
     box(s, xL, yP, wL, hP, 'FFFFFF', COR.borda);
     titulo(xL + 26, yP + 20, 'EQUIPAMENTOS COM PROBLEMA');
+    const voltaram = d.comParada.filter(x => x.e.st === 'operando');
+    const hRodape = (voltaram.length ? 70 : 0) + (textos.obsEquip ? 50 : 0);
     let yy = yP + 50;
     if (d.problemas.length) {
-      const lista = d.problemas.slice(0, 4);
-      const cols = [['EQUIPAMENTO', 200], ['PROBLEMA', 330], ['DESDE', 80], ['PREVISÃO', 90], ['PARADO NO MÊS', 78]];
-      const cab = cols.map(([t], j) => ({ text: t, options: { bold: true, fontSize: 11, color: COR.muted, fill: { color: COR.cinzaBg }, align: j > 1 ? 'center' : 'left' } }));
+      const lista = d.problemas.slice(0, 5);
+      const cols = [['EQUIPAMENTO', 210], ['PROBLEMA', 320], ['DESDE', 78], ['PREVISÃO', 88], ['PARADO NO MÊS', 82]];
+      const cab = cols.map(([t], j) => ({ text: t, options: { bold: true, fontSize: 12, color: COR.muted, fill: { color: COR.cinzaBg }, align: j > 1 ? 'center' : 'left' } }));
       const lin = lista.map(({ e, prob, desde, prev, pctPar, diasPar }) => [
         { text: [
           { text: e.nome || '—', options: { bold: true, color: e.st === 'parado' ? COR.verm : COR.amb, breakLine: true } },
-          { text: `${e.frota || ''}${e.st === 'restricao' ? `${e.frota ? ' · ' : ''}com restrição${e.capacidade_pct ? ` (${e.capacidade_pct}%)` : ''}` : ''}`, options: { fontSize: 11, color: COR.muted } },
+          { text: `${e.frota || ''}${e.st === 'restricao' ? `${e.frota ? ' · ' : ''}com restrição${e.capacidade_pct ? ` (${e.capacidade_pct}%)` : ''}` : ''}`, options: { fontSize: 13, color: COR.muted } },
         ] },
-        { text: prob ? corta(prob, 95) : 'sem observação', options: { fontSize: 14, color: prob ? COR.txt2 : COR.cinza, italic: !prob } },
+        { text: prob ? corta(prob, 95) : 'sem observação', options: { fontSize: 16, color: prob ? COR.txt2 : COR.cinza, italic: !prob } },
         { text: desde ? ddmm(desde) : '—', options: { align: 'center', color: COR.txt2 } },
         prev ? { text: [
           { text: ddmm(prev), options: { bold: true, color: prev < hoje ? COR.verm : COR.txt, breakLine: prev < hoje } },
-          ...(prev < hoje ? [{ text: 'vencida', options: { fontSize: 10, color: COR.verm } }] : []),
+          ...(prev < hoje ? [{ text: 'vencida', options: { fontSize: 11, color: COR.verm } }] : []),
         ], options: { align: 'center' } } : { text: 'a definir', options: { align: 'center', italic: true, color: COR.cinza } },
         { text: [
           { text: `${nf(pctPar, 0)}%`, options: { bold: true, color: pctPar > 0 ? COR.verm : COR.muted, breakLine: diasPar > 0 } },
-          ...(diasPar > 0 ? [{ text: `${diasPar} dia${diasPar > 1 ? 's' : ''}`, options: { fontSize: 10, color: COR.muted } }] : []),
+          ...(diasPar > 0 ? [{ text: `${diasPar} dia${diasPar > 1 ? 's' : ''}`, options: { fontSize: 12, color: COR.muted } }] : []),
         ], options: { align: 'center' } },
       ]);
-      const rowH = Math.min(66, 264 / lin.length);
+      const rowH = Math.min(104, (hP - 50 - 32 - 20 - hRodape) / lin.length);
       s.addTable([cab, ...lin], {
-        x: I(xL + 24), y: I(yy), w: I(778), colW: cols.map(([, w]) => I(w)), rowH: [I(28), ...lin.map(() => I(rowH))],
-        fontFace: FONT, fontSize: 15, valign: 'middle', margin: [0, 0.1, 0, 0.1],
+        x: I(xL + 24), y: I(yy), w: I(778), colW: cols.map(([, w]) => I(w)), rowH: [I(32), ...lin.map(() => I(rowH))],
+        fontFace: FONT, fontSize: 17, valign: 'middle', margin: [0, 0.1, 0, 0.1],
         border: [{ type: 'none' }, { type: 'none' }, { type: 'solid', color: COR.trilho, pt: 1 }, { type: 'none' }],
       });
-      yy += 28 + lin.length * rowH + 6;
-      if (d.problemas.length > lista.length) { txt(s, xL + 26, yy, 600, 16, `+ ${d.problemas.length - lista.length} equipamento(s) com problema`, 11, COR.muted, { italic: true }); yy += 18; }
+      yy += 32 + lin.length * rowH + 6;
+      if (d.problemas.length > lista.length) txt(s, xL + 26, yy, 600, 16, `+ ${d.problemas.length - lista.length} equipamento(s) com problema`, 12, COR.muted, { italic: true });
     } else {
-      box(s, xL + 24, yy, 778, 56, COR.okBg, null, 10);
-      txt(s, xL + 44, yy, 740, 56, `Todos os ${d.eqs.length} equipamentos operando ${d.rotDisp}.`, 16, COR.ok, { bold: true, valign: 'middle' });
-      yy += 56;
+      box(s, xL + 24, yy, 778, 64, COR.okBg, null, 10);
+      txt(s, xL + 44, yy, 740, 64, `Todos os ${d.eqs.length} equipamentos operando ${d.rotDisp}.`, 18, COR.ok, { bold: true, valign: 'middle' });
     }
-    // Barras: % dos dias parado no mês, do que mais parou ao que menos parou (cor = situação atual)
-    const paradas = d.comParada.slice(0, 4);
-    yy += 22;
-    titulo(xL + 26, yy, 'DIAS PARADOS NO MÊS');
-    yy += 30;
-    if (paradas.length) {
-      const maxP = Math.max(25, ...paradas.map(x => x.pct));
-      paradas.forEach(({ e, pct: p, dias }) => {
-        const bw = 440, cor = e.st === 'parado' ? COR.verm : e.st === 'restricao' ? COR.amb : COR.cinza;
-        txt(s, xL + 26, yy, 220, 26, nomeCurtoEq(e), 15, COR.txt2, { valign: 'middle' });
-        box(s, xL + 250, yy + 3, bw, 20, COR.trilho, null, 0);
-        box(s, xL + 250, yy + 3, Math.max(6, bw * p / maxP), 20, cor, null, 0);
-        txt(s, xL + 250 + bw + 12, yy, 120, 26, `${nf(p, 0)}% · ${dias} dia${dias > 1 ? 's' : ''}${e.st === 'operando' ? ' ✓' : ''}`, 14, COR.txt, { bold: true, valign: 'middle' });
-        yy += 38;
-      });
-      if (paradas.some(x => x.e.st === 'operando')) { txt(s, xL + 26, yy, 600, 16, '✓ = já voltou a operar', 11, COR.muted); yy += 18; }
-    } else { txt(s, xL + 26, yy, 600, 22, 'Nenhuma parada registrada no mês.', 14, COR.ok, { bold: true }); yy += 26; }
-    if (textos.obsEquip) txt(s, xL + 26, Math.max(yy + 6, yP + hP - 50), wL - 52, 40, textos.obsEquip, 12.5, COR.muted);
+    let yR = yP + hP - hRodape;
+    if (voltaram.length) {
+      linha(s, xL + 26, yR, xL + wL - 26, COR.borda);
+      titulo(xL + 26, yR + 14, 'PARARAM NO MÊS E JÁ VOLTARAM A OPERAR');
+      txt(s, xL + 26, yR + 38, wL - 52, 24, voltaram.slice(0, 3).map((x, k, arr) => [
+        { text: nomeCurtoEq(x.e), options: { bold: true, color: COR.txt } },
+        { text: ` — ${x.dias} dia${x.dias > 1 ? 's' : ''} (${nf(x.pct, 0)}%)${k < arr.length - 1 ? '   ·   ' : ''}`, options: { color: COR.txt2 } },
+      ]).flat(), 15, COR.txt2);
+      yR += 70;
+    }
+    if (textos.obsEquip) txt(s, xL + 26, yR + 6, wL - 52, 40, textos.obsEquip, 12.5, COR.muted);
 
     // Direita: situação de toda a frota e, se houver, notas da equipe
     const xR = 900, wR = 430;
