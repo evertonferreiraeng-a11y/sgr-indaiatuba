@@ -930,13 +930,15 @@ export function montarApresentacao(PptxGenJS, d, { img, frases: fr, textos, acoe
     const mPlano = PLANO_INICIO.slice(0, 7);
     // Estoque prensado (a vender): só faz sentido sobre o mês em andamento (é a foto de hoje)
     const estP = d.emAndamento ? d.estoqueGrupo.prensado.kg : 0;
-    // Gráfico: produção das prensas por mês × capacidade, do primeiro mês com produção lançada até o mês atual
-    // (evolução). Mês sem lançamento no meio fica com a coluna vazia e o aviso "sem lançamento" — é falta de
-    // registro no sistema, não produção zero. Capacidade: a instalada; no mês atual, descontada a manutenção (a linha cai)
-    const iPrim = d.prodMesAno.findIndex(v => v > 0);
+    // Gráfico: prensagem por mês × capacidade, do primeiro mês do ano com dado até o mês atual (evolução).
+    // Mês anterior sem produção lançada na tela Produção: usa o prensado comercializado no mês (mesma cor).
+    // Sem nenhum dos dois: coluna vazia com "sem lançamento". Capacidade: a instalada; no mês atual, descontada a manutenção
+    const valMes = d.mesesAno.map((mk, k) => d.prodMesAno[k] > 0 || mk === d.M ? d.prodMesAno[k] : d.prensadoMes[k] || 0);
+    const pelaVenda = d.mesesAno.filter((mk, k) => !(d.prodMesAno[k] > 0) && mk !== d.M && d.prensadoMes[k] > 0);
+    const iPrim = valMes.findIndex(v => v > 0);
     const i0 = iPrim >= 0 ? iPrim : Math.max(0, d.mesesAno.indexOf(d.M));
     const meses = d.mesesAno.slice(i0), labels = labelsAno.slice(i0);
-    const valsT = d.prodMesAno.slice(i0).map(v => +(v / 1000).toFixed(2));
+    const valsT = valMes.slice(i0).map(v => +(v / 1000).toFixed(2));
     const capT = meses.map(mk => +((mk === d.M ? d.capMes : d.capNominal) / 1000).toFixed(2));
     const iCur = meses.indexOf(d.M);
     const projT = d.emAndamento && !d.inicioMes && iCur >= 0 ? d.projProd / 1000 : 0;
@@ -955,7 +957,7 @@ export function montarApresentacao(PptxGenJS, d, { img, frases: fr, textos, acoe
     const px0 = G.x + L.x * G.w, pW = L.w * G.w, py0 = G.y + L.y * G.h, pH = L.h * G.h;
     const catW = pW / meses.length, barW = catW / 1.6;
     const yDe = t => py0 + pH * (1 - t / valMax);
-    // Meses sem lançamento de produção (exceto o atual): aviso no lugar da coluna
+    // Meses sem produção lançada nem prensado vendido (exceto o atual): aviso no lugar da coluna
     valsT.forEach((v, k) => {
       if (v > 0 || k === iCur) return;
       txt(s, px0 + k * catW, yDe(0) - 44, catW, 40, 'sem\nlançamento', 11, COR.cinza, { align: 'center', valign: 'bottom', italic: true });
@@ -1087,6 +1089,7 @@ export function montarApresentacao(PptxGenJS, d, { img, frases: fr, textos, acoe
         deFora > 500 ? `Vendido + estoque (${tn(curV + estP, 1)}) passa o produzido (${tn(d.prod, 1)}) em ${tn(deFora, 1)}: prensado que não saiu das prensas no mês — carga já prensada recebida (ex.: Cargill) ou estoque prensado anterior.` : '',
         d.semProd.length ? `Atingimento semanal das prensas: ${d.semProd.map(w => `sem ${w.i}${w.parcial ? ' (parcial)' : ''} ${w.p == null ? '—' : pct(w.p, 0)}`).join(' · ')}.` : '',
         'Gráfico: produção das prensas por mês (tela Produção); a linha vermelha é a capacidade — no mês atual, já descontada a manutenção. "Sem lançamento" = mês sem produção registrada no sistema.',
+        pelaVenda.length ? `Meses sem produção lançada na tela Produção (${pelaVenda.map(mk => MES_ABREV[+mk.slice(5) - 1]).join(', ')}): a barra é o prensado comercializado no mês.` : '',
       ],
       proximo: 'O que sustenta a produção: equipamentos e equipe.' });
   }
