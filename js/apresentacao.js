@@ -742,25 +742,35 @@ export function montarApresentacao(PptxGenJS, d, { img, frases: fr, textos, acoe
         : ['ESTOQUE PRONTO PARA VENDA', mil(d.valorEstoque), tn(d.estoqueKg), COR.verde, COR.verdeCl],
     ] : d.emAndamento ? [
       [`REALIZADO ATÉ ${ddmm(d.corte)}`, mil(d.cur.fat), d.meta ? `${pct(atFat)} da meta` : 'sem meta', COR.txt, 'FFFFFF'],
+      // Estoque pronto para vender: valor, toneladas por grupo e quanto falta para a meta vendendo tudo
+      ...(d.valorEstoque > 0 ? [['ESTOQUE DISPONÍVEL PARA VENDA', mil(d.valorEstoque), [
+        { text: [['prensado', 'prensado'], ['granel', 'a granel'], ['sucata', 'sucata']]
+          .filter(([g]) => d.estoqueGrupo[g].kg > 0).map(([g, nome]) => `${tn(d.estoqueGrupo[g].kg, 1)} ${nome}`).join(' · '), options: { color: COR.txt2, breakLine: !!d.meta } },
+        ...(d.meta ? (faltaMeta > d.valorEstoque
+          ? [{ text: 'vendendo tudo, ', options: { color: COR.muted } }, { text: `faltam ${mil(faltaMeta - d.valorEstoque)} para a meta`, options: { bold: true, color: COR.amb } }]
+          : [{ text: 'vendendo tudo, ', options: { color: COR.muted } }, { text: 'a meta é batida', options: { bold: true, color: COR.ok } }]) : []),
+      ], COR.txt, 'FFFFFF', true]] : []),
       // Projeção já somando o estoque (sem card separado do ritmo atual)
       [d.valorEstoque > 0 ? 'PROJEÇÃO + VENDA DO ESTOQUE' : 'PROJEÇÃO NO RITMO ATUAL', mil(d.projecao + d.valorEstoque),
-        `${d.meta ? pct((d.projecao + d.valorEstoque) / d.meta * 100) + ' da meta' : ''}${d.valorEstoque > 0 ? ` · estoque de ${mil(d.valorEstoque)}` : ''}`, COR.verde, COR.verdeCl],
+        d.meta ? pct((d.projecao + d.valorEstoque) / d.meta * 100) + ' da meta' : '', COR.verde, COR.verdeCl],
     ] : [
       ['REALIZADO NO MÊS', mil(d.cur.fat), d.meta ? `${pct(atFat)} da meta` : 'sem meta', COR.txt, 'FFFFFF'],
       [`ACUMULADO JAN–${abrevMes.toUpperCase()}`, mil(d.fatAno), d.metaAno ? `${pct(d.fatAno / d.metaAno * 100)} da meta do período` : '', COR.txt, 'FFFFFF'],
       ['MELHOR MÊS DO ANO', d.melhor ? cap(nomeMes(d.melhor.mk)) : '—', d.melhor ? `${pct(d.melhor.p)} da meta` : '', COR.verde, COR.verdeCl],
     ];
+    // Três cards: um pouco mais baixos, para o atingimento semanal caber embaixo
+    const tres = blocos.length > 2, hB = tres ? 114 : 118, passoB = hB + (tres ? 10 : 12);
     blocos.forEach((b, k) => {
-      const y = 205 + k * 132;
-      box(s, px, y, pw, 118, b[4], COR.borda);
-      txt(s, px + 22, y + 16, pw - 44, 20, b[0], 13, COR.muted, { bold: true });
-      txt(s, px + 22, y + 40, pw - 44, 44, b[1], 32, b[3], { bold: true });
+      const y = 205 + k * passoB;
+      box(s, px, y, pw, hB, b[4], COR.borda);
+      txt(s, px + 22, y + 14, pw - 44, 20, b[0], 13, COR.muted, { bold: true });
+      txt(s, px + 22, y + 34, pw - 44, 40, b[1], tres ? 28 : 32, b[3], { bold: true });
       // b[5] = duas linhas embaixo do valor (fonte menor para caber no card)
-      if (b[5]) txt(s, px + 22, y + 80, pw - 44, 36, b[2], 13, COR.txt2);
-      else txt(s, px + 22, y + 86, pw - 44, 22, b[2], 14, COR.txt2);
+      if (b[5]) txt(s, px + 22, y + hB - 38, pw - 44, 36, b[2], 13, COR.txt2);
+      else txt(s, px + 22, y + hB - 32, pw - 44, 22, b[2], 14, COR.txt2);
     });
     // Semanal logo abaixo dos cards (sobe quando há só dois cards)
-    const ySem = 205 + blocos.length * 132 + 6;
+    const ySem = 205 + blocos.length * passoB + 6;
     txt(s, px, ySem, pw, 22, 'ATINGIMENTO DA META SEMANAL', 13, COR.muted, { bold: true });
     // Sob cada barra: realizado × meta da semana (semana parcial: meta só até o corte) e quanto faltou/sobrou
     const k1 = v => nf(v / 1000, 1);
