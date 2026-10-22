@@ -462,7 +462,7 @@ export function frasesPadrao(d, tarefas = []) {
   const quedaComp = c.pctPrensado != null && a.pctPrensado != null && c.pctPrensado < a.pctPrensado - 0.5;
   // Frase curta, só a mensagem: 1) quanto saiu prensado (as barras) e o preço médio geral;
   // 2) se a média do prensado caiu só pelo mix, o porquê. Os detalhes (mesmo material por tonelada,
-  // vendido + estoque) ficam nos cards e nas anotações do apresentador
+  // preço vendendo o estoque) ficam nas anotações do apresentador
   const ant = nomeMes(d.Mant), mx = d.mixPrensado;
   const frases = [];
   let p1 = ratio ? `O prensado vale **${nf(ratio, 1)}×** o mesmo material a granel` : '';
@@ -817,34 +817,26 @@ export function montarApresentacao(PptxGenJS, d, { img, frases: fr, textos, acoe
     const c = d.cur, a = d.antCheio;
     // Três grupos que somam o volume vendido. Prensado × a granel = só materiais prensáveis;
     // a sucata ferrosa (não prensa) aparece à parte, com volume, preço e valor próprios.
-    // Card enxuto: preço do mês (grande), selo com a variação e uma linha com o preço do mês anterior.
-    // Volume e faturamento de cada grupo ficam nas barras abaixo e nas anotações.
-    // Embaixo: estoque do grupo (t e R$/t) e o ticket médio simulado = (vendido + estoque) ÷ (t vendidas + t em estoque).
+    // Card de cima para baixo: preço do mês (grande); o que foi vendido (t e R$; no prensado, quantas vezes
+    // vale o a granel); o mês anterior com a variação do preço; e o estoque em t e em R$ (valor cadastrado)
     const cw = 410, cgap = 25, ch = 250;
+    const ratioPG = c.g.prensado.preco && c.g.granel.preco ? c.g.prensado.preco / c.g.granel.preco : null;
     const cartao = (k, rot, fill, line, corRot, corValor) => {
       const x = 50 + k.i * (cw + cgap), r = c.g[k.g], rA = a.g[k.g];
       box(s, x, 205, cw, ch, fill, line);
       txt(s, x + 24, 225, cw - 170, 20, rot, 13, corRot, { bold: true });
-      // 1) Mês atual: preço grande + estoque e simulação logo abaixo (a % da simulação é contra o preço atual)
+      // 1) Mês atual: preço grande e, embaixo, o volume e o faturamento do grupo
       if (r.preco) txt(s, x + 24, 250, cw - 48, 56, `${reais0(r.preco)}/t`, 40, corValor, { bold: true });
       else txt(s, x + 24, 260, cw - 48, 40, `sem vendas em ${mes}`, 22, COR.muted, { bold: true });
-      const e = d.estoqueGrupo[k.g];
-      txt(s, x + 24, 312, cw - 48, 24, [
-        { text: 'Estoque: ', options: { color: COR.muted } },
-        { text: e.kg > 0 ? `${tn(e.kg, 1)} a ${reais0(e.val / (e.kg / 1000))}/t` : 'sem estoque', options: { bold: true, color: COR.txt2 } },
-      ], 15, COR.txt2);
-      if (e.kg > 0) {
-        const sim = (r.fat + e.val) / ((r.vol + e.kg) / 1000), vs = varPct(sim, r.preco);
-        txt(s, x + 24, 338, cw - 48, 26, [
-          { text: 'Vendido + estoque: ', options: { color: COR.muted } },
-          { text: `${reais0(sim)}/t`, options: { bold: true, color: COR.verde } },
-          { text: vs == null || Math.abs(vs) < 1 ? '' : `  ${seta(vs)} ${nf(Math.abs(vs), 0)}% vs atual`, options: { bold: true, color: vs > 0 ? COR.ok : COR.verm, fontSize: 12 } },
-        ], 15, COR.txt2);
-      }
+      txt(s, x + 24, 310, cw - 48, 24, r.vol > 0 ? [
+        { text: `${tn(r.vol, 1)} vendidas`, options: { bold: true, color: COR.txt2 } },
+        { text: ` · ${mil(r.fat)}`, options: { color: COR.txt2 } },
+      ] : '', 14, COR.txt2);
+      if (k.g === 'prensado' && ratioPG) txt(s, x + 24, 329, cw - 48, 20, `vale ${nf(ratioPG, 1)}× o preço a granel`, 13, COR.verde, { bold: true });
 
       // 2) Mês de comparação: separado por uma linha, com a variação do preço ao lado
-      linha(s, x + 24, 386, x + cw - 24, COR.borda);
-      txt(s, x + 24, 404, cw - 170, 24, [
+      linha(s, x + 24, 352, x + cw - 24, COR.borda);
+      txt(s, x + 24, 368, cw - 170, 24, [
         { text: `${cap(ant)}: `, options: { color: COR.muted } },
         { text: rA.preco ? `${reais0(rA.preco)}/t` : 'sem vendas', options: { bold: true, color: COR.txt2 } },
       ], 15, COR.txt2);
@@ -855,8 +847,14 @@ export function montarApresentacao(PptxGenJS, d, { img, frases: fr, textos, acoe
         const [fg, bg] = Math.abs(v) < 2 ? [COR.muted, COR.trilho] : porMix ? [COR.amb, COR.ambBg] : v > 0 ? [COR.ok, COR.okBg] : [COR.verm, COR.vermBg];
         const t = Math.abs(v) < 2 ? 'estável' : `${seta(v)} ${nf(Math.abs(v), 0)}%${porMix ? ' · mix' : ''}`;
         const wp = Math.max(60, t.length * 13 * 0.62 + 28);
-        pill(s, x + cw - 24 - wp, 401, t, fg, bg, 13);
+        pill(s, x + cw - 24 - wp, 365, t, fg, bg, 13);
       }
+      // 3) Estoque do grupo: toneladas e valor em R$ (o que ainda pode virar faturamento)
+      const e = d.estoqueGrupo[k.g];
+      txt(s, x + 24, 406, cw - 48, 24, [
+        { text: 'Em estoque: ', options: { color: COR.muted } },
+        { text: e.kg > 0 ? `${tn(e.kg, 1)} · ≈ ${mil(e.val)}` : 'sem estoque', options: { bold: true, color: e.kg > 0 ? COR.txt2 : COR.muted } },
+      ], 15, COR.txt2);
     };
     cartao({ i: 0, g: 'prensado' }, 'PRENSADO', COR.verdeCl, null, COR.verde, COR.verde);
     cartao({ i: 1, g: 'granel' }, 'A GRANEL', COR.cinzaBg, COR.borda, COR.muted, COR.txt);
@@ -909,7 +907,12 @@ export function montarApresentacao(PptxGenJS, d, { img, frases: fr, textos, acoe
     fala(s, { min: 4, etapa: 'Faturamento e vendas (2 de 5)', frase: fr.comp,
       apoio: [
         grupo('Prensado', 'prensado'), grupo('A granel', 'granel'), grupo('Sucata ferrosa (não prensa)', 'sucata'),
-        '"Vendido + estoque" simula o ticket médio do grupo se o estoque atual for vendido pelo valor cadastrado: (faturado + valor do estoque) ÷ (t vendidas + t em estoque). O estoque entra no grupo informado em Estoque (Acondicionamento); em branco, no grupo em que o material mais foi vendido.',
+        // Se perguntarem: para quanto vai o preço médio de cada grupo vendendo o estoque pelo valor cadastrado
+        ...['prensado', 'granel'].map(k => {
+          const e = d.estoqueGrupo[k], r = c.g[k];
+          return e.kg > 0 && r.vol > 0 ? `Vendendo o estoque ${k === 'prensado' ? 'prensado' : 'a granel'} (${tn(e.kg, 1)}, ≈ ${mil(e.val)}), o preço médio do grupo vai a ${reais0((r.fat + e.val) / ((r.vol + e.kg) / 1000))}/t.` : '';
+        }),
+        'Estoque: valor cadastrado na tela Estoque; entra no grupo informado em Acondicionamento (em branco, no grupo em que o material mais foi vendido).',
         `Prensado: ${c.g.prensado.preco ? `${reais0(c.g.prensado.preco)}/t` : '—'} em ${mes} (${ant}: ${a.g.prensado.preco ? `${reais0(a.g.prensado.preco)}/t` : '—'}).`,
         mx?.porMix && mx.efeitoPreco != null ? `No mesmo material, o preço variou ${sinal(mx.efeitoPreco)}${nf(mx.efeitoPreco, 0)}% — a queda da média é de mix (quais materiais saíram), não de preço.` : '',
         mx?.efeitoPrensar != null ? `Prensado de ${mes} × o mesmo material em ${ant} somando prensado + a granel: ${sinal(mx.efeitoPrensar)}${nf(mx.efeitoPrensar, 0)}% — mostra o ganho de vender prensado em vez de a granel.` : '',
