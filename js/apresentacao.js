@@ -309,6 +309,12 @@ export function calcularDados(rows, M, corteIn, hoje) {
   });
   const comParada = eqs.filter(e => hist[e.id]?.p > 0).map(e => ({ e, pct: hist[e.id].p / hist[e.id].t * 100, dias: hist[e.id].p }))
     .sort((x, y) => y.pct - x.pct);
+  // Parado/com restrição desde: primeiro dia da sequência atual de registros diários com esse status
+  const desdePorEq = {};
+  eqs.filter(e => e.st !== 'operando').forEach(e => {
+    const regs = snapshots.filter(s => s.equipamento_id === e.id && s.semana <= corte).sort((a, b) => b.semana.localeCompare(a.semana));
+    for (const r of regs) { if (r.status !== e.st) break; desdePorEq[e.id] = r.semana; }
+  });
   // Disponibilidade média do mês: dias-equipamento não parados ÷ dias-equipamento registrados
   const hs = Object.values(hist), regT = hs.reduce((s, h) => s + h.t, 0), regP = hs.reduce((s, h) => s + h.p, 0);
   const dispMes = regT > 0 ? (regT - regP) / regT * 100 : null;
@@ -331,7 +337,7 @@ export function calcularDados(rows, M, corteIn, hoje) {
     M, ini, fimMes, corte, emAndamento, Mant, fimAntMesmo, cur, antMesmo, antCheio, meta, du, dp, dr,
     estoqueKg, valorEstoque, projecao, inicioMes, fatFech, metaFech, fracMes, prensAntesProp, mixPrensado, estoqueGrupo, mesesAno, fatMes, fatAno, metaAno, metaMes, melhor, nenhumAtingiu, semFat,
     prodAntMesmo, prodAntCheio, prensas, capMes, capNominal, perdaCap, prensasReduzidas, metaDia, metaDiaNominal, metaDiaRestante, duPrensa, dpPrensa, prod, esperado, semProd, prensadoMes, prensAntes, prensDepois,
-    eqs, nOp, nRes, nPar, disp, dispMes, rotDisp, comParada, colab, quadro, vagas,
+    eqs, nOp, nRes, nPar, disp, dispMes, rotDisp, comParada, desdePorEq, colab, quadro, vagas,
   };
 }
 
@@ -666,21 +672,34 @@ export function montarApresentacao(PptxGenJS, d, { img, frases: fr, textos, acoe
         // Ritmo e prensado vendido ficam no slide de Prensagem (card enxuto, igual ao de faturamento)
       ] });
 
-    // Equipamentos: situação atual + observação de cada um parado/com restrição e % dos dias parado no mês
-    const nomeEq = e => `${e.nome || ''}${e.frota ? ' ' + e.frota : ''}`;
+    // Equipamentos: mini-tabela dos parados/com restrição — problema, desde quando, previsão de conserto e % dos dias parado no mês
+    const nomeCurto = e => `${(e.nome || '').split(' ')[0]}${e.frota ? ' ' + e.frota : ''}`;
     const problema = [...d.eqs.filter(e => e.st === 'parado'), ...d.eqs.filter(e => e.st === 'restricao')];
     const corta = (t, n) => t.length > n ? t.slice(0, n - 1).trimEnd() + '…' : t;
-    const ctxEq = problema.slice(0, 3).map(e => {
-      const obs = (e.observacao_dia || e.observacao || '').trim();
+    // A previsão de conserto vem escrita na observação ("..., manutenção agendada para 28/10"):
+    // o trecho com a data vira a coluna Previsão e o resto fica como o problema
+    const reData = /\b(\d{1,2})\/(\d{1,2})(?:\/(\d{2,4}))?\b/;
+    const separaPrev = obs => {
+      const partes = obs.split(/\s*[,;]\s*|\.\s+|\s+-\s+/).filter(Boolean);
+      const k = partes.findIndex(p => reData.test(p));
+      if (k < 0) return { prob: obs.replace(/\.$/, ''), prev: null };
+      const [, dd, mm, aa] = partes[k].match(reData);
+      const ano = aa ? (aa.length === 2 ? '20' + aa : aa) : d.M.slice(0, 4);
+      return { prob: partes.filter((_, j) => j !== k).join(', ').replace(/\.$/, ''), prev: `${ano}-${mm.padStart(2, '0')}-${dd.padStart(2, '0')}` };
+    };
+    const tabEq = problema.slice(0, 3).map(e => {
       const par = d.comParada.find(x => x.e.id === e.id);
-      return [`${nomeEq(e)}${e.st === 'restricao' ? ' (restrição)' : ''}`,
-        [obs ? corta(obs, 60) : 'sem observação', par ? `parada em ${nf(par.pct, 0)}% dos dias` : ''].filter(Boolean).join(' · ')];
+      const { prob, prev } = separaPrev((e.observacao_dia || e.observacao || '').trim());
+      return { e, obs: corta(prob, 55), desde: d.desdePorEq[e.id], prev, pctPar: par ? par.pct : 0 };
     });
-    if (problema.length > 3) ctxEq.push(['E mais', `${problema.length - 3} equipamento(s)`]);
     ind.push({ label: 'Equipamentos', st: !d.eqs.length ? 'nd' : d.nPar ? 'verm' : d.nRes || (d.dispMes != null && d.dispMes < 99.5) ? 'amb' : 'ok',
       valor: `${d.nOp + d.nRes} de ${d.eqs.length} disponíveis`,
       sub: `${d.rotDisp}${d.dispMes != null ? ` · média do mês ${pct(d.dispMes, 0)}` : ''}`,
-      ctx: ctxEq.length ? ctxEq : [['Situação', `todos operando ${d.rotDisp}`]] });
+      tabela: tabEq.length ? tabEq : null, mais: Math.max(0, problema.length - 3),
+      // ctx: usado nas anotações do apresentador (e no card, quando não há equipamento com problema)
+      ctx: tabEq.length ? tabEq.map(r => [`${r.e.nome}${r.e.frota ? ' ' + r.e.frota : ''}${r.e.st === 'restricao' ? ' (restrição)' : ''}`,
+        `${r.obs || 'sem observação'}; desde ${r.desde ? ddmm(r.desde) : '—'}; previsão ${r.prev ? ddmm(r.prev) : 'a definir'}; parada em ${nf(r.pctPar, 0)}% dos dias`])
+        : [['Situação', `todos operando ${d.rotDisp}`]] });
 
     // Equipe: quadro do RH
     const incompleta = d.colab != null && d.colab < d.quadro;
@@ -700,6 +719,26 @@ export function montarApresentacao(PptxGenJS, d, { img, frases: fr, textos, acoe
       txt(s, x + 34, y + 60, W - 60, 56, k.valor, 36, COR.txt, { bold: true });
       txt(s, x + 34, y + 120, W - 60, 26, k.sub, 17, COR.txt2);
       linha(s, x + 34, y + 162, x + W - 26, COR.borda, 'dash');
+      if (k.tabela) {
+        // Mini-tabela de equipamentos: nome na cor do status, problema, desde, previsão e % parado
+        const cols = [['EQUIPAMENTO', 128], ['PROBLEMA', 236], ['DESDE', 62], ['PREVISÃO', 76], ['PARADO', 68]];
+        const cab = cols.map(([t], j) => ({ text: t, options: { bold: true, fontSize: 10, color: COR.muted, align: j > 1 ? 'center' : 'left' } }));
+        const lin = k.tabela.map(r => [
+          { text: nomeCurto(r.e), options: { bold: true, color: r.e.st === 'parado' ? COR.verm : COR.amb } },
+          { text: r.obs || 'sem observação', options: { color: r.obs ? COR.txt2 : COR.cinza, italic: !r.obs } },
+          { text: r.desde ? ddmm(r.desde) : '—', options: { align: 'center', color: COR.txt2 } },
+          r.prev ? { text: ddmm(r.prev), options: { align: 'center', bold: true, color: r.prev < hoje ? COR.verm : COR.txt } }
+            : { text: 'a definir', options: { align: 'center', italic: true, color: COR.cinza } },
+          { text: `${nf(r.pctPar, 0)}%`, options: { align: 'center', bold: true, color: r.pctPar > 0 ? COR.verm : COR.muted } },
+        ]);
+        const rowH = Math.min(30, 92 / lin.length);
+        s.addTable([cab, ...lin], {
+          x: I(x + 34), y: I(y + 168), w: I(570), colW: cols.map(([, w]) => I(w)), rowH: [I(18), ...lin.map(() => I(rowH))],
+          fontFace: FONT, fontSize: 11, valign: 'middle', margin: [0, 0.04, 0, 0.04], border: { type: 'none' },
+        });
+        if (k.mais) txt(s, x + 34, y + H - 18, 570, 14, `+ ${k.mais} equipamento${k.mais > 1 ? 's' : ''} com problema (ver slide Equipamentos)`, 10, COR.muted, { italic: true });
+        return;
+      }
       // Linhas de contexto: rótulo em cinza + valor em negrito
       txt(s, x + 34, y + 174, W - 60, 110, k.ctx.flatMap(([r, v], j) => [
         { text: `${r}: `, options: { color: COR.muted } },
