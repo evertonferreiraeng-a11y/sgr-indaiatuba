@@ -101,7 +101,7 @@ import { initPage, supabase, toast } from './js/config.js?v=3';
 import {
   STATUS_TAREFA, calcularDados, frasesPadrao, textoPerdaCap, montarApresentacao, periodoBusca,
   isoLocal, addDias, fimDoMes, ddmm, ddmmaaaa, nomeMes, mil, tn, pct, reais0, nf,
-} from './js/apresentacao.js?v=49';
+} from './js/apresentacao.js?v=50';
 
 await initPage();
 
@@ -217,7 +217,8 @@ function renderConferencia() {
   const tA = document.getElementById('t-aconteceu'), tP = document.getElementById('t-proximos'), tO = document.getElementById('t-obs-equip');
   tA.value = lsGet(kA) ?? '';
   tP.value = lsGet(kP) ?? '';
-  tO.value = lsGet(kO) ?? d.comParada.map(x => `${x.e.nome}${x.e.frota ? ' ' + x.e.frota : ''} teve paradas no período (${nf(x.pct, 0)}% dos dias registrados).`).join(' ');
+  // Sem texto padrão: o % de dias parados de cada equipamento já aparece nas barras do slide
+  tO.value = lsGet(kO) ?? '';
   tA.oninput = () => lsSet(kA, tA.value); tP.oninput = () => lsSet(kP, tP.value); tO.oninput = () => lsSet(kO, tO.value);
 
   const cats = [...new Set(tarefasCache.map(t => t.categoria).filter(Boolean))].sort();

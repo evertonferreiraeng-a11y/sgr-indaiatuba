@@ -673,15 +673,14 @@ export function montarApresentacao(PptxGenJS, d, { img, frases: fr, textos, acoe
         // Ritmo e prensado vendido ficam no slide de Prensagem (card enxuto, igual ao de faturamento)
       ] });
 
-    // Equipamentos: mini-tabela dos parados/com restrição — problema, desde quando, previsão de conserto e % dos dias parado no mês
-    const tabEq = d.problemas.slice(0, 3).map(r => ({ ...r, obs: corta(r.prob, 55) }));
+    // Equipamentos: uma linha com quem está parado/com restrição e quando volta (o detalhe fica no slide de Equipamentos)
+    const lst = d.problemas.slice(0, 3).map(({ e, prev }) =>
+      `${nomeCurtoEq(e)} (${e.st === 'restricao' ? 'restrição, ' : ''}${prev ? `volta ${ddmm(prev)}` : 'sem previsão'})`);
     ind.push({ label: 'Equipamentos', st: !d.eqs.length ? 'nd' : d.nPar ? 'verm' : d.nRes || (d.dispMes != null && d.dispMes < 99.5) ? 'amb' : 'ok',
       valor: `${d.nOp + d.nRes} de ${d.eqs.length} disponíveis`,
       sub: `${d.rotDisp}${d.dispMes != null ? ` · média do mês ${pct(d.dispMes, 0)}` : ''}`,
-      tabela: tabEq.length ? tabEq : null, mais: Math.max(0, d.problemas.length - 3),
-      // ctx: usado nas anotações do apresentador (e no card, quando não há equipamento com problema)
-      ctx: tabEq.length ? tabEq.map(r => [`${nomeEqCompleto(r.e)}${r.e.st === 'restricao' ? ' (restrição)' : ''}`,
-        `${r.obs || 'sem observação'}; desde ${r.desde ? ddmm(r.desde) : '—'}; previsão ${r.prev ? ddmm(r.prev) : 'a definir'}; parada em ${nf(r.pctPar, 0)}% dos dias`])
+      ctx: lst.length ? [[d.problemas.every(r => r.e.st === 'parado') ? 'Parados' : 'Com problema',
+        lst.join(' · ') + (d.problemas.length > 3 ? ` · e mais ${d.problemas.length - 3}` : '')]]
         : [['Situação', `todos operando ${d.rotDisp}`]] });
 
     // Equipe: quadro do RH
@@ -702,26 +701,6 @@ export function montarApresentacao(PptxGenJS, d, { img, frases: fr, textos, acoe
       txt(s, x + 34, y + 60, W - 60, 56, k.valor, 36, COR.txt, { bold: true });
       txt(s, x + 34, y + 120, W - 60, 26, k.sub, 17, COR.txt2);
       linha(s, x + 34, y + 162, x + W - 26, COR.borda, 'dash');
-      if (k.tabela) {
-        // Mini-tabela de equipamentos: nome na cor do status, problema, desde, previsão e % parado
-        const cols = [['EQUIPAMENTO', 128], ['PROBLEMA', 236], ['DESDE', 62], ['PREVISÃO', 76], ['PARADO', 68]];
-        const cab = cols.map(([t], j) => ({ text: t, options: { bold: true, fontSize: 10, color: COR.muted, align: j > 1 ? 'center' : 'left' } }));
-        const lin = k.tabela.map(r => [
-          { text: nomeCurtoEq(r.e), options: { bold: true, color: r.e.st === 'parado' ? COR.verm : COR.amb } },
-          { text: r.obs || 'sem observação', options: { color: r.obs ? COR.txt2 : COR.cinza, italic: !r.obs } },
-          { text: r.desde ? ddmm(r.desde) : '—', options: { align: 'center', color: COR.txt2 } },
-          r.prev ? { text: ddmm(r.prev), options: { align: 'center', bold: true, color: r.prev < hoje ? COR.verm : COR.txt } }
-            : { text: 'a definir', options: { align: 'center', italic: true, color: COR.cinza } },
-          { text: `${nf(r.pctPar, 0)}%`, options: { align: 'center', bold: true, color: r.pctPar > 0 ? COR.verm : COR.muted } },
-        ]);
-        const rowH = Math.min(30, 92 / lin.length);
-        s.addTable([cab, ...lin], {
-          x: I(x + 34), y: I(y + 168), w: I(570), colW: cols.map(([, w]) => I(w)), rowH: [I(18), ...lin.map(() => I(rowH))],
-          fontFace: FONT, fontSize: 11, valign: 'middle', margin: [0, 0.04, 0, 0.04], border: { type: 'none' },
-        });
-        if (k.mais) txt(s, x + 34, y + H - 18, 570, 14, `+ ${k.mais} equipamento${k.mais > 1 ? 's' : ''} com problema (ver slide Equipamentos)`, 10, COR.muted, { italic: true });
-        return;
-      }
       // Linhas de contexto: rótulo em cinza + valor em negrito
       txt(s, x + 34, y + 174, W - 60, 110, k.ctx.flatMap(([r, v], j) => [
         { text: `${r}: `, options: { color: COR.muted } },
