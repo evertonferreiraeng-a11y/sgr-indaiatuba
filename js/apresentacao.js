@@ -420,9 +420,13 @@ export function frasesPadrao(d, tarefas = []) {
   // Resumo: sem comparação com o mês anterior — faturamento × meta (com o esperado até aqui) e prensas × previsto.
   // Cor igual aos selos dos cards: verde no ritmo (≥ 97%), vermelho abaixo (< 90%)
   const marcaR = (txt, p) => p == null ? txt : Math.round(p) >= 97 ? `**${txt}**` : Math.round(p) < 90 ? `*${txt}*` : txt;
-  const pFat = atFat != null && d.emAndamento && d.du > 0 && d.dp > 0 ? atFat / (d.dp / d.du) : atFat;
+  // Mês em andamento com estoque: a cor vai pela soma faturado + estoque (mesma regra do selo do card)
+  const espR = d.emAndamento && d.du > 0 && d.dp > 0 ? d.dp / d.du : 1;
+  const comEstR = d.emAndamento && d.valorEstoque > 0 && atFat != null;
+  const atFatEstR = comEstR ? (d.cur.fat + d.valorEstoque) / d.meta * 100 : atFat;
   const fatR = atFat == null ? `faturamento de ${mil(d.cur.fat)} (meta não cadastrada)`
-    : `faturamento em ${marcaR(`${pct(atFat, 0)} da meta`, pFat)}${d.emAndamento && d.dp < d.du ? ` (esperado até aqui: ${pct(d.dp / d.du * 100, 0)})` : ''}`;
+    : comEstR ? `faturamento em ${pct(atFat, 0)} da meta; ${marcaR(`com o estoque, ${pct(atFatEstR, 0)}`, atFatEstR / espR)} (esperado até aqui: ${pct(espR * 100, 0)})`
+      : `faturamento em ${marcaR(`${pct(atFat, 0)} da meta`, atFat / espR)}${d.emAndamento && d.dp < d.du ? ` (esperado até aqui: ${pct(espR * 100, 0)})` : ''}`;
   const prodR = atProdProp == null ? '' : `; prensas em ${marcaR(`${pct(atProdProp, 0)} ${d.emAndamento ? 'do previsto' : 'da capacidade'}`, atProdProp)}`;
   const resumo = `${quando}: ${fatR}${prodR}.`;
 
@@ -650,14 +654,25 @@ export function montarApresentacao(PptxGenJS, d, { img, frases: fr, textos, acoe
     const noRitmo = p => p == null ? 'nd' : Math.round(p) >= 97 ? 'ritmo' : Math.round(p) >= 90 ? 'amb' : 'abaixo';
     const ind = [];
 
-    // Faturamento — ticket médio (faturamento ÷ toneladas vendidas) na linha de baixo do valor
-    const atFatRitmo = atFat != null && d.emAndamento && d.du > 0 && d.dp > 0 ? atFat / (d.dp / d.du) : atFat;
+    // Faturamento. Mês em andamento com estoque: faturado + estoque (pronto para vender) separados no número grande,
+    // e o selo pela soma contra o esperado até aqui (meta proporcional aos dias úteis). Mês fechado: só o faturado.
+    const comEst = d.emAndamento && d.valorEstoque > 0;
+    const fatEst = c.fat + (comEst ? d.valorEstoque : 0);
+    const atFatEst = d.meta > 0 ? fatEst / d.meta * 100 : null;
+    const espAqui = d.emAndamento && d.du > 0 && d.dp > 0 ? d.dp / d.du : 1;
     const ticket = c.preco ? ` · ticket médio ${reais0(c.preco)}/t` : '';
-    ind.push({ label: 'Faturamento', st: noRitmo(atFatRitmo),
-      valor: mil(c.fat),
-      sub: (d.emAndamento ? `${d.meta ? `${pct(atFat, 0)} da meta · ` : ''}${d.dp} de ${d.du} dias úteis` : d.meta ? `${pct(atFat, 0)} da meta de ${mil(d.meta)}` : 'sem meta cadastrada') + ticket,
+    ind.push({ label: 'Faturamento', st: noRitmo(atFatEst != null ? atFatEst / espAqui : null),
+      valor: comEst ? [
+        { text: mil(c.fat), options: {} },
+        { text: `  + ${mil(d.valorEstoque)} em estoque`, options: { fontSize: 20, color: COR.verde } },
+      ] : mil(c.fat),
+      valorNota: comEst ? `${mil(c.fat)} faturados + ${mil(d.valorEstoque)} em estoque` : mil(c.fat),
+      sub: comEst
+        ? `Juntos: ${mil(fatEst)}${d.meta ? ` · ${pct(atFatEst, 0)} da meta (esperado até aqui: ${pct(espAqui * 100, 0)})` : ''}`
+        : (d.emAndamento ? `${d.meta ? `${pct(atFat, 0)} da meta · ` : ''}${d.dp} de ${d.du} dias úteis` : d.meta ? `${pct(atFat, 0)} da meta de ${mil(d.meta)}` : 'sem meta cadastrada') + ticket,
       ctx: [
-        d.emAndamento && d.meta ? ['Esperado até aqui', `${pct(d.dp / d.du * 100, 0)} da meta (${mil(d.meta * d.dp / d.du)})`] : null,
+        comEst ? ['Só o faturado', `${d.meta ? `${pct(atFat, 0)} da meta · ` : ''}${d.dp} de ${d.du} dias úteis${ticket}`] : null,
+        !comEst && d.emAndamento && d.meta ? ['Esperado até aqui', `${pct(espAqui * 100, 0)} da meta (${mil(d.meta * espAqui)})`] : null,
         !d.inicioMes && d.emAndamento ? [d.valorEstoque > 0 ? 'Projeção + venda do estoque' : 'Projeção no ritmo atual', `${mil(d.projecao + d.valorEstoque)}${d.meta ? ` (${pct((d.projecao + d.valorEstoque) / d.meta * 100, 0)} da meta)` : ''}`] : null,
       ].filter(Boolean) });
 
@@ -707,7 +722,8 @@ export function montarApresentacao(PptxGenJS, d, { img, frases: fr, textos, acoe
     });
     fala(s, { min: 4, etapa: 'Resumo (1 de 5)', frase: fr.resumo,
       apoio: [
-        ...ind.map(k => `${k.label} — ${SEM[k.st][0]}: ${k.valor}; ${k.sub}.${k.ctx.length ? ` ${k.ctx.map(([r, v]) => `${r}: ${v}`).join('; ')}.` : ''}`),
+        ...ind.map(k => `${k.label} — ${SEM[k.st][0]}: ${k.valorNota || k.valor}; ${k.sub}.${k.ctx.length ? ` ${k.ctx.map(([r, v]) => `${r}: ${v}`).join('; ')}.` : ''}`),
+        d.emAndamento && d.valorEstoque > 0 ? 'Selo do faturamento: faturado + estoque pronto para vender (valor cadastrado na tela Estoque) contra o esperado até aqui.' : '',
         `Selos de faturamento e prensagem: ritmo contra ${d.emAndamento ? `o esperado até ${ddmm(d.corte)} (meta / capacidade proporcional aos dias úteis)` : 'a meta / capacidade do mês'} — No ritmo a partir de 97%, Atenção de 90% a 97%, Abaixo de 90%.`,
         d.emAndamento ? `Mês em andamento: dados até ${ddmmaaaa(d.corte)}.` : '',
       ],
