@@ -818,8 +818,8 @@ export function montarApresentacao(PptxGenJS, d, { img, frases: fr, textos, acoe
     // Três grupos que somam o volume vendido. Prensado × a granel = só materiais prensáveis;
     // a sucata ferrosa (não prensa) aparece à parte, com volume, preço e valor próprios.
     // Card de cima para baixo: preço do mês (grande); o que foi vendido (t e R$; no prensado, quantas vezes
-    // vale o a granel); o mês anterior com a variação do preço; e o estoque em t e em R$ (valor cadastrado)
-    const cw = 410, cgap = 25, ch = 250;
+    // vale o a granel); e o mês anterior com a variação do preço (o estoque fica nas anotações)
+    const cw = 410, cgap = 25, ch = 215;
     const ratioPG = c.g.prensado.preco && c.g.granel.preco ? c.g.prensado.preco / c.g.granel.preco : null;
     const cartao = (k, rot, fill, line, corRot, corValor) => {
       const x = 50 + k.i * (cw + cgap), r = c.g[k.g], rA = a.g[k.g];
@@ -849,22 +849,16 @@ export function montarApresentacao(PptxGenJS, d, { img, frases: fr, textos, acoe
         const wp = Math.max(60, t.length * 13 * 0.62 + 28);
         pill(s, x + cw - 24 - wp, 365, t, fg, bg, 13);
       }
-      // 3) Estoque do grupo: toneladas e valor em R$ (o que ainda pode virar faturamento)
-      const e = d.estoqueGrupo[k.g];
-      txt(s, x + 24, 406, cw - 48, 24, [
-        { text: 'Em estoque: ', options: { color: COR.muted } },
-        { text: e.kg > 0 ? `${tn(e.kg, 1)} · ≈ ${mil(e.val)}` : 'sem estoque', options: { bold: true, color: e.kg > 0 ? COR.txt2 : COR.muted } },
-      ], 15, COR.txt2);
     };
     cartao({ i: 0, g: 'prensado' }, 'PRENSADO', COR.verdeCl, null, COR.verde, COR.verde);
     cartao({ i: 1, g: 'granel' }, 'A GRANEL', COR.cinzaBg, COR.borda, COR.muted, COR.txt);
     cartao({ i: 2, g: 'sucata' }, 'SUCATA FERROSA', 'FFFFFF', COR.borda, COR.muted, COR.txt2);
 
     // Barra = só materiais prensáveis (prensado | a granel), com volume e %; a sucata ferrosa fica à direita
-    txt(s, 50, 486, 1280, 22, 'COMPOSIÇÃO DO VOLUME VENDIDO', 14, COR.muted, { bold: true });
+    txt(s, 50, 456, 1280, 22, 'COMPOSIÇÃO DO VOLUME VENDIDO', 14, COR.muted, { bold: true });
     const segs = [['prensado', 'prensado', COR.verde, 'FFFFFF'], ['granel', 'a granel', COR.verdeBarra, COR.txt2]];
     const larg = 960, x0 = 200;
-    [[cap(ant), 518, a], [cap(mes), 584, c]].forEach(([rot, y, r]) => {
+    [[cap(ant), 488, a], [cap(mes), 554, c]].forEach(([rot, y, r]) => {
       const totalVend = Object.values(r.g).reduce((t, x) => t + x.vol, 0);
       const prensaveis = segs.reduce((t, [k]) => t + r.g[k].vol, 0);
       txt(s, 50, y + 2, 145, 24, rot, 16, COR.txt2, { bold: true });
@@ -895,7 +889,7 @@ export function montarApresentacao(PptxGenJS, d, { img, frases: fr, textos, acoe
       : `Preço médio geral (todos os materiais): ${c.preco ? reais0(c.preco) + '/t' : '—'} em ${mes}.`;
     // Uma linha, como antes, só com o preço e a variação em destaque (verde quando sobe, vermelho quando cai)
     const vG = varPct(c.preco, a.preco), corG = vG == null || Math.abs(vG) <= 1 ? COR.txt2 : vG > 0 ? COR.verde : COR.verm;
-    txt(s, 50, 664, 1280, 30, c.preco && a.preco ? [
+    txt(s, 50, 634, 1280, 30, c.preco && a.preco ? [
       { text: 'Preço médio geral (todos os materiais): ', options: { color: COR.txt2 } },
       { text: `${reais0(c.preco)}/t`, options: { bold: true, color: corG } },
       { text: ` em ${mes} — `, options: { color: COR.txt2 } },
