@@ -763,7 +763,7 @@ export function montarApresentacao(PptxGenJS, d, { img, frases: fr, textos, acoe
         s.addShape(pptx.ShapeType.line, { x: I(440), y: I(yP + 18), w: 0, h: I(hP - 36), line: { color: COR.borda, width: 1 } });
         txt(s, 466, yP + 14, 414, 20, `${pePor[0].toUpperCase()}: ${mil(pePor[1])}`, 13, COR.muted, { bold: true });
         txt(s, 466, yP + 34, 414, 40, `${mil(Math.abs(dif))} ${dif >= 0 ? 'acima' : 'abaixo'}`, 28, cor, { bold: true });
-        txt(s, 466, yP + hP - 30, 414, 22, `${pct(pePor[1] / pe * 100, 0)} do ponto de equilíbrio`, 13, COR.txt2);
+        txt(s, 466, yP + hP - 30, 414, 22, `${pct(Math.abs(dif) / pe * 100, 0)} ${dif >= 0 ? 'acima' : 'abaixo'} do equilíbrio`, 13, COR.txt2);
       }
     }
 
