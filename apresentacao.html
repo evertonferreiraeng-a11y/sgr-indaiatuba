@@ -57,8 +57,10 @@
           <div class="form-group"><label for="f-pe">Ponto de equilíbrio (R$/mês)</label><input type="number" id="f-pe" min="0" step="1000" /></div>
           <div class="form-group"><label for="f-fixos">Custos fixos (R$/mês)</label><input type="number" id="f-fixos" min="0" step="1000" /></div>
           <div class="form-group"><label for="f-alvo">Margem EBITDA alvo (%)</label><input type="number" id="f-alvo" min="0" max="60" step="1" /></div>
+          <div class="form-group"><label for="f-acerto">Acréscimo de receita no mês (R$)</label><input type="number" id="f-acerto" min="0" step="100" placeholder="0" /></div>
         </div>
         <p class="ap-hint">Valores do estudo de out/26: ponto de equilíbrio de R$ 128 mil de receita bruta/mês (EBITDA zero), custos fixos de R$ 74 mil/mês (mão de obra, demais custos e despesas operacionais) e margem orçada de ~20%. O ponto de equilíbrio entra num card do slide Faturamento; com os três preenchidos, entra também o slide "Rumo ao equilíbrio" (antes × depois do plano, projeção e o volume e ticket médio necessários). Em branco, não entram.</p>
+        <p class="ap-hint">Acréscimo de receita: valor que entra na receita do mês de referência sem ser venda (ex.: acerto entre obras transferido por outro centro de custo). Soma na comparação com o ponto de equilíbrio (card do Faturamento e slide "Rumo ao equilíbrio"); não muda o faturamento contra a meta nem o ticket médio. Guardado por mês.</p>
       </div>
 
       <div id="ap-conteudo" style="display:none">
@@ -111,7 +113,7 @@ import { initPage, supabase, toast } from './js/config.js?v=3';
 import {
   STATUS_TAREFA, calcularDados, frasesPadrao, fraseEquilibrio, FIN_PADRAO, textoPerdaCap, montarApresentacao, periodoBusca,
   isoLocal, addDias, fimDoMes, ddmm, ddmmaaaa, nomeMes, mil, tn, pct, reais0, nf,
-} from './js/apresentacao.js?v=74';
+} from './js/apresentacao.js?v=75';
 
 await initPage();
 
@@ -166,7 +168,20 @@ CAMPOS_FIN.forEach(([k, id, padrao]) => {
     if (D && fr) fr.value = fraseEquilibrio(D, finAtual());
   });
 });
-const finAtual = () => Object.fromEntries(CAMPOS_FIN.map(([k, id]) => [k, parseFloat(document.getElementById(id).value) || 0]));
+// Acréscimo de receita (ex.: acerto entre obras): vale só para o mês de referência, lembrado por mês
+const elAcerto = document.getElementById('f-acerto');
+const kAcerto = () => `sgr_apres_acerto_${elMes.value}`;
+elAcerto.value = lsGet(kAcerto()) ?? '';
+elMes.addEventListener('change', () => { elAcerto.value = lsGet(kAcerto()) ?? ''; });
+elAcerto.addEventListener('input', () => {
+  lsSet(kAcerto(), elAcerto.value);
+  const fr = document.getElementById('fr-equil');
+  if (D && fr) fr.value = fraseEquilibrio(D, finAtual());
+});
+const finAtual = () => ({
+  ...Object.fromEntries(CAMPOS_FIN.map(([k, id]) => [k, parseFloat(document.getElementById(id).value) || 0])),
+  acerto: parseFloat(elAcerto.value) || 0,
+});
 
 document.getElementById('btn-carregar').addEventListener('click', carregar);
 

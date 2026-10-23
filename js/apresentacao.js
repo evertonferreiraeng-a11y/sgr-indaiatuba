@@ -413,6 +413,9 @@ export const FIN_PADRAO = { pe: 128000, fixos: 74000, alvo: 20, liq: 0.944 };
 export function analiseEquilibrio(d, fin) {
   const { pe, fixos, alvo = FIN_PADRAO.alvo, liq = FIN_PADRAO.liq } = fin || {};
   if (!(pe > 0) || !(fixos > 0) || fixos >= pe) return null;
+  // Acréscimo de receita do mês de referência que não é venda (ex.: acerto entre obras): soma na receita,
+  // mas não no ticket médio (não tem tonelada). No início do mês a base é o mês anterior: não entra
+  const acerto = !d.inicioMes && fin.acerto > 0 ? fin.acerto : 0;
   const mc = fixos / pe;
   const ebitda = R => R * mc - fixos;
   const margem = R => R > 0 ? ebitda(R) / (R * liq) * 100 : null;
@@ -426,18 +429,23 @@ export function analiseEquilibrio(d, fin) {
     : d.emAndamento ? { rot: `Projeção de ${nomeMes(d.M)}${est ? ' + estoque' : ''}`, rec: d.projecao + (est ? d.valorEstoque : 0), vol: projVol + (est ? d.estoqueKg : 0), est }
       : { rot: `${cap(nomeMes(d.M))} (fechado)`, rec: d.cur.fat, vol: d.cur.vol };
   base.ticket = ticketDe(base.rec, base.vol);
+  if (acerto) { base.rot += ' + acerto'; base.rec += acerto; base.acerto = acerto; }
   // Antes × depois do plano: média mensal. Antes: os 3 últimos meses fechados com venda antes do plano;
   // depois: meses fechados desde o início do plano + a base do mês em andamento (projeção + estoque)
   const mPlano = PLANO_INICIO.slice(0, 7);
-  const meses = d.mesesAno.map((mk, i) => ({ mk, fat: d.fatMes[i].fat, vol: d.fatMes[i].vol }));
+  // vend = só as vendas (para o ticket médio); fat = receita do mês, com o acréscimo no mês de referência
+  const meses = d.mesesAno.map((mk, i) => {
+    const vend = d.fatMes[i].fat;
+    return { mk, vend, fat: vend + (mk === d.M ? acerto : 0), vol: d.fatMes[i].vol };
+  });
   const fechado = mk => mk !== d.M || !d.emAndamento;
-  const antesL = meses.filter(m => m.mk < mPlano && fechado(m.mk) && m.fat > 0).slice(-3);
-  const depoisL = meses.filter(m => m.mk >= mPlano && fechado(m.mk) && m.fat > 0);
-  if (d.emAndamento && !d.inicioMes) depoisL.push({ mk: d.M, fat: base.rec, vol: base.vol, proj: true });
+  const antesL = meses.filter(m => m.mk < mPlano && fechado(m.mk) && m.vend > 0).slice(-3);
+  const depoisL = meses.filter(m => m.mk >= mPlano && fechado(m.mk) && m.vend > 0);
+  if (d.emAndamento && !d.inicioMes) depoisL.push({ mk: d.M, fat: base.rec, vend: base.rec - acerto, vol: base.vol, proj: true });
   const media = l => {
     if (!l.length) return null;
-    const fat = l.reduce((s, m) => s + m.fat, 0), vol = l.reduce((s, m) => s + m.vol, 0);
-    return { n: l.length, rec: fat / l.length, vol: vol / l.length, ticket: ticketDe(fat, vol), de: l[0].mk, ate: l[l.length - 1].mk, proj: l.some(m => m.proj) };
+    const fat = l.reduce((s, m) => s + m.fat, 0), vend = l.reduce((s, m) => s + m.vend, 0), vol = l.reduce((s, m) => s + m.vol, 0);
+    return { n: l.length, rec: fat / l.length, vol: vol / l.length, ticket: ticketDe(vend, vol), de: l[0].mk, ate: l[l.length - 1].mk, proj: l.some(m => m.proj) };
   };
   // Cenários: receita alvo → volume necessário no ticket atual e ticket necessário no volume atual
   const cen = (rot, rec) => ({ rot, rec, volNec: base.ticket ? rec / base.ticket * 1000 : null, ticketNec: ticketDe(rec, base.vol) });
@@ -446,7 +454,7 @@ export function analiseEquilibrio(d, fin) {
     ...(d.meta > 0 ? [cen('Meta do mês', d.meta)] : []),
     ...(rAlvo ? [cen(`Margem EBITDA de ${nf(alvo, 0)}%`, rAlvo)] : []),
   ].sort((a, b) => a.rec - b.rec);
-  return { pe, fixos, alvo, liq, mc, ebitda, margem, rAlvo, base, mPlano, antes: media(antesL), depois: media(depoisL), cenarios };
+  return { pe, fixos, alvo, liq, mc, ebitda, margem, rAlvo, base, acerto, mPlano, antes: media(antesL), depois: media(depoisL), cenarios };
 }
 const periodoMeses = r => `${MES_ABREV[+r.de.slice(5) - 1].toLowerCase()}${r.ate !== r.de ? `–${MES_ABREV[+r.ate.slice(5) - 1].toLowerCase()}` : ''}`;
 
@@ -815,9 +823,11 @@ export function montarApresentacao(PptxGenJS, d, { img, frases: fr, textos, acoe
 
     // Ponto de equilíbrio (receita bruta/mês com EBITDA zero): card largo embaixo do gráfico,
     // contra a projeção do mês + estoque (mês em andamento) ou o realizado (mês fechado)
+    // Acréscimo de receita do mês (ex.: acerto entre obras) soma na comparação
+    const acertoPe = fin?.acerto > 0 ? fin.acerto : 0;
     const pePor = !(pe > 0) || d.inicioMes ? null : d.emAndamento
-      ? [d.valorEstoque > 0 ? 'Projeção do mês + estoque' : 'Projeção do mês (ritmo atual)', d.projecao + d.valorEstoque]
-      : ['Realizado no mês', d.cur.fat];
+      ? [(d.valorEstoque > 0 ? 'Projeção do mês + estoque' : acertoPe ? 'Projeção do mês' : 'Projeção do mês (ritmo atual)') + (acertoPe ? ' + acerto' : ''), d.projecao + d.valorEstoque + acertoPe]
+      : [`Realizado no mês${acertoPe ? ' + acerto' : ''}`, d.cur.fat + acertoPe];
     if (pe > 0) {
       const yP = 722, hP = 100;
       box(s, 40, yP, 860, hP, 'FFFFFF', COR.borda);
@@ -1326,7 +1336,8 @@ export function montarApresentacao(PptxGenJS, d, { img, frases: fr, textos, acoe
     const i0 = Math.max(0, d.fatMes.findIndex(r => r.fat > 0));
     const mks = d.mesesAno.slice(i0);
     const ehProj = mk => mk === d.M && d.emAndamento && !d.inicioMes;
-    const recMes = mks.map((mk, k) => ehProj(mk) ? base.rec : d.fatMes[i0 + k].fat);
+    // Mês de referência: a base do slide (com estoque e acréscimo de receita); demais meses: o faturado
+    const recMes = mks.map((mk, k) => mk === d.M && !d.inicioMes ? base.rec : d.fatMes[i0 + k].fat);
     const labels = mks.map(mk => MES_ABREV[+mk.slice(5) - 1] + (ehProj(mk) ? (base.est ? ' (proj. + est.)' : ' (proj.)') : mk === d.M && d.emAndamento ? '*' : ''));
     const cores = mks.map((mk, k) => {
       const acima = recMes[k] >= eq.pe;
@@ -1366,7 +1377,7 @@ export function montarApresentacao(PptxGenJS, d, { img, frases: fr, textos, acoe
     });
     // Legenda do antes × depois (período de cada média)
     txt(s, kx, 205 + 2 * kh + 25 + 4, 2 * kw + kg, 20,
-      `Médias por mês. Antes do plano: ${antes ? periodoMeses(antes) : '—'} · depois: ${depois ? `${periodoMeses(depois)}${depois.proj ? ` (${MES_ABREV[+d.M.slice(5) - 1].toLowerCase()} = projeção${base.est ? ' + estoque' : ''})` : ''}` : '—'}`, 11, COR.muted);
+      `Médias por mês. Antes do plano: ${antes ? periodoMeses(antes) : '—'} · depois: ${depois ? `${periodoMeses(depois)}${depois.proj ? ` (${MES_ABREV[+d.M.slice(5) - 1].toLowerCase()} = projeção${base.est ? ' + estoque' : ''}${eq.acerto ? ' + acerto' : ''})` : ''}` : '—'}`, 11, COR.muted);
 
     // Onde precisamos chegar: a base atual e os cenários, com o volume (no ticket atual) e o ticket (no volume atual)
     const cab = ['Cenário', 'Receita/mês', 'Volume/mês\n(no ticket atual)', 'Ticket médio\n(no volume atual)', 'EBITDA/mês', 'Margem EBITDA']
@@ -1402,6 +1413,7 @@ export function montarApresentacao(PptxGenJS, d, { img, frases: fr, textos, acoe
         antes && depois ? `Antes do plano (${periodoMeses(antes)}): ${mil(antes.rec)}/mês, ${tn(antes.vol, 1)}, ${antes.ticket ? reais0(antes.ticket) + '/t' : '—'}. Depois (${periodoMeses(depois)}${depois.proj ? `, com a projeção do mês${base.est ? ' + estoque' : ''}` : ''}): ${mil(depois.rec)}/mês, ${tn(depois.vol, 1)}, ${depois.ticket ? reais0(depois.ticket) + '/t' : '—'}.` : '',
         `${base.rot}: ${mil(base.rec)} (${tn(base.vol, 1)} a ${base.ticket ? reais0(base.ticket) + '/t' : '—'}); EBITDA estimado de ${mil(eb)}${mg != null ? ` (${pct(mg, 1)})` : ''}.`,
         base.est ? `Projeção + estoque = ${mil(d.projecao)} no ritmo atual + ${mil(d.valorEstoque)} em estoque pronto para vender (${tn(d.estoqueKg, 1)}). Só a projeção: EBITDA estimado de ${mil(eq.ebitda(d.projecao))}.` : '',
+        eq.acerto ? `Acréscimo de receita no mês (acerto entre obras / transferência de outro centro de custo): ${mil(eq.acerto)}. Entra na receita e no EBITDA, não no ticket médio. Sem ele, o mês fica em ${mil(base.rec - eq.acerto)}.` : '',
         ...eq.cenarios.map(c => `${c.rot}: ${mil(c.rec)}/mês — ${c.volNec ? `${tn(c.volNec, 0)} no ticket atual` : '—'} ou ${c.ticketNec ? `${reais0(c.ticketNec)}/t no volume atual` : '—'}; EBITDA ${mil(eq.ebitda(c.rec))}.`),
         'Volume e ticket são duas alavancas: a tabela mostra cada uma sozinha; na prática, uma combinação das duas.',
       ],
