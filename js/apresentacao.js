@@ -1380,8 +1380,8 @@ export function montarApresentacao(PptxGenJS, d, { img, frases: fr, textos, acoe
       `Médias por mês. Antes do plano: ${antes ? periodoMeses(antes) : '—'} · depois: ${depois ? `${periodoMeses(depois)}${depois.proj ? ` (${MES_ABREV[+d.M.slice(5) - 1].toLowerCase()} = projeção${base.est ? ' + estoque' : ''}${eq.acerto ? ' + acerto' : ''})` : ''}` : '—'}`, 11, COR.muted);
 
     // Onde precisamos chegar: a base atual e os cenários, com o volume (no ticket atual) e o ticket (no volume atual)
-    const cab = ['Cenário', 'Receita/mês', 'Volume/mês\n(no ticket atual)', 'Ticket médio\n(no volume atual)', 'EBITDA/mês', 'Margem EBITDA']
-      .map((t, k) => ({ text: t, options: { bold: true, color: 'FFFFFF', fill: { color: COR.verde }, fontSize: 13, align: k ? 'center' : 'left' } }));
+    const cab = ['Cenário', 'Receita/mês', 'Toneladas necessárias\n(mantendo o preço de hoje)', 'Preço médio necessário\n(mantendo o volume de hoje)', 'EBITDA/mês', 'Margem EBITDA']
+      .map((t, k) => ({ text: t, options: { bold: true, color: 'FFFFFF', fill: { color: COR.verde }, fontSize: k === 2 || k === 3 ? 12 : 13, align: k ? 'center' : 'left' } }));
     const corEb = v => v >= 0 ? COR.ok : COR.verm;
     const linhaT = (rot, rec, vol, ticket, fill, negrito = false) => {
       const e = eq.ebitda(rec), m = eq.margem(rec);
@@ -1401,7 +1401,7 @@ export function montarApresentacao(PptxGenJS, d, { img, frases: fr, textos, acoe
     ];
     const yT = 600, rowT = Math.min(44, (822 - yT - 46) / linhasT.length);
     s.addTable([cab, ...linhasT], {
-      x: I(50), y: I(yT), w: I(1280), colW: [340, 170, 200, 200, 190, 180].map(I), rowH: [I(46), ...linhasT.map(() => I(rowT))],
+      x: I(50), y: I(yT), w: I(1280), colW: [300, 150, 240, 240, 180, 170].map(I), rowH: [I(46), ...linhasT.map(() => I(rowT))],
       fontFace: FONT, fontSize: 15, valign: 'middle', margin: [0, 0.15, 0, 0.15], border: { type: 'solid', pt: 0.75, color: COR.borda },
     });
     txt(s, 50, yT - 32, 700, 24, 'ONDE PRECISAMOS CHEGAR', 13, COR.muted, { bold: true });
