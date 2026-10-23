@@ -1404,7 +1404,12 @@ export function montarApresentacao(PptxGenJS, d, { img, frases: fr, textos, acoe
       x: I(50), y: I(yT), w: I(1280), colW: [300, 150, 240, 240, 180, 170].map(I), rowH: [I(46), ...linhasT.map(() => I(rowT))],
       fontFace: FONT, fontSize: 15, valign: 'middle', margin: [0, 0.15, 0, 0.15], border: { type: 'solid', pt: 0.75, color: COR.borda },
     });
-    txt(s, 50, yT - 32, 700, 24, 'ONDE PRECISAMOS CHEGAR', 13, COR.muted, { bold: true });
+    txt(s, 50, yT - 32, 240, 24, 'ONDE PRECISAMOS CHEGAR', 13, COR.muted, { bold: true });
+    // Como ler as colunas de toneladas e preço (o detalhe com exemplo fica nas anotações)
+    txt(s, 300, yT - 35, 520, 32, [
+      { text: 'Toneladas = receita ÷ preço de hoje  ·  Preço médio = receita ÷ toneladas de hoje', options: { breakLine: true } },
+      { text: 'São caminhos alternativos (cada um sozinho), não se somam.', options: {} },
+    ], 11, COR.muted, { italic: true });
 
     fala(s, { min: 4, etapa: 'Plano de ação (5 de 5)', frase: fr.equil,
       apoio: [
