@@ -447,8 +447,12 @@ export function analiseEquilibrio(d, fin) {
     const fat = l.reduce((s, m) => s + m.fat, 0), vend = l.reduce((s, m) => s + m.vend, 0), vol = l.reduce((s, m) => s + m.vol, 0);
     return { n: l.length, rec: fat / l.length, vol: vol / l.length, ticket: ticketDe(vend, vol), de: l[0].mk, ate: l[l.length - 1].mk, proj: l.some(m => m.proj) };
   };
-  // Cenários: receita alvo → volume necessário no ticket atual e ticket necessário no volume atual
-  const cen = (rot, rec) => ({ rot, rec, volNec: base.ticket ? rec / base.ticket * 1000 : null, ticketNec: ticketDe(rec, base.vol) });
+  // Cenários a partir de hoje: quanto falta de receita (alvo − base, que já tem estoque e acréscimo) e como cobrir:
+  // toneladas a mais no preço médio de hoje OU preço médio a mais nas toneladas de hoje. Falta ≤ 0 = atingido
+  const cen = (rot, rec) => {
+    const falta = rec - base.rec;
+    return { rot, rec, falta, tonMais: falta > 0 && base.ticket ? falta / base.ticket * 1000 : null, precoMais: falta > 0 ? ticketDe(falta, base.vol) : null };
+  };
   const cenarios = [
     cen('Ponto de equilíbrio', pe),
     ...(d.meta > 0 ? [cen('Meta do mês', d.meta)] : []),
@@ -590,7 +594,9 @@ export function fraseEquilibrio(d, fin) {
   }
   if (base.rec > 0) partes.push(`${base.rot}: ${mil(base.rec)}, ${base.rec >= pe ? `**${mil(base.rec - pe)} acima do equilíbrio**` : `*${mil(pe - base.rec)} abaixo do equilíbrio*`} (${mil(pe)}).`);
   const alvo = eq.cenarios.find(c => c.rec === eq.rAlvo);
-  if (alvo) partes.push(`Para a margem de ${nf(eq.alvo, 0)}%: **${mil(alvo.rec)}/mês**${alvo.volNec ? ` (${tn(alvo.volNec, 0)} no ticket atual)` : ''}.`);
+  if (alvo) partes.push(alvo.falta > 0
+    ? `Para a margem de ${nf(eq.alvo, 0)}%: **${mil(alvo.rec)}/mês** — faltam ${mil(alvo.falta)}${alvo.tonMais ? ` (+${tn(alvo.tonMais, alvo.tonMais < 10000 ? 1 : 0)} no preço de hoje)` : ''}.`
+    : `**Já na margem de ${nf(eq.alvo, 0)}%** (${mil(alvo.rec)}/mês).`);
   return partes.join(' ');
 }
 
@@ -1379,29 +1385,41 @@ export function montarApresentacao(PptxGenJS, d, { img, frases: fr, textos, acoe
     txt(s, kx, 205 + 2 * kh + 25 + 4, 2 * kw + kg, 20,
       `Médias por mês. Antes do plano: ${antes ? periodoMeses(antes) : '—'} · depois: ${depois ? `${periodoMeses(depois)}${depois.proj ? ` (${MES_ABREV[+d.M.slice(5) - 1].toLowerCase()} = projeção${base.est ? ' + estoque' : ''}${eq.acerto ? ' + acerto' : ''})` : ''}` : '—'}`, 11, COR.muted);
 
-    // Onde precisamos chegar: a base atual e os cenários, com o volume (no ticket atual) e o ticket (no volume atual)
-    const cab = ['Cenário', 'Receita/mês', 'Toneladas necessárias\n(mantendo o preço de hoje)', 'Preço médio necessário\n(mantendo o volume de hoje)', 'EBITDA/mês', 'Margem EBITDA']
-      .map((t, k) => ({ text: t, options: { bold: true, color: 'FFFFFF', fill: { color: COR.verde }, fontSize: k === 2 || k === 3 ? 12 : 13, align: k ? 'center' : 'left' } }));
+    // Onde precisamos chegar, a partir de hoje: a linha "Hoje" (base do slide) e, para cada alvo, quanto falta de
+    // receita e como cobrir — toneladas a mais no preço de hoje OU preço médio a mais nas toneladas de hoje
+    const cab = ['Cenário', 'Receita/mês', 'Falta', 'Toneladas a mais\n(no preço de hoje)', 'ou Preço médio a mais\n(nas toneladas de hoje)', 'EBITDA/mês', 'Margem EBITDA']
+      .map((t, k) => ({ text: t, options: { bold: true, color: 'FFFFFF', fill: { color: COR.verde }, fontSize: k === 3 || k === 4 ? 12 : 13, align: k ? 'center' : 'left' } }));
     const corEb = v => v >= 0 ? COR.ok : COR.verm;
-    const linhaT = (rot, rec, vol, ticket, fill, negrito = false) => {
+    const celEb = (rec, o) => {
       const e = eq.ebitda(rec), m = eq.margem(rec);
-      const o = { fill: { color: fill }, color: COR.txt, align: 'center' };
       return [
-        { text: rot, options: { ...o, align: 'left', bold: negrito } },
-        { text: mil(rec), options: { ...o, bold: true } },
-        { text: vol ? tn(vol, 0) : '—', options: o },
-        { text: ticket ? `${reais0(ticket)}/t` : '—', options: o },
         { text: `${e < 0 ? '−' : ''}${mil(Math.abs(e))}`, options: { ...o, bold: true, color: corEb(e) } },
         { text: m != null ? pct(m, 1) : '—', options: { ...o, color: corEb(e) } },
       ];
     };
-    const linhasT = [
-      linhaT(base.rot, base.rec, base.vol, base.ticket, COR.cinzaBg, true),
-      ...eq.cenarios.map(c => linhaT(c.rot, c.rec, c.volNec, c.ticketNec, 'FFFFFF')),
+    const oH = { fill: { color: COR.cinzaBg }, color: COR.txt, align: 'center' };
+    const linhaHoje = [
+      { text: [{ text: 'Hoje', options: { bold: true, breakLine: true } }, { text: base.rot, options: { fontSize: 11, color: COR.muted } }], options: { ...oH, align: 'left' } },
+      { text: mil(base.rec), options: { ...oH, bold: true } },
+      { text: '—', options: { ...oH, color: COR.muted } },
+      { text: `hoje: ${tn(base.vol, 0)}`, options: { ...oH, color: COR.muted, italic: true } },
+      { text: base.ticket ? `hoje: ${reais0(base.ticket)}/t` : '—', options: { ...oH, color: COR.muted, italic: true } },
+      ...celEb(base.rec, oH),
     ];
+    const linhasT = [linhaHoje, ...eq.cenarios.map(c => {
+      const o = { fill: { color: 'FFFFFF' }, color: COR.txt, align: 'center' }, ok = !(c.falta > 0);
+      return [
+        { text: c.rot, options: { ...o, align: 'left' } },
+        { text: mil(c.rec), options: { ...o, bold: true } },
+        { text: ok ? '✓ atingido' : mil(c.falta), options: { ...o, bold: true, color: ok ? COR.ok : COR.amb } },
+        { text: ok || c.tonMais == null ? '—' : `+${tn(c.tonMais, c.tonMais < 10000 ? 1 : 0)} (${tn(base.vol + c.tonMais, 0)})`, options: { ...o, color: ok ? COR.muted : COR.txt } },
+        { text: ok || c.precoMais == null ? '—' : `+${reais0(c.precoMais)}/t (${reais0(base.ticket + c.precoMais)}/t)`, options: { ...o, color: ok ? COR.muted : COR.txt } },
+        ...celEb(c.rec, o),
+      ];
+    })];
     const yT = 600, rowT = Math.min(44, (822 - yT - 46) / linhasT.length);
     s.addTable([cab, ...linhasT], {
-      x: I(50), y: I(yT), w: I(1280), colW: [300, 150, 240, 240, 180, 170].map(I), rowH: [I(46), ...linhasT.map(() => I(rowT))],
+      x: I(50), y: I(yT), w: I(1280), colW: [270, 140, 140, 200, 230, 160, 140].map(I), rowH: [I(46), ...linhasT.map(() => I(rowT))],
       fontFace: FONT, fontSize: 15, valign: 'middle', margin: [0, 0.15, 0, 0.15], border: { type: 'solid', pt: 0.75, color: COR.borda },
     });
     txt(s, 50, yT - 32, 700, 24, 'ONDE PRECISAMOS CHEGAR', 13, COR.muted, { bold: true });
@@ -1414,8 +1432,10 @@ export function montarApresentacao(PptxGenJS, d, { img, frases: fr, textos, acoe
         `${base.rot}: ${mil(base.rec)} (${tn(base.vol, 1)} a ${base.ticket ? reais0(base.ticket) + '/t' : '—'}); EBITDA estimado de ${mil(eb)}${mg != null ? ` (${pct(mg, 1)})` : ''}.`,
         base.est ? `Projeção + estoque = ${mil(d.projecao)} no ritmo atual + ${mil(d.valorEstoque)} em estoque pronto para vender (${tn(d.estoqueKg, 1)}). Só a projeção: EBITDA estimado de ${mil(eq.ebitda(d.projecao))}.` : '',
         eq.acerto ? `Acréscimo de receita no mês (acerto entre obras / transferência de outro centro de custo): ${mil(eq.acerto)}. Entra na receita e no EBITDA, não no ticket médio. Sem ele, o mês fica em ${mil(base.rec - eq.acerto)}.` : '',
-        ...eq.cenarios.map(c => `${c.rot}: ${mil(c.rec)}/mês — ${c.volNec ? `${tn(c.volNec, 0)} no ticket atual` : '—'} ou ${c.ticketNec ? `${reais0(c.ticketNec)}/t no volume atual` : '—'}; EBITDA ${mil(eq.ebitda(c.rec))}.`),
-        'Volume e ticket são duas alavancas: a tabela mostra cada uma sozinha; na prática, uma combinação das duas.',
+        ...eq.cenarios.map(c => c.falta > 0
+          ? `${c.rot} (${mil(c.rec)}/mês): faltam ${mil(c.falta)} — ${c.tonMais != null ? `+${tn(c.tonMais, c.tonMais < 10000 ? 1 : 0)} no preço de hoje` : '—'} ou ${c.precoMais != null ? `+${reais0(c.precoMais)}/t nas toneladas de hoje` : '—'}; EBITDA ${mil(eq.ebitda(c.rec))}.`
+          : `${c.rot} (${mil(c.rec)}/mês): já atingido, ${mil(-c.falta)} acima.`),
+        'Como ler a tabela: "Falta" é a receita que falta a partir de hoje; as duas colunas seguintes são dois jeitos de cobrir essa falta (vender mais toneladas pelo mesmo preço, ou vender mais caro as mesmas toneladas). Na prática, uma combinação das duas.',
       ],
       proximo: 'O que estamos fazendo para chegar lá: o plano de ação.' });
   }
