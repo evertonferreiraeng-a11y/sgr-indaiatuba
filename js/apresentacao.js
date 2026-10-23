@@ -1415,7 +1415,16 @@ export function montarApresentacao(PptxGenJS, d, { img, frases: fr, textos, acoe
         base.est ? `Projeção + estoque = ${mil(d.projecao)} no ritmo atual + ${mil(d.valorEstoque)} em estoque pronto para vender (${tn(d.estoqueKg, 1)}). Só a projeção: EBITDA estimado de ${mil(eq.ebitda(d.projecao))}.` : '',
         eq.acerto ? `Acréscimo de receita no mês (acerto entre obras / transferência de outro centro de custo): ${mil(eq.acerto)}. Entra na receita e no EBITDA, não no ticket médio. Sem ele, o mês fica em ${mil(base.rec - eq.acerto)}.` : '',
         ...eq.cenarios.map(c => `${c.rot}: ${mil(c.rec)}/mês — ${c.volNec ? `${tn(c.volNec, 0)} no ticket atual` : '—'} ou ${c.ticketNec ? `${reais0(c.ticketNec)}/t no volume atual` : '—'}; EBITDA ${mil(eq.ebitda(c.rec))}.`),
-        'Volume e ticket são duas alavancas: a tabela mostra cada uma sozinha; na prática, uma combinação das duas.',
+        // Como ler as duas colunas da tabela, com o maior cenário de exemplo
+        ...(() => {
+          const ex = eq.cenarios[eq.cenarios.length - 1];
+          if (!ex || !base.ticket || !(base.vol > 0)) return [];
+          return [
+            `Toneladas necessárias (mantendo o preço de hoje): quantas toneladas por mês precisamos vender para atingir aquela receita, se o preço médio continuar o de hoje (${reais0(base.ticket)}/t). Conta: receita do cenário ÷ preço médio de hoje. Ex.: ${ex.rot} (${mil(ex.rec)}) = ${tn(ex.volNec, 0)}/mês, ${tn(Math.abs(ex.volNec - base.vol), 0)} ${ex.volNec >= base.vol ? 'a mais' : 'a menos'} que as ${tn(base.vol, 0)} de hoje.`,
+            `Preço médio necessário (mantendo o volume de hoje): qual preço médio por tonelada precisamos alcançar para atingir aquela receita, vendendo as mesmas ${tn(base.vol, 0)}/mês de hoje. Conta: receita do cenário ÷ toneladas de hoje. Ex.: ${ex.rot} = ${reais0(ex.ticketNec)}/t, ${reais0(Math.abs(ex.ticketNec - base.ticket))}/t ${ex.ticketNec >= base.ticket ? 'a mais' : 'a menos'} que hoje.`,
+            'As duas colunas são alternativas, não somas: cada uma mostra uma alavanca sozinha. Na prática, o caminho é um pouco de cada — mais toneladas e preço médio melhor.',
+          ];
+        })(),
       ],
       proximo: 'O que estamos fazendo para chegar lá: o plano de ação.' });
   }
