@@ -46,9 +46,11 @@
           <div class="form-group"><label for="f-mes">Mês de referência</label><input type="month" id="f-mes" /></div>
           <div class="form-group"><label for="f-reuniao">Data da reunião</label><input type="date" id="f-reuniao" /></div>
           <div class="form-group"><label for="f-corte">Dados até</label><input type="date" id="f-corte" /></div>
+          <div class="form-group"><label for="f-pe">Ponto de equilíbrio (R$/mês)</label><input type="number" id="f-pe" min="0" step="1000" /></div>
           <div class="form-group"><button class="btn btn-primary" id="btn-carregar" type="button">Carregar dados</button></div>
         </div>
         <p class="ap-hint">"Dados até" é o último dia considerado. Mês em andamento: por padrão, o dia anterior à reunião. Mês já fechado: o último dia do mês.</p>
+        <p class="ap-hint">Ponto de equilíbrio: receita bruta por mês com EBITDA zero (estudo de out/26: R$ 128 mil). Aparece num card embaixo do gráfico do slide Faturamento; em branco, o card não entra.</p>
       </div>
 
       <div id="ap-conteudo" style="display:none">
@@ -101,7 +103,7 @@ import { initPage, supabase, toast } from './js/config.js?v=3';
 import {
   STATUS_TAREFA, calcularDados, frasesPadrao, textoPerdaCap, montarApresentacao, periodoBusca,
   isoLocal, addDias, fimDoMes, ddmm, ddmmaaaa, nomeMes, mil, tn, pct, reais0, nf,
-} from './js/apresentacao.js?v=70';
+} from './js/apresentacao.js?v=71';
 
 await initPage();
 
@@ -144,6 +146,11 @@ const lsSet = (k, v) => { try { localStorage.setItem(k, v); } catch (_) {} };
 
 let D = null;
 let tarefasCache = [];
+
+// Ponto de equilíbrio: lembrado neste navegador; padrão do estudo de out/26
+const elPe = document.getElementById('f-pe');
+elPe.value = lsGet('sgr_apres_pe') ?? '128000';
+elPe.addEventListener('input', () => lsSet('sgr_apres_pe', elPe.value));
 
 document.getElementById('btn-carregar').addEventListener('click', carregar);
 
@@ -267,7 +274,8 @@ document.getElementById('btn-gerar').addEventListener('click', async () => {
       .sort((a, b) => (a.data_vencimento || '9999').localeCompare(b.data_vencimento || '9999'));
     const dataReuniao = elReuniao.value || hoje;
 
-    const pptx = montarApresentacao(PptxGenJS, D, { img: { capa, pauta, conteudo, obrigado, foto }, frases, textos, acoes, dataReuniao, hoje });
+    const pe = parseFloat(elPe.value) || 0;
+    const pptx = montarApresentacao(PptxGenJS, D, { img: { capa, pauta, conteudo, obrigado, foto }, frases, textos, acoes, dataReuniao, hoje, pe });
     const [y, m, dd] = dataReuniao.split('-');
     await pptx.writeFile({ fileName: `${dd}.${m}.${y.slice(2)} - Comitê UVR Indaiatuba.pptx` });
     st.textContent = 'Apresentação gerada — confira a pasta de downloads.';

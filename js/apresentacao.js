@@ -543,7 +543,7 @@ function runs(str, cor = COR.txt2) {
   });
 }
 
-export function montarApresentacao(PptxGenJS, d, { img, frases: fr, textos, acoes, dataReuniao, hoje }) {
+export function montarApresentacao(PptxGenJS, d, { img, frases: fr, textos, acoes, dataReuniao, hoje, pe = 0 }) {
   const pptx = new PptxGenJS();
   pptx.defineLayout({ name: 'COMITE_UVR', width: I(W_PT), height: I(H_PT) });
   pptx.layout = 'COMITE_UVR';
@@ -745,7 +745,27 @@ export function montarApresentacao(PptxGenJS, d, { img, frases: fr, textos, acoe
     s.addChart([
       { type: pptx.ChartType.bar, data: [{ name: 'Faturamento (R$ mil)', labels: labelsAno, values: vals }], options: optsBarras(cores, '"R$ "0.0"k"') },
       { type: pptx.ChartType.line, data: [{ name: d.meta ? `Meta (${mil(d.meta)})` : 'Meta', labels: labelsAno, values: metaLinha }], options: optsLinha },
-    ], { ...optsGrafico(`Faturamento mensal ${d.M.slice(0, 4)} × meta (R$ mil)`), valAxisLabelFormatCode: '"R$ "0"k"' });
+    ], { ...optsGrafico(`Faturamento mensal ${d.M.slice(0, 4)} × meta (R$ mil)`), valAxisLabelFormatCode: '"R$ "0"k"', ...(pe > 0 ? { h: I(505) } : {}) });
+
+    // Ponto de equilíbrio (receita bruta/mês com EBITDA zero): card largo embaixo do gráfico,
+    // contra a projeção do mês + estoque (mês em andamento) ou o realizado (mês fechado)
+    const pePor = !(pe > 0) || d.inicioMes ? null : d.emAndamento
+      ? [d.valorEstoque > 0 ? 'Projeção do mês + estoque' : 'Projeção do mês (ritmo atual)', d.projecao + d.valorEstoque]
+      : ['Realizado no mês', d.cur.fat];
+    if (pe > 0) {
+      const yP = 722, hP = 100;
+      box(s, 40, yP, 860, hP, 'FFFFFF', COR.borda);
+      txt(s, 62, yP + 14, 360, 20, 'PONTO DE EQUILÍBRIO', 13, COR.muted, { bold: true });
+      txt(s, 62, yP + 34, 360, 40, `${mil(pe)}/mês`, 28, COR.txt, { bold: true });
+      txt(s, 62, yP + hP - 30, 360, 22, 'receita bruta para o EBITDA ficar no zero', 13, COR.txt2);
+      if (pePor) {
+        const dif = pePor[1] - pe, cor = dif >= 0 ? COR.ok : COR.verm;
+        s.addShape(pptx.ShapeType.line, { x: I(440), y: I(yP + 18), w: 0, h: I(hP - 36), line: { color: COR.borda, width: 1 } });
+        txt(s, 466, yP + 14, 414, 20, `${pePor[0].toUpperCase()}: ${mil(pePor[1])}`, 13, COR.muted, { bold: true });
+        txt(s, 466, yP + 34, 414, 40, `${mil(Math.abs(dif))} ${dif >= 0 ? 'acima' : 'abaixo'}`, 28, cor, { bold: true });
+        txt(s, 466, yP + hP - 30, 414, 22, `${pct(pePor[1] / pe * 100, 0)} do ponto de equilíbrio`, 13, COR.txt2);
+      }
+    }
 
     const px = 940, pw = 390;
     // Início do mês: sem projeção (poucos dias, vendas em cargas). Mostra o mês anterior no mesmo ponto e quanto falta.
@@ -829,6 +849,7 @@ export function montarApresentacao(PptxGenJS, d, { img, frases: fr, textos, acoe
         semAtual && semAtual.meta > 0 ? `Semana ${semAtual.i}${semAtual.parcial ? ' (em andamento)' : ''}: ${mil(semAtual.fat)} de ${mil(semAtual.meta)} (${pct(semAtual.p, 0)}).` : '',
         d.inicioMes ? `Por que não há projeção: só ${d.dp} de ${d.du} dias úteis e as vendas saem em cargas; a média dos primeiros dias não representa o mês.`
           : d.emAndamento ? `Projeção = faturamento até ${ddmm(d.corte)} ÷ ${d.dp} dias úteis × ${d.du} dias úteis do mês.` : '',
+        pe > 0 ? `Ponto de equilíbrio: ${mil(pe)}/mês de receita bruta (EBITDA zero)${pePor ? `; ${pePor[0].toLowerCase()}: ${mil(pePor[1])}, ${mil(Math.abs(pePor[1] - pe))} ${pePor[1] >= pe ? 'acima' : 'abaixo'}` : ''}.` : '',
         ctxAno,
       ],
       proximo: `Agora o que vendemos e a que preço — a composição de vendas.` });
