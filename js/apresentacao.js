@@ -1317,7 +1317,7 @@ export function montarApresentacao(PptxGenJS, d, { img, frases: fr, textos, acoe
         `Equipamentos: ${d.nOp + d.nRes} de ${d.eqs.length} disponíveis ${d.rotDisp}${d.dispMes != null ? `; média do mês ${pct(d.dispMes, 0)}` : ''}.`,
         ...d.problemas.map(r => `${nomeEqCompleto(r.e)} (${r.e.st === 'parado' ? 'parada' : 'com restrição'}): ${r.prob || 'sem observação'}; desde ${r.desde ? ddmm(r.desde) : '—'}; previsão ${r.prev ? ddmm(r.prev) : 'a definir'}; parada em ${nf(r.pctPar, 0)}% dos dias do mês.`),
         ...d.comParada.filter(x => x.e.st === 'operando').map(x => `${nomeEqCompleto(x.e)}: parou ${x.dias} dia${x.dias > 1 ? 's' : ''} no mês (${nf(x.pct, 0)}%) e já voltou a operar.`),
-        'Média do mês = dias-equipamento disponíveis ÷ dias-equipamento registrados no relatório diário.',
+        'Média do mês = dias-equipamento disponíveis ÷ dias-equipamento registrados na tela de Equipamentos.',
         textos.obsEquip,
         d.colab != null ? `Equipe: ${d.colab} de ${d.quadro} colaboradores${d.vagas ? `; ${d.vagas} vaga${d.vagas > 1 ? 's' : ''} em reposição` : ''}.` : '',
         ...textos.aconteceu,

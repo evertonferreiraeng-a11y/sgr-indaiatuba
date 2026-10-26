@@ -75,7 +75,7 @@ export const AJUDA = {
   'equipamentos.html': {
     titulo: 'Equipamentos',
     resumo: 'Cadastro das máquinas e situação de cada uma no dia: operando, com restrição ou parada.',
-    quando: '<b>Todo dia, no início do dia</b>. O Relatório Diário e a Produção usam esse status.',
+    quando: '<b>Todo dia, no início do dia</b>. A Produção e a Apresentação do Comitê usam esse status.',
     passos: [
       'Vá até o quadro <b>Disponibilidade do Dia</b> (a data já vem em <b>Hoje</b>).',
       'Em cada equipamento, escolha o <b>Status</b>: Operando, Com restrição ou Parado.',
@@ -139,7 +139,6 @@ export const AJUDA = {
       'Avaliação de experiência (45 e 90 dias) é feita em <b>+ Avaliação</b>.',
     ],
     dicas: [
-      'A presença lançada aqui aparece no Relatório Diário.',
       'Para ver o histórico de uma pessoa, clique no nome dela na lista.',
     ],
   },
@@ -163,19 +162,6 @@ export const AJUDA = {
       'Para criar uma tarefa nova, preencha <b>Título</b>, <b>Responsável</b> e <b>Data de Vencimento</b>, depois clique em <b>Salvar Tarefa</b>.',
     ],
     dicas: ['Se uma tarefa não for mais necessária, marque como <b>Cancelada</b> em vez de excluir.'],
-  },
-  'relatorio-diario.html': {
-    titulo: 'Relatório Diário',
-    resumo: 'Resumo do turno: equipamentos, presenças e ocorrências do dia. Grande parte já vem preenchida pelas outras telas.',
-    quando: '<b>Todo dia, no fim de cada turno</b> (manhã e tarde). Deve ser a última coisa da rotina.',
-    passos: [
-      'Confira a <b>Data</b> e escolha o <b>Turno</b> (Manhã ou Tarde).',
-      'Escreva seu nome em <b>Responsável pelo relatório</b>.',
-      'Confira os quadros de equipamentos e presenças. Se algo estiver errado, corrija nas telas Equipamentos ou RH e clique em <b>Atualizar</b>.',
-      'Em <b>Ocorrências do Dia</b>, clique em <b>+ Adicionar</b> para cada fato importante (manutenção, acidente, visita etc.).',
-      'Clique em <b>Enviar por E-mail</b> (ou <b>Gerar PDF</b>).',
-    ],
-    dicas: ['Faça Equipamentos e RH antes do relatório. Assim ele já sai certo.'],
   },
   'apresentacao.html': {
     titulo: 'Apresentação do Comitê',
@@ -222,7 +208,6 @@ const ROTINA_DIA = [
   '<b>Durante o dia:</b> Tarefas (ver o que vence hoje)',
   '<b>À tarde:</b> RH, revisar as faltas',
   '<b>Fim do dia:</b> Produção (prensagem e triagem) e Estoque (atualizar os kg)',
-  '<b>Fim de cada turno:</b> Relatório Diário',
 ];
 
 const ROTINA_PERIODICA = [

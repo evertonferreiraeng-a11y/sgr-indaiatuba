@@ -189,10 +189,6 @@ export function sidebarHTML() {
           Tarefas
         </a>
         <div class="nav-section">Relatórios</div>
-        <a href="relatorio-diario.html">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/><line x1="8" y1="14" x2="8" y2="14"/><line x1="12" y1="14" x2="12" y2="14"/><line x1="16" y1="14" x2="16" y2="14"/></svg>
-          Relatório Diário
-        </a>
         <a href="apresentacao.html">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8M12 17v4"/><polyline points="7 12 10 9 13 11 17 7"/></svg>
           Apresentação
@@ -292,7 +288,6 @@ const MODULOS_ROTINA = [
   { id:'producao',      label:'Produção',           href:'producao.html',          icon:'bar-chart',     freq:'dia',        periodo:'tarde', tag:'todo dia · fim',      desc:'Lançar prensagem e triagem do dia' },
   { id:'estoque',       label:'Estoque',            href:'estoque.html',           icon:'package',       freq:'dia',        periodo:'tarde', tag:'todo dia · fim',      desc:'Atualizar os kg após a produção' },
   { id:'apresentacao',  label:'Apresentação',       href:'apresentacao.html',      icon:'file',          freq:'quinta',     periodo:'tarde', tag:'quinta · fim do dia', desc:'Gerar e revisar os slides do comitê' },
-  { id:'rel-diario',    label:'Relatório Diário',   href:'relatorio-diario.html',  icon:'list',          freq:'dia',                         tag:'fim de cada turno',   desc:'Preencher e enviar' },
 ];
 
 function _rotinaMarcarHoje(m) {
