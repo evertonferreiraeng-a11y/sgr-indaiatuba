@@ -262,31 +262,45 @@ export async function initPage() {
 }
 
 // ── Rotina Diária ─────────────────────────────────────────────────────────────
-const _ROTINA_TODAY = new Date().toISOString().split('T')[0];
-const _ROTINA_KEY   = 'sgr_rotina_' + _ROTINA_TODAY;
+const _ROTINA_AGORA   = new Date();
+const _ROTINA_TODAY   = [_ROTINA_AGORA.getFullYear(), String(_ROTINA_AGORA.getMonth() + 1).padStart(2, '0'), String(_ROTINA_AGORA.getDate()).padStart(2, '0')].join('-');
+const _ROTINA_PERIODO = _ROTINA_AGORA.getHours() < 12 ? 'manha' : 'tarde';
 
-// freq: quando o módulo já vem marcado na tela de seleção
-//   'dia' = todo dia · 'inicio-mes' = até o dia 7 · 'quinta' = às quintas-feiras
+// Uma rotina de manhã e outra à tarde. Se a da manhã ficou pela metade, continua nela.
+function _rotinaChave() {
+  const manha = 'sgr_rotina_' + _ROTINA_TODAY + '_manha';
+  if (_ROTINA_PERIODO === 'tarde') {
+    try {
+      const s = JSON.parse(localStorage.getItem(manha));
+      if (s && !s.pulada && !s.completa) return manha;
+    } catch {}
+  }
+  return 'sgr_rotina_' + _ROTINA_TODAY + '_' + _ROTINA_PERIODO;
+}
+const _ROTINA_KEY = _rotinaChave();
+
+// Já vem marcado na tela de seleção quando bate o dia (freq) e o período (periodo).
+//   freq:    'dia' = todo dia · 'inicio-mes' = até o dia 7 · 'quinta' = às quintas
+//   periodo: 'manha' · 'tarde' · omitido = manhã e tarde
+// A lista segue a ordem do dia: primeiro o que é de início, por último o de fim.
 const MODULOS_ROTINA = [
-  { id:'entradas',      label:'Entradas',          href:'entradas.html',          icon:'inbox',         freq:'inicio-mes', desc:'Importar a planilha da balança do mês anterior' },
-  { id:'producao',      label:'Produção',           href:'producao.html',          icon:'bar-chart',     freq:'dia',        desc:'Lançar prensagem e triagem' },
-  { id:'equipamentos',  label:'Equipamentos',       href:'equipamentos.html',      icon:'wrench',        freq:'dia',        desc:'Status de cada máquina → Salvar dia' },
-  { id:'rh',            label:'RH',                 href:'rh.html',                icon:'users',         freq:'dia',        desc:'Lançar as faltas do dia' },
-  { id:'tarefas',       label:'Tarefas',            href:'tarefas.html',           icon:'check-circle',  freq:'dia',        desc:'Ver o que vence hoje e concluir' },
-  { id:'comercial',     label:'Comercial',          href:'comercial.html',         icon:'cart',                             desc:'Lançar vendas + pedido no Protheus, se houve' },
-  { id:'estoque',       label:'Estoque',            href:'estoque.html',           icon:'package',       freq:'dia',        desc:'Atualizar os kg no fim da tarde, após a produção' },
-  { id:'relatorio',     label:'Relatório Comitê',   href:'dashboard.html',         icon:'bar-chart',                        desc:'Conferir os números do mês' },
-  { id:'apresentacao',  label:'Apresentação',       href:'apresentacao.html',      icon:'file',          freq:'quinta',     desc:'Gerar e revisar os slides do comitê (à tarde)' },
-  { id:'rel-diario',    label:'Relatório Diário',   href:'relatorio-diario.html',  icon:'list',          freq:'dia',        desc:'Preencher e enviar (fim do turno)' },
+  { id:'entradas',      label:'Entradas',          href:'entradas.html',          icon:'inbox',         freq:'inicio-mes', periodo:'manha', tag:'início do mês',       desc:'Importar a planilha da balança do mês anterior' },
+  { id:'equipamentos',  label:'Equipamentos',       href:'equipamentos.html',      icon:'wrench',        freq:'dia',        periodo:'manha', tag:'todo dia · início',   desc:'Status de cada máquina → Salvar dia' },
+  { id:'rh',            label:'RH',                 href:'rh.html',                icon:'users',         freq:'dia',                         tag:'início + revisão à tarde', desc:'Lançar as faltas; à tarde, revisar' },
+  { id:'tarefas',       label:'Tarefas',            href:'tarefas.html',           icon:'check-circle',  freq:'dia',                         tag:'todo dia',            desc:'Ver o que vence hoje e concluir' },
+  { id:'comercial',     label:'Comercial',          href:'comercial.html',         icon:'cart',                                              tag:'a cada venda',        desc:'Venda de recicláveis: lançar + pedido no Protheus' },
+  { id:'producao',      label:'Produção',           href:'producao.html',          icon:'bar-chart',     freq:'dia',        periodo:'tarde', tag:'todo dia · fim',      desc:'Lançar prensagem e triagem do dia' },
+  { id:'estoque',       label:'Estoque',            href:'estoque.html',           icon:'package',       freq:'dia',        periodo:'tarde', tag:'todo dia · fim',      desc:'Atualizar os kg após a produção' },
+  { id:'relatorio',     label:'Relatório Comitê',   href:'dashboard.html',         icon:'bar-chart',                                                                    desc:'Conferir os números do mês' },
+  { id:'apresentacao',  label:'Apresentação',       href:'apresentacao.html',      icon:'file',          freq:'quinta',     periodo:'tarde', tag:'quinta · fim do dia', desc:'Gerar e revisar os slides do comitê' },
+  { id:'rel-diario',    label:'Relatório Diário',   href:'relatorio-diario.html',  icon:'list',          freq:'dia',                         tag:'fim de cada turno',   desc:'Preencher e enviar' },
 ];
 
-const _ROTINA_TAG = { 'dia':'todo dia', 'inicio-mes':'início do mês', 'quinta':'quintas' };
-
 function _rotinaMarcarHoje(m) {
-  const hoje = new Date();
+  if (m.periodo && m.periodo !== _ROTINA_PERIODO) return false;
   if (m.freq === 'dia')        return true;
-  if (m.freq === 'inicio-mes') return hoje.getDate() <= 7;
-  if (m.freq === 'quinta')     return hoje.getDay() === 4;
+  if (m.freq === 'inicio-mes') return _ROTINA_AGORA.getDate() <= 7;
+  if (m.freq === 'quinta')     return _ROTINA_AGORA.getDay() === 4;
   return false;
 }
 
@@ -315,7 +329,7 @@ function initRotina() {
   _bloquearNav(true);
 
   // Abre a ajuda da tela uma vez em cada passo, para a pessoa saber o que fazer
-  const vistoKey = 'sgr_rotina_ajuda_' + _ROTINA_TODAY + '_' + state.atual;
+  const vistoKey = 'sgr_rotina_ajuda_' + _ROTINA_KEY + '_' + state.atual;
   try {
     if (!sessionStorage.getItem(vistoKey)) {
       sessionStorage.setItem(vistoKey, '1');
@@ -335,17 +349,17 @@ function _showSelecao() {
       <div class="rotina-card-hd">
         <div class="rotina-wave">♻</div>
         <div class="rotina-saudacao">${saudacao}! 👋</div>
-        <div class="rotina-sub">O que precisa ser feito hoje já está marcado. Clique em <b>Iniciar Rotina</b> e o sistema leva você tela por tela, explicando o que fazer em cada uma.</div>
+        <div class="rotina-sub">O que precisa ser feito ${_ROTINA_PERIODO === 'manha' ? 'agora de manhã' : 'agora à tarde'} já está marcado. Clique em <b>Iniciar Rotina</b> e o sistema leva você tela por tela, explicando o que fazer em cada uma.</div>
       </div>
       <div class="rotina-card-body">
-        <div class="rotina-section-label">O que fazer hoje</div>
+        <div class="rotina-section-label">O que fazer ${_ROTINA_PERIODO === 'manha' ? 'de manhã (início do dia)' : 'à tarde (fim do dia)'}</div>
         <div class="rotina-grid" id="rotina-modulos">
           ${MODULOS_ROTINA.map(m => { const marcar = _rotinaMarcarHoje(m); return `
             <label class="rotina-mod-item${marcar ? ' selected' : ''}" id="lbl-${m.id}">
               <input type="checkbox" class="rotina-cb" value="${m.id}" ${marcar ? 'checked' : ''} onchange="rotinaToggle(this,'${m.id}')" />
               <span class="rotina-mod-icon">${icon(m.icon, { size: 20 })}</span>
               <div class="rotina-mod-info">
-                <div class="rotina-mod-label">${m.label}${m.freq ? ` <span class="rotina-tag-diario${marcar ? '' : ' rotina-tag-off'}">${_ROTINA_TAG[m.freq]}</span>` : ''}</div>
+                <div class="rotina-mod-label">${m.label}${m.tag ? ` <span class="rotina-tag-diario${marcar ? '' : ' rotina-tag-off'}">${m.tag}</span>` : ''}</div>
                 <div class="rotina-mod-desc">${m.desc}</div>
               </div>
             </label>`; }).join('')}

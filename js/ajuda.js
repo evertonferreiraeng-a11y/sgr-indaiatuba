@@ -45,7 +45,7 @@ export const AJUDA = {
   'producao.html': {
     titulo: 'Produção',
     resumo: 'Registro do que foi produzido: os fardos feitos nas prensas (aba <b>Prensagem</b>) e o material separado na triagem (aba <b>Triagem de Cargas</b>).',
-    quando: '<b>Todo dia</b>, com a produção de cada prensa e de cada operador.',
+    quando: '<b>Todo dia, no fim do dia</b>, com a produção de cada prensa e de cada operador.',
     passos: [
       'Na aba <b>Prensagem</b>, clique em <b>+ Novo Registro</b>.',
       'Informe <b>Data</b>, <b>Equipamento</b> e <b>Operador</b>. Em <b>Material</b>, escolha <b>Aparas de Papelão</b> ou <b>Aparas de Plástico</b>.',
@@ -75,7 +75,7 @@ export const AJUDA = {
   'equipamentos.html': {
     titulo: 'Equipamentos',
     resumo: 'Cadastro das máquinas e situação de cada uma no dia: operando, com restrição ou parada.',
-    quando: '<b>Todo dia</b>, no início do turno. O Relatório Diário e a Produção usam esse status.',
+    quando: '<b>Todo dia, no início do dia</b>. O Relatório Diário e a Produção usam esse status.',
     passos: [
       'Vá até o quadro <b>Disponibilidade do Dia</b> (a data já vem em <b>Hoje</b>).',
       'Em cada equipamento, escolha o <b>Status</b>: Operando, Com restrição ou Parado.',
@@ -89,7 +89,7 @@ export const AJUDA = {
   'comercial.html': {
     titulo: 'Comercial',
     resumo: 'Registro das vendas de material (o que saiu, para quem e por quanto) e acompanhamento da meta de faturamento.',
-    quando: 'Sempre que houver uma venda ou uma nota fiscal de saída.',
+    quando: '<b>A cada venda de recicláveis.</b>',
     passos: [
       'Clique em <b>+ Nova Venda</b>.',
       'Preencha <b>Data</b>, <b>Cliente</b>, <b>Tipo de Material</b>, <b>Quantidade</b> e o preço. Se tiver, informe a <b>NF</b>.',
@@ -131,9 +131,10 @@ export const AJUDA = {
   'rh.html': {
     titulo: 'RH',
     resumo: 'Colaboradores, presença, faltas, avaliações e ocorrências da equipe.',
-    quando: '<b>Todo dia</b> para lançar as faltas. As outras funções só quando acontecer algo.',
+    quando: '<b>Todo dia, no início do dia</b> para lançar as faltas, e <b>à tarde</b> para revisar. As outras funções só quando acontecer algo.',
     passos: [
-      'Clique em <b>Lançar Faltas</b> e marque quem faltou no dia. Depois salve.',
+      'De manhã, clique em <b>Lançar Faltas</b> e marque quem faltou no dia. Depois salve.',
+      'À tarde, abra <b>Lançar Faltas</b> de novo e confira se mudou algo (alguém chegou atrasado ou saiu mais cedo, por exemplo).',
       'Para registrar um atraso, advertência ou atestado, clique em <b>+ Ocorrência</b>.',
       'Avaliação de experiência (45 e 90 dias) é feita em <b>+ Avaliação</b>.',
     ],
@@ -179,7 +180,7 @@ export const AJUDA = {
   'apresentacao.html': {
     titulo: 'Apresentação do Comitê',
     resumo: 'Gera os slides (.pptx) da reunião do comitê com a diretoria a partir dos dados do sistema.',
-    quando: '<b>Toda quinta-feira à tarde</b>, depois que a operação do dia terminou.',
+    quando: '<b>Toda quinta-feira, no fim do dia</b>, depois que a operação terminou.',
     passos: [
       'Siga as etapas na ordem: <b>1. Período</b> → <b>Carregar dados</b>.',
       '<b>2. Conferência dos números</b>: confira se os valores batem.',
@@ -217,18 +218,17 @@ export const AJUDA = {
 };
 
 const ROTINA_DIA = [
-  'Produção: lançar prensagem e triagem',
-  'Equipamentos: status do dia → Salvar dia',
-  'RH: Lançar Faltas',
-  'Tarefas: ver o que vence hoje',
-  'Estoque: atualizar os kg (fim da tarde, após a produção)',
-  'Relatório Diário: preencher e enviar (fim do turno)',
+  '<b>Início do dia:</b> Equipamentos (status → Salvar dia) e RH (Lançar Faltas)',
+  '<b>Durante o dia:</b> Tarefas (ver o que vence hoje)',
+  '<b>À tarde:</b> RH, revisar as faltas',
+  '<b>Fim do dia:</b> Produção (prensagem e triagem) e Estoque (atualizar os kg)',
+  '<b>Fim de cada turno:</b> Relatório Diário',
 ];
 
 const ROTINA_PERIODICA = [
   '<b>Início do mês:</b> Entradas, importar a planilha da balança do mês anterior',
-  '<b>Quinta à tarde:</b> Apresentação do Comitê, gerar e revisar',
-  '<b>Quando houver venda:</b> Comercial + pedido no Protheus',
+  '<b>Quinta, fim do dia:</b> Apresentação do Comitê, gerar e revisar',
+  '<b>A cada venda de recicláveis:</b> Comercial + pedido no Protheus',
 ];
 
 function paginaAtual() { return location.pathname.split('/').pop() || 'dashboard.html'; }
