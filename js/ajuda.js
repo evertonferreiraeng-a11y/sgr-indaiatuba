@@ -1,6 +1,9 @@
 // ── Ajuda por tela ────────────────────────────────────────────────────────────
-// Botão "? Ajuda" fixo em todas as páginas. Abre um painel lateral explicando
-// para que serve a tela, quando usar e o passo a passo do que fazer nela.
+// Botão "? Como usar esta tela" fixo em todas as páginas. Abre uma janela no
+// centro explicando para que serve a tela, quando usar e o passo a passo, com a
+// opção de ver uma simulação animada (js/simulacao.js).
+
+import { temSimulacao, iniciarSimulacao } from './simulacao.js';
 
 export const AJUDA = {
   'dashboard.html': {
@@ -260,7 +263,8 @@ export function initAjuda(perfilPromise) {
         <p class="ajuda-rodape">A rotina completa e todas as telas estão no <a href="manual.html">Manual do Sistema</a>. Para rever esta explicação, clique em <b>? Como usar esta tela</b> no canto da tela.</p>
       </div>
       <div class="ajuda-ft">
-        <button type="button" class="btn btn-primary ajuda-btn-fechar" data-fechar>Fechar</button>
+        ${temSimulacao(pagina) ? '<button type="button" class="btn btn-primary ajuda-btn-sim" id="ajuda-ver-sim">▶ Ver simulação</button>' : ''}
+        <button type="button" class="btn ${temSimulacao(pagina) ? 'btn-outline' : 'btn-primary'} ajuda-btn-fechar" data-fechar>Fechar</button>
       </div>
     </div>`;
   document.body.appendChild(painel);
@@ -277,6 +281,10 @@ export function initAjuda(perfilPromise) {
 
   btn.addEventListener('click', abrir);
   painel.querySelectorAll('[data-fechar]').forEach(el => el.addEventListener('click', fechar));
+  document.getElementById('ajuda-ver-sim')?.addEventListener('click', () => {
+    fechar();
+    iniciarSimulacao(pagina, info.titulo);
+  });
   document.addEventListener('keydown', e => { if (e.key === 'Escape') fechar(); });
 
   window._abrirAjuda = abrir;
