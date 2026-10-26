@@ -291,7 +291,6 @@ const MODULOS_ROTINA = [
   { id:'comercial',     label:'Comercial',          href:'comercial.html',         icon:'cart',                                              tag:'a cada venda',        desc:'Venda de recicláveis: lançar + pedido no Protheus' },
   { id:'producao',      label:'Produção',           href:'producao.html',          icon:'bar-chart',     freq:'dia',        periodo:'tarde', tag:'todo dia · fim',      desc:'Lançar prensagem e triagem do dia' },
   { id:'estoque',       label:'Estoque',            href:'estoque.html',           icon:'package',       freq:'dia',        periodo:'tarde', tag:'todo dia · fim',      desc:'Atualizar os kg após a produção' },
-  { id:'relatorio',     label:'Relatório Comitê',   href:'dashboard.html',         icon:'bar-chart',                                                                    desc:'Conferir os números do mês' },
   { id:'apresentacao',  label:'Apresentação',       href:'apresentacao.html',      icon:'file',          freq:'quinta',     periodo:'tarde', tag:'quinta · fim do dia', desc:'Gerar e revisar os slides do comitê' },
   { id:'rel-diario',    label:'Relatório Diário',   href:'relatorio-diario.html',  icon:'list',          freq:'dia',                         tag:'fim de cada turno',   desc:'Preencher e enviar' },
 ];
