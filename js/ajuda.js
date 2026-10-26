@@ -218,11 +218,6 @@ export const ROTINA_PERIODICA = [
 
 function paginaAtual() { return location.pathname.split('/').pop() || 'dashboard.html'; }
 
-// "Não mostrar ao entrar" é guardado por tela, neste navegador
-const OCULTAR_KEY = 'sgr_ajuda_ocultar_';
-function ocultaAoEntrar(p) { try { return localStorage.getItem(OCULTAR_KEY + p) === '1'; } catch { return false; } }
-function setOcultaAoEntrar(p, v) { try { v ? localStorage.setItem(OCULTAR_KEY + p, '1') : localStorage.removeItem(OCULTAR_KEY + p); } catch {} }
-
 function foiRecarregada() {
   try { return performance.getEntriesByType('navigation')[0]?.type === 'reload'; } catch { return false; }
 }
@@ -265,7 +260,6 @@ export function initAjuda(perfilPromise) {
         <p class="ajuda-rodape">A rotina completa e todas as telas estão no <a href="manual.html">Manual do Sistema</a>. Para rever esta explicação, clique em <b>? Como usar esta tela</b> no canto da tela.</p>
       </div>
       <div class="ajuda-ft">
-        <label class="ajuda-nao-mostrar"><input type="checkbox" id="ajuda-nao-mostrar" ${ocultaAoEntrar(pagina) ? 'checked' : ''} /> Não mostrar ao entrar nesta tela</label>
         <button type="button" class="btn btn-primary ajuda-btn-fechar" data-fechar>Fechar</button>
       </div>
     </div>`;
@@ -284,7 +278,6 @@ export function initAjuda(perfilPromise) {
   btn.addEventListener('click', abrir);
   painel.querySelectorAll('[data-fechar]').forEach(el => el.addEventListener('click', fechar));
   document.addEventListener('keydown', e => { if (e.key === 'Escape') fechar(); });
-  document.getElementById('ajuda-nao-mostrar').addEventListener('change', e => setOcultaAoEntrar(pagina, e.target.checked));
 
   window._abrirAjuda = abrir;
 
@@ -292,8 +285,7 @@ export function initAjuda(perfilPromise) {
   // decidiu se mostra a tela de seleção — nesse caso a seleção vem primeiro.
   setTimeout(() => {
     if (document.getElementById('rotina-overlay') || foiRecarregada()) return;
-    // Num passo da Rotina Diária explica sempre, mesmo com "não mostrar" marcado
-    if (document.getElementById('rotina-bar') || !ocultaAoEntrar(pagina)) abrir();
+    abrir();
   }, 0);
 
   Promise.resolve(perfilPromise).then(p => {
