@@ -826,32 +826,38 @@ fieldset.nf-checklist-fieldset:disabled .nf-check-label { cursor: default; opaci
   background: rgba(255,255,255,.2); display: grid; place-items: center;
   font-size: 14px; font-weight: 800;
 }
-.ajuda-btn-novo { animation: ajudaPulse 2s ease-in-out infinite; }
-@keyframes ajudaPulse {
-  0%, 100% { box-shadow: var(--shadow-md), 0 0 0 0 rgba(0,102,54,.45); }
-  50%      { box-shadow: var(--shadow-md), 0 0 0 10px rgba(0,102,54,0); }
-}
 @media print { .ajuda-btn, #ajuda-painel { display: none !important; } }
 
-#ajuda-painel { position: fixed; inset: 0; z-index: 10000; pointer-events: none; }
+#ajuda-painel {
+  position: fixed; inset: 0; z-index: 10000; pointer-events: none;
+  display: flex; align-items: center; justify-content: center; padding: 20px;
+}
 #ajuda-painel.open { pointer-events: auto; }
 .ajuda-backdrop {
-  position: absolute; inset: 0; background: rgba(15,23,42,.4);
+  position: absolute; inset: 0; background: rgba(15,23,42,.55);
   opacity: 0; transition: opacity .2s;
 }
 #ajuda-painel.open .ajuda-backdrop { opacity: 1; }
-.ajuda-drawer {
-  position: absolute; top: 0; right: 0; bottom: 0;
-  width: 420px; max-width: 100%; background: #fff;
+.ajuda-modal {
+  position: relative; width: 600px; max-width: 100%; max-height: min(86vh, 760px);
+  background: #fff; border-radius: 16px; overflow: hidden;
   display: flex; flex-direction: column; box-shadow: var(--shadow-lg);
-  transform: translateX(100%); transition: transform .25s cubic-bezier(.4,0,.2,1);
+  opacity: 0; transform: translateY(12px) scale(.98);
+  transition: opacity .2s, transform .2s cubic-bezier(.4,0,.2,1);
 }
-#ajuda-painel.open .ajuda-drawer { transform: translateX(0); }
+#ajuda-painel.open .ajuda-modal { opacity: 1; transform: none; }
 .ajuda-hd {
   display: flex; justify-content: space-between; align-items: flex-start; gap: 12px;
-  padding: 20px 22px 16px; padding-top: calc(20px + env(safe-area-inset-top));
+  padding: 20px 24px 16px;
   background: var(--primary); color: #fff;
 }
+.ajuda-ft {
+  display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap;
+  padding: 14px 24px; border-top: 1px solid var(--border); background: #fafafa;
+}
+.ajuda-nao-mostrar { text-transform: none; letter-spacing: normal; font-weight: 500; margin: 0; display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--text-muted); cursor: pointer; }
+.ajuda-nao-mostrar input { width: 16px; height: 16px; accent-color: var(--primary); }
+.ajuda-btn-fechar { min-width: 120px; justify-content: center; }
 .ajuda-kicker { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .06em; opacity: .75; }
 .ajuda-hd h3 { margin: 4px 0 0; font-size: 19px; font-weight: 800; color: #fff; }
 .ajuda-fechar {
@@ -925,3 +931,9 @@ fieldset.nf-checklist-fieldset:disabled .nf-check-label { cursor: default; opaci
   .rotina-bar-count { display: none; }
 }
 .rotina-tag-diario.rotina-tag-off { background: #f1f5f9; color: #64748b; }
+@media (max-width: 768px) {
+  #ajuda-painel { padding: calc(10px + env(safe-area-inset-top)) 10px calc(10px + env(safe-area-inset-bottom)); }
+  .ajuda-modal { max-height: 100%; border-radius: 14px; }
+  .ajuda-hd, .ajuda-body, .ajuda-ft { padding-left: 18px; padding-right: 18px; }
+  .ajuda-btn-fechar { width: 100%; }
+}

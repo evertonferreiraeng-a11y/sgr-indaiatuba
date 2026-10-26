@@ -326,15 +326,6 @@ function initRotina() {
   if (_rotinaCurrentPage() !== modAtual.href) { location.href = modAtual.href; return; }
   _showProgressBar(state);
   _bloquearNav(true);
-
-  // Abre a ajuda da tela uma vez em cada passo, para a pessoa saber o que fazer
-  const vistoKey = 'sgr_rotina_ajuda_' + _ROTINA_KEY + '_' + state.atual;
-  try {
-    if (!sessionStorage.getItem(vistoKey)) {
-      sessionStorage.setItem(vistoKey, '1');
-      window._abrirAjuda?.();
-    }
-  } catch {}
 }
 
 function _showSelecao() {
