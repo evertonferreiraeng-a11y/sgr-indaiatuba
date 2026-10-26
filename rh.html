@@ -118,10 +118,10 @@
         <div class="form-group"><label>Buscar</label><input type="text" id="busca-colab" placeholder="Nome…" /></div>
         <div class="form-group"><label>Situação</label>
           <select id="f-sit">
-            <option value="">Todos</option>
-            <option value="ativo">Ativos</option>
+            <option value="">Todos (inclui desligados)</option>
+            <option value="ativo" selected>Ativos</option>
             <option value="exp">Em experiência</option>
-            <option value="demitido">Demitidos</option>
+            <option value="demitido">Desligados</option>
           </select>
         </div>
         <div class="form-group" style="justify-content:flex-end"><label>&nbsp;</label>
@@ -990,6 +990,7 @@ document.getElementById('btn-salvar-oc').addEventListener('click', async () => {
 // ── Filtros e fechamentos ─────────────────────────────────────────────────────
 document.getElementById('btn-filtrar-colab').addEventListener('click', renderColaboradores);
 document.getElementById('busca-colab').addEventListener('input', renderColaboradores);
+document.getElementById('f-sit').addEventListener('change', renderColaboradores);
 document.querySelectorAll('[data-close]').forEach(btn => btn.addEventListener('click', () => fecharModal(btn.dataset.close)));
 document.querySelectorAll('.modal-backdrop').forEach(m => m.addEventListener('click', e => { if(e.target===m) fecharModal(m.id); }));
 
