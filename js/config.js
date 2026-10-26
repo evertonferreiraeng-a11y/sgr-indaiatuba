@@ -1,5 +1,6 @@
 import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm';
 import { icon } from './icons.js';
+import { initAjuda } from './ajuda.js';
 
 const SUPABASE_URL  = 'https://skcfiorztsqzraulqmuj.supabase.co';
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNrY2Zpb3J6dHNxenJhdWxxbXVqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODIxNDg2OTgsImV4cCI6MjA5NzcyNDY5OH0.UEzcpwVnnXOb4qV1oZRVkT5VHVIXVGnkKZH2f_gatWw';
@@ -50,11 +51,12 @@ export async function getPerfilUsuario() {
 export async function renderUserInfo() {
   const perfil = await getPerfilUsuario();
   const el = document.getElementById('user-info');
-  if (!el || !perfil) return;
+  if (!el || !perfil) return perfil;
   el.innerHTML = `
     <strong>${perfil.nome}</strong>
     <span>${perfil.role === 'admin' ? 'Administrador' : 'Visitante'}</span>
   `;
+  return perfil;
 }
 
 export async function logout() {
@@ -251,10 +253,11 @@ export async function initPage() {
   document.body.insertAdjacentHTML('afterbegin', sidebarHTML());
   document.body.insertAdjacentHTML('beforeend', bottomNavHTML());
   setActiveNav();
-  renderUserInfo();
+  const perfil = renderUserInfo();
   initMobileMenu();
   document.getElementById('btn-logout')?.addEventListener('click', logout);
   initSidebarToggle();
+  initAjuda(perfil);
   initRotina();
 }
 
@@ -262,16 +265,17 @@ export async function initPage() {
 const _ROTINA_TODAY = new Date().toISOString().split('T')[0];
 const _ROTINA_KEY   = 'sgr_rotina_' + _ROTINA_TODAY;
 
+// diario: já vem marcado na tela de seleção (rotina de todo dia)
 const MODULOS_ROTINA = [
-  { id:'entradas',      label:'Entradas',          href:'entradas.html',          icon:'inbox',         desc:'Registrar entradas de materiais' },
-  { id:'producao',      label:'Produção',           href:'producao.html',          icon:'bar-chart',     desc:'Atualizar dados de produção' },
-  { id:'estoque',       label:'Estoque',            href:'estoque.html',           icon:'package',       desc:'Verificar e atualizar estoque' },
-  { id:'equipamentos',  label:'Equipamentos',       href:'equipamentos.html',      icon:'wrench',        desc:'Status dos equipamentos' },
-  { id:'comercial',     label:'Comercial',          href:'comercial.html',         icon:'cart',          desc:'Dados comerciais e metas' },
-  { id:'rh',            label:'RH',                 href:'rh.html',                icon:'users',         desc:'Recursos humanos' },
-  { id:'tarefas',       label:'Tarefas',            href:'tarefas.html',           icon:'check-circle',  desc:'Gerenciar tarefas do dia' },
-  { id:'relatorio',     label:'Relatório Comitê',   href:'dashboard.html',         icon:'bar-chart',     desc:'Relatório para diretoria' },
-  { id:'rel-diario',    label:'Relatório Diário',   href:'relatorio-diario.html',  icon:'list',          desc:'Relatório diário de operações' },
+  { id:'entradas',      label:'Entradas',          href:'entradas.html',          icon:'inbox',         diario:true, desc:'Lançar as pesagens dos caminhões' },
+  { id:'producao',      label:'Produção',           href:'producao.html',          icon:'bar-chart',     diario:true, desc:'Lançar prensagem e triagem' },
+  { id:'equipamentos',  label:'Equipamentos',       href:'equipamentos.html',      icon:'wrench',        diario:true, desc:'Status de cada máquina → Salvar dia' },
+  { id:'rh',            label:'RH',                 href:'rh.html',                icon:'users',         diario:true, desc:'Lançar as faltas do dia' },
+  { id:'tarefas',       label:'Tarefas',            href:'tarefas.html',           icon:'check-circle',  diario:true, desc:'Ver o que vence hoje e concluir' },
+  { id:'estoque',       label:'Estoque',            href:'estoque.html',           icon:'package',       desc:'Conferir os materiais em estoque' },
+  { id:'comercial',     label:'Comercial',          href:'comercial.html',         icon:'cart',          desc:'Lançar vendas, se houve' },
+  { id:'relatorio',     label:'Relatório Comitê',   href:'dashboard.html',         icon:'bar-chart',     desc:'Conferir os números do mês' },
+  { id:'rel-diario',    label:'Relatório Diário',   href:'relatorio-diario.html',  icon:'list',          diario:true, desc:'Preencher e enviar (fim do turno)' },
 ];
 
 function _rotinaGetState()  { try { return JSON.parse(localStorage.getItem(_ROTINA_KEY)); } catch { return null; } }
@@ -297,6 +301,15 @@ function initRotina() {
   if (_rotinaCurrentPage() !== modAtual.href) { location.href = modAtual.href; return; }
   _showProgressBar(state);
   _bloquearNav(true);
+
+  // Abre a ajuda da tela uma vez em cada passo, para a pessoa saber o que fazer
+  const vistoKey = 'sgr_rotina_ajuda_' + _ROTINA_TODAY + '_' + state.atual;
+  try {
+    if (!sessionStorage.getItem(vistoKey)) {
+      sessionStorage.setItem(vistoKey, '1');
+      window._abrirAjuda?.();
+    }
+  } catch {}
 }
 
 function _showSelecao() {
@@ -310,24 +323,24 @@ function _showSelecao() {
       <div class="rotina-card-hd">
         <div class="rotina-wave">♻</div>
         <div class="rotina-saudacao">${saudacao}! 👋</div>
-        <div class="rotina-sub">Selecione os módulos que deseja atualizar hoje antes de acessar o sistema.</div>
+        <div class="rotina-sub">O que precisa ser feito todo dia já está marcado. Clique em <b>Iniciar Rotina</b> e o sistema leva você tela por tela, explicando o que fazer em cada uma.</div>
       </div>
       <div class="rotina-card-body">
-        <div class="rotina-section-label">Módulos disponíveis</div>
+        <div class="rotina-section-label">O que fazer hoje</div>
         <div class="rotina-grid" id="rotina-modulos">
           ${MODULOS_ROTINA.map(m => `
-            <label class="rotina-mod-item" id="lbl-${m.id}">
-              <input type="checkbox" class="rotina-cb" value="${m.id}" onchange="rotinaToggle(this,'${m.id}')" />
+            <label class="rotina-mod-item${m.diario ? ' selected' : ''}" id="lbl-${m.id}">
+              <input type="checkbox" class="rotina-cb" value="${m.id}" ${m.diario ? 'checked' : ''} onchange="rotinaToggle(this,'${m.id}')" />
               <span class="rotina-mod-icon">${icon(m.icon, { size: 20 })}</span>
               <div class="rotina-mod-info">
-                <div class="rotina-mod-label">${m.label}</div>
+                <div class="rotina-mod-label">${m.label}${m.diario ? ' <span class="rotina-tag-diario">todo dia</span>' : ''}</div>
                 <div class="rotina-mod-desc">${m.desc}</div>
               </div>
             </label>`).join('')}
         </div>
         <div class="rotina-footer">
           <button class="rotina-btn-pular" onclick="rotinaPular()">Pular por hoje →</button>
-          <button class="rotina-btn-iniciar" id="btn-iniciar-rotina" disabled onclick="rotinaIniciar()">
+          <button class="rotina-btn-iniciar" id="btn-iniciar-rotina" onclick="rotinaIniciar()">
             Iniciar Rotina →
           </button>
         </div>
@@ -378,6 +391,7 @@ function _showProgressBar(state) {
     <div class="rotina-steps">${steps}</div>
     <div class="rotina-bar-actions">
       <span class="rotina-bar-count">${done}/${total} concluídos</span>
+      <button class="rotina-btn-ajuda" onclick="window._abrirAjuda && window._abrirAjuda()">? O que fazer aqui</button>
       <button class="rotina-btn-avancar" onclick="rotinaAvancar()">
         ${isLast ? '✓ Finalizar Rotina' : '✓ Concluído, próximo →'}
       </button>
