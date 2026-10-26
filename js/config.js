@@ -265,18 +265,30 @@ export async function initPage() {
 const _ROTINA_TODAY = new Date().toISOString().split('T')[0];
 const _ROTINA_KEY   = 'sgr_rotina_' + _ROTINA_TODAY;
 
-// diario: já vem marcado na tela de seleção (rotina de todo dia)
+// freq: quando o módulo já vem marcado na tela de seleção
+//   'dia' = todo dia · 'inicio-mes' = até o dia 7 · 'quinta' = às quintas-feiras
 const MODULOS_ROTINA = [
-  { id:'entradas',      label:'Entradas',          href:'entradas.html',          icon:'inbox',         diario:true, desc:'Lançar as pesagens dos caminhões' },
-  { id:'producao',      label:'Produção',           href:'producao.html',          icon:'bar-chart',     diario:true, desc:'Lançar prensagem e triagem' },
-  { id:'equipamentos',  label:'Equipamentos',       href:'equipamentos.html',      icon:'wrench',        diario:true, desc:'Status de cada máquina → Salvar dia' },
-  { id:'rh',            label:'RH',                 href:'rh.html',                icon:'users',         diario:true, desc:'Lançar as faltas do dia' },
-  { id:'tarefas',       label:'Tarefas',            href:'tarefas.html',           icon:'check-circle',  diario:true, desc:'Ver o que vence hoje e concluir' },
-  { id:'estoque',       label:'Estoque',            href:'estoque.html',           icon:'package',       desc:'Conferir os materiais em estoque' },
-  { id:'comercial',     label:'Comercial',          href:'comercial.html',         icon:'cart',          desc:'Lançar vendas, se houve' },
-  { id:'relatorio',     label:'Relatório Comitê',   href:'dashboard.html',         icon:'bar-chart',     desc:'Conferir os números do mês' },
-  { id:'rel-diario',    label:'Relatório Diário',   href:'relatorio-diario.html',  icon:'list',          diario:true, desc:'Preencher e enviar (fim do turno)' },
+  { id:'entradas',      label:'Entradas',          href:'entradas.html',          icon:'inbox',         freq:'inicio-mes', desc:'Importar a planilha da balança do mês anterior' },
+  { id:'producao',      label:'Produção',           href:'producao.html',          icon:'bar-chart',     freq:'dia',        desc:'Lançar prensagem e triagem' },
+  { id:'equipamentos',  label:'Equipamentos',       href:'equipamentos.html',      icon:'wrench',        freq:'dia',        desc:'Status de cada máquina → Salvar dia' },
+  { id:'rh',            label:'RH',                 href:'rh.html',                icon:'users',         freq:'dia',        desc:'Lançar as faltas do dia' },
+  { id:'tarefas',       label:'Tarefas',            href:'tarefas.html',           icon:'check-circle',  freq:'dia',        desc:'Ver o que vence hoje e concluir' },
+  { id:'comercial',     label:'Comercial',          href:'comercial.html',         icon:'cart',                             desc:'Lançar vendas + pedido no Protheus, se houve' },
+  { id:'estoque',       label:'Estoque',            href:'estoque.html',           icon:'package',       freq:'dia',        desc:'Atualizar os kg no fim da tarde, após a produção' },
+  { id:'relatorio',     label:'Relatório Comitê',   href:'dashboard.html',         icon:'bar-chart',                        desc:'Conferir os números do mês' },
+  { id:'apresentacao',  label:'Apresentação',       href:'apresentacao.html',      icon:'file',          freq:'quinta',     desc:'Gerar e revisar os slides do comitê (à tarde)' },
+  { id:'rel-diario',    label:'Relatório Diário',   href:'relatorio-diario.html',  icon:'list',          freq:'dia',        desc:'Preencher e enviar (fim do turno)' },
 ];
+
+const _ROTINA_TAG = { 'dia':'todo dia', 'inicio-mes':'início do mês', 'quinta':'quintas' };
+
+function _rotinaMarcarHoje(m) {
+  const hoje = new Date();
+  if (m.freq === 'dia')        return true;
+  if (m.freq === 'inicio-mes') return hoje.getDate() <= 7;
+  if (m.freq === 'quinta')     return hoje.getDay() === 4;
+  return false;
+}
 
 function _rotinaGetState()  { try { return JSON.parse(localStorage.getItem(_ROTINA_KEY)); } catch { return null; } }
 function _rotinaSetState(s) { localStorage.setItem(_ROTINA_KEY, JSON.stringify(s)); }
@@ -323,20 +335,20 @@ function _showSelecao() {
       <div class="rotina-card-hd">
         <div class="rotina-wave">♻</div>
         <div class="rotina-saudacao">${saudacao}! 👋</div>
-        <div class="rotina-sub">O que precisa ser feito todo dia já está marcado. Clique em <b>Iniciar Rotina</b> e o sistema leva você tela por tela, explicando o que fazer em cada uma.</div>
+        <div class="rotina-sub">O que precisa ser feito hoje já está marcado. Clique em <b>Iniciar Rotina</b> e o sistema leva você tela por tela, explicando o que fazer em cada uma.</div>
       </div>
       <div class="rotina-card-body">
         <div class="rotina-section-label">O que fazer hoje</div>
         <div class="rotina-grid" id="rotina-modulos">
-          ${MODULOS_ROTINA.map(m => `
-            <label class="rotina-mod-item${m.diario ? ' selected' : ''}" id="lbl-${m.id}">
-              <input type="checkbox" class="rotina-cb" value="${m.id}" ${m.diario ? 'checked' : ''} onchange="rotinaToggle(this,'${m.id}')" />
+          ${MODULOS_ROTINA.map(m => { const marcar = _rotinaMarcarHoje(m); return `
+            <label class="rotina-mod-item${marcar ? ' selected' : ''}" id="lbl-${m.id}">
+              <input type="checkbox" class="rotina-cb" value="${m.id}" ${marcar ? 'checked' : ''} onchange="rotinaToggle(this,'${m.id}')" />
               <span class="rotina-mod-icon">${icon(m.icon, { size: 20 })}</span>
               <div class="rotina-mod-info">
-                <div class="rotina-mod-label">${m.label}${m.diario ? ' <span class="rotina-tag-diario">todo dia</span>' : ''}</div>
+                <div class="rotina-mod-label">${m.label}${m.freq ? ` <span class="rotina-tag-diario${marcar ? '' : ' rotina-tag-off'}">${_ROTINA_TAG[m.freq]}</span>` : ''}</div>
                 <div class="rotina-mod-desc">${m.desc}</div>
               </div>
-            </label>`).join('')}
+            </label>`; }).join('')}
         </div>
         <div class="rotina-footer">
           <button class="rotina-btn-pular" onclick="rotinaPular()">Pular por hoje →</button>

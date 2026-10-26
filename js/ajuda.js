@@ -30,16 +30,14 @@ export const AJUDA = {
   'entradas.html': {
     titulo: 'Entradas',
     resumo: 'Registro de tudo o que chega na unidade: cada pesagem de caminhão, com fornecedor, material e peso.',
-    quando: '<b>Todo dia</b>, lançando as pesagens do dia anterior ou do próprio dia.',
+    quando: '<b>Todo início de mês</b>, lançando as pesagens do mês anterior.',
     passos: [
-      'Clique em <b>Nova Entrada</b>.',
-      'Preencha a <b>Data</b>, o <b>Fornecedor</b> e o <b>Material</b>.',
-      'Digite a <b>Pesagem 1</b> (caminhão cheio) e a <b>Pesagem 2 / Tara</b> (caminhão vazio). O peso líquido é calculado sozinho.',
-      'Se houver desconto, informe <b>Umidade %</b>, <b>Impureza %</b> ou <b>Rejeito</b>.',
-      'Clique em <b>Salvar</b> e confira se a entrada apareceu na lista.',
+      'Nos primeiros dias do mês, peça para a balança a <b>planilha de pesagens do mês anterior</b>.',
+      'Com a planilha salva no computador, clique em <b>Importar CSV</b> e escolha o arquivo.',
+      'Confira na lista se as entradas do mês anterior apareceram e se os totais fazem sentido.',
     ],
     dicas: [
-      'Se a balança gerou uma planilha, use <b>Importar CSV</b> em vez de digitar uma por uma.',
+      'Se faltar alguma pesagem, lance à mão em <b>Nova Entrada</b>: Data, Fornecedor, Material, <b>Pesagem 1</b> (caminhão cheio) e <b>Pesagem 2 / Tara</b> (vazio). O peso líquido é calculado sozinho.',
       'Para corrigir uma entrada, use o ícone de lápis na linha dela. A lixeira apaga.',
       'Não use <b>Excluir Mês</b> sem combinar antes: ele apaga todas as entradas do mês.',
     ],
@@ -50,7 +48,8 @@ export const AJUDA = {
     quando: '<b>Todo dia</b>, com a produção de cada prensa e de cada operador.',
     passos: [
       'Na aba <b>Prensagem</b>, clique em <b>+ Novo Registro</b>.',
-      'Informe <b>Data</b>, <b>Equipamento</b>, <b>Material</b>, <b>Operador</b>, <b>Peso Produzido (kg)</b> e a <b>Quantidade de Fardos</b>.',
+      'Informe <b>Data</b>, <b>Equipamento</b> e <b>Operador</b>. Em <b>Material</b>, escolha <b>Aparas de Papelão</b> ou <b>Aparas de Plástico</b>.',
+      'Preencha o <b>Peso Produzido (kg)</b> e a <b>Quantidade de Fardos</b>.',
       'Clique em <b>Salvar</b>. Repita para cada prensa ou operador do dia.',
       'Se houve triagem, abra a aba <b>Triagem de Cargas</b> e clique em <b>+ Nova Triagem</b>. Preencha cliente, horário de início e fim, pausa e peso triado.',
     ],
@@ -61,14 +60,17 @@ export const AJUDA = {
   },
   'estoque.html': {
     titulo: 'Estoque',
-    resumo: 'Lista dos materiais que estão em estoque na unidade.',
-    quando: 'Quando entrar um material novo no estoque ou quando precisar conferir o que existe.',
+    resumo: 'Quantos kg de cada material estão em estoque na unidade.',
+    quando: '<b>Todo dia, no fim da tarde</b>, depois que a produção do dia terminou.',
     passos: [
-      'Clique em <b>+ Adicionar Material</b>.',
-      'Escolha o <b>Material</b> e clique em <b>Adicionar</b>.',
-      'Para tirar um material da lista, use a lixeira na linha dele.',
+      'Em <b>Materiais em Estoque</b>, clique no campo <b>Kg em Estoque</b> de cada material.',
+      'Digite a quantidade atual e clique fora do campo. O valor é salvo sozinho.',
+      'Se mudou o preço ou a observação, edite esses campos do mesmo jeito.',
     ],
-    dicas: [],
+    dicas: [
+      '<b>+ Adicionar Material</b> só é usado quando aparece um material que ainda não está na lista.',
+      'A lixeira tira o material da lista. Não é preciso usar no dia a dia.',
+    ],
   },
   'equipamentos.html': {
     titulo: 'Equipamentos',
@@ -95,6 +97,7 @@ export const AJUDA = {
       'Para ver se a meta está sendo atingida, confira <b>Acompanhamento de Meta Semanal</b>.',
     ],
     dicas: [
+      '<b>Pedido de venda no Protheus:</b> abra o último pedido do mesmo comprador, faça uma cópia e altere o volume (e o valor, se mudou).',
       'Se o cliente não aparecer na lista, cadastre em <b>Novo Cliente</b>.',
       '<b>⬇ Exportar Excel</b> gera uma planilha com as vendas filtradas.',
     ],
@@ -175,12 +178,12 @@ export const AJUDA = {
   },
   'apresentacao.html': {
     titulo: 'Apresentação do Comitê',
-    resumo: 'Gera os slides (.pptx) da reunião mensal com a diretoria a partir dos dados do sistema.',
-    quando: '<b>Uma vez por mês</b>, antes da reunião do comitê.',
+    resumo: 'Gera os slides (.pptx) da reunião do comitê com a diretoria a partir dos dados do sistema.',
+    quando: '<b>Toda quinta-feira à tarde</b>, depois que a operação do dia terminou.',
     passos: [
       'Siga as etapas na ordem: <b>1. Período</b> → <b>Carregar dados</b>.',
       '<b>2. Conferência dos números</b>: confira se os valores batem.',
-      '<b>3 a 5</b>: revise as frases, a equipe e os equipamentos e o plano de ação.',
+      '<b>3 a 5</b>: revise as frases, a equipe e os equipamentos e o plano de ação. Veja se algo precisa ser mudado desde a semana passada.',
       '<b>6. Gerar</b>: clique em <b>Gerar apresentação (.pptx)</b>.',
     ],
     dicas: ['Se um número estiver errado, corrija na tela de origem e clique em <b>Carregar dados</b> de novo.'],
@@ -214,12 +217,18 @@ export const AJUDA = {
 };
 
 const ROTINA_DIA = [
-  'Entradas: lançar as pesagens',
   'Produção: lançar prensagem e triagem',
   'Equipamentos: status do dia → Salvar dia',
   'RH: Lançar Faltas',
   'Tarefas: ver o que vence hoje',
+  'Estoque: atualizar os kg (fim da tarde, após a produção)',
   'Relatório Diário: preencher e enviar (fim do turno)',
+];
+
+const ROTINA_PERIODICA = [
+  '<b>Início do mês:</b> Entradas, importar a planilha da balança do mês anterior',
+  '<b>Quinta à tarde:</b> Apresentação do Comitê, gerar e revisar',
+  '<b>Quando houver venda:</b> Comercial + pedido no Protheus',
 ];
 
 function paginaAtual() { return location.pathname.split('/').pop() || 'dashboard.html'; }
@@ -265,6 +274,8 @@ export function initAjuda(perfilPromise) {
         ${info.dicas.length ? `<div class="ajuda-sec">Dicas</div><ul class="ajuda-dicas">${lista(info.dicas)}</ul>` : ''}
         <div class="ajuda-sec">Rotina de todo dia</div>
         <ol class="ajuda-rotina">${lista(ROTINA_DIA)}</ol>
+        <div class="ajuda-sec">Outras datas</div>
+        <ul class="ajuda-rotina">${lista(ROTINA_PERIODICA)}</ul>
         <p class="ajuda-rodape">Para ser guiado tela por tela, clique em <b>Iniciar Rotina Diária</b> no menu.</p>
       </div>
     </aside>`;

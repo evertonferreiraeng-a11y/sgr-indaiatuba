@@ -924,3 +924,4 @@ fieldset.nf-checklist-fieldset:disabled .nf-check-label { cursor: default; opaci
 @media (max-width: 420px) {
   .rotina-bar-count { display: none; }
 }
+.rotina-tag-diario.rotina-tag-off { background: #f1f5f9; color: #64748b; }
