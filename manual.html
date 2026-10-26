@@ -1,0 +1,275 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <link rel="manifest" href="manifest.json" />
+  <meta name="theme-color" content="#006636" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="SGR Indaiatuba" />
+  <link rel="apple-touch-icon" href="img/icons/apple-touch-icon.png" />
+  <link rel="icon" type="image/png" href="img/icons/icon-192.png" />
+  <title>Manual do Sistema — SGR Indaiatuba</title>
+  <link rel="stylesheet" href="css/style.css" />
+  <style>
+    .man-wrap { max-width: 920px; }
+    .man-sumario { display:flex; flex-wrap:wrap; gap:8px; margin-bottom:22px; }
+    .man-sumario a {
+      padding:7px 14px; border-radius:999px; border:1px solid var(--border); background:#fff;
+      color:var(--text); text-decoration:none; font-size:13px; font-weight:600;
+    }
+    .man-sumario a:hover { border-color:var(--primary-border); background:var(--primary-bg); color:var(--primary); }
+    .man-sec, .man-card { margin-bottom:28px; scroll-margin-top:84px; }
+    .man-sec > h3 { font-size:18px; font-weight:800; color:var(--text); margin:0 0 4px; letter-spacing:-.01em; }
+    .man-sec > .man-lead { color:var(--text-muted); font-size:13.5px; margin:0 0 14px; }
+    .man-card { background:#fff; border:1px solid var(--border); border-radius:var(--radius-lg); box-shadow:var(--shadow-sm); padding:20px 22px; margin-bottom:12px; font-size:14px; line-height:1.6; color:var(--text); }
+    .man-card h4 { font-size:15px; font-weight:700; margin:0 0 8px; color:var(--text); }
+    .man-card p { margin:0 0 10px; }
+    .man-card p:last-child { margin-bottom:0; }
+    .man-card ul, .man-card ol { margin:0 0 10px; padding-left:20px; }
+    .man-card li { margin-bottom:5px; }
+    .man-card a { color:var(--primary); font-weight:600; }
+
+    .man-passos { list-style:none; padding:0 !important; counter-reset:p; }
+    .man-passos li { counter-increment:p; position:relative; padding-left:34px; margin-bottom:10px !important; }
+    .man-passos li::before {
+      content:counter(p); position:absolute; left:0; top:1px; width:23px; height:23px; border-radius:50%;
+      background:var(--primary); color:#fff; font-size:12px; font-weight:700; display:grid; place-items:center;
+    }
+    .man-quando { background:var(--primary-bg); border:1px solid var(--primary-border); border-radius:var(--radius); padding:9px 12px; margin-bottom:12px; font-size:13.5px; }
+    .man-quando span { display:block; font-size:10.5px; font-weight:700; letter-spacing:.06em; text-transform:uppercase; color:var(--primary); }
+    .man-label { font-size:11px; font-weight:700; letter-spacing:.06em; text-transform:uppercase; color:var(--text-muted); margin:14px 0 8px; }
+    .man-mod-hd { display:flex; justify-content:space-between; align-items:flex-start; gap:12px; margin-bottom:6px; }
+    .man-mod-hd h4 { margin:0; }
+    .man-abrir { font-size:12.5px; white-space:nowrap; text-decoration:none; padding:5px 10px; border-radius:7px; border:1px solid var(--primary-border); background:var(--primary-bg); }
+
+    .man-tabela { width:100%; border-collapse:collapse; font-size:13.5px; }
+    .man-tabela th { text-align:left; font-size:11px; letter-spacing:.05em; text-transform:uppercase; color:var(--text-muted); padding:8px 10px; border-bottom:2px solid var(--border); }
+    .man-tabela td { padding:9px 10px; border-bottom:1px solid #f1f5f9; vertical-align:top; }
+    .man-tabela td:first-child { font-weight:700; white-space:nowrap; }
+    .man-tag { display:inline-block; padding:2px 8px; border-radius:999px; background:#dcfce7; color:#166534; font-size:11px; font-weight:700; white-space:nowrap; }
+    .man-tag.off { background:#f1f5f9; color:#64748b; }
+
+    .man-dia { display:grid; grid-template-columns:repeat(auto-fit, minmax(200px, 1fr)); gap:10px; }
+    .man-dia > div { border:1px solid var(--border); border-radius:var(--radius); padding:12px 14px; background:#fafafa; }
+    .man-dia b.t { display:block; font-size:12px; text-transform:uppercase; letter-spacing:.05em; color:var(--primary); margin-bottom:6px; }
+    .man-dia ul { margin:0; padding-left:18px; font-size:13.5px; }
+
+    .man-faq h4 { font-size:14px; margin-bottom:4px; }
+    .man-faq + .man-faq { margin-top:14px; padding-top:14px; border-top:1px solid #f1f5f9; }
+
+    @media (max-width: 768px) {
+      .man-card { padding:16px; }
+      .man-sec, .man-card { scroll-margin-top:150px; }
+      .man-tabela thead { display:none; }
+      .man-tabela tr { display:block; padding:10px 0; border-bottom:1px solid var(--border); }
+      .man-tabela td { display:block; padding:2px 0; border:none; }
+    }
+    @media print {
+      .sidebar, .sidebar-toggle, .bottom-nav, .page-header button, .man-sumario, .man-abrir { display:none !important; }
+      .main-content { margin-left:0 !important; }
+      .man-card { box-shadow:none; break-inside:avoid; }
+    }
+  </style>
+</head>
+<body>
+<div class="app-layout">
+  <div id="sidebar-root"></div>
+  <div class="main-content">
+    <div class="page-header">
+      <div><h2>Manual do Sistema</h2><p>Como funciona a rotina e como fazer cada lançamento</p></div>
+      <button class="btn btn-outline" onclick="window.print()">Imprimir / PDF</button>
+    </div>
+    <div class="page-body">
+      <div class="man-wrap">
+
+        <nav class="man-sumario">
+          <a href="#inicio">1. Primeiros passos</a>
+          <a href="#rotina">2. Rotina Diária</a>
+          <a href="#agenda">3. O que fazer e quando</a>
+          <a href="#lancamentos">4. Lançamentos, tela por tela</a>
+          <a href="#problemas">5. Dúvidas e problemas</a>
+        </nav>
+
+        <!-- 1 -->
+        <section class="man-sec" id="inicio">
+          <h3>1. Primeiros passos</h3>
+          <p class="man-lead">O básico para entrar e se localizar no sistema.</p>
+          <div class="man-card">
+            <h4>Entrar no sistema</h4>
+            <p>Acesse o endereço do sistema, digite seu <b>e-mail</b> e sua <b>senha</b> e clique em <b>Entrar</b>. No celular, o sistema pode ser instalado como aplicativo pela opção "Adicionar à tela inicial" do navegador.</p>
+          </div>
+          <div class="man-card">
+            <h4>O menu</h4>
+            <ul>
+              <li><b>No computador:</b> o menu fica na lateral esquerda. O botão <b>☰</b> esconde e mostra o menu.</li>
+              <li><b>No celular:</b> as telas principais ficam na barra de baixo. As outras ficam em <b>Mais</b>.</li>
+              <li>No pé do menu ficam o botão <b>Iniciar Rotina Diária</b>, o seu nome e o botão <b>Sair</b>.</li>
+            </ul>
+          </div>
+          <div class="man-card">
+            <h4>Administrador e Visitante</h4>
+            <p>Embaixo do seu nome aparece o seu perfil:</p>
+            <ul>
+              <li><b>Administrador:</b> vê e lança tudo.</li>
+              <li><b>Visitante:</b> só consulta. Botões de lançamento (como <b>Lançar Faltas</b>, <b>+ Ocorrência</b> e outros) ficam escondidos.</li>
+            </ul>
+            <p>Se você precisa lançar dados e está como Visitante, peça para mudarem o seu perfil para Administrador.</p>
+          </div>
+          <div class="man-card">
+            <h4>Botão "Como usar esta tela"</h4>
+            <p>Em toda tela há um botão verde no canto de baixo, à direita (no celular, um <b>?</b>). Ele abre um resumo de para que serve a tela, quando usar e o passo a passo. É o mesmo conteúdo da seção 4 deste manual.</p>
+          </div>
+        </section>
+
+        <!-- 2 -->
+        <section class="man-sec" id="rotina">
+          <h3>2. Rotina Diária</h3>
+          <p class="man-lead">O sistema guia você pelas tarefas do dia, uma tela de cada vez.</p>
+          <div class="man-card">
+            <h4>Como funciona</h4>
+            <ol class="man-passos">
+              <li>Ao entrar no sistema, aparece a tela <b>"Bom dia!"</b> (ou "Boa tarde!") com a lista de tarefas.</li>
+              <li>O que precisa ser feito naquele período <b>já vem marcado</b>. Pode marcar ou desmarcar o que quiser.</li>
+              <li>Clique em <b>Iniciar Rotina</b>. O sistema abre a primeira tela e mostra a ajuda dela, explicando o que fazer.</li>
+              <li>Faça o lançamento. Depois clique em <b>✓ Concluído, próximo →</b> na barra escura do topo. O sistema vai para a próxima tela.</li>
+              <li>Na última tela, o botão vira <b>✓ Finalizar Rotina</b>. Depois disso o sistema fica liberado.</li>
+            </ol>
+          </div>
+          <div class="man-card">
+            <h4>Manhã e tarde</h4>
+            <p>Há uma rotina para cada período:</p>
+            <ul>
+              <li><b>Antes do meio-dia:</b> vêm marcadas as tarefas de <b>início do dia</b>.</li>
+              <li><b>Depois do meio-dia:</b> vêm marcadas as tarefas de <b>fim do dia</b>. Por isso, ao entrar à tarde, a tela da rotina aparece de novo.</li>
+              <li>Se a rotina da manhã ficou pela metade, à tarde o sistema <b>continua de onde parou</b>.</li>
+            </ul>
+            <p>As etiquetas ao lado de cada tarefa dizem quando ela é feita. Verde é para agora. Cinza é para outro momento (por exemplo, "início do mês" no meio do mês).</p>
+          </div>
+          <div class="man-card">
+            <h4>Durante a rotina</h4>
+            <ul>
+              <li>O menu fica bloqueado para você não se perder. Só a tela da vez fica disponível.</li>
+              <li>A barra do topo mostra em que passo você está e quantos já foram feitos.</li>
+              <li>Fechou a ajuda e esqueceu o que fazer? Clique em <b>? O que fazer aqui</b> na barra do topo.</li>
+            </ul>
+          </div>
+          <div class="man-card">
+            <h4>Pular ou recomeçar</h4>
+            <ul>
+              <li><b>Pular por agora:</b> fecha a rotina naquele período (manhã ou tarde) e libera o sistema.</li>
+              <li><b>Iniciar Rotina Diária</b> (no pé do menu): abre a lista de novo a qualquer momento e recomeça do zero.</li>
+            </ul>
+          </div>
+        </section>
+
+        <!-- 3 -->
+        <section class="man-sec" id="agenda">
+          <h3>3. O que fazer e quando</h3>
+          <p class="man-lead">Resumo da rotina da unidade.</p>
+          <div class="man-card">
+            <div class="man-dia" id="man-dia"></div>
+          </div>
+          <div class="man-card">
+            <h4>Tarefas da Rotina Diária</h4>
+            <table class="man-tabela">
+              <thead><tr><th>Tela</th><th>Quando</th><th>O que fazer</th></tr></thead>
+              <tbody id="man-agenda"></tbody>
+            </table>
+          </div>
+        </section>
+
+        <!-- 4 -->
+        <section class="man-sec" id="lancamentos">
+          <h3>4. Lançamentos, tela por tela</h3>
+          <p class="man-lead">Para que serve cada tela, quando usar e o passo a passo.</p>
+          <div id="man-modulos"></div>
+        </section>
+
+        <!-- 5 -->
+        <section class="man-sec" id="problemas">
+          <h3>5. Dúvidas e problemas</h3>
+          <p class="man-lead">O que fazer quando algo não sai como esperado.</p>
+          <div class="man-card">
+            <div class="man-faq">
+              <h4>Não aparece o botão que o manual cita</h4>
+              <p>Seu usuário provavelmente está como <b>Visitante</b> (veja embaixo do seu nome, no menu). Peça acesso de Administrador.</p>
+            </div>
+            <div class="man-faq">
+              <h4>Lancei algo errado</h4>
+              <p>Na lista da tela, use o <b>lápis</b> da linha para corrigir. A <b>lixeira</b> apaga só aquela linha. Nunca use <b>Excluir Mês</b> (em Entradas) sem combinar antes: ele apaga o mês inteiro.</p>
+            </div>
+            <div class="man-faq">
+              <h4>Um número do Dashboard ou da Apresentação está errado</h4>
+              <p>Esses números vêm das outras telas. Corrija na tela de origem (Entradas, Produção, Estoque, Equipamentos ou Comercial) e abra o Dashboard de novo. Na Apresentação, clique em <b>Carregar dados</b> outra vez.</p>
+            </div>
+            <div class="man-faq">
+              <h4>A tela não carrega ou ficou em "Carregando…"</h4>
+              <p>Confira a internet e recarregue a página (<b>F5</b>, ou puxe a tela para baixo no celular). Se continuar, clique em <b>Sair</b> e entre de novo.</p>
+            </div>
+            <div class="man-faq">
+              <h4>A Rotina Diária não apareceu</h4>
+              <p>Ela já foi concluída ou pulada nesse período. Para abrir de novo, clique em <b>Iniciar Rotina Diária</b> no pé do menu.</p>
+            </div>
+            <div class="man-faq">
+              <h4>A rotina me mandou para uma tela e o menu não funciona</h4>
+              <p>É de propósito: durante a rotina, o menu fica bloqueado. Termine a etapa e clique em <b>Concluído, próximo</b>, ou recomece pelo botão <b>Iniciar Rotina Diária</b> e clique em <b>Pular por agora</b>.</p>
+            </div>
+          </div>
+        </section>
+
+      </div>
+    </div>
+  </div>
+</div>
+
+<script type="module">
+import { initPage, MODULOS_ROTINA } from './js/config.js?v=8';
+import { AJUDA, ROTINA_DIA, ROTINA_PERIODICA } from './js/ajuda.js';
+
+await initPage();
+
+// Telas na mesma ordem e agrupamento do menu
+const GRUPOS = [
+  ['Visão geral',  ['dashboard.html', 'indicadores.html']],
+  ['Operacional',  ['entradas.html', 'producao.html', 'estoque.html', 'equipamentos.html']],
+  ['Comercial',    ['comercial.html', 'notas-fiscais.html']],
+  ['Qualidade',    ['cargas.html']],
+  ['Pessoas',      ['rh.html']],
+  ['Gestão',       ['tarefas.html']],
+  ['Relatórios',   ['apresentacao.html', 'rnc.html']],
+];
+
+const lista = arr => arr.map(t => `<li>${t}</li>`).join('');
+
+document.getElementById('man-dia').innerHTML = `
+  <div><b class="t">Todo dia</b><ul>${lista(ROTINA_DIA)}</ul></div>
+  <div><b class="t">Outras datas</b><ul>${lista(ROTINA_PERIODICA)}</ul></div>`;
+
+document.getElementById('man-agenda').innerHTML = MODULOS_ROTINA.map(m => `
+  <tr>
+    <td><a href="#tela-${m.href.replace('.html', '')}">${m.label}</a></td>
+    <td>${m.tag ? `<span class="man-tag">${m.tag}</span>` : '—'}</td>
+    <td>${m.desc}</td>
+  </tr>`).join('');
+
+document.getElementById('man-modulos').innerHTML = GRUPOS.map(([grupo, paginas]) => `
+  <div class="man-label">${grupo}</div>
+  ${paginas.filter(p => AJUDA[p]).map(p => {
+    const a = AJUDA[p];
+    return `
+    <div class="man-card" id="tela-${p.replace('.html', '')}">
+      <div class="man-mod-hd">
+        <h4>${a.titulo}</h4>
+        <a class="man-abrir" href="${p}">Abrir tela →</a>
+      </div>
+      <p>${a.resumo}</p>
+      <div class="man-quando"><span>Quando usar</span>${a.quando}</div>
+      <ol class="man-passos">${lista(a.passos)}</ol>
+      ${a.dicas.length ? `<div class="man-label" style="margin-top:4px">Dicas</div><ul>${lista(a.dicas)}</ul>` : ''}
+    </div>`;
+  }).join('')}`).join('');
+</script>
+</body>
+</html>

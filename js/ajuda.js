@@ -203,14 +203,14 @@ export const AJUDA = {
   },
 };
 
-const ROTINA_DIA = [
+export const ROTINA_DIA = [
   '<b>Início do dia:</b> Equipamentos (status → Salvar dia) e RH (Lançar Faltas)',
   '<b>Durante o dia:</b> Tarefas (ver o que vence hoje)',
   '<b>À tarde:</b> RH, revisar as faltas',
   '<b>Fim do dia:</b> Produção (prensagem e triagem) e Estoque (atualizar os kg)',
 ];
 
-const ROTINA_PERIODICA = [
+export const ROTINA_PERIODICA = [
   '<b>Início do mês:</b> Entradas, importar a planilha da balança do mês anterior',
   '<b>Quinta, fim do dia:</b> Apresentação do Comitê, gerar e revisar',
   '<b>A cada venda de recicláveis:</b> Comercial + pedido no Protheus',
@@ -261,7 +261,7 @@ export function initAjuda(perfilPromise) {
         <ol class="ajuda-rotina">${lista(ROTINA_DIA)}</ol>
         <div class="ajuda-sec">Outras datas</div>
         <ul class="ajuda-rotina">${lista(ROTINA_PERIODICA)}</ul>
-        <p class="ajuda-rodape">Para ser guiado tela por tela, clique em <b>Iniciar Rotina Diária</b> no menu.</p>
+        <p class="ajuda-rodape">Para ser guiado tela por tela, clique em <b>Iniciar Rotina Diária</b> no menu. Tudo explicado em detalhe no <a href="manual.html">Manual do Sistema</a>.</p>
       </div>
     </aside>`;
   document.body.appendChild(painel);

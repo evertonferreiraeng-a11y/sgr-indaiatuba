@@ -197,6 +197,11 @@ export function sidebarHTML() {
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
           Não Conformidade
         </a>
+        <div class="nav-section">Ajuda</div>
+        <a href="manual.html">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 19.5A2.5 2.5 0 016.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 014 19.5v-15A2.5 2.5 0 016.5 2z"/><line x1="9" y1="7" x2="16" y2="7"/><line x1="9" y1="11" x2="14" y2="11"/></svg>
+          Manual do Sistema
+        </a>
       </nav>
       <div class="sidebar-footer">
         <button class="btn-rotina" id="btn-rotina" onclick="window._abrirRotina && window._abrirRotina()">
@@ -279,7 +284,7 @@ const _ROTINA_KEY = _rotinaChave();
 //   freq:    'dia' = todo dia · 'inicio-mes' = até o dia 7 · 'quinta' = às quintas
 //   periodo: 'manha' · 'tarde' · omitido = manhã e tarde
 // A lista segue a ordem do dia: primeiro o que é de início, por último o de fim.
-const MODULOS_ROTINA = [
+export const MODULOS_ROTINA = [
   { id:'entradas',      label:'Entradas',          href:'entradas.html',          icon:'inbox',         freq:'inicio-mes', periodo:'manha', tag:'início do mês',       desc:'Importar a planilha da balança do mês anterior' },
   { id:'equipamentos',  label:'Equipamentos',       href:'equipamentos.html',      icon:'wrench',        freq:'dia',        periodo:'manha', tag:'todo dia · início',   desc:'Status de cada máquina → Salvar dia' },
   { id:'rh',            label:'RH',                 href:'rh.html',                icon:'users',         freq:'dia',                         tag:'início + revisão à tarde', desc:'Lançar as faltas; à tarde, revisar' },
@@ -359,7 +364,7 @@ function _showSelecao() {
             </label>`; }).join('')}
         </div>
         <div class="rotina-footer">
-          <button class="rotina-btn-pular" onclick="rotinaPular()">Pular por hoje →</button>
+          <button class="rotina-btn-pular" onclick="rotinaPular()">Pular por agora →</button>
           <button class="rotina-btn-iniciar" id="btn-iniciar-rotina" onclick="rotinaIniciar()">
             Iniciar Rotina →
           </button>
