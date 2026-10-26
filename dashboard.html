@@ -114,8 +114,16 @@
     .sec-hd.sec-hd-toggle { cursor:pointer; user-select:none; }
     .sec-chevron { flex-shrink:0; color:#94a3b8; transition:transform .15s; }
 
+    /* ── Lembrete de experiência ── */
+    .exp-lembrete { background:#fffbeb; border:1px solid #fcd34d; border-left:4px solid #D97706; border-radius:12px; padding:14px 18px; margin-bottom:16px; }
+    .exp-lembrete-hd { display:flex; align-items:center; gap:8px; font-size:13px; font-weight:800; color:#92400e; margin-bottom:8px; }
+    .exp-lembrete-item { display:flex; align-items:center; justify-content:space-between; gap:12px; flex-wrap:wrap; font-size:13px; color:#78350f; padding:6px 0; border-top:1px dashed #fde68a; }
+    .exp-lembrete-link { font-size:12px; font-weight:700; color:#006636; text-decoration:none; white-space:nowrap; }
+    .exp-lembrete-link:hover { text-decoration:underline; }
+
     /* ── Impressão ── */
     @media print {
+      .exp-lembrete { display:none !important; }
       @page { size: A4 landscape; margin: 10mm 12mm; }
       .sidebar,.sidebar-overlay,.sidebar-toggle,.bottom-nav,.rel-controls,.btn-pdf { display:none !important; }
       body { background:#fff !important; font-size:10px !important; }
@@ -624,6 +632,22 @@ async function carregar() {
     ),
   };
 
+  // ── Experiências que vencem em até 7 dias (sem decisão lançada) ──────────
+  const _h = new Date();
+  const hojeLocal = `${_h.getFullYear()}-${String(_h.getMonth()+1).padStart(2,'0')}-${String(_h.getDate()).padStart(2,'0')}`;
+  const diasAte = d => Math.round((new Date(d + 'T00:00:00') - new Date(hojeLocal + 'T00:00:00')) / 86400000);
+  const expVencendo = [];
+  ativos.forEach(c => {
+    const per = [];
+    if (c.fim_experiencia_1 && c.passou_exp_1 == null) per.push([1, c.fim_experiencia_1]);
+    if (c.fim_experiencia_2 && c.passou_exp_2 == null && c.passou_exp_1 !== false) per.push([2, c.fim_experiencia_2]);
+    per.forEach(([p, fim]) => {
+      const dias = diasAte(fim);
+      if (dias >= 0 && dias <= 7) expVencendo.push({ nome: c.nome, periodo: p, fim, dias });
+    });
+  });
+  expVencendo.sort((a, b) => a.dias - b.dias);
+
   // ── Render ───────────────────────────────────────────────────────────────
   document.getElementById('rel-body').innerHTML = `
 
@@ -642,6 +666,19 @@ async function carregar() {
         </div>
       </div>
     </div>
+
+    <!-- ══ LEMBRETE: EXPERIÊNCIA VENCENDO ══ -->
+    ${(() => {
+      if (!expVencendo.length) return '';
+      const quando = d => d === 0 ? 'vence <b>hoje</b>' : d === 1 ? 'vence <b>amanhã</b>' : `vence em <b>${d} dias</b>`;
+      return `<div class="exp-lembrete">
+        <div class="exp-lembrete-hd">${icon('clock',{size:16})} Lembrete: experiência vencendo nos próximos 7 dias</div>
+        ${expVencendo.map(x => `<div class="exp-lembrete-item">
+          <span><b>${x.nome}</b> — ${x.periodo}ª experiência ${quando(x.dias)} (${x.fim.split('-').reverse().join('/')})</span>
+          <a href="rh.html" class="exp-lembrete-link">Avaliar no RH →</a>
+        </div>`).join('')}
+      </div>`;
+    })()}
 
     <!-- ══ PAINEL EXECUTIVO ══ -->
     ${(() => {
