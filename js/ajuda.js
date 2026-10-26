@@ -9,11 +9,11 @@ export const AJUDA = {
   'dashboard.html': {
     titulo: 'Dashboard (Relatório do Comitê)',
     resumo: 'Visão geral da unidade no mês ou no ano: volumes recebidos, produção, vendas e equipamentos. Os números vêm sozinhos das outras telas, então aqui não se digita nada.',
-    quando: 'Para consultar como a unidade está indo e para levar na reunião com a diretoria.',
+    quando: 'Para consultar como a unidade está indo e acompanhar os lembretes do dia.',
     passos: [
       'No topo, escolha <b>Mês</b> ou <b>Ano</b> e o período que quer ver.',
       'Use <b>Todos</b>, <b>♻ Recicláveis</b> ou <b>🚫 Não Recicláveis</b> para filtrar o balanço.',
-      'Para imprimir ou mandar por e-mail, clique em <b>Gerar PDF</b>.',
+      'Se aparecer o <b>lembrete amarelo</b> de experiência vencendo, clique em <b>Avaliar no RH →</b> e registre se o colaborador passou.',
     ],
     dicas: [
       'Se algum número parecer errado, o problema está na tela de origem (Entradas, Produção ou Comercial). Corrija lá e volte aqui.',
