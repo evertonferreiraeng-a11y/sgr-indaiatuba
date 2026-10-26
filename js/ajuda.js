@@ -8,7 +8,7 @@ import { temSimulacao, iniciarSimulacao } from './simulacao.js';
 export const AJUDA = {
   'dashboard.html': {
     titulo: 'Dashboard (Relatório do Comitê)',
-    resumo: 'Visão geral da unidade no mês ou no ano: volumes recebidos, produção, vendas e pontos críticos. Os números vêm sozinhos das outras telas, então aqui não se digita nada.',
+    resumo: 'Visão geral da unidade no mês ou no ano: volumes recebidos, produção, vendas e equipamentos. Os números vêm sozinhos das outras telas, então aqui não se digita nada.',
     quando: 'Para consultar como a unidade está indo e para levar na reunião com a diretoria.',
     passos: [
       'No topo, escolha <b>Mês</b> ou <b>Ano</b> e o período que quer ver.',

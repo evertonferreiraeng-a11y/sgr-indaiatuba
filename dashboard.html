@@ -679,48 +679,6 @@ async function carregar() {
       </div>`;
     })()}
 
-    <!-- ══ PONTOS CRÍTICOS & PLANO DE AÇÃO ══ -->
-    ${criticosAlertas.length ? (() => {
-      const comentarios = critComentariosGet();
-      return `
-    <div class="card rel-section" style="border:1px solid #fecaca">
-      <div class="sec-hd sec-hd-toggle" onclick="critToggleColapso()">
-        <span class="sec-chevron">${critPainelColapsado ? '▸' : '▾'}</span>
-        <div class="sec-dot" style="background:#dc2626"></div>
-        <div class="sec-title">Pontos Críticos &amp; Plano de Ação</div>
-        <div class="sec-line"></div>
-        ${criticosOcultados.length ? `<button onclick="critTogglePainelOcultos(event)" style="font-size:11px;font-weight:700;padding:3px 12px;border-radius:20px;border:1px solid #e2e8f0;background:#f8fafc;color:#64748b;cursor:pointer;white-space:nowrap">${criticosOcultados.length} ocultado(s) ${critPainelOcultosAberto?'▴':'▾'}</button>` : ''}
-        <span class="sec-badge" style="color:#dc2626;background:#fee2e2">${criticosVisiveis.length} ponto(s) de atenção</span>
-      </div>
-      ${critPainelColapsado ? '' : `
-      <div style="font-size:11.5px;color:#94a3b8;margin:-8px 0 14px">
-        Faturamento: comparação com a meta e com clientes fora do padrão de compra. Volume: comparação até o dia ${diaCorteVol} de cada mês, para não confundir mês em andamento com queda real. Clique no ✕ para ocultar um ponto que não se aplica mais (ex.: cliente que saiu da carteira) e use o campo de comentário para registrar o andamento.
-      </div>
-      ${critPainelOcultosAberto && criticosOcultados.length ? `
-      <div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:10px;padding:10px 14px;margin-bottom:14px">
-        <div style="font-size:11px;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px">Ocultados</div>
-        ${criticosOcultados.map(a => `
-          <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;padding:6px 0;border-bottom:1px solid #eef2f7">
-            <span style="font-size:12.5px;color:#475569">${a.title}</span>
-            <button onclick="critMostrar('${a.id.replace(/'/g,"\\'")}')" style="font-size:11px;font-weight:700;padding:3px 10px;border-radius:6px;border:1px solid #D1D5DB;background:#fff;color:#374151;cursor:pointer;white-space:nowrap">Mostrar novamente</button>
-          </div>`).join('')}
-      </div>` : ''}
-      ${criticosVisiveis.length ? criticosVisiveis.map(a => `
-        <div class="crit-row ${a.sev}">
-          <span class="crit-ic">${icon('alert-triangle', { size: 16 })}</span>
-          <div style="flex:1;min-width:0">
-            <span class="crit-title">${a.title}</span>
-            <span class="crit-tag ${a.area}">${a.area === 'faturamento' ? 'Faturamento' : 'Volume'}</span>
-            <div class="crit-desc">${a.desc}</div>
-            <input type="text" class="crit-comment-input" data-id="${a.id.replace(/"/g,'&quot;')}" placeholder="Comentário — em que pé está isso? (ex.: cliente contatado dia 29, aguardando retorno)" value="${(comentarios[a.id]||'').replace(/"/g,'&quot;')}" />
-            <div class="crit-comment-saved"></div>
-          </div>
-          <button class="crit-close" onclick="critOcultar('${a.id.replace(/'/g,"\\'")}')" title="Ocultar este ponto">✕</button>
-        </div>`).join('') : `<div style="font-size:12.5px;color:#94a3b8;padding:8px 0">Nenhum ponto de atenção visível — ${criticosOcultados.length} oculto(s).</div>`}
-      `}
-    </div>`;
-    })() : ''}
-
     <!-- ══ 1. BALANÇO DE MASSA ══ -->
     <div class="card rel-section">
       ${(() => {
