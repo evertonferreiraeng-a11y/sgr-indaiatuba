@@ -126,6 +126,8 @@ function separaObs(obs, ano) {
 // "Esteira Transportadora 107-U011" → "Esteira 107-U011"
 const nomeCurtoEq = e => `${(e.nome || '').split(' ')[0]}${e.frota ? ' ' + e.frota : ''}`;
 const nomeEqCompleto = e => `${e.nome || ''}${e.frota ? ' ' + e.frota : ''}`;
+// Equipamentos que, parados, deixam o selo de Equipamentos como Crítico
+const eqCritico = e => /prensa|esteira|retro/.test((e.nome || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase());
 const corta = (t, n) => t.length > n ? t.slice(0, n - 1).trimEnd() + '…' : t;
 
 export function calcularDados(rows, M, corteIn, hoje) {
@@ -340,6 +342,10 @@ export function calcularDados(rows, M, corteIn, hoje) {
     .sort((a, b) => (a.nome || '').localeCompare(b.nome || '') || (a.frota || '').localeCompare(b.frota || ''));
   const nOp = eqs.filter(e => e.st === 'operando').length, nRes = eqs.filter(e => e.st === 'restricao').length, nPar = eqs.filter(e => e.st === 'parado').length;
   const disp = eqs.length ? (nOp + nRes) / eqs.length * 100 : null;
+  // Selo: Crítico se parar prensa, esteira ou retroescavadeira; Atenção se parar outro (empilhadeira, retorcedeira…)
+  // ou algum estiver com restrição; OK com todos operando
+  const nParCrit = eqs.filter(e => e.st === 'parado' && eqCritico(e)).length;
+  const eqSt = !eqs.length ? 'nd' : nParCrit ? 'verm' : nPar || nRes ? 'amb' : 'ok';
   const hist = {};
   snapshots.forEach(s => {
     if (s.semana < ini || s.semana > corte) return;
@@ -383,7 +389,7 @@ export function calcularDados(rows, M, corteIn, hoje) {
     M, ini, fimMes, corte, emAndamento, Mant, fimAntMesmo, cur, antMesmo, antCheio, meta, du, dp, dr,
     estoqueKg, valorEstoque, projecao, inicioMes, fatFech, metaFech, fracMes, prensAntesProp, mixPrensado, estoqueGrupo, mesesAno, fatMes, fatAno, metaAno, metaMes, melhor, nenhumAtingiu, semFat,
     prodAntMesmo, prodAntCheio, prensas, capMes, capNominal, perdaCap, prensasReduzidas, metaDia, metaDiaNominal, metaDiaRestante, duPrensa, dpPrensa, prod, esperado, semProd, prodMesAno, porPrensa, projProd, prensadoMes, prensAntes, prensDepois,
-    eqs, nOp, nRes, nPar, disp, dispMes, rotDisp, comParada, problemas, colab, quadro, vagas,
+    eqs, nOp, nRes, nPar, nParCrit, eqSt, disp, dispMes, rotDisp, comParada, problemas, colab, quadro, vagas,
   };
 }
 
@@ -768,7 +774,7 @@ export function montarApresentacao(PptxGenJS, d, { img, frases: fr, textos, acoe
     // Equipamentos: uma linha com quem está parado/com restrição e quando volta (o detalhe fica no slide de Equipamentos)
     const lst = d.problemas.slice(0, 3).map(({ e, prev }) =>
       `${nomeCurtoEq(e)} (${e.st === 'restricao' ? 'restrição, ' : ''}${prev ? `volta ${ddmm(prev)}` : 'sem previsão'})`);
-    ind.push({ label: 'Equipamentos', st: !d.eqs.length ? 'nd' : d.nPar ? 'verm' : d.nRes || (d.dispMes != null && d.dispMes < 99.5) ? 'amb' : 'ok',
+    ind.push({ label: 'Equipamentos', st: d.eqSt,
       valor: `${d.nOp + d.nRes} de ${d.eqs.length} disponíveis`,
       // % disponível agora (operando + com restrição ÷ total) e a média do mês pelos dias registrados
       sub: `${d.disp != null ? `${pct(d.disp, 0)} disponíveis ${d.rotDisp}` : d.rotDisp}${d.dispMes != null ? ` · média do mês ${pct(d.dispMes, 0)}` : ''}`,
@@ -1218,7 +1224,7 @@ export function montarApresentacao(PptxGenJS, d, { img, frases: fr, textos, acoe
     // Faixa de 4 números: disponíveis agora, média do mês, equipe e vagas
     const incompleta = d.colab != null && d.colab < d.quadro;
     const kpis = [
-      [`DISPONÍVEIS ${d.rotDisp === 'hoje' ? 'HOJE' : 'NO FIM DO MÊS'}`, `${d.nOp + d.nRes} de ${d.eqs.length}`, d.nPar ? COR.verm : d.nRes ? COR.amb : COR.ok,
+      [`DISPONÍVEIS ${d.rotDisp === 'hoje' ? 'HOJE' : 'NO FIM DO MÊS'}`, `${d.nOp + d.nRes} de ${d.eqs.length}`, { verm: COR.verm, amb: COR.amb, ok: COR.ok }[d.eqSt] || COR.muted,
         [d.nPar ? `${d.nPar} parado${d.nPar > 1 ? 's' : ''}` : '', d.nRes ? `${d.nRes} com restrição` : ''].filter(Boolean).join(' · ') || 'todos operando'],
       ['MÉDIA DO MÊS', d.dispMes != null ? pct(d.dispMes, 0) : '—', corDisp(d.dispMes), 'da frota disponível nos dias registrados'],
       ['EQUIPE', d.colab != null ? `${d.colab} de ${d.quadro}` : '—', d.colab == null ? COR.muted : incompleta ? COR.amb : COR.ok,
