@@ -515,6 +515,7 @@ function renderColaboradores() {
     if (sit === 'ativo'   && c.demissao) return false;
     if (sit === 'demitido'&& !c.demissao) return false;
     if (sit === 'exp') {
+      if (c.demissao) return false;
       const ok1 = c.fim_experiencia_1 && hoje <= c.fim_experiencia_1;
       const ok2 = c.fim_experiencia_2 && hoje <= c.fim_experiencia_2;
       if (!ok1 && !ok2) return false;
