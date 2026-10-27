@@ -287,7 +287,7 @@ const _ROTINA_KEY = _rotinaChave();
 export const MODULOS_ROTINA = [
   { id:'entradas',      label:'Entradas',          href:'entradas.html',          icon:'inbox',         freq:'inicio-mes', periodo:'manha', tag:'início do mês',       desc:'Importar a planilha da balança do mês anterior' },
   { id:'equipamentos',  label:'Equipamentos',       href:'equipamentos.html',      icon:'wrench',        freq:'dia',        periodo:'manha', tag:'todo dia · início',   desc:'Status de cada máquina → Salvar dia' },
-  { id:'rh',            label:'RH',                 href:'rh.html',                icon:'users',         freq:'dia',                         tag:'início + revisão à tarde', desc:'Lançar as faltas; à tarde, revisar' },
+  { id:'rh',            label:'RH',                 href:'rh.html',                icon:'users',         freq:'dia',                         tag:'início + revisão à tarde', desc:'Lançar as faltas; à tarde, revisar', subpaginas:['colaborador-ocorrencias.html'] },
   { id:'tarefas',       label:'Tarefas',            href:'tarefas.html',           icon:'check-circle',  freq:'dia',                         tag:'todo dia',            desc:'Ver o que vence hoje e concluir' },
   { id:'comercial',     label:'Comercial',          href:'comercial.html',         icon:'cart',                                              tag:'a cada venda',        desc:'Lançar pedido de venda de recicláveis' },
   { id:'producao',      label:'Produção',           href:'producao.html',          icon:'bar-chart',     freq:'dia',        periodo:'tarde', tag:'todo dia · fim',      desc:'Lançar prensagem e triagem do dia' },
@@ -323,7 +323,9 @@ function initRotina() {
 
   const modAtual = MODULOS_ROTINA.find(m => m.id === state.modulos[state.atual]);
   if (!modAtual) return;
-  if (_rotinaCurrentPage() !== modAtual.href) { location.href = modAtual.href; return; }
+  // subpaginas: telas abertas a partir do módulo (ex.: histórico do colaborador no RH) não voltam pro módulo
+  const pagina = _rotinaCurrentPage();
+  if (pagina !== modAtual.href && !modAtual.subpaginas?.includes(pagina)) { location.href = modAtual.href; return; }
   _showProgressBar(state);
   _bloquearNav(true);
 }
