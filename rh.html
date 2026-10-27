@@ -667,7 +667,8 @@ function badge(bg, cor, texto) {
 }
 
 window.abrirHistoricoOc = colabId => {
-  window.open('colaborador-ocorrencias.html?id=' + colabId, '_blank');
+  // Mesma aba: nova aba era bloqueada por bloqueador de pop-up / app instalado
+  location.href = 'colaborador-ocorrencias.html?id=' + colabId;
 };
 
 // ── Avaliações de um colaborador (abre pela Nota do card) ─────────────────────
