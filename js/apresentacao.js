@@ -1259,10 +1259,34 @@ export function montarApresentacao(PptxGenJS, d, { img, frases: fr, textos, acoe
     return pelaVenda;
   };
 
+  // Faixa embaixo do gráfico (enxuto e anexo): produção de cada prensa × o previsto para ela (descontados os dias parada)
+  const faixaPrensas = s => {
+    const yS = 640, hS = 185;
+    box(s, 50, yS, 850, hS, 'FFFFFF', COR.borda);
+    txt(s, 72, yS + 14, 800, 20, [
+      { text: `PRODUÇÃO POR PRENSA ${d.emAndamento ? `ATÉ ${ddmm(d.corte)}` : `EM ${mes.toUpperCase()}`}`, options: { bold: true, color: COR.muted } },
+      { text: '  ·  produzido × previsto para a prensa', options: { color: COR.cinza } },
+    ], 13, COR.muted);
+    const lp = d.porPrensa.slice(0, 4), passoP = Math.min(36, 128 / Math.max(1, lp.length));
+    if (!lp.length) txt(s, 72, yS + 50, 700, 24, 'Nenhuma prensa com capacidade cadastrada (tela Equipamentos).', 14, COR.muted);
+    lp.forEach(({ e, prod, prev, pct: p, diasParado }, k) => {
+      const y = yS + 46 + k * passoP, xb = 250, wb = 330;
+      txt(s, 72, y, 175, 24, nomeCurtoEq(e), 15, COR.txt, { bold: true, valign: 'middle' });
+      box(s, xb, y + 4, wb, 16, COR.trilho, null, 0);
+      if (p > 0) box(s, xb, y + 4, Math.max(4, wb * Math.min(p, 100) / 100), 16, corAting(p), null, 0);
+      txt(s, xb + wb + 8, y, 56, 24, p == null ? '—' : `${nf(p, 0)}%`, 15, COR.txt, { bold: true, valign: 'middle', align: 'right' });
+      txt(s, xb + wb + 76, y, 230, 24, [
+        { text: `${nf(prod / 1000, 1)} de ${nf(prev / 1000, 1)} t`, options: { color: COR.txt2 } },
+        ...(diasParado ? [{ text: ` · parada ${diasParado} dia${diasParado > 1 ? 's' : ''}`, options: { bold: true, color: COR.verm } }] : []),
+      ], 13, COR.txt2, { valign: 'middle' });
+    });
+  };
+
   // ── 6. Prensagem (enxuto) ──
   {
     const s = conteudo('PRENSAGEM', fr.prensa, 2, true);
-    const pelaVenda = graficoPrensa(s, { x: 40, y: 205, w: 860, h: 600 });
+    const pelaVenda = graficoPrensa(s, { x: 40, y: 205, w: 860, h: 420 });
+    faixaPrensas(s);
     const atEsp = d.esperado > 0 ? d.prod / d.esperado * 100 : null;
     const ritmo = d.dpPrensa > 0 ? d.prod / d.dpPrensa : 0;
     const pProj = d.capMes > 0 ? d.projProd / d.capMes * 100 : null;
@@ -1284,7 +1308,7 @@ export function montarApresentacao(PptxGenJS, d, { img, frases: fr, textos, acoe
         comProj ? `Projeção: ${nf(ritmo / 1000, 1)} t/dia × ${Math.max(0, d.duPrensa - d.dpPrensa)} dias úteis restantes → ~${nf(d.projProd / 1000, 0)} t no mês.` : '',
         d.perdaCap > 0.5 ? `Capacidade descontada a manutenção: ${textoPerdaCap(d)}.` : '',
         pelaVenda.length ? `Meses sem produção lançada (${pelaVenda.map(mk => MES_ABREV[+mk.slice(5) - 1]).join(', ')}): a barra é o prensado comercializado no mês.` : '',
-        'Por prensa, por semana e prensado vendido: anexo "Prensagem".',
+        'Por semana e prensado vendido: anexo "Prensagem".',
       ],
       proximo: 'O que sustenta a produção: equipamentos e equipe.' });
   }
@@ -1295,27 +1319,7 @@ export function montarApresentacao(PptxGenJS, d, { img, frases: fr, textos, acoe
     const pelaVenda = graficoPrensa(s, { x: 40, y: 205, w: 860, h: 420 });
     // Estoque prensado (a vender): só faz sentido sobre o mês em andamento (é a foto de hoje)
     const estP = d.emAndamento ? d.estoqueGrupo.prensado.kg : 0;
-
-    // Faixa embaixo do gráfico: produção de cada prensa × o previsto para ela (descontados os dias parada)
-    const yS = 640, hS = 185;
-    box(s, 50, yS, 850, hS, 'FFFFFF', COR.borda);
-    txt(s, 72, yS + 14, 800, 20, [
-      { text: `PRODUÇÃO POR PRENSA ${d.emAndamento ? `ATÉ ${ddmm(d.corte)}` : `EM ${mes.toUpperCase()}`}`, options: { bold: true, color: COR.muted } },
-      { text: '  ·  produzido × previsto para a prensa', options: { color: COR.cinza } },
-    ], 13, COR.muted);
-    const lp = d.porPrensa.slice(0, 4), passoP = Math.min(36, 128 / Math.max(1, lp.length));
-    if (!lp.length) txt(s, 72, yS + 50, 700, 24, 'Nenhuma prensa com capacidade cadastrada (tela Equipamentos).', 14, COR.muted);
-    lp.forEach(({ e, prod, prev, pct: p, diasParado }, k) => {
-      const y = yS + 46 + k * passoP, xb = 250, wb = 330;
-      txt(s, 72, y, 175, 24, nomeCurtoEq(e), 15, COR.txt, { bold: true, valign: 'middle' });
-      box(s, xb, y + 4, wb, 16, COR.trilho, null, 0);
-      if (p > 0) box(s, xb, y + 4, Math.max(4, wb * Math.min(p, 100) / 100), 16, corAting(p), null, 0);
-      txt(s, xb + wb + 8, y, 56, 24, p == null ? '—' : `${nf(p, 0)}%`, 15, COR.txt, { bold: true, valign: 'middle', align: 'right' });
-      txt(s, xb + wb + 76, y, 230, 24, [
-        { text: `${nf(prod / 1000, 1)} de ${nf(prev / 1000, 1)} t`, options: { color: COR.txt2 } },
-        ...(diasParado ? [{ text: ` · parada ${diasParado} dia${diasParado > 1 ? 's' : ''}`, options: { bold: true, color: COR.verm } }] : []),
-      ], 13, COR.txt2, { valign: 'middle' });
-    });
+    faixaPrensas(s);
 
     // Coluna da direita: dois cards no mesmo formato (rótulo · número grande · linhas)
     const px = 940, pw = 390;
