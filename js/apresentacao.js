@@ -1029,9 +1029,10 @@ export function montarApresentacao(PptxGenJS, d, { img, frases: fr, textos, acoe
   {
     const s = conteudo('COMPOSIÇÃO DE VENDAS', fr.comp, 1, true);
     const c = d.cur, a = d.antCheio;
-    // Três números lado a lado: preço do prensado, preço a granel e quanto do volume prensável saiu prensado
+    // Quatro números lado a lado: ticket médio geral, preço do prensado, preço a granel e quanto do volume
+    // prensável saiu prensado; embaixo de cada um, o mês anterior (abreviado) com a variação
     const ratioPG = c.g.prensado.preco && c.g.granel.preco ? c.g.prensado.preco / c.g.granel.preco : null;
-    const cw = 410, cgap = 25, ch = 250;
+    const cw = 305, cgap = 20, ch = 250, antAbr = MES_ABREV[+d.Mant.slice(5) - 1];
     const pillVar = (x, y, v, porMix = false) => {
       if (v == null) return;
       const [fg, bg] = Math.abs(v) < 2 ? [COR.muted, COR.trilho] : porMix ? [COR.amb, COR.ambBg] : v > 0 ? [COR.ok, COR.okBg] : [COR.verm, COR.vermBg];
@@ -1042,23 +1043,27 @@ export function montarApresentacao(PptxGenJS, d, { img, frases: fr, textos, acoe
       const x = 50 + i * (cw + cgap);
       box(s, x, 205, cw, ch, fill, fill === 'FFFFFF' ? COR.borda : null);
       txt(s, x + 26, 228, cw - 52, 22, rot, 14, COR.muted, { bold: true });
-      txt(s, x + 26, 262, cw - 52, 60, valor, 44, corV, { bold: true });
-      txt(s, x + 26, 330, cw - 52, 24, sub, 15, COR.verde, { bold: true });
+      txt(s, x + 26, 262, cw - 52, 60, valor, 40, corV, { bold: true });
+      txt(s, x + 26, 330, cw - 52, 24, sub, 14, COR.verde, { bold: true });
       linha(s, x + 26, 372, x + cw - 26, COR.borda);
-      txt(s, x + 26, 388, cw - 180, 24, comp, 15, COR.txt2);
+      txt(s, x + 26, 388, cw - 140, 24, comp, 14, COR.txt2);
     };
     const v = k => varPct(c.g[k].preco, a.g[k].preco);
-    cardC(0, 'PREÇO DO PRENSADO', c.g.prensado.preco ? `${reais0(c.g.prensado.preco)}/t` : '—',
-      ratioPG ? `vale ${nf(ratioPG, 1)}× o preço a granel` : '', `${cap(ant)}: ${a.g.prensado.preco ? reais0(a.g.prensado.preco) + '/t' : '—'}`, COR.verdeCl, COR.verde);
-    pillVar(50 + cw - 26, 385, v('prensado'), v('prensado') < -2 && d.mixPrensado?.porMix);
-    cardC(1, 'PREÇO A GRANEL', c.g.granel.preco ? `${reais0(c.g.granel.preco)}/t` : '—', '',
-      `${cap(ant)}: ${a.g.granel.preco ? reais0(a.g.granel.preco) + '/t' : '—'}`, COR.cinzaBg, COR.txt);
-    pillVar(50 + (cw + cgap) + cw - 26, 385, v('granel'));
-    cardC(2, 'VOLUME VENDIDO PRENSADO', c.pctPrensado != null ? pct(c.pctPrensado, 0) : '—', 'dos materiais prensáveis',
-      `${cap(ant)}: ${a.pctPrensado != null ? pct(a.pctPrensado, 0) : '—'}`, 'FFFFFF', COR.txt);
+    const xFim = i => 50 + i * (cw + cgap) + cw - 26;
+    cardC(0, 'TICKET MÉDIO GERAL', c.preco ? `${reais0(c.preco)}/t` : '—', 'todos os materiais',
+      `${antAbr}: ${a.preco ? reais0(a.preco) + '/t' : '—'}`, 'FFFFFF', COR.txt);
+    pillVar(xFim(0), 385, varPct(c.preco, a.preco));
+    cardC(1, 'PREÇO DO PRENSADO', c.g.prensado.preco ? `${reais0(c.g.prensado.preco)}/t` : '—',
+      ratioPG ? `vale ${nf(ratioPG, 1)}× o a granel` : '', `${antAbr}: ${a.g.prensado.preco ? reais0(a.g.prensado.preco) + '/t' : '—'}`, COR.verdeCl, COR.verde);
+    pillVar(xFim(1), 385, v('prensado'), v('prensado') < -2 && d.mixPrensado?.porMix);
+    cardC(2, 'PREÇO A GRANEL', c.g.granel.preco ? `${reais0(c.g.granel.preco)}/t` : '—', '',
+      `${antAbr}: ${a.g.granel.preco ? reais0(a.g.granel.preco) + '/t' : '—'}`, COR.cinzaBg, COR.txt);
+    pillVar(xFim(2), 385, v('granel'));
+    cardC(3, 'VOLUME PRENSADO', c.pctPrensado != null ? pct(c.pctPrensado, 0) : '—', 'dos materiais prensáveis',
+      `${antAbr}: ${a.pctPrensado != null ? pct(a.pctPrensado, 0) : '—'}`, 'FFFFFF', COR.txt);
     if (c.pctPrensado != null && a.pctPrensado != null) {
       const dp = c.pctPrensado - a.pctPrensado, t = Math.abs(dp) < 1 ? 'estável' : `${seta(dp)} ${nf(Math.abs(dp), 0)} p.p.`;
-      pill(s, 50 + 2 * (cw + cgap) + cw - 26 - Math.max(60, t.length * 13 * 0.62 + 28), 385, t,
+      pill(s, xFim(3) - Math.max(60, t.length * 13 * 0.62 + 28), 385, t,
         Math.abs(dp) < 1 ? COR.muted : dp > 0 ? COR.ok : COR.verm, Math.abs(dp) < 1 ? COR.trilho : dp > 0 ? COR.okBg : COR.vermBg, 13);
     }
 
@@ -1094,6 +1099,7 @@ export function montarApresentacao(PptxGenJS, d, { img, frases: fr, textos, acoe
     });
     fala(s, { min: 3, etapa: 'Faturamento e vendas (2 de 5)', frase: fr.comp,
       apoio: [
+        `Ticket médio geral (todos os materiais): ${c.preco ? `${reais0(c.preco)}/t` : '—'} (${ant}: ${a.preco ? `${reais0(a.preco)}/t` : '—'}).`,
         `Prensado: ${c.g.prensado.preco ? `${reais0(c.g.prensado.preco)}/t` : '—'} (${ant}: ${a.g.prensado.preco ? `${reais0(a.g.prensado.preco)}/t` : '—'}); a granel: ${c.g.granel.preco ? `${reais0(c.g.granel.preco)}/t` : '—'} (${ant}: ${a.g.granel.preco ? `${reais0(a.g.granel.preco)}/t` : '—'}).`,
         ratioPG ? `Cada tonelada prensada vale ${nf(ratioPG, 1)}× a vendida a granel: prensar mais é o que puxa o faturamento.` : '',
         c.pctPrensado != null ? `Participação do prensado nos materiais prensáveis: ${pct(c.pctPrensado)} (${ant}: ${pct(a.pctPrensado)}).` : '',
