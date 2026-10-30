@@ -1050,11 +1050,20 @@ export function montarApresentacao(PptxGenJS, d, { img, frases: fr, textos, acoe
         Math.abs(dp) < 1 ? COR.muted : dp > 0 ? COR.ok : COR.verm, Math.abs(dp) < 1 ? COR.trilho : dp > 0 ? COR.okBg : COR.vermBg, 13);
     }
 
-    // Embaixo: prensado × a granel no volume vendido, mês anterior e mês atual (só materiais prensáveis)
-    txt(s, 50, 500, 1280, 22, 'PRENSADO × A GRANEL NO VOLUME VENDIDO', 14, COR.muted, { bold: true });
-    const larg = 1110, x0 = 220;
+    // Embaixo: prensado × a granel no volume vendido, mês anterior e mês atual (só materiais prensáveis);
+    // a sucata ferrosa (não pode ser prensada) fica à parte, à direita da barra, com volume e % do total vendido
+    txt(s, 50, 500, 900, 22, 'PRENSADO × A GRANEL NO VOLUME VENDIDO', 14, COR.muted, { bold: true });
+    const larg = 850, x0 = 220, xSuc = x0 + larg + 30;
+    txt(s, xSuc, 490, 1330 - xSuc, 42, [
+      { text: 'SUCATA FERROSA', options: { bold: true, color: COR.muted, breakLine: true } },
+      { text: 'não pode ser prensada', options: { color: COR.cinza, fontSize: 12 } },
+    ], 14, COR.muted);
     [[cap(ant), 545, a], [cap(mes), 670, c]].forEach(([rot, y, r]) => {
       const pr = r.g.prensado.vol, gr = r.g.granel.vol, tot = pr + gr;
+      const suc = r.g.sucata.vol, totVend = Object.values(r.g).reduce((t, x) => t + x.vol, 0);
+      s.addShape(pptx.ShapeType.line, { x: I(xSuc - 15), y: I(y + 4), w: 0, h: I(62), line: { color: COR.borda, width: 1 } });
+      txt(s, xSuc, y + 4, 1330 - xSuc, 34, `${nf(suc / 1000, 1)} t`, 26, COR.txt2, { bold: true });
+      txt(s, xSuc, y + 40, 1330 - xSuc, 24, totVend > 0 ? `${pct(suc / totVend * 100, 0)} do total vendido` : '—', 14, COR.muted);
       txt(s, 50, y + 18, 165, 30, rot, 20, COR.txt2, { bold: true });
       if (!(tot > 0)) { txt(s, x0, y + 20, larg, 30, 'sem vendas de materiais prensáveis', 16, COR.muted); return; }
       let x = x0;
@@ -1072,7 +1081,8 @@ export function montarApresentacao(PptxGenJS, d, { img, frases: fr, textos, acoe
         ratioPG ? `Cada tonelada prensada vale ${nf(ratioPG, 1)}× a vendida a granel: prensar mais é o que puxa o faturamento.` : '',
         c.pctPrensado != null ? `Participação do prensado nos materiais prensáveis: ${pct(c.pctPrensado)} (${ant}: ${pct(a.pctPrensado)}).` : '',
         d.mixPrensado?.porMix ? 'A queda do preço do prensado é de mix (quais materiais saíram), não de preço — detalhe no anexo.' : '',
-        'Sucata ferrosa, estoque por grupo e preço médio geral: anexo "Composição de vendas".',
+        `Sucata ferrosa (não pode ser prensada, fica fora da barra): ${tn(c.g.sucata.vol, 1)} em ${mes} (${ant}: ${tn(a.g.sucata.vol, 1)}).`,
+        'Preço por grupo, estoque e preço médio geral: anexo "Composição de vendas".',
       ],
       proximo: 'Do lado da produção: como estão as prensas.' });
   }
