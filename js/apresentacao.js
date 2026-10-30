@@ -785,7 +785,11 @@ export function montarApresentacao(PptxGenJS, d, { img, frases: fr, textos, acoe
         comEst ? ['Só o faturado', `${d.meta ? `${pct(atFat, 0)} da meta · ` : ''}${d.dp} de ${d.du} dias úteis${ticket}`] : null,
         !comEst && d.emAndamento && d.meta ? ['Esperado até aqui', `${pct(espAqui * 100, 0)} da meta (${mil(d.meta * espAqui)})`] : null,
         // A projeção fica no slide de Faturamento
-      ].filter(Boolean) });
+      ].filter(Boolean),
+      // Motivo (só aparece no slide quando o selo não é NO RITMO): quanto falta para o esperado / para a meta
+      motivo: d.meta ? (d.emAndamento
+        ? ['Abaixo do esperado', `faltam ${mil(Math.max(0, d.meta * espAqui - fatEst))} para o esperado até ${ddmm(d.corte)}`]
+        : ['Meta', `faltaram ${mil(Math.max(0, d.meta - c.fat))} para a meta de ${mil(d.meta)}`]) : null });
 
     // Prensagem — mesmo formato do faturamento: % da capacidade do mês × esperado até aqui (o previsto até o corte
     // ÷ capacidade do mês); selo = produzido ÷ previsto até o corte (mês fechado: × capacidade do mês)
@@ -796,7 +800,10 @@ export function montarApresentacao(PptxGenJS, d, { img, frases: fr, textos, acoe
       ctx: [
         d.dpPrensa > 0 ? ['Ritmo atual', `${nf(ritmoR / 1000, 1)} t/dia · meta ${nf(d.metaDia / 1000, 1)} t/dia`] : null,
         d.emAndamento && d.capMes > 0 ? ['Capacidade do mês', `${tCap(d, d.capMes)} t${d.perdaCap > 0.5 ? ` (${nf(d.capNominal / 1000, 0)} t − ${nf(d.perdaCap / 1000, 1)} t manutenção)` : ''}`] : null,
-      ].filter(Boolean) });
+      ].filter(Boolean),
+      // Motivo: manutenção quando ela tira mais de 5% da capacidade; senão o ritmo contra a meta diária
+      motivo: d.capNominal > 0 && d.perdaCap / d.capNominal > 0.05 ? ['Capacidade', textoPerdaCap(d)]
+        : d.dpPrensa > 0 ? ['Ritmo atual', `${nf(ritmoR / 1000, 1)} t/dia · meta ${nf(d.metaDia / 1000, 1)} t/dia`] : null });
 
     // Equipamentos: uma linha com quem está parado/com restrição e quando volta (o detalhe fica no slide de Equipamentos)
     const lst = d.problemas.slice(0, 3).map(({ e, prev }) =>
@@ -808,12 +815,14 @@ export function montarApresentacao(PptxGenJS, d, { img, frases: fr, textos, acoe
       ctx: lst.length ? [[d.problemas.every(r => r.e.st === 'parado') ? 'Parados' : 'Com problema',
         lst.join(' · ') + (d.problemas.length > 3 ? ` · e mais ${d.problemas.length - 3}` : '')]]
         : [['Situação', `todos operando ${d.rotDisp}`]] });
+    ind[ind.length - 1].motivo = lst.length ? ind[ind.length - 1].ctx[0] : null;
 
     // Equipe: quadro do RH
     const incompleta = d.colab != null && d.colab < d.quadro;
     ind.push({ label: 'Equipe', st: d.colab == null ? 'nd' : incompleta ? 'amb' : 'ok', valor: d.colab != null ? `${d.colab} de ${d.quadro} colaboradores` : '—',
       sub: d.colab != null ? `${nf(d.colab / d.quadro * 100, 0)}% do quadro previsto` : 'sem colaboradores no RH',
-      ctx: [['Vagas', d.vagas ? `${d.vagas} em reposição` : 'sem vagas abertas'], textos.proximos[0] ? ['Próximo passo', textos.proximos[0]] : null].filter(Boolean) });
+      ctx: [['Vagas', d.vagas ? `${d.vagas} em reposição` : 'sem vagas abertas'], textos.proximos[0] ? ['Próximo passo', textos.proximos[0]] : null].filter(Boolean),
+      motivo: d.vagas ? ['Vagas', `${d.vagas} em reposição`] : null });
 
     const W = 630, H = 298, gx = 20, gy = 20, x0 = 50, y0 = 208;
     ind.forEach((k, i) => {
@@ -826,12 +835,15 @@ export function montarApresentacao(PptxGenJS, d, { img, frases: fr, textos, acoe
       pill(s, x + W - 26 - wp, y + 22, rot, fg, bg, 14);
       txt(s, x + 34, y + 60, W - 60, 56, k.valor, 36, COR.txt, { bold: true });
       txt(s, x + 34, y + 120, W - 60, 26, k.sub, 17, COR.txt2);
-      linha(s, x + 34, y + 162, x + W - 26, COR.borda, 'dash');
-      // Linhas de contexto: rótulo em cinza + valor em negrito
-      if (k.ctx.length) txt(s, x + 34, y + 174, W - 60, 110, k.ctx.flatMap(([r, v], j) => [
-        { text: `${r}: `, options: { color: COR.muted } },
-        { text: v, options: { bold: true, color: COR.txt2, breakLine: j < k.ctx.length - 1 } },
-      ]), 14, COR.txt2, { paraSpaceAfter: 5 });
+      // Card bem (OK / NO RITMO): só número, selo e a linha de apoio — o detalhe está no slide da etapa e nas anotações.
+      // Card com ATENÇÃO / ABAIXO / CRÍTICO: uma linha com o motivo, para responder o "por quê?" na hora
+      if (!['ok', 'ritmo', 'nd'].includes(k.st) && k.motivo) {
+        linha(s, x + 34, y + 162, x + W - 26, COR.borda, 'dash');
+        txt(s, x + 34, y + 176, W - 60, 60, [
+          { text: `${k.motivo[0]}: `, options: { color: COR.muted } },
+          { text: k.motivo[1], options: { bold: true, color: fg } },
+        ], 16, COR.txt2);
+      }
     });
     fala(s, { min: 4, etapa: 'Resumo (1 de 5)', frase: fr.resumo,
       apoio: [
