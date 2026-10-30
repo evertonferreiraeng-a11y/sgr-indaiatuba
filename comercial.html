@@ -67,6 +67,28 @@
     .acond-table th.acond-col-highlight{background:#dcfce7}
     .acond-table td.acond-col-highlight{background:#dcfce7}
     .acond-table tr.acond-total-row td.acond-col-highlight{background:#86efac}
+    /* tabelas largas rolam dentro do card em vez de alargar a página */
+    .main-content{min-width:0}
+    /* Análises — andamento e comparação */
+    #tab-analises .kpi-value{font-size:22px;white-space:nowrap}
+    #tab-analises #an-kpi-top-cliente{white-space:normal}
+    .an-grid2{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px}
+    .an-andamento{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+    .an-and-card{padding:16px 18px;border-top:4px solid}
+    .an-and-bom{border-top-color:var(--success)}
+    .an-and-ruim{border-top-color:var(--danger)}
+    .an-and-card h4{margin-bottom:10px;font-size:14px}
+    .an-and-bom h4{color:var(--success)}
+    .an-and-ruim h4{color:var(--danger)}
+    .an-and-card ul{margin:0;padding-left:18px;display:flex;flex-direction:column;gap:7px}
+    .an-and-card li{font-size:13px;line-height:1.45}
+    .an-and-card li.vazio{list-style:none;margin-left:-18px;color:var(--text-muted)}
+    .an-var{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+    .an-up{color:var(--success);font-weight:700}
+    .an-down{color:var(--danger);font-weight:700}
+    .an-flat{color:var(--text-muted);font-weight:700}
+    tr.an-perdido td{color:var(--text-muted);background:#fafafa}
+    @media (max-width:900px){.an-grid2,.an-andamento{grid-template-columns:1fr}}
     #tbl-semanal-unico th{font-size:12.5px}
     #tbl-semanal-unico td{font-size:15px}
     #tbl-semanal-unico td:first-child{font-size:15.5px}
@@ -367,6 +389,13 @@
               <div class="form-group"><label>De</label><input type="date" id="an-de" /></div>
               <div class="form-group"><label>Até</label><input type="date" id="an-ate" /></div>
             </div>
+            <div class="form-group">
+              <label>Comparar com</label>
+              <select id="an-comparar" style="min-width:190px">
+                <option value="anterior">Período anterior</option>
+                <option value="ano">Mesmo período do ano anterior</option>
+              </select>
+            </div>
             <div class="form-group ms-wrap" style="min-width:200px">
               <label>Cliente</label>
               <button type="button" class="ms-btn" id="an-cliente-btn"><span class="ms-label">Todos</span><span class="ms-caret">▾</span></button>
@@ -399,18 +428,44 @@
               <button class="btn btn-outline" id="btn-an-exportar-volume">⬇ Exportar Volume (Mensal/Anual)</button>
             </div>
           </div>
+          <div id="an-cmp-info" class="text-muted" style="font-size:12px;margin-top:10px"></div>
         </div>
 
         <!-- KPIs -->
         <div class="kpi-grid mb-16" style="grid-template-columns:repeat(auto-fill,minmax(170px,1fr))">
-          <div class="kpi-card"><div class="kpi-label">Faturamento</div><div class="kpi-value" id="an-kpi-fat">—</div></div>
-          <div class="kpi-card"><div class="kpi-label">Volume</div><div class="kpi-value" id="an-kpi-vol">—</div></div>
-          <div class="kpi-card"><div class="kpi-label">Ticket Médio</div><div class="kpi-value" id="an-kpi-ticket">—</div><div class="kpi-sub">por tonelada</div></div>
-          <div class="kpi-card"><div class="kpi-label">Nº de Vendas</div><div class="kpi-value" id="an-kpi-vendas">—</div></div>
-          <div class="kpi-card"><div class="kpi-label">Clientes Ativos</div><div class="kpi-value" id="an-kpi-clientes">—</div></div>
-          <div class="kpi-card"><div class="kpi-label">Materiais Movimentados</div><div class="kpi-value" id="an-kpi-materiais">—</div></div>
+          <div class="kpi-card"><div class="kpi-label">Faturamento</div><div class="kpi-value" id="an-kpi-fat">—</div><div class="kpi-sub an-var" id="an-var-fat"></div></div>
+          <div class="kpi-card"><div class="kpi-label">Volume</div><div class="kpi-value" id="an-kpi-vol">—</div><div class="kpi-sub an-var" id="an-var-vol"></div></div>
+          <div class="kpi-card"><div class="kpi-label">Ticket Médio Geral</div><div class="kpi-value" id="an-kpi-ticket">—</div><div class="kpi-sub an-var" id="an-var-ticket"></div></div>
+          <div class="kpi-card"><div class="kpi-label">% Prensado (volume)</div><div class="kpi-value" id="an-kpi-prensado">—</div><div class="kpi-sub an-var" id="an-var-prensado"></div></div>
+          <div class="kpi-card"><div class="kpi-label">Nº de Vendas</div><div class="kpi-value" id="an-kpi-vendas">—</div><div class="kpi-sub an-var" id="an-var-vendas"></div></div>
+          <div class="kpi-card"><div class="kpi-label">Clientes Ativos</div><div class="kpi-value" id="an-kpi-clientes">—</div><div class="kpi-sub an-var" id="an-var-clientes"></div></div>
+          <div class="kpi-card"><div class="kpi-label">Materiais Movimentados</div><div class="kpi-value" id="an-kpi-materiais">—</div><div class="kpi-sub an-var" id="an-var-materiais"></div></div>
           <div class="kpi-card"><div class="kpi-label">Maior Cliente</div><div class="kpi-value" id="an-kpi-top-cliente" style="font-size:15px">—</div><div class="kpi-sub" id="an-kpi-top-cliente-pct"></div></div>
-          <div class="kpi-card"><div class="kpi-label">Concentração Top 5</div><div class="kpi-value" id="an-kpi-concentracao">—</div><div class="kpi-sub">% do faturamento</div></div>
+          <div class="kpi-card"><div class="kpi-label">Concentração Top 5</div><div class="kpi-value" id="an-kpi-concentracao">—</div><div class="kpi-sub an-var" id="an-var-concentracao"></div></div>
+        </div>
+
+        <!-- Andamento: melhorias × pontos de atenção -->
+        <div class="an-andamento mb-16">
+          <div class="card an-and-card an-and-bom">
+            <h4>▲ O que melhorou</h4>
+            <ul id="an-melhorias"></ul>
+          </div>
+          <div class="card an-and-card an-and-ruim">
+            <h4>▼ Pontos de atenção</h4>
+            <ul id="an-atencao"></ul>
+          </div>
+        </div>
+
+        <!-- Evolução: faturamento e ticket, atual × comparação -->
+        <div class="an-grid2">
+          <div class="card" style="padding:16px">
+            <h4 style="margin-bottom:8px" id="an-evol-fat-titulo">Faturamento por mês</h4>
+            <div style="height:260px;position:relative"><canvas id="chart-evol-fat"></canvas></div>
+          </div>
+          <div class="card" style="padding:16px">
+            <h4 style="margin-bottom:8px" id="an-evol-ticket-titulo">Ticket médio por mês (R$/t)</h4>
+            <div style="height:260px;position:relative"><canvas id="chart-evol-ticket"></canvas></div>
+          </div>
         </div>
 
         <!-- Rankings -->
@@ -432,8 +487,8 @@
             <div style="height:260px;position:relative"><canvas id="chart-dist-material"></canvas></div>
           </div>
           <div class="card" style="padding:16px">
-            <h4 style="margin-bottom:8px;display:flex;align-items:center;gap:6px"><span class="icon" style="width:14px;height:14px"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg></span>Evolução do Ticket Médio Mensal</h4>
-            <div style="height:260px;position:relative"><canvas id="chart-evol-ticket"></canvas></div>
+            <h4 style="margin-bottom:8px;display:flex;align-items:center;gap:6px"><span class="icon" style="width:14px;height:14px"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg></span>Variação do preço por material (R$/t)</h4>
+            <div style="height:260px;position:relative"><canvas id="chart-var-preco"></canvas><div id="an-var-preco-vazio" class="table-empty" style="display:none;position:absolute;inset:0;align-items:center;justify-content:center">Sem base de comparação no período anterior</div></div>
           </div>
         </div>
 
@@ -449,11 +504,15 @@
                 <tr>
                   <th>#</th>
                   <th>Cliente</th>
+                  <th>Situação</th>
                   <th class="text-right">Nº Vendas</th>
                   <th class="text-right">Volume (ton)</th>
                   <th class="text-right">Faturamento</th>
+                  <th class="text-right">Fat. anterior</th>
+                  <th class="text-right">Variação</th>
                   <th class="text-right">% Participação</th>
                   <th class="text-right">Ticket Médio</th>
+                  <th class="text-right">Última compra</th>
                   <th>Materiais Vendidos</th>
                 </tr>
               </thead>
@@ -670,10 +729,6 @@ async function init() {
   document.getElementById('an-ano').innerHTML = Array.from({length:5}, (_,i)=>anoN-i)
     .map(y=>`<option value="${y}"${y===anoN?' selected':''}>${y}</option>`).join('');
   document.getElementById('an-mes').value = mesAtual();
-
-  document.getElementById('pa-ano').innerHTML = Array.from({length:5}, (_,i)=>anoN-i)
-    .map(y=>`<option value="${y}"${y===anoN?' selected':''}>${y}</option>`).join('');
-  document.getElementById('pa-mes').value = mesAtual();
 
   await Promise.all([carregar(), carregarGraficos()]);
 }
@@ -1859,8 +1914,8 @@ document.getElementById('input-excel').addEventListener('change', async e => {
 
 // ── Análises Comerciais ──────────────────────────────────────────────────────
 const PALETA = ['#2a78d6','#008300','#e87ba4','#eda100','#1baf7a','#eb6834','#4a3aa7','#e34948'];
-let anaData = [];
-let chartRankClientes = null, chartRankMateriais = null, chartDistMaterial = null, chartEvolTicket = null;
+let anaData = [], anaPrev = [], anaCmp = null;
+let chartRankClientes = null, chartRankMateriais = null, chartDistMaterial = null, chartEvolTicket = null, chartEvolFat = null, chartVarPreco = null;
 
 // ── Filtro multi-seleção (Cliente / Material) ─────────────────────────────────
 const msItems = { cliente: [], material: [] };
@@ -1988,6 +2043,52 @@ function anaPeriodoRange() {
   return { ini: `${ano}-01-01`, fim: `${ano}-12-31` };
 }
 
+// ── Comparação com outro período ────────────────────────────────────────────
+const isoLocal = dt => `${dt.getFullYear()}-${String(dt.getMonth() + 1).padStart(2, '0')}-${String(dt.getDate()).padStart(2, '0')}`;
+const isoPartes = iso => iso.split('-').map(Number);
+function anaAddDias(iso, n) { const [y, m, d] = isoPartes(iso); return isoLocal(new Date(y, m - 1, d + n)); }
+function anaAddMeses(iso, n) {
+  const [y, m, d] = isoPartes(iso);
+  const ultimo = new Date(y, m - 1 + n + 1, 0);
+  return isoLocal(new Date(ultimo.getFullYear(), ultimo.getMonth(), Math.min(d, ultimo.getDate())));
+}
+const anaFimDoMes = iso => { const [y, m, d] = isoPartes(iso); return new Date(y, m, 0).getDate() === d; };
+
+// Período de comparação: até hoje (período em andamento compara com o mesmo trecho do outro período)
+function anaPeriodoComparacao(ini, fim) {
+  const hoje = isoLocal(new Date());
+  const ate = fim > hoje ? hoje : fim;
+  const modo = document.getElementById('an-comparar').value;
+  const tipo = document.getElementById('an-tipo-periodo').value;
+  const meses = modo === 'ano' || tipo === 'ano' ? 12 : tipo === 'mes' ? 1 : 0;
+  if (meses) {
+    let fimC = anaAddMeses(ate, -meses);
+    if (anaFimDoMes(ate)) { const [y, m] = isoPartes(fimC); fimC = isoLocal(new Date(y, m, 0)); }
+    return { ini: anaAddMeses(ini, -meses), fim: fimC, ate };
+  }
+  const dias = Math.round((new Date(ate) - new Date(ini)) / 864e5) + 1;
+  return { ini: anaAddDias(ini, -dias), fim: anaAddDias(ini, -1), ate };
+}
+
+// Busca paginada (o Supabase devolve no máximo 1000 linhas por consulta)
+async function anaBuscarVendas(ini, fim, cliSel, matSel) {
+  const linhas = [];
+  for (let de = 0; ; de += 1000) {
+    let q = supabase.from('vendas')
+      .select('*, clientes(nome), materiais(nome)')
+      .gte('data', ini).lte('data', fim)
+      .order('data').order('id')
+      .range(de, de + 999);
+    if (cliSel.length) q = q.in('cliente_id', cliSel);
+    if (matSel.length) q = q.in('material_id', matSel);
+    const { data, error } = await q;
+    if (error) { toast('Erro ao buscar vendas: ' + error.message, 'error'); break; }
+    linhas.push(...(data || []));
+    if (!data || data.length < 1000) break;
+  }
+  return linhas;
+}
+
 async function carregarAnalises() {
   const { ini, fim } = anaPeriodoRange();
   if (!ini || !fim) { toast('Selecione o período De e Até.', 'error'); return; }
@@ -1996,34 +2097,52 @@ async function carregarAnalises() {
 
   const cliSel = [...msState.cliente];
   const matSel = [...msState.material];
+  const cmp = anaPeriodoComparacao(ini, fim);
 
-  let q = supabase.from('vendas')
-    .select('*, clientes(nome), materiais(nome)')
-    .gte('data', ini).lte('data', fim)
-    .order('data');
-  if (cliSel.length) q = q.in('cliente_id', cliSel);
-  if (matSel.length) q = q.in('material_id', matSel);
+  const [atual, ant] = await Promise.all([
+    anaBuscarVendas(ini, fim, cliSel, matSel),
+    anaBuscarVendas(cmp.ini, cmp.fim, cliSel, matSel),
+  ]);
+  anaData = atual;
+  anaPrev = ant;
+  anaCmp = { ...cmp, iniAtual: ini };
 
-  const { data } = await q;
-  anaData = data || [];
+  document.getElementById('an-cmp-info').innerHTML =
+    `Comparando <strong>${dataBR(ini)} a ${dataBR(cmp.ate)}</strong> com <strong>${dataBR(cmp.ini)} a ${dataBR(cmp.fim)}</strong>` +
+    (anaPrev.length ? '' : ' — <span style="color:var(--warning)">sem vendas no período de comparação</span>');
 
   renderAnaKPIs();
+  renderAndamento();
+  renderEvolFat();
+  renderEvolTicket();
   renderRankClientes();
   renderRankMateriais();
   renderDistMaterial();
-  renderEvolTicket();
+  renderVarPreco();
   renderTabelaAnaClientes();
   renderTabelaAnaMateriais();
 }
+
+const anaNomeCli = r => r.clientes?.nome || 'Desconhecido';
+const anaNomeMat = r => r.materiais?.nome || r.codigo_material || 'Sem material';
+const moeda0 = v => new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL', maximumFractionDigits: 0 }).format(v ?? 0);
+const tn = v => ((v ?? 0) / 1000).toLocaleString('pt-BR', { maximumFractionDigits: 1 }) + ' t';
+const num1 = v => v.toLocaleString('pt-BR', { minimumFractionDigits: 1, maximumFractionDigits: 1 });
+const pctVar = (a, b) => b > 0 ? (a - b) / b * 100 : null;
+// ticket só com vendas por peso (vendas por unidade não têm tonelagem)
+const anaTicket = v => v.vol > 0 ? v.fatPeso / (v.vol / 1000) : 0;
 
 function anaAgrupar(rows, keyFn) {
   const map = {};
   rows.forEach(r => {
     const key = keyFn(r);
-    if (!map[key]) map[key] = { vendas: 0, vol: 0, fat: 0 };
-    map[key].vendas += 1;
-    map[key].vol += pesoVenda(r);
-    map[key].fat += parseFloat(r.valor_total || 0);
+    if (!map[key]) map[key] = { vendas: 0, vol: 0, fat: 0, fatPeso: 0, ultima: '' };
+    const m = map[key], fat = parseFloat(r.valor_total || 0);
+    m.vendas += 1;
+    m.vol += pesoVenda(r);
+    m.fat += fat;
+    if (vendaPorPeso(r)) m.fatPeso += fat;
+    if (r.data > m.ultima) m.ultima = r.data;
   });
   return map;
 }
@@ -2032,36 +2151,233 @@ function anaTopN(map, n = 10) {
   return Object.entries(map).sort((a, b) => b[1].fat - a[1].fat).slice(0, n);
 }
 
+// Totais de um conjunto de vendas
+function anaResumo(rows) {
+  const t = anaAgrupar(rows, () => 'total').total || { vendas: 0, vol: 0, fat: 0, fatPeso: 0 };
+  const prensa = rows.filter(r => r.acondicionamento === 'prensa').reduce((s, r) => s + pesoVenda(r), 0);
+  const granel = rows.filter(r => r.acondicionamento === 'granel').reduce((s, r) => s + pesoVenda(r), 0);
+  const porCli = Object.entries(anaAgrupar(rows, anaNomeCli)).sort((a, b) => b[1].fat - a[1].fat);
+  return {
+    ...t,
+    ticket: anaTicket(t),
+    pctPrensado: prensa + granel > 0 ? prensa / (prensa + granel) * 100 : null,
+    clientes: new Set(rows.map(r => r.cliente_id).filter(Boolean)).size,
+    materiais: new Set(rows.map(r => r.material_id).filter(Boolean)).size,
+    porCli,
+    top5: t.fat > 0 ? porCli.slice(0, 5).reduce((s, [, v]) => s + v.fat, 0) / t.fat * 100 : null,
+  };
+}
+
+// "▲ 12,3% vs R$ 800" — inverso: quando subir é ruim (ex.: concentração)
+function anaVarHtml(atual, ant, { pp = false, inverso = false, fmt = String } = {}) {
+  if (ant == null || atual == null || (!pp && !(ant > 0)) || !anaPrev.length) return '<span class="an-flat" style="font-weight:400">sem base de comparação</span>';
+  const d = pp ? atual - ant : (atual - ant) / ant * 100;
+  const cls = Math.abs(d) < 0.5 ? 'an-flat' : (d > 0) !== inverso ? 'an-up' : 'an-down';
+  const seta = Math.abs(d) < 0.5 ? '▬' : d > 0 ? '▲' : '▼';
+  return `<span class="${cls}">${seta} ${num1(Math.abs(d))}${pp ? ' p.p.' : '%'}</span> <span class="text-muted">vs ${fmt(ant)}</span>`;
+}
+
 function renderAnaKPIs() {
-  const fat = anaData.reduce((s, r) => s + (r.valor_total || 0), 0);
-  const vol = anaData.reduce((s, r) => s + pesoVenda(r), 0);
-  const clientesUnicos  = new Set(anaData.map(r => r.cliente_id).filter(Boolean));
-  const materiaisUnicos = new Set(anaData.map(r => r.material_id).filter(Boolean));
+  const a = anaResumo(anaData), b = anaResumo(anaPrev);
+  const set = (id, v) => document.getElementById(id).textContent = v;
+  const varH = (id, ...args) => document.getElementById(id).innerHTML = anaVarHtml(...args);
 
-  document.getElementById('an-kpi-fat').textContent      = moeda(fat);
-  document.getElementById('an-kpi-vol').textContent      = ton(vol);
-  document.getElementById('an-kpi-ticket').textContent   = vol > 0 ? moeda(fat / (vol / 1000)) : '—';
-  document.getElementById('an-kpi-vendas').textContent    = anaData.length;
-  document.getElementById('an-kpi-clientes').textContent  = clientesUnicos.size;
-  document.getElementById('an-kpi-materiais').textContent = materiaisUnicos.size;
+  set('an-kpi-fat', moeda0(a.fat));
+  set('an-kpi-vol', tn(a.vol));
+  set('an-kpi-ticket', a.vol > 0 ? moeda0(a.ticket) + '/t' : '—');
+  set('an-kpi-prensado', a.pctPrensado == null ? '—' : num1(a.pctPrensado) + '%');
+  set('an-kpi-vendas', a.vendas);
+  set('an-kpi-clientes', a.clientes);
+  set('an-kpi-materiais', a.materiais);
+  set('an-kpi-concentracao', a.top5 == null ? '—' : num1(a.top5) + '%');
 
-  const porCliente = anaAgrupar(anaData, r => r.clientes?.nome || 'Desconhecido');
-  const ranked = Object.entries(porCliente).sort((a, b) => b[1].fat - a[1].fat);
-  if (ranked.length) {
-    const [nome, info] = ranked[0];
-    document.getElementById('an-kpi-top-cliente').textContent = nome;
-    document.getElementById('an-kpi-top-cliente-pct').textContent = fat > 0 ? `${(info.fat / fat * 100).toFixed(1)}% do faturamento` : '';
-    const top5 = ranked.slice(0, 5).reduce((s, [, v]) => s + v.fat, 0);
-    document.getElementById('an-kpi-concentracao').textContent = fat > 0 ? `${(top5 / fat * 100).toFixed(1)}%` : '—';
+  varH('an-var-fat', a.fat, b.fat, { fmt: moeda0 });
+  varH('an-var-vol', a.vol, b.vol, { fmt: tn });
+  varH('an-var-ticket', a.ticket, b.vol > 0 ? b.ticket : null, { fmt: v => moeda0(v) + '/t' });
+  varH('an-var-prensado', a.pctPrensado, b.pctPrensado, { pp: true, fmt: v => num1(v) + '%' });
+  varH('an-var-vendas', a.vendas, b.vendas);
+  varH('an-var-clientes', a.clientes, b.clientes);
+  varH('an-var-materiais', a.materiais, b.materiais);
+  varH('an-var-concentracao', a.top5, b.top5, { pp: true, inverso: true, fmt: v => num1(v) + '%' });
+
+  if (a.porCli.length) {
+    const [nome, info] = a.porCli[0];
+    set('an-kpi-top-cliente', nome);
+    set('an-kpi-top-cliente-pct', a.fat > 0 ? `${num1(info.fat / a.fat * 100)}% do faturamento` : '');
   } else {
-    document.getElementById('an-kpi-top-cliente').textContent = '—';
-    document.getElementById('an-kpi-top-cliente-pct').textContent = '';
-    document.getElementById('an-kpi-concentracao').textContent = '—';
+    set('an-kpi-top-cliente', '—');
+    set('an-kpi-top-cliente-pct', '');
   }
 }
 
+// ── Andamento: lista automática do que melhorou e do que piorou ─────────────
+function renderAndamento() {
+  const bom = [], ruim = [];
+  const ul = (id, itens, vazio) => document.getElementById(id).innerHTML =
+    itens.length ? itens.map(t => `<li>${t}</li>`).join('') : `<li class="vazio">${vazio}</li>`;
+  const pc = v => num1(Math.abs(v)) + '%';
+
+  if (!anaData.length) {
+    ul('an-melhorias', [], 'Nenhuma venda no período.');
+    ul('an-atencao', [], 'Nenhuma venda no período.');
+    return;
+  }
+  const a = anaResumo(anaData), b = anaResumo(anaPrev);
+  const temBase = anaPrev.length > 0;
+
+  if (temBase) {
+    // Visão geral
+    const geral = [
+      ['Faturamento', pctVar(a.fat, b.fat), `${moeda0(b.fat)} → ${moeda0(a.fat)}`],
+      ['Volume vendido', pctVar(a.vol, b.vol), `${tn(b.vol)} → ${tn(a.vol)}`],
+      ['Ticket médio geral', b.vol > 0 ? pctVar(a.ticket, b.ticket) : null, `${moeda0(b.ticket)} → ${moeda0(a.ticket)}/t`],
+    ];
+    geral.forEach(([rot, v, det]) => {
+      if (v == null || Math.abs(v) < 2) return;
+      (v > 0 ? bom : ruim).push(`<strong>${rot}</strong> ${v > 0 ? 'subiu' : 'caiu'} ${pc(v)} (${det})`);
+    });
+    if (a.pctPrensado != null && b.pctPrensado != null && Math.abs(a.pctPrensado - b.pctPrensado) >= 1) {
+      const d = a.pctPrensado - b.pctPrensado;
+      (d > 0 ? bom : ruim).push(`<strong>Prensado</strong> ${d > 0 ? 'ganhou' : 'perdeu'} ${num1(Math.abs(d))} p.p. no volume vendido (${num1(b.pctPrensado)}% → ${num1(a.pctPrensado)}%)`);
+    }
+
+    // Materiais: preço e volume (só os relevantes nos dois períodos)
+    const matA = anaAgrupar(anaData, anaNomeMat), matB = anaAgrupar(anaPrev, anaNomeMat);
+    const comuns = Object.keys(matA).filter(k => matB[k] && matA[k].vol >= 500 && matB[k].vol >= 500);
+    const precos = comuns.map(k => [k, pctVar(anaTicket(matA[k]), anaTicket(matB[k]))]).filter(([, v]) => v != null);
+    precos.filter(([, v]) => v >= 3).sort((x, y) => y[1] - x[1]).slice(0, 3).forEach(([k, v]) =>
+      bom.push(`Preço de <strong>${k}</strong> subiu ${pc(v)} (${moeda0(anaTicket(matB[k]))} → ${moeda0(anaTicket(matA[k]))}/t)`));
+    precos.filter(([, v]) => v <= -3).sort((x, y) => x[1] - y[1]).slice(0, 3).forEach(([k, v]) =>
+      ruim.push(`Preço de <strong>${k}</strong> caiu ${pc(v)} (${moeda0(anaTicket(matB[k]))} → ${moeda0(anaTicket(matA[k]))}/t)`));
+    const volumes = comuns.map(k => [k, pctVar(matA[k].vol, matB[k].vol), matA[k].vol - matB[k].vol]).filter(([, v]) => v != null && Math.abs(v) >= 10);
+    volumes.filter(([, , d]) => d > 0).sort((x, y) => y[2] - x[2]).slice(0, 2).forEach(([k, v]) =>
+      bom.push(`Volume de <strong>${k}</strong> cresceu ${pc(v)} (${tn(matB[k].vol)} → ${tn(matA[k].vol)})`));
+    volumes.filter(([, , d]) => d < 0).sort((x, y) => x[2] - y[2]).slice(0, 2).forEach(([k, v]) =>
+      ruim.push(`Volume de <strong>${k}</strong> caiu ${pc(v)} (${tn(matB[k].vol)} → ${tn(matA[k].vol)})`));
+
+    // Clientes: novos, perdidos, quem cresceu e quem caiu
+    const cliA = Object.fromEntries(a.porCli), cliB = Object.fromEntries(b.porCli);
+    const lista = arr => arr.slice(0, 3).map(([n, v]) => `${n} (${moeda0(v.fat)})`).join(', ') + (arr.length > 3 ? ` e mais ${arr.length - 3}` : '');
+    const novos = a.porCli.filter(([n]) => !cliB[n]);
+    const perdidos = b.porCli.filter(([n]) => !cliA[n]);
+    if (novos.length) bom.push(`<strong>${novos.length} cliente${novos.length > 1 ? 's novos' : ' novo'}</strong>: ${lista(novos)}`);
+    if (perdidos.length) ruim.push(`<strong>${perdidos.length} cliente${perdidos.length > 1 ? 's' : ''} sem compra</strong> neste período (compraram no anterior): ${lista(perdidos)}`);
+    const difs = a.porCli.filter(([n]) => cliB[n]).map(([n, v]) => [n, v.fat - cliB[n].fat, pctVar(v.fat, cliB[n].fat)]).filter(([, , p]) => p != null && Math.abs(p) >= 10);
+    difs.filter(([, d]) => d > 0).sort((x, y) => y[1] - x[1]).slice(0, 2).forEach(([n, d, p]) =>
+      bom.push(`<strong>${n}</strong> comprou ${pc(p)} a mais (+${moeda0(d)})`));
+    difs.filter(([, d]) => d < 0).sort((x, y) => x[1] - y[1]).slice(0, 2).forEach(([n, d, p]) =>
+      ruim.push(`<strong>${n}</strong> comprou ${pc(p)} a menos (−${moeda0(-d)})`));
+
+    if (a.top5 != null && b.top5 != null && Math.abs(a.top5 - b.top5) >= 3) {
+      const d = a.top5 - b.top5;
+      (d < 0 ? bom : ruim).push(`Concentração nos 5 maiores clientes ${d < 0 ? 'caiu' : 'subiu'} para ${num1(a.top5)}% (era ${num1(b.top5)}%)`);
+    }
+  }
+
+  // Sinais que não dependem da comparação
+  if (a.porCli.length && a.fat > 0) {
+    const [nome, info] = a.porCli[0], part = info.fat / a.fat * 100;
+    if (part >= 30) ruim.push(`Dependência: <strong>${nome}</strong> responde por ${num1(part)}% do faturamento`);
+  }
+  const dias = Math.round((new Date(anaCmp.ate) - new Date(anaCmp.iniAtual)) / 864e5);
+  if (dias > 60) {
+    const parados = a.porCli.filter(([, v]) => (new Date(anaCmp.ate) - new Date(v.ultima)) / 864e5 > 45);
+    if (parados.length) ruim.push(`<strong>Sem comprar há mais de 45 dias</strong>: ${parados.slice(0, 4).map(([n, v]) => `${n} (última ${dataBR(v.ultima)})`).join(', ')}${parados.length > 4 ? ` e mais ${parados.length - 4}` : ''}`);
+  }
+
+  ul('an-melhorias', bom, temBase ? 'Nenhuma melhora relevante em relação ao período de comparação.' : 'Sem vendas no período de comparação.');
+  ul('an-atencao', ruim, 'Nenhum ponto de atenção relevante.');
+}
+
+// ── Evolução: agrupa por mês (ou por semana, em períodos curtos) ────────────
+function anaBaldes() {
+  const porSemana = (new Date(anaCmp.ate) - new Date(anaCmp.iniAtual)) / 864e5 <= 62;
+  const chave = (data, ini) => porSemana
+    ? Math.floor((new Date(data) - new Date(ini)) / 6048e5)
+    : (+data.slice(0, 4) - +ini.slice(0, 4)) * 12 + (+data.slice(5, 7) - +ini.slice(5, 7));
+  const agrupar = (rows, ini) => {
+    const map = {};
+    rows.forEach(r => {
+      const k = chave(r.data, ini);
+      const b = map[k] ||= { vol: 0, fat: 0, fatPeso: 0, prensa: { vol: 0, fatPeso: 0 }, granel: { vol: 0, fatPeso: 0 } };
+      const fat = parseFloat(r.valor_total || 0), vol = pesoVenda(r);
+      b.vol += vol; b.fat += fat;
+      if (vendaPorPeso(r)) b.fatPeso += fat;
+      const g = b[r.acondicionamento];
+      if (g && vendaPorPeso(r)) { g.vol += vol; g.fatPeso += fat; }
+    });
+    return map;
+  };
+  const atual = agrupar(anaData, anaCmp.iniAtual), ant = agrupar(anaPrev, anaCmp.ini);
+  const n = Math.max(chave(anaCmp.ate, anaCmp.iniAtual), ...Object.keys(atual).map(Number), 0) + 1;
+  const idx = Array.from({ length: n }, (_, i) => i);
+  const [y, m, d] = isoPartes(anaCmp.iniAtual);
+  const labels = idx.map(i => porSemana
+    ? 'Sem ' + (i + 1) + ' (' + new Date(y, m - 1, d + i * 7).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' }) + ')'
+    : new Date(y, m - 1 + i, 1).toLocaleDateString('pt-BR', { month: 'short', year: '2-digit' }));
+  return { porSemana, idx, labels, atual, ant };
+}
+
+const anaRotCmp = () => document.getElementById('an-comparar').value === 'ano' || document.getElementById('an-tipo-periodo').value === 'ano'
+  ? 'Ano anterior' : 'Período anterior';
+
+function renderEvolFat() {
+  const { porSemana, idx, labels, atual, ant } = anaBaldes();
+  document.getElementById('an-evol-fat-titulo').textContent = `Faturamento por ${porSemana ? 'semana' : 'mês'} — atual × ${anaRotCmp().toLowerCase()}`;
+  if (chartEvolFat) chartEvolFat.destroy();
+  chartEvolFat = new Chart(document.getElementById('chart-evol-fat').getContext('2d'), {
+    type: 'bar',
+    data: {
+      labels,
+      datasets: [
+        { label: 'Atual', data: idx.map(i => atual[i]?.fat ?? null), backgroundColor: '#2a78d6', borderRadius: 4 },
+        { label: anaRotCmp(), data: idx.map(i => ant[i]?.fat ?? null), backgroundColor: '#cbd5e1', borderRadius: 4 },
+      ]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: {
+        legend: { position: 'bottom', labels: { boxWidth: 12, font: { size: 11 } } },
+        tooltip: { callbacks: { label: ctx => {
+          const b = (ctx.datasetIndex ? ant : atual)[idx[ctx.dataIndex]];
+          return b ? `${ctx.dataset.label}: ${moeda0(b.fat)} · ${tn(b.vol)}` : '';
+        } } }
+      },
+      scales: { y: { beginAtZero: true, ticks: { callback: v => 'R$' + v.toLocaleString('pt-BR') } } }
+    }
+  });
+}
+
+function renderEvolTicket() {
+  const { porSemana, idx, labels, atual, ant } = anaBaldes();
+  document.getElementById('an-evol-ticket-titulo').textContent = `Ticket médio por ${porSemana ? 'semana' : 'mês'} (R$/t)`;
+  const tk = g => g && g.vol > 0 ? g.fatPeso / (g.vol / 1000) : null;
+  const linha = (label, data, cor, extra = {}) => ({ label, data, borderColor: cor, backgroundColor: cor, tension: 0.3, spanGaps: true, pointRadius: 3, ...extra });
+  if (chartEvolTicket) chartEvolTicket.destroy();
+  chartEvolTicket = new Chart(document.getElementById('chart-evol-ticket').getContext('2d'), {
+    type: 'line',
+    data: {
+      labels,
+      datasets: [
+        linha('Geral', idx.map(i => tk(atual[i])), '#2a78d6', { borderWidth: 3 }),
+        linha('Prensado', idx.map(i => tk(atual[i]?.prensa)), '#7c3aed'),
+        linha('A granel', idx.map(i => tk(atual[i]?.granel)), '#f59e0b'),
+        linha(`Geral — ${anaRotCmp().toLowerCase()}`, idx.map(i => tk(ant[i])), '#94a3b8', { borderDash: [6, 4], pointRadius: 2 }),
+      ]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: {
+        legend: { position: 'bottom', labels: { boxWidth: 12, font: { size: 11 } } },
+        tooltip: { callbacks: { label: ctx => ctx.parsed.y == null ? '' : `${ctx.dataset.label}: ${moeda0(ctx.parsed.y)}/t` } }
+      },
+      scales: { y: { ticks: { callback: v => 'R$' + v.toLocaleString('pt-BR') } } }
+    }
+  });
+}
+
 function renderRankClientes() {
-  const map = anaAgrupar(anaData, r => r.clientes?.nome || 'Desconhecido');
+  const map = anaAgrupar(anaData, anaNomeCli);
   const top = anaTopN(map, 10);
   const labels = top.map(([nome]) => nome);
   const valores = top.map(([, v]) => v.fat);
@@ -2076,8 +2392,7 @@ function renderRankClientes() {
         legend: { display: false },
         tooltip: { callbacks: { label: ctx => {
           const [, info] = top[ctx.dataIndex];
-          const tk = info.vol > 0 ? info.fat / (info.vol / 1000) : 0;
-          return [`Faturamento: ${moeda(info.fat)}`, `Volume: ${ton(info.vol)}`, `Ticket médio: ${moeda(tk)}/ton`, `Vendas: ${info.vendas}`];
+          return [`Faturamento: ${moeda(info.fat)}`, `Volume: ${ton(info.vol)}`, `Ticket médio: ${moeda(anaTicket(info))}/ton`, `Vendas: ${info.vendas}`];
         } } }
       },
       scales: { x: { beginAtZero: true, ticks: { callback: v => 'R$' + v.toLocaleString('pt-BR') } } }
@@ -2086,7 +2401,7 @@ function renderRankClientes() {
 }
 
 function renderRankMateriais() {
-  const map = anaAgrupar(anaData, r => r.materiais?.nome || r.codigo_material || 'Sem material');
+  const map = anaAgrupar(anaData, anaNomeMat);
   const top = anaTopN(map, 10);
   const labels = top.map(([nome]) => nome);
   const valores = top.map(([, v]) => v.fat);
@@ -2101,8 +2416,7 @@ function renderRankMateriais() {
         legend: { display: false },
         tooltip: { callbacks: { label: ctx => {
           const [, info] = top[ctx.dataIndex];
-          const pm = info.vol > 0 ? info.fat / (info.vol / 1000) : 0;
-          return [`Faturamento: ${moeda(info.fat)}`, `Volume: ${ton(info.vol)}`, `Preço médio: ${moeda(pm)}/ton`, `Vendas: ${info.vendas}`];
+          return [`Faturamento: ${moeda(info.fat)}`, `Volume: ${ton(info.vol)}`, `Preço médio: ${moeda(anaTicket(info))}/ton`, `Vendas: ${info.vendas}`];
         } } }
       },
       scales: { x: { beginAtZero: true, ticks: { callback: v => 'R$' + v.toLocaleString('pt-BR') } } }
@@ -2111,7 +2425,7 @@ function renderRankMateriais() {
 }
 
 function renderDistMaterial() {
-  const map = anaAgrupar(anaData, r => r.materiais?.nome || r.codigo_material || 'Sem material');
+  const map = anaAgrupar(anaData, anaNomeMat);
   const sorted = Object.entries(map).sort((a, b) => b[1].fat - a[1].fat);
   const top = sorted.slice(0, 7);
   const outrosFat = sorted.slice(7).reduce((s, [, v]) => s + v.fat, 0);
@@ -2139,87 +2453,135 @@ function renderDistMaterial() {
   });
 }
 
-function renderEvolTicket() {
-  const meses = {};
-  anaData.forEach(r => {
-    const key = r.data.substring(0, 7);
-    if (!meses[key]) meses[key] = { vol: 0, fat: 0 };
-    meses[key].vol += pesoVenda(r);
-    meses[key].fat += parseFloat(r.valor_total || 0);
-  });
-  const labs = Object.keys(meses).sort();
-  const valores = labs.map(k => meses[k].vol > 0 ? meses[k].fat / (meses[k].vol / 1000) : 0);
+// Variação do preço médio (R$/t) dos 10 materiais que mais faturam, atual × comparação
+function renderVarPreco() {
+  const matA = anaAgrupar(anaData, anaNomeMat), matB = anaAgrupar(anaPrev, anaNomeMat);
+  const linhas = Object.entries(matA)
+    .filter(([k, v]) => matB[k] && v.vol >= 500 && matB[k].vol >= 500)
+    .sort((a, b) => b[1].fat - a[1].fat).slice(0, 10)
+    .map(([k, v]) => ({ k, atual: anaTicket(v), ant: anaTicket(matB[k]) }))
+    .map(o => ({ ...o, pct: pctVar(o.atual, o.ant) }));
 
-  if (chartEvolTicket) chartEvolTicket.destroy();
-  chartEvolTicket = new Chart(document.getElementById('chart-evol-ticket').getContext('2d'), {
-    type: 'line',
+  if (chartVarPreco) chartVarPreco.destroy();
+  document.getElementById('an-var-preco-vazio').style.display = linhas.length ? 'none' : 'flex';
+  chartVarPreco = new Chart(document.getElementById('chart-var-preco').getContext('2d'), {
+    type: 'bar',
     data: {
-      labels: labs.map(l => { const [y, m] = l.split('-'); return new Date(+y, +m - 1, 1).toLocaleDateString('pt-BR', { month: 'short', year: '2-digit' }); }),
-      datasets: [{ label: 'Ticket Médio (R$/ton)', data: valores, borderColor: '#2a78d6', backgroundColor: '#cde2fb', fill: true, tension: 0.3 }]
+      labels: linhas.map(o => o.k),
+      datasets: [{ data: linhas.map(o => o.pct), backgroundColor: linhas.map(o => o.pct >= 0 ? '#16803c' : '#c8292a'), borderRadius: 4 }]
     },
     options: {
-      responsive: true, maintainAspectRatio: false,
-      plugins: { legend: { display: false } },
-      scales: { y: { beginAtZero: true, ticks: { callback: v => 'R$' + v.toLocaleString('pt-BR') } } }
+      indexAxis: 'y', responsive: true, maintainAspectRatio: false,
+      plugins: {
+        legend: { display: false },
+        tooltip: { callbacks: { label: ctx => {
+          const o = linhas[ctx.dataIndex];
+          return `${o.pct >= 0 ? '+' : '−'}${num1(Math.abs(o.pct))}% · ${moeda0(o.ant)} → ${moeda0(o.atual)}/t`;
+        } } }
+      },
+      scales: { x: { ticks: { callback: v => (v > 0 ? '+' : '') + v + '%' } } }
     }
   });
 }
 
 function renderTabelaAnaClientes() {
-  const map = anaAgrupar(anaData, r => r.clientes?.nome || 'Desconhecido');
+  const map = anaAgrupar(anaData, anaNomeCli);
+  const mapAnt = anaAgrupar(anaPrev, anaNomeCli);
   const matPorCliente = {};
   anaData.forEach(r => {
-    const cli = r.clientes?.nome || 'Desconhecido';
-    const mat = r.materiais?.nome || r.codigo_material || 'Sem material';
+    const cli = anaNomeCli(r);
+    const mat = anaNomeMat(r);
     if (!matPorCliente[cli]) matPorCliente[cli] = {};
-    if (!matPorCliente[cli][mat]) matPorCliente[cli][mat] = { vol: 0, fat: 0 };
+    if (!matPorCliente[cli][mat]) matPorCliente[cli][mat] = { vol: 0, fat: 0, fatPeso: 0 };
     matPorCliente[cli][mat].vol += pesoVenda(r);
     matPorCliente[cli][mat].fat += (r.valor_total || 0);
+    if (vendaPorPeso(r)) matPorCliente[cli][mat].fatPeso += (r.valor_total || 0);
   });
   const totalFat = Object.values(map).reduce((s, v) => s + v.fat, 0);
   const linhas = Object.entries(map).sort((a, b) => b[1].fat - a[1].fat);
+  const perdidos = Object.entries(mapAnt).filter(([n]) => !map[n]).sort((a, b) => b[1].fat - a[1].fat);
+  const temBase = anaPrev.length > 0;
 
   const tb = document.getElementById('tb-an-clientes');
-  if (!linhas.length) {
-    tb.innerHTML = '<tr><td colspan="8" class="table-empty">Nenhum dado encontrado</td></tr>';
+  if (!linhas.length && !perdidos.length) {
+    tb.innerHTML = '<tr><td colspan="12" class="table-empty">Nenhum dado encontrado</td></tr>';
     document.getElementById('an-cli-total').textContent = '';
     return;
   }
 
-  tb.innerHTML = linhas.map(([nome, v], i) => {
+  const diasDesde = iso => Math.round((new Date(anaCmp.ate) - new Date(iso)) / 864e5);
+  const ultimaHtml = iso => {
+    const dd = diasDesde(iso);
+    return dd > 45 ? `<span style="color:var(--warning);font-weight:600">${dataBR(iso)}<br><small>há ${dd} dias</small></span>` : dataBR(iso);
+  };
+
+  const htmlAtivos = linhas.map(([nome, v], i) => {
+    const ant = mapAnt[nome];
+    const p = ant ? pctVar(v.fat, ant.fat) : null;
+    const situacao = !temBase ? '<span class="badge badge-gray">—</span>'
+      : !ant ? '<span class="badge badge-blue">Novo</span>'
+      : p >= 10 ? '<span class="badge badge-green">Cresceu</span>'
+      : p <= -10 ? '<span class="badge badge-red">Caiu</span>'
+      : '<span class="badge badge-gray">Estável</span>';
+    const varHtml = p == null ? '—' : `<span class="${Math.abs(p) < 0.5 ? 'an-flat' : p > 0 ? 'an-up' : 'an-down'}">${p > 0 ? '▲' : p < 0 ? '▼' : '▬'} ${num1(Math.abs(p))}%</span>`;
     const pct = totalFat > 0 ? (v.fat / totalFat * 100).toFixed(1) : '0.0';
-    const ticket = v.vol > 0 ? moeda(v.fat / (v.vol / 1000)) : '—';
+    const ticket = v.vol > 0 ? moeda(anaTicket(v)) : '—';
     const materiais = Object.entries(matPorCliente[nome] || {}).sort((a, b) => b[1].fat - a[1].fat);
     const materiaisHtml = materiais.map(([mat, mv]) => {
       const pctMat = v.fat > 0 ? (mv.fat / v.fat * 100).toFixed(0) : '0';
-      const ticketMat = mv.vol > 0 ? moeda(mv.fat / (mv.vol / 1000)) : '—';
+      const ticketMat = mv.vol > 0 ? moeda(anaTicket(mv)) : '—';
       return `<div style="white-space:nowrap"><strong>${mat}</strong> — ${ton(mv.vol)} <span style="color:#94a3b8">(${pctMat}%)</span> · ${ticketMat}/ton</div>`;
     }).join('');
     const medalha = i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : (i + 1);
     return `<tr>
       <td class="rank-medal">${medalha}</td>
       <td><strong>${nome}</strong></td>
+      <td>${situacao}</td>
       <td class="text-right">${v.vendas}</td>
       <td class="text-right">${ton(v.vol)}</td>
       <td class="text-right">${moeda(v.fat)}</td>
+      <td class="text-right">${ant ? moeda(ant.fat) : '—'}</td>
+      <td class="text-right" style="white-space:nowrap">${varHtml}</td>
       <td class="text-right">${pct}%</td>
       <td class="text-right">${ticket}</td>
+      <td class="text-right" style="white-space:nowrap">${ultimaHtml(v.ultima)}</td>
       <td>${materiaisHtml}</td>
     </tr>`;
   }).join('');
-  document.getElementById('an-cli-total').textContent = `${linhas.length} clientes`;
+
+  const htmlPerdidos = perdidos.map(([nome, v]) => `<tr class="an-perdido">
+      <td>—</td>
+      <td><strong>${nome}</strong></td>
+      <td><span class="badge badge-orange">Não comprou</span></td>
+      <td class="text-right">0</td>
+      <td class="text-right">—</td>
+      <td class="text-right">—</td>
+      <td class="text-right">${moeda(v.fat)}</td>
+      <td class="text-right"><span class="an-down">▼ 100%</span></td>
+      <td class="text-right">—</td>
+      <td class="text-right">—</td>
+      <td class="text-right" style="white-space:nowrap">${ultimaHtml(v.ultima)}</td>
+      <td></td>
+    </tr>`).join('');
+
+  tb.innerHTML = htmlAtivos + htmlPerdidos;
+  document.getElementById('an-cli-total').textContent = `${linhas.length} clientes` + (perdidos.length ? ` · ${perdidos.length} sem compra no período` : '');
 }
 
 function renderTabelaAnaMateriais() {
-  const map = anaAgrupar(anaData, r => r.materiais?.nome || r.codigo_material || 'Sem material');
+  const map = anaAgrupar(anaData, anaNomeMat);
+  const mapAnt = anaAgrupar(anaPrev, anaNomeMat);
   const cliPorMaterial = {};
   const volPorMesMaterial = {};
   const mesesSet = new Set();
   anaData.forEach(r => {
-    const mat = r.materiais?.nome || r.codigo_material || 'Sem material';
-    const cli = r.clientes?.nome || 'Desconhecido';
+    const mat = anaNomeMat(r);
+    const cli = anaNomeCli(r);
     if (!cliPorMaterial[mat]) cliPorMaterial[mat] = {};
-    cliPorMaterial[mat][cli] = (cliPorMaterial[mat][cli] || 0) + (r.valor_total || 0);
+    const c = cliPorMaterial[mat][cli] ||= { fat: 0, vol: 0, fatPeso: 0 };
+    c.fat += (r.valor_total || 0);
+    c.vol += pesoVenda(r);
+    if (vendaPorPeso(r)) c.fatPeso += (r.valor_total || 0);
 
     const mesKey = (r.data || '').slice(0, 7);
     if (mesKey) {
@@ -2238,7 +2600,10 @@ function renderTabelaAnaMateriais() {
     <th class="text-right">Faturamento</th>
     <th class="text-right">% Participação</th>
     <th class="text-right">Preço Médio/ton</th>
-    <th>Principal Cliente</th>`;
+    <th class="text-right">Var. preço</th>
+    <th class="text-right">Var. volume</th>
+    <th>Principal Cliente</th>
+    <th>Quem paga mais (R$/t)</th>`;
   const mesHeaders = meses.map(mk => {
     const [y, m] = mk.split('-');
     const label = new Date(+y, +m - 1, 1).toLocaleDateString('pt-BR', { month: 'short', year: '2-digit' });
@@ -2251,15 +2616,24 @@ function renderTabelaAnaMateriais() {
 
   const tb = document.getElementById('tb-an-materiais');
   if (!linhas.length) {
-    tb.innerHTML = `<tr><td colspan="${8 + meses.length}" class="table-empty">Nenhum dado encontrado</td></tr>`;
+    tb.innerHTML = `<tr><td colspan="${11 + meses.length}" class="table-empty">Nenhum dado encontrado</td></tr>`;
     document.getElementById('an-mat-total').textContent = '';
     return;
   }
 
+  const varCel = p => p == null ? '—' : `<span class="${Math.abs(p) < 0.5 ? 'an-flat' : p > 0 ? 'an-up' : 'an-down'}">${p > 0 ? '▲' : p < 0 ? '▼' : '▬'} ${num1(Math.abs(p))}%</span>`;
+
   tb.innerHTML = linhas.map(([nome, v], i) => {
+    const ant = mapAnt[nome];
     const pct = totalFat > 0 ? (v.fat / totalFat * 100).toFixed(1) : '0.0';
-    const precoMedio = v.vol > 0 ? moeda(v.fat / (v.vol / 1000)) : '—';
-    const principal = Object.entries(cliPorMaterial[nome] || {}).sort((a, b) => b[1] - a[1])[0]?.[0] || '—';
+    const precoMedio = v.vol > 0 ? moeda(anaTicket(v)) : '—';
+    const pPreco = ant && v.vol > 0 && ant.vol > 0 ? pctVar(anaTicket(v), anaTicket(ant)) : null;
+    const pVol = ant ? pctVar(v.vol, ant.vol) : null;
+    const clis = Object.entries(cliPorMaterial[nome] || {});
+    const principal = clis.sort((a, b) => b[1].fat - a[1].fat)[0]?.[0] || '—';
+    const comPeso = clis.filter(([, c]) => c.vol > 0);
+    const melhor = comPeso.sort((a, b) => anaTicket(b[1]) - anaTicket(a[1]))[0];
+    const melhorHtml = melhor && comPeso.length > 1 ? `${moeda0(anaTicket(melhor[1]))} · ${melhor[0]}` : '—';
     const medalha = i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : (i + 1);
     const mesCells = meses.map(mk => {
       const volMes = (volPorMesMaterial[nome] && volPorMesMaterial[nome][mk]) || 0;
@@ -2273,7 +2647,10 @@ function renderTabelaAnaMateriais() {
       <td class="text-right">${moeda(v.fat)}</td>
       <td class="text-right">${pct}%</td>
       <td class="text-right">${precoMedio}</td>
+      <td class="text-right" style="white-space:nowrap">${varCel(pPreco)}</td>
+      <td class="text-right" style="white-space:nowrap">${varCel(pVol)}</td>
       <td>${principal}</td>
+      <td style="white-space:nowrap">${melhorHtml}</td>
       ${mesCells}
     </tr>`;
   }).join('');
