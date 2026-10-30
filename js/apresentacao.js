@@ -669,19 +669,46 @@ export function montarApresentacao(PptxGenJS, d, { img, frases: fr, textos, acoe
     // Frase do topo: diminui a fonte quando o texto é longo, para não invadir o conteúdo (y ≥ 205)
     const n = (frase || '').replace(/\*/g, '').length;
     txt(s, 50, 118, 1290, 80, runs(frase), n > 240 ? 19 : n > 220 ? 21 : n > 200 ? 23 : 25, COR.txt2);
-    if (etapa != null) barraRoteiro(s, etapa);
+    if (etapa === 'anexo') {
+      // Anexo: no rodapé, no lugar do roteiro, avisa que o slide é de consulta
+      linha(s, 50, 836, 1330, COR.borda);
+      txt(s, 50, 846, 1280, 24, [
+        { text: 'ANEXO', options: { bold: true, color: COR.verde } },
+        { text: '   ·   detalhamento para consulta', options: { color: COR.cinza } },
+      ], 13, COR.cinza);
+    } else if (etapa != null) barraRoteiro(s, etapa);
     if (parcial) seloParcial(s);
     return s;
   }
-  // Anotações do apresentador: tempo sugerido, mensagem principal, pontos de apoio e a ponte para o próximo slide
+  // Anotações do apresentador: tempo sugerido, mensagem principal, pontos de apoio e a ponte para o próximo slide.
+  // Nos slides do anexo: sem tempo nem ponte (só são abertos se a diretoria perguntar)
+  let emAnexo = false;
   const semMarca = t => String(t || '').replace(/\*\*([^*]+)\*\*/g, '$1').replace(/\*([^*]+)\*/g, '$1');
   const fala = (s, { min, etapa, frase, apoio = [], proximo }) => s.addNotes([
-    `⏱ ~${min} min · ${etapa}`,
+    emAnexo ? `ANEXO · ${etapa.replace(/ \(\d de \d\)$/, '')} — abrir só se perguntarem` : `⏱ ~${min} min · ${etapa}`,
     '',
     `MENSAGEM: ${semMarca(frase)}`,
     ...(apoio.filter(Boolean).length ? ['', 'PONTOS DE APOIO:', ...apoio.filter(Boolean).map(p => `• ${semMarca(p)}`)] : []),
-    ...(proximo ? ['', `PRÓXIMO: ${proximo}`] : []),
+    ...(proximo && !emAnexo ? ['', `PRÓXIMO: ${proximo}`] : []),
   ].join('\n'));
+  // Selo de ritmo (mesmos cortes do Resumo executivo): NO RITMO ≥ 97%, ATENÇÃO ≥ 90%, ABAIXO < 90%
+  const seloDoRitmo = p => p == null ? null : Math.round(p) >= 97 ? ['NO RITMO', COR.ok, COR.okBg] : Math.round(p) >= 90 ? ['ATENÇÃO', COR.amb, COR.ambBg] : ['ABAIXO', COR.verm, COR.vermBg];
+  // Slides enxutos: até três cards grandes empilhados à direita do gráfico (rótulo · número grande · uma linha)
+  // c = { rot, valor, sub, cor, fill, selo: [texto, fg, bg] }
+  function cardsDireita(s, cards, x = 940, w = 390) {
+    const gap = 22, h = (822 - 205 - gap * (cards.length - 1)) / cards.length;
+    cards.forEach((c, k) => {
+      const y = 205 + k * (h + gap);
+      box(s, x, y, w, h, c.fill || 'FFFFFF', COR.borda);
+      txt(s, x + 24, y + 20, c.selo ? w - 170 : w - 48, 22, c.rot, 14, COR.muted, { bold: true });
+      if (c.selo) {
+        const [rot, fg, bg] = c.selo, wp = Math.max(60, rot.length * 12 * 0.62 + 28);
+        pill(s, x + w - 20 - wp, y + 16, rot, fg, bg, 12);
+      }
+      txt(s, x + 24, y + h / 2 - 30, w - 48, 54, c.valor, 38, c.cor || COR.txt, { bold: true, valign: 'middle' });
+      txt(s, x + 24, y + h - 50, w - 48, 36, c.sub || '', 15, COR.txt2, { valign: 'bottom' });
+    });
+  }
   const corAting = p => p == null ? COR.muted : p >= 100 ? COR.ok : p >= 70 ? COR.amarelo : COR.verm;
   function barras(s, x, y, w, itens, passo = 38, fs = 15) {
     itens.forEach(([rot, v, lab, det], k) => {
@@ -816,16 +843,65 @@ export function montarApresentacao(PptxGenJS, d, { img, frases: fr, textos, acoe
       proximo: 'Agora o porquê de cada número, começando pelo faturamento.' });
   }
 
-  // ── 4. Faturamento ──
-  {
-    const s = conteudo('FATURAMENTO', fr.fat, 1, true);
+  // Os slides de cada etapa saem em duas versões: a enxuta (no corpo: um gráfico de evolução e até três números)
+  // e a detalhada (no anexo, depois do encerramento, para abrir só se a diretoria perguntar)
+  const anexos = [];
+  const graficoFat = (s, h = 600) => {
     const vals = d.fatMes.map(r => +(r.fat / 1000).toFixed(2));
     const cores = d.mesesAno.map(mk => mk === d.M && d.emAndamento ? COR.verdeParcial : COR.verde);
     const metaLinha = d.mesesAno.map(mk => +(((d.metaMes[mk] ?? d.meta) || 0) / 1000).toFixed(2));
     s.addChart([
       { type: pptx.ChartType.bar, data: [{ name: 'Faturamento (R$ mil)', labels: labelsAno, values: vals }], options: optsBarras(cores, '"R$ "0.0"k"') },
       { type: pptx.ChartType.line, data: [{ name: d.meta ? `Meta (${mil(d.meta)})` : 'Meta', labels: labelsAno, values: metaLinha }], options: optsLinha },
-    ], { ...optsGrafico(`Faturamento mensal ${d.M.slice(0, 4)} × meta (R$ mil)`), valAxisLabelFormatCode: '"R$ "0"k"', ...(pe > 0 ? { h: I(505) } : {}) });
+    ], { ...optsGrafico(`Faturamento mensal ${d.M.slice(0, 4)} × meta (R$ mil)`), valAxisLabelFormatCode: '"R$ "0"k"', h: I(h) });
+  };
+
+  // ── 4. Faturamento (enxuto) ──
+  {
+    const s = conteudo('FATURAMENTO', fr.fat, 1, true);
+    graficoFat(s);
+    const espAq = d.emAndamento && d.du > 0 && d.dp > 0 ? d.dp / d.du : 1;
+    const acertoPe = fin?.acerto > 0 ? fin.acerto : 0;
+    // Distância do ponto de equilíbrio: projeção + estoque (mês em andamento) ou realizado (mês fechado)
+    const refPe = d.emAndamento ? d.projecao + d.valorEstoque + acertoPe : d.cur.fat + acertoPe;
+    const cardPe = pe > 0 && !d.inicioMes ? {
+      rot: refPe >= pe ? 'ACIMA DO EQUILÍBRIO' : 'ABAIXO DO EQUILÍBRIO', valor: mil(Math.abs(refPe - pe)), cor: refPe >= pe ? COR.ok : COR.verm,
+      sub: `equilíbrio: ${mil(pe)}/mês de receita`,
+    } : null;
+    const cards = d.inicioMes ? [
+      { rot: `REALIZADO ATÉ ${ddmm(d.corte)}`, valor: mil(d.cur.fat), sub: `${d.meta ? `${pct(atFat, 0)} da meta · ` : ''}${d.dp} de ${d.du} dias úteis` },
+      { rot: `${ant.toUpperCase()} NO MESMO PONTO`, valor: mil(d.antMesmo.fat), sub: `fechou o mês em ${mil(d.antCheio.fat)}` },
+      d.meta ? { rot: 'FALTA PARA A META', valor: mil(Math.max(0, d.meta - d.cur.fat)), cor: COR.amb, fill: COR.ambBg,
+        sub: d.valorEstoque > 0 ? `${mil(d.valorEstoque)} já em estoque para vender` : `meta do mês: ${mil(d.meta)}` } : null,
+    ] : d.emAndamento ? [
+      { rot: `REALIZADO ATÉ ${ddmm(d.corte)}`, valor: mil(d.cur.fat),
+        sub: d.valorEstoque > 0 ? `+ ${mil(d.valorEstoque)} em estoque para vender` : d.meta ? `${pct(atFat, 0)} da meta de ${mil(d.meta)}` : '' },
+      { rot: d.valorEstoque > 0 ? 'PROJEÇÃO DO MÊS + ESTOQUE' : 'PROJEÇÃO DO MÊS', valor: mil(d.projecao + d.valorEstoque), cor: COR.verde, fill: COR.verdeCl,
+        sub: d.meta ? `${pct((d.projecao + d.valorEstoque) / d.meta * 100, 0)} da meta de ${mil(d.meta)}` : '',
+        // Selo igual ao do Resumo: realizado + estoque contra o esperado até aqui
+        selo: d.meta ? seloDoRitmo((d.cur.fat + d.valorEstoque) / d.meta * 100 / espAq) : null },
+      cardPe || (d.valorEstoque > 0 ? null : { rot: `${ant.toUpperCase()} INTEIRO`, valor: mil(d.antCheio.fat), sub: 'para comparação' }),
+    ] : [
+      { rot: `REALIZADO EM ${mes.toUpperCase()}`, valor: mil(d.cur.fat), cor: COR.verde, fill: COR.verdeCl,
+        sub: d.meta ? `${pct(atFat, 0)} da meta de ${mil(d.meta)}` : 'sem meta', selo: seloDoRitmo(atFat) },
+      { rot: `ACUMULADO JAN–${abrevMes.toUpperCase()}`, valor: mil(d.fatAno), sub: d.metaAno ? `${pct(d.fatAno / d.metaAno * 100, 0)} da meta do período` : '' },
+      cardPe || (d.melhor ? { rot: 'MELHOR MÊS DO ANO', valor: cap(nomeMes(d.melhor.mk)), sub: `${pct(d.melhor.p, 0)} da meta` } : null),
+    ];
+    cardsDireita(s, cards.filter(Boolean));
+    fala(s, { min: 3, etapa: 'Faturamento e vendas (2 de 5)', frase: fr.fat,
+      apoio: [
+        `Realizado: ${mil(d.cur.fat)}${d.meta ? ` (${pct(atFat)} da meta de ${mil(d.meta)})` : ''}${d.emAndamento ? ` em ${d.dp} de ${d.du} dias úteis` : ''}.`,
+        d.emAndamento && !d.inicioMes ? `Projeção = faturamento até ${ddmm(d.corte)} ÷ ${d.dp} dias úteis × ${d.du} dias úteis do mês${d.valorEstoque > 0 ? `, mais o estoque pronto para vender (${mil(d.valorEstoque)}, ${tn(d.estoqueKg)})` : ''}.` : '',
+        cardPe ? `Ponto de equilíbrio: ${mil(pe)}/mês de receita bruta (EBITDA zero); ${d.emAndamento ? 'projeção + estoque' : 'realizado'}${acertoPe ? ' + acerto' : ''}: ${mil(refPe)}.` : '',
+        'Detalhe (semanas, estoque, mês anterior): anexo "Faturamento".',
+      ],
+      proximo: 'Agora o que vendemos e a que preço — a composição de vendas.' });
+  }
+
+  // ── Anexo: Faturamento (detalhado) ──
+  anexos.push(() => {
+    const s = conteudo('FATURAMENTO', fr.fat, 'anexo', true);
+    graficoFat(s, pe > 0 ? 505 : 600);
 
     // Ponto de equilíbrio (receita bruta/mês com EBITDA zero): card largo embaixo do gráfico,
     // contra a projeção do mês + estoque (mês em andamento) ou o realizado (mês fechado)
@@ -935,11 +1011,75 @@ export function montarApresentacao(PptxGenJS, d, { img, frases: fr, textos, acoe
         ctxAno,
       ],
       proximo: `Agora o que vendemos e a que preço — a composição de vendas.` });
-  }
+  });
 
-  // ── 5. Composição de vendas ──
+  // ── 5. Composição de vendas (enxuto) ──
   {
     const s = conteudo('COMPOSIÇÃO DE VENDAS', fr.comp, 1, true);
+    const c = d.cur, a = d.antCheio;
+    // Três números lado a lado: preço do prensado, preço a granel e quanto do volume prensável saiu prensado
+    const ratioPG = c.g.prensado.preco && c.g.granel.preco ? c.g.prensado.preco / c.g.granel.preco : null;
+    const cw = 410, cgap = 25, ch = 250;
+    const pillVar = (x, y, v, porMix = false) => {
+      if (v == null) return;
+      const [fg, bg] = Math.abs(v) < 2 ? [COR.muted, COR.trilho] : porMix ? [COR.amb, COR.ambBg] : v > 0 ? [COR.ok, COR.okBg] : [COR.verm, COR.vermBg];
+      const t = Math.abs(v) < 2 ? 'estável' : `${seta(v)} ${nf(Math.abs(v), 0)}%${porMix ? ' · mix' : ''}`;
+      pill(s, x - Math.max(60, t.length * 13 * 0.62 + 28), y, t, fg, bg, 13);
+    };
+    const cardC = (i, rot, valor, sub, comp, fill, corV) => {
+      const x = 50 + i * (cw + cgap);
+      box(s, x, 205, cw, ch, fill, fill === 'FFFFFF' ? COR.borda : null);
+      txt(s, x + 26, 228, cw - 52, 22, rot, 14, COR.muted, { bold: true });
+      txt(s, x + 26, 262, cw - 52, 60, valor, 44, corV, { bold: true });
+      txt(s, x + 26, 330, cw - 52, 24, sub, 15, COR.verde, { bold: true });
+      linha(s, x + 26, 372, x + cw - 26, COR.borda);
+      txt(s, x + 26, 388, cw - 180, 24, comp, 15, COR.txt2);
+    };
+    const v = k => varPct(c.g[k].preco, a.g[k].preco);
+    cardC(0, 'PREÇO DO PRENSADO', c.g.prensado.preco ? `${reais0(c.g.prensado.preco)}/t` : '—',
+      ratioPG ? `vale ${nf(ratioPG, 1)}× o preço a granel` : '', `${cap(ant)}: ${a.g.prensado.preco ? reais0(a.g.prensado.preco) + '/t' : '—'}`, COR.verdeCl, COR.verde);
+    pillVar(50 + cw - 26, 385, v('prensado'), v('prensado') < -2 && d.mixPrensado?.porMix);
+    cardC(1, 'PREÇO A GRANEL', c.g.granel.preco ? `${reais0(c.g.granel.preco)}/t` : '—', '',
+      `${cap(ant)}: ${a.g.granel.preco ? reais0(a.g.granel.preco) + '/t' : '—'}`, COR.cinzaBg, COR.txt);
+    pillVar(50 + (cw + cgap) + cw - 26, 385, v('granel'));
+    cardC(2, 'VOLUME VENDIDO PRENSADO', c.pctPrensado != null ? pct(c.pctPrensado, 0) : '—', 'dos materiais prensáveis',
+      `${cap(ant)}: ${a.pctPrensado != null ? pct(a.pctPrensado, 0) : '—'}`, 'FFFFFF', COR.txt);
+    if (c.pctPrensado != null && a.pctPrensado != null) {
+      const dp = c.pctPrensado - a.pctPrensado, t = Math.abs(dp) < 1 ? 'estável' : `${seta(dp)} ${nf(Math.abs(dp), 0)} p.p.`;
+      pill(s, 50 + 2 * (cw + cgap) + cw - 26 - Math.max(60, t.length * 13 * 0.62 + 28), 385, t,
+        Math.abs(dp) < 1 ? COR.muted : dp > 0 ? COR.ok : COR.verm, Math.abs(dp) < 1 ? COR.trilho : dp > 0 ? COR.okBg : COR.vermBg, 13);
+    }
+
+    // Embaixo: prensado × a granel no volume vendido, mês anterior e mês atual (só materiais prensáveis)
+    txt(s, 50, 500, 1280, 22, 'PRENSADO × A GRANEL NO VOLUME VENDIDO', 14, COR.muted, { bold: true });
+    const larg = 1110, x0 = 220;
+    [[cap(ant), 545, a], [cap(mes), 670, c]].forEach(([rot, y, r]) => {
+      const pr = r.g.prensado.vol, gr = r.g.granel.vol, tot = pr + gr;
+      txt(s, 50, y + 18, 165, 30, rot, 20, COR.txt2, { bold: true });
+      if (!(tot > 0)) { txt(s, x0, y + 20, larg, 30, 'sem vendas de materiais prensáveis', 16, COR.muted); return; }
+      let x = x0;
+      [[pr, 'prensado', COR.verde, 'FFFFFF'], [gr, 'a granel', COR.verdeBarra, COR.txt2]].forEach(([vol, nome, fill, cor]) => {
+        if (!(vol > 0)) return;
+        const w = larg * vol / tot;
+        s.addText(w > 150 ? `${nf(vol / 1000, 1)} t ${nome} · ${pct(vol / tot * 100, 0)}` : w > 60 ? pct(vol / tot * 100, 0) : '',
+          { x: I(x), y: I(y), w: I(w), h: I(70), fill: { color: fill }, fontFace: FONT, fontSize: 17, bold: nome === 'prensado', color: cor, align: 'center', valign: 'middle', margin: 0 });
+        x += w;
+      });
+    });
+    fala(s, { min: 3, etapa: 'Faturamento e vendas (2 de 5)', frase: fr.comp,
+      apoio: [
+        `Prensado: ${c.g.prensado.preco ? `${reais0(c.g.prensado.preco)}/t` : '—'} (${ant}: ${a.g.prensado.preco ? `${reais0(a.g.prensado.preco)}/t` : '—'}); a granel: ${c.g.granel.preco ? `${reais0(c.g.granel.preco)}/t` : '—'} (${ant}: ${a.g.granel.preco ? `${reais0(a.g.granel.preco)}/t` : '—'}).`,
+        ratioPG ? `Cada tonelada prensada vale ${nf(ratioPG, 1)}× a vendida a granel: prensar mais é o que puxa o faturamento.` : '',
+        c.pctPrensado != null ? `Participação do prensado nos materiais prensáveis: ${pct(c.pctPrensado)} (${ant}: ${pct(a.pctPrensado)}).` : '',
+        d.mixPrensado?.porMix ? 'A queda do preço do prensado é de mix (quais materiais saíram), não de preço — detalhe no anexo.' : '',
+        'Sucata ferrosa, estoque por grupo e preço médio geral: anexo "Composição de vendas".',
+      ],
+      proximo: 'Do lado da produção: como estão as prensas.' });
+  }
+
+  // ── Anexo: Composição de vendas (detalhado) ──
+  anexos.push(() => {
+    const s = conteudo('COMPOSIÇÃO DE VENDAS', fr.comp, 'anexo', true);
     const c = d.cur, a = d.antCheio;
     // Três grupos que somam o volume vendido. Prensado × a granel = só materiais prensáveis;
     // a sucata ferrosa (não prensa) aparece à parte, com volume, preço e valor próprios.
@@ -1042,14 +1182,11 @@ export function montarApresentacao(PptxGenJS, d, { img, frases: fr, textos, acoe
         'Barras: só materiais prensáveis (% prensado = prensado ÷ prensado + a granel); a sucata ferrosa fica à direita porque não pode ser prensada.',
       ],
       proximo: 'Do lado da produção: como estão as prensas.' });
-  }
+  });
 
-  // ── 6. Prensagem ──
-  {
-    const s = conteudo('PRENSAGEM', fr.prensa, 2, true);
+  // Gráfico de prensagem (enxuto e anexo); devolve os meses cuja barra veio do prensado vendido (para as anotações)
+  const graficoPrensa = (s, G) => {
     const mPlano = PLANO_INICIO.slice(0, 7);
-    // Estoque prensado (a vender): só faz sentido sobre o mês em andamento (é a foto de hoje)
-    const estP = d.emAndamento ? d.estoqueGrupo.prensado.kg : 0;
     // Gráfico: prensagem por mês × capacidade, do primeiro mês do ano com dado até o mês atual (evolução).
     // Mês anterior sem produção lançada na tela Produção: usa o prensado comercializado no mês (mesma cor).
     // Sem nenhum dos dois: coluna vazia com "sem lançamento". Capacidade: a instalada; no mês atual, descontada a manutenção
@@ -1065,7 +1202,7 @@ export function montarApresentacao(PptxGenJS, d, { img, frases: fr, textos, acoe
     // Eixo com máximo fixo e área do gráfico fixa: assim dá para desenhar a caixa da projeção exatamente sobre a barra
     const maxT = Math.max(...capT, ...valsT, projT);
     const passoEixo = maxT > 120 ? 20 : 10, valMax = Math.ceil((maxT * 1.12) / passoEixo) * passoEixo;
-    const G = { x: 40, y: 205, w: 860, h: 420 }, L = { x: 0.06, y: 0.11, w: 0.92, h: 0.66 };
+    const L = { x: 0.06, y: 0.11, w: 0.92, h: G.h > 500 ? 0.75 : 0.66 };
     s.addChart([
       { type: pptx.ChartType.bar, data: [{ name: 'Produção das prensas (t)', labels, values: valsT }],
         // Formato com a seção do zero vazia: mês sem lançamento não mostra "0,0 t"
@@ -1092,6 +1229,45 @@ export function montarApresentacao(PptxGenJS, d, { img, frases: fr, textos, acoe
         { text: 'no ritmo atual', options: { color: COR.txt2, fontSize: 11 } },
       ], 14, COR.txt, { align: 'center' });
     }
+    return pelaVenda;
+  };
+
+  // ── 6. Prensagem (enxuto) ──
+  {
+    const s = conteudo('PRENSAGEM', fr.prensa, 2, true);
+    const pelaVenda = graficoPrensa(s, { x: 40, y: 205, w: 860, h: 600 });
+    const atEsp = d.esperado > 0 ? d.prod / d.esperado * 100 : null;
+    const ritmo = d.dpPrensa > 0 ? d.prod / d.dpPrensa : 0;
+    const pProj = d.capMes > 0 ? d.projProd / d.capMes * 100 : null;
+    const comProj = d.emAndamento && !d.inicioMes;
+    const manut = d.perdaCap > 0.5 ? ` (−${nf(d.perdaCap / 1000, 1)} t manutenção)` : '';
+    cardsDireita(s, [
+      { rot: d.emAndamento ? `PRODUZIDO ATÉ ${ddmm(d.corte)}` : `PRODUZIDO EM ${mes.toUpperCase()}`, valor: tn(d.prod, 1), cor: COR.verde, fill: COR.verdeCl,
+        sub: d.emAndamento ? `${pct(atEsp, 0)} do previsto até aqui (${tn(d.esperado, 1)})` : `${pct(atProd, 0)} da capacidade de ${tCap(d, d.capMes)} t`,
+        selo: seloDoRitmo(d.emAndamento ? atEsp : atProd) },
+      comProj
+        ? { rot: 'NO RITMO ATUAL, FECHA EM', valor: `~${nf(d.projProd / 1000, 0)} t`, cor: corAting(pProj), sub: `${pct(pProj, 0)} da capacidade de ${tCap(d, d.capMes)} t${manut}` }
+        : { rot: 'CAPACIDADE DO MÊS', valor: `${tCap(d, d.capMes)} t`, sub: `${d.prensas.length} prensas${manut}` },
+      { rot: 'RITMO POR DIA ÚTIL', valor: `${nf(ritmo / 1000, 1)} t/dia`, cor: ritmo >= d.metaDia ? COR.ok : COR.txt, sub: `meta: ${nf(d.metaDia / 1000, 1)} t/dia` },
+    ]);
+    fala(s, { min: 3, etapa: 'Prensagem (3 de 5)', frase: fr.prensa,
+      apoio: [
+        d.emAndamento ? `Produção: ${tn(d.prod, 1)} de ${tn(d.esperado, 1)} previstas até ${ddmm(d.corte)} (${pct(atEsp, 0)}); capacidade do mês: ${tCap(d, d.capMes)} t.`
+          : `Produção: ${tn(d.prod, 1)} de ${tCap(d, d.capMes)} t (${pct(atProd, 0)}).`,
+        comProj ? `Projeção: ${nf(ritmo / 1000, 1)} t/dia × ${Math.max(0, d.duPrensa - d.dpPrensa)} dias úteis restantes → ~${nf(d.projProd / 1000, 0)} t no mês.` : '',
+        d.perdaCap > 0.5 ? `Capacidade descontada a manutenção: ${textoPerdaCap(d)}.` : '',
+        pelaVenda.length ? `Meses sem produção lançada (${pelaVenda.map(mk => MES_ABREV[+mk.slice(5) - 1]).join(', ')}): a barra é o prensado comercializado no mês.` : '',
+        'Por prensa, por semana e prensado vendido: anexo "Prensagem".',
+      ],
+      proximo: 'O que sustenta a produção: equipamentos e equipe.' });
+  }
+
+  // ── Anexo: Prensagem (detalhado) ──
+  anexos.push(() => {
+    const s = conteudo('PRENSAGEM', fr.prensa, 'anexo', true);
+    const pelaVenda = graficoPrensa(s, { x: 40, y: 205, w: 860, h: 420 });
+    // Estoque prensado (a vender): só faz sentido sobre o mês em andamento (é a foto de hoje)
+    const estP = d.emAndamento ? d.estoqueGrupo.prensado.kg : 0;
 
     // Faixa embaixo do gráfico: produção de cada prensa × o previsto para ela (descontados os dias parada)
     const yS = 640, hS = 185;
@@ -1212,7 +1388,7 @@ export function montarApresentacao(PptxGenJS, d, { img, frases: fr, textos, acoe
         pelaVenda.length ? `Meses sem produção lançada na tela Produção (${pelaVenda.map(mk => MES_ABREV[+mk.slice(5) - 1]).join(', ')}): a barra é o prensado comercializado no mês.` : '',
       ],
       proximo: 'O que sustenta a produção: equipamentos e equipe.' });
-  }
+  });
 
   // ── 7. Equipamentos e equipe ──
   {
@@ -1334,9 +1510,8 @@ export function montarApresentacao(PptxGenJS, d, { img, frases: fr, textos, acoe
 
   // ── 8. Rumo ao equilíbrio (só com o estudo financeiro preenchido) ──
   const eq = analiseEquilibrio(d, fin);
-  if (eq) {
-    const s = conteudo('RUMO AO EQUILÍBRIO', fr.equil, 4, true);
-    const { base, antes, depois } = eq;
+  const graficoEquil = (s, G) => {
+    const { base } = eq;
     // Gráfico: receita mensal desde o primeiro mês com venda (mês em andamento = projeção no ritmo + estoque)
     // × ponto de equilíbrio e receita da margem alvo. Barra verde acima do equilíbrio, cinza abaixo
     const i0 = Math.max(0, d.fatMes.findIndex(r => r.fat > 0));
@@ -1356,7 +1531,40 @@ export function montarApresentacao(PptxGenJS, d, { img, frases: fr, textos, acoe
         { name: `Ponto de equilíbrio (${mil(eq.pe)})`, labels, values: linhaFixa(eq.pe) },
         ...(eq.rAlvo ? [{ name: `Margem de ${nf(eq.alvo, 0)}% (${mil(eq.rAlvo)})`, labels, values: linhaFixa(eq.rAlvo) }] : []),
       ], options: { ...optsLinha, chartColors: [COR.verm, COR.ok] } },
-    ], { ...optsGrafico('Receita mensal × ponto de equilíbrio (R$ mil)'), x: I(40), y: I(205), w: I(770), h: I(345), valAxisLabelFormatCode: '"R$ "0"k"', dataLabelFontSize: 13 });
+    ], { ...optsGrafico('Receita mensal × ponto de equilíbrio (R$ mil)'), x: I(G.x), y: I(G.y), w: I(G.w), h: I(G.h), valAxisLabelFormatCode: '"R$ "0"k"', dataLabelFontSize: 13 });
+  };
+
+  // ── 8. Rumo ao equilíbrio (enxuto; só com o estudo financeiro preenchido) ──
+  if (eq) {
+    const s = conteudo('RUMO AO EQUILÍBRIO', fr.equil, 4, true);
+    const { base, antes, depois } = eq;
+    graficoEquil(s, { x: 40, y: 205, w: 860, h: 600 });
+    const eb = eq.ebitda(base.rec), mg = eq.margem(base.rec);
+    const vRec = antes?.rec > 0 && depois ? (depois.rec / antes.rec - 1) * 100 : null;
+    cardsDireita(s, [
+      // O avanço: receita média por mês depois do plano × antes
+      depois ? { rot: 'RECEITA MÉDIA DEPOIS DO PLANO', valor: `${mil(depois.rec)}/mês`, cor: COR.verde, fill: COR.verdeCl,
+        sub: antes ? `antes: ${mil(antes.rec)}/mês${vRec != null ? ` (${seta(vRec)} ${nf(Math.abs(vRec), 0)}%)` : ''}` : '' } : null,
+      base.rec > 0 ? { rot: base.rec >= eq.pe ? 'ACIMA DO EQUILÍBRIO' : 'FALTA PARA O EQUILÍBRIO', valor: mil(Math.abs(base.rec - eq.pe)),
+        cor: base.rec >= eq.pe ? COR.ok : COR.verm, sub: `equilíbrio: ${mil(eq.pe)}/mês` } : null,
+      base.rec > 0 ? { rot: 'EBITDA ESTIMADO/MÊS', valor: `${eb < 0 ? '−' : ''}${mil(Math.abs(eb))}`, cor: eb >= 0 ? COR.ok : COR.verm,
+        sub: mg != null ? `margem de ${nf(mg, 1)}%` : '' } : null,
+    ].filter(Boolean));
+    fala(s, { min: 3, etapa: 'Plano de ação (5 de 5)', frase: fr.equil,
+      apoio: [
+        `Ponto de equilíbrio: ${mil(eq.pe)}/mês de receita bruta (custos fixos de ${mil(eq.fixos)}/mês).`,
+        antes && depois ? `Antes do plano (${periodoMeses(antes)}): ${mil(antes.rec)}/mês. Depois (${periodoMeses(depois)}): ${mil(depois.rec)}/mês.` : '',
+        `${base.rot}: ${mil(base.rec)}; EBITDA estimado de ${mil(eb)}${mg != null ? ` (${pct(mg, 1)})` : ''}.`,
+        'Volume, ticket médio e cenários (quantas toneladas / que preço para cada meta): anexo "Rumo ao equilíbrio".',
+      ],
+      proximo: 'O que estamos fazendo para chegar lá: o plano de ação.' });
+  }
+
+  // ── Anexo: Rumo ao equilíbrio (detalhado) ──
+  if (eq) anexos.push(() => {
+    const s = conteudo('RUMO AO EQUILÍBRIO', fr.equil, 'anexo', true);
+    const { base, antes, depois } = eq;
+    graficoEquil(s, { x: 40, y: 205, w: 770, h: 345 });
 
     // Antes × depois do plano (2 × 2): receita, volume e ticket médios por mês; EBITDA estimado da base atual
     const varTxt = (dep, ant) => {
@@ -1438,7 +1646,7 @@ export function montarApresentacao(PptxGenJS, d, { img, frases: fr, textos, acoe
         })(),
       ],
       proximo: 'O que estamos fazendo para chegar lá: o plano de ação.' });
-  }
+  });
 
   // ── 9. Plano de ação (tarefas selecionadas) ──
   {
@@ -1486,6 +1694,17 @@ export function montarApresentacao(PptxGenJS, d, { img, frases: fr, textos, acoe
     s.addShape(pptx.ShapeType.rect, { x: I(116), y: I(211), w: I(747.3), h: I(452.8), fill: { color: 'FFFFFF' }, line: { type: 'none' } });
     s.addImage({ data: img.foto, x: I(120), y: I(215), w: I(739.3), h: I(444.8), sizing: { type: 'cover', w: I(739.3), h: I(444.8) } });
     txt(s, 120, 679, 739, 30, 'Equipe UVR Indaiatuba', 18, 'FFFFFF', { bold: true, align: 'right' });
+  }
+
+  // ── 11. Anexo: capa e slides detalhados (depois do encerramento; abrir só se a diretoria perguntar) ──
+  if (anexos.length) {
+    const s = pptx.addSlide(); fundo(s, img.conteudo);
+    txt(s, 50, 300, 1280, 110, 'ANEXO', 90, COR.verde, { bold: true });
+    txt(s, 50, 420, 1280, 40, 'Detalhamento dos números, para consulta durante as perguntas', 26, COR.txt2);
+    txt(s, 50, 500, 1280, 200, ['Faturamento', 'Composição de vendas', 'Prensagem', ...(eq ? ['Rumo ao equilíbrio'] : [])]
+      .map((t, k, l) => ({ text: `${k + 1}. ${t}`, options: { breakLine: k < l.length - 1 } })), 22, COR.muted, { paraSpaceAfter: 6 });
+    emAnexo = true;
+    anexos.forEach(f => f());
   }
 
   return pptx;
