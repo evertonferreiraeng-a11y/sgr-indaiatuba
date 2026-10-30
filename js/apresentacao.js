@@ -1076,7 +1076,12 @@ export function montarApresentacao(PptxGenJS, d, { img, frases: fr, textos, acoe
       s.addShape(pptx.ShapeType.line, { x: I(xSuc - 15), y: I(y + 4), w: 0, h: I(62), line: { color: COR.borda, width: 1 } });
       txt(s, xSuc, y + 4, 1330 - xSuc, 34, `${nf(suc / 1000, 1)} t`, 26, COR.txt2, { bold: true });
       txt(s, xSuc, y + 40, 1330 - xSuc, 24, totVend > 0 ? `${pct(suc / totVend * 100, 0)} do total vendido` : '—', 14, COR.muted);
-      txt(s, 50, y + 18, 165, 30, rot, 20, COR.txt2, { bold: true });
+      // Mês e, embaixo, o total comercializado (prensado + a granel + sucata ferrosa)
+      txt(s, 50, y + 4, 165, 30, rot, 20, COR.txt2, { bold: true });
+      txt(s, 50, y + 36, 165, 24, [
+        { text: tn(totVend, 1), options: { bold: true, color: COR.txt } },
+        { text: ' vendidas', options: { color: COR.muted } },
+      ], 15, COR.muted);
       if (!(tot > 0)) { txt(s, x0, y + 20, larg, 30, 'sem vendas de materiais prensáveis', 16, COR.muted); return; }
       let x = x0;
       [[pr, 'prensado', COR.verde, 'FFFFFF'], [gr, 'a granel', COR.verdeBarra, COR.txt2]].forEach(([vol, nome, fill, cor]) => {
