@@ -104,7 +104,7 @@
 
 <script type="module">
 import { initPage, supabase, moeda, ton, toast } from './js/config.js?v=12';
-import { ehDiaUtil as ehUtilFeriado } from './js/feriados.js?v=1';
+import { ehDiaUtil as ehUtilFeriado, diasBaseCapacidade } from './js/feriados.js?v=2';
 
 await initPage();
 
@@ -274,12 +274,23 @@ function calcular(D, ini, fim, metaFim = fim) {
 
   let metaFat = 0, metaProd = 0;
   const capPrensas = D.prensas.reduce((s, e) => s + parseFloat(e.capacidade_kg_mes || 0), 0);
+  // Capacidade por dia = cadastrada ÷ dias de seg–sex: feriado reduz a capacidade do mês. Fora dos
+  // dias úteis, só a prensa que lançou ganha a capacidade daquele dia. A meta de faturamento segue
+  // dividida pelos dias úteis (o valor do mês não muda com o feriado).
+  const capPorPrensa = Object.fromEntries(D.prensas.map(e => [e.id, parseFloat(e.capacidade_kg_mes || 0)]));
+  const lancForaUtil = {};
+  D.producao.forEach(r => {
+    if (r.data < ini || r.data > metaFim || ehDiaUtil(r.data) || !(r.equipamento_id in capPorPrensa) || !(parseFloat(r.peso_produzido_kg || 0) > 0)) return;
+    (lancForaUtil[r.data] = lancForaUtil[r.data] || new Set()).add(r.equipamento_id);
+  });
   for (let d = ini; d <= metaFim; d = addDias(d, 1)) {
-    if (!ehDiaUtil(d)) continue;
     const ym = d.slice(0, 7);
-    const du = diasUteisMes(ym);
-    metaFat += (D.metaMes[ym] || 0) / du;
-    metaProd += capPrensas / du;
+    if (!ehDiaUtil(d)) {
+      (lancForaUtil[d] || []).forEach(id => { metaProd += capPorPrensa[id] / diasBaseCapacidade(ym); });
+      continue;
+    }
+    metaFat += (D.metaMes[ym] || 0) / diasUteisMes(ym);
+    metaProd += capPrensas / diasBaseCapacidade(ym);
   }
 
   const idsPrensas = new Set(D.prensas.map(e => e.id));

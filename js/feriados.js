@@ -28,3 +28,18 @@ function feriadosDoAno(ano) {
 export const ehFeriado = iso => feriadosDoAno(+iso.slice(0, 4)).has(iso.slice(0, 10));
 // Dia útil = segunda a sexta e não feriado
 export const ehDiaUtil = iso => { const w = new Date(iso.slice(0, 10) + 'T00:00:00').getDay(); return w !== 0 && w !== 6 && !ehFeriado(iso); };
+
+// Dias de segunda a sexta do mês ('AAAA-MM'), COM os feriados incluídos
+export function diasSegSex(ym) {
+  const [y, m] = ym.split('-').map(Number), total = new Date(y, m, 0).getDate(), dias = [];
+  for (let d = 1; d <= total; d++) {
+    const w = new Date(y, m - 1, d).getDay();
+    if (w !== 0 && w !== 6) dias.push(`${ym}-${pad(d)}`);
+  }
+  return dias;
+}
+// Capacidade diária = capacidade mensal cadastrada ÷ dias de seg–sex do mês. O feriado não redistribui
+// a capacidade pelos outros dias: ele tira um dia de capacidade do mês (e devolve se houver lançamento).
+export const diasBaseCapacidade = ym => diasSegSex(ym).length;
+// Feriados do mês que caem de segunda a sexta (são os que reduzem a capacidade)
+export const feriadosDoMes = ym => diasSegSex(ym).filter(ehFeriado);

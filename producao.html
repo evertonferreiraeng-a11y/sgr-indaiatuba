@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="pt-BR">
 <head>
   <meta charset="UTF-8" />
@@ -152,7 +152,7 @@
           <div class="kpi-card"><div class="kpi-label">Total Triado</div><div class="kpi-value" id="tri-kpi-kg">—</div><div class="kpi-sub">kg no período</div></div>
           <div class="kpi-card"><div class="kpi-label">Velocidade Média</div><div class="kpi-value" id="tri-kpi-vel">—</div><div class="kpi-sub">kg por hora</div></div>
           <div class="kpi-card"><div class="kpi-label">Capacidade/Dia</div><div class="kpi-value" id="tri-kpi-dia">—</div><div class="kpi-sub">projeção em 8h de trabalho</div></div>
-          <div class="kpi-card"><div class="kpi-label">Capacidade/Mês</div><div class="kpi-value" id="tri-kpi-mes">—</div><div class="kpi-sub">projeção em 22 dias úteis</div></div>
+          <div class="kpi-card"><div class="kpi-label">Capacidade/Mês</div><div class="kpi-value" id="tri-kpi-mes">—</div><div class="kpi-sub" id="tri-kpi-mes-sub">projeção nos dias úteis do mês</div></div>
         </div>
 
         <!-- Filtros triagem -->
@@ -298,7 +298,7 @@
 <div id="toast-container"></div>
 <script type="module">
 import { initPage, supabase, peso, ton, dataBR, toast, abrirModal, fecharModal, mesAtual } from './js/config.js?v=12';
-import { ehDiaUtil } from './js/feriados.js?v=1';
+import { ehDiaUtil, diasBaseCapacidade, feriadosDoMes } from './js/feriados.js?v=2';
 import { icon } from './js/icons.js';
 
 await initPage();
@@ -459,12 +459,13 @@ async function carregarCapacidades() {
   if (!equipamentos.length) { grid.innerHTML = '<p class="text-muted" style="font-size:13px">Nenhum equipamento cadastrado.</p>'; return; }
 
   const hojeD = new Date();
-  const diasUteisHoje = diasUteisDoMes(hojeD.getFullYear(), hojeD.getMonth() + 1).length;
+  // Capacidade diária: cadastrada ÷ dias de seg–sex do mês (feriado não aumenta a meta dos outros dias)
+  const diasBaseHoje = diasBaseCapacidade(`${hojeD.getFullYear()}-${String(hojeD.getMonth() + 1).padStart(2, '0')}`);
 
   const prensas = equipamentos.filter(eq => (eq.nome || '').toLowerCase().includes('prensa') && eq.capacidade_kg_mes);
   let resumoHtml = '';
   if (prensas.length) {
-    const metaHojeTotal = prensas.reduce((s, eq) => s + (diasUteisHoje > 0 ? (eq.capacidade_kg_mes || 0) / diasUteisHoje * fatorPrensaNoDia(eq, hoje) : 0), 0);
+    const metaHojeTotal = prensas.reduce((s, eq) => s + (eq.capacidade_kg_mes || 0) / diasBaseHoje * fatorPrensaNoDia(eq, hoje), 0);
     const produzidoHojeTotal = prensas.reduce((s, eq) => s + (prodPorEquip[eq.id] || 0), 0);
     const falta = Math.max(0, metaHojeTotal - produzidoHojeTotal);
     const pct = metaHojeTotal > 0 ? Math.min((produzidoHojeTotal / metaHojeTotal) * 100, 150) : 0;
@@ -483,7 +484,7 @@ async function carregarCapacidades() {
   const comProducao = equipamentos.filter(eq => prodPorEquip[eq.id] > 0);
   const cardsHtml = comProducao.map(eq => {
     const prod = prodPorEquip[eq.id] || 0;
-    const cap  = eq.capacidade_kg_mes && diasUteisHoje > 0 ? eq.capacidade_kg_mes / diasUteisHoje * (ehPrensa(eq) ? fatorPrensaNoDia(eq, hoje) : 1) : 0;
+    const cap  = eq.capacidade_kg_mes ? eq.capacidade_kg_mes / diasBaseHoje * (ehPrensa(eq) ? fatorPrensaNoDia(eq, hoje) : 1) : 0;
     const pct  = cap > 0 ? Math.min((prod/cap)*100, 150) : 0;
     const cls  = pct >= 100 ? 'over' : pct >= 80 ? 'warn' : '';
     return `<div class="capacity-card">
@@ -532,15 +533,24 @@ function agruparPorSemana(diasUteis) {
   return semanas;
 }
 
-function renderMetaCard(idKey, titulo, subtituloExtra, prensasCard, diasUteis, semanas, semanasKeys, destaque) {
+function renderMetaCard(idKey, titulo, subtituloExtra, prensasCard, diasUteis, semanas, semanasKeys, destaque, diasBase, contaNoDia, feriados) {
   const equipIds = prensasCard.map(eq => eq.id);
-  const capNominal = prensasCard.reduce((s, eq) => s + (eq.capacidade_kg_mes || 0), 0);
-  const metaDiariaNominal = diasUteis.length ? capNominal / diasUteis.length : 0;
+  const capCadastrada = prensasCard.reduce((s, eq) => s + (eq.capacidade_kg_mes || 0), 0);
+  const metaDiariaNominal = capCadastrada / diasBase;
+  // Dias que aparecem neste card: dia útil, ou fim de semana/feriado em que uma prensa do card lançou
+  const diasCard = diasUteis.filter(d => prensasCard.some(eq => contaNoDia(eq, d)));
+  // Feriado sem lançamento tira um dia de capacidade; lançamento em fim de semana soma um dia
+  const capDiaEq = eq => (eq.capacidade_kg_mes || 0) / diasBase;
+  const perdaFeriado = feriados.reduce((s, d) => s + prensasCard.reduce((t, eq) => t + (contaNoDia(eq, d) ? 0 : capDiaEq(eq)), 0), 0);
+  const ganhoFimSemana = diasUteis.filter(d => [0, 6].includes(new Date(d + 'T00:00:00').getDay()))
+    .reduce((s, d) => s + prensasCard.reduce((t, eq) => t + (contaNoDia(eq, d) ? capDiaEq(eq) : 0), 0), 0);
+  const feriadosSemLanc = feriados.filter(d => prensasCard.some(eq => !contaNoDia(eq, d)));
+  const capNominal = capCadastrada - perdaFeriado + ganhoFimSemana; // capacidade do mês antes da manutenção
   // Meta de cada dia = capacidade diária de cada prensa × disponibilidade dela naquele dia.
   const metaPorDia = {}, notaPorDia = {};
   diasUteis.forEach(d => {
-    metaPorDia[d] = prensasCard.reduce((s, eq) => s + (diasUteis.length ? (eq.capacidade_kg_mes || 0) / diasUteis.length : 0) * fatorPrensaNoDia(eq, d), 0);
-    const red = prensasCard.filter(eq => fatorPrensaNoDia(eq, d) < 1);
+    metaPorDia[d] = prensasCard.reduce((s, eq) => s + (contaNoDia(eq, d) ? capDiaEq(eq) * fatorPrensaNoDia(eq, d) : 0), 0);
+    const red = prensasCard.filter(eq => contaNoDia(eq, d) && fatorPrensaNoDia(eq, d) < 1);
     if (red.length) notaPorDia[d] = prensasCard.length === 1
       ? rotuloReducao(red[0], d)
       : red.map(eq => `${eq.frota || eq.nome}: ${rotuloReducao(eq, d)}`).join(' · ');
@@ -568,7 +578,7 @@ function renderMetaCard(idKey, titulo, subtituloExtra, prensasCard, diasUteis, s
 
   const isAdmin = perfil?.role === 'admin';
   let acumulado = 0;
-  const linhasDiario = diasUteis.map(d => {
+  const linhasDiario = diasCard.map(d => {
     const prod = porDia[d] || 0;
     const metaDia = metaPorDia[d];
     const pct = metaDia > 0 ? (prod / metaDia * 100) : 0;
@@ -633,13 +643,15 @@ function renderMetaCard(idKey, titulo, subtituloExtra, prensasCard, diasUteis, s
       <div class="meta-press-head">
         <div>
           <h4>${titulo}</h4>
-          <span class="text-muted" style="font-size:12px">${ton(capNominal)}/mês${subtituloExtra ? ` (${subtituloExtra})` : ''} · ${diasUteis.length} dias úteis · meta diária ${ton(metaDiariaNominal)}</span>
+          <span class="text-muted" style="font-size:12px">${ton(capCadastrada)}/mês${subtituloExtra ? ` (${subtituloExtra})` : ''} · ${diasCard.length} dias úteis · meta diária ${ton(metaDiariaNominal)}</span>
+          ${perdaFeriado > 0.01 ? `<div style="font-size:12px;color:#b45309;font-weight:600;margin-top:2px">${icon('alert-triangle',{size:11})} −${ton(perdaFeriado)} de capacidade por feriado (${feriadosSemLanc.map(d => d.slice(8) + '/' + d.slice(5, 7)).join(', ')})</div>` : ''}
+          ${ganhoFimSemana > 0.01 ? `<div style="font-size:12px;color:#16a34a;font-weight:600;margin-top:2px">+${ton(ganhoFimSemana)} de capacidade por lançamento em fim de semana</div>` : ''}
           ${perdaMes > 0.01 ? `<div style="font-size:12px;color:#b45309;font-weight:600;margin-top:2px">${icon('alert-triangle',{size:11})} −${ton(perdaMes)} de capacidade por manutenção/restrição (registrado em Equipamentos)</div>` : ''}
         </div>
         <span class="badge ${pctCls}" style="font-size:13px">${atingimentoMes.toFixed(1)}% da meta</span>
       </div>
       <div class="kpi-grid" style="grid-template-columns:repeat(auto-fill,minmax(140px,1fr));margin-bottom:0">
-        <div class="kpi-card" style="padding:12px"><div class="kpi-label" style="font-size:10px">Meta do Mês</div><div class="kpi-value" style="font-size:18px">${ton(capMes)}</div>${perdaMes > 0.01 ? `<div class="kpi-sub" style="font-size:10px">nominal ${ton(capNominal)}</div>` : ''}</div>
+        <div class="kpi-card" style="padding:12px"><div class="kpi-label" style="font-size:10px">Meta do Mês</div><div class="kpi-value" style="font-size:18px">${ton(capMes)}</div>${Math.abs(capCadastrada - capMes) > 0.01 ? `<div class="kpi-sub" style="font-size:10px">cadastrada ${ton(capCadastrada)}</div>` : ''}</div>
         <div class="kpi-card" style="padding:12px"><div class="kpi-label" style="font-size:10px">Produzido</div><div class="kpi-value" style="font-size:18px">${ton(totalProduzido)}</div></div>
         <div class="kpi-card" style="padding:12px"><div class="kpi-label" style="font-size:10px">Falta Produzir</div><div class="kpi-value" style="font-size:18px;color:${cor(-faltaParaMeta)}">${ton(Math.max(0, faltaParaMeta))}</div></div>
       </div>
@@ -689,8 +701,14 @@ function renderMetaPrensas() {
   const idsFiltro = filtroEquipIds.length ? new Set(filtroEquipIds) : null;
   const prensas = (equipamentos || []).filter(e => (e.nome || '').toLowerCase().includes('prensa') && e.capacidade_kg_mes && (!idsFiltro || idsFiltro.has(e.id)));
   const idsPrensas = prensas.map(eq => eq.id);
-  const fimDeSemanaComLancamento = [...new Set(producaoData.filter(r => idsPrensas.includes(r.equipamento_id)).map(r => r.data))]
+  const lancComPeso = producaoData.filter(r => idsPrensas.includes(r.equipamento_id) && r.peso_produzido_kg > 0);
+  const fimDeSemanaComLancamento = [...new Set(lancComPeso.map(r => r.data))]
     .filter(d => !ehDiaUtil(d)); // fim de semana ou feriado com lançamento
+  // Fora dos dias úteis, só a prensa que lançou ganha a capacidade daquele dia
+  const lancou = new Set(lancComPeso.map(r => `${r.equipamento_id}|${r.data}`));
+  const contaNoDia = (eq, d) => ehDiaUtil(d) || lancou.has(`${eq.id}|${d}`);
+  const diasBase = diasBaseCapacidade(mes);
+  const feriados = feriadosDoMes(mes);
 
   const diasUteis = diasUteisDoMes(ano, mesNum, fimDeSemanaComLancamento);
   const semanas = agruparPorSemana(diasUteis);
@@ -704,20 +722,20 @@ function renderMetaPrensas() {
 
   const metaConsolidadaPorDia = {};
   diasUteis.forEach(d => {
-    metaConsolidadaPorDia[d] = prensas.reduce((s, eq) => s + (eq.capacidade_kg_mes || 0) / diasUteis.length * fatorPrensaNoDia(eq, d), 0);
+    metaConsolidadaPorDia[d] = prensas.reduce((s, eq) => s + (contaNoDia(eq, d) ? (eq.capacidade_kg_mes || 0) / diasBase * fatorPrensaNoDia(eq, d) : 0), 0);
   });
   const cardConsolidado = renderMetaCard(
     'consolidado', `Consolidado — ${prensas.length} Prensa${prensas.length !== 1 ? 's' : ''}`, `${prensas.length} prensa${prensas.length !== 1 ? 's' : ''}`,
-    prensas, diasUteis, semanas, semanasKeys, true,
+    prensas, diasUteis, semanas, semanasKeys, true, diasBase, contaNoDia, feriados,
   );
   const cardsIndividuais = prensas.map(eq =>
-    renderMetaCard(eq.id, `${eq.nome}${eq.frota ? ` — ${eq.frota}` : ''}`, '', [eq], diasUteis, semanas, semanasKeys, false)
+    renderMetaCard(eq.id, `${eq.nome}${eq.frota ? ` — ${eq.frota}` : ''}`, '', [eq], diasUteis, semanas, semanasKeys, false, diasBase, contaNoDia, feriados)
   ).join('');
 
   wrap.innerHTML = `
     <div class="card mb-16" style="padding:16px">
       <h3 style="font-size:14px;font-weight:600;margin-bottom:4px">Meta de Produção — Prensas</h3>
-      <p class="text-muted" style="font-size:12px;margin:0 0 14px">Capacidade mensal ÷ dias úteis (seg–sex) do mês selecionado = meta diária. Dias com a prensa em manutenção (Parado) não têm meta; com Restrição, a meta cai para o % cadastrado no equipamento.</p>
+      <p class="text-muted" style="font-size:12px;margin:0 0 14px">Capacidade mensal ÷ dias de seg–sex do mês selecionado = meta diária. Feriado sem lançamento tira esse dia da capacidade do mês; se a prensa lançar em feriado ou fim de semana, o dia volta a contar para ela. Dias com a prensa em manutenção (Parado) não têm meta; com Restrição, a meta cai para o % cadastrado no equipamento.</p>
       ${cardConsolidado}
       ${cardsIndividuais}
     </div>`;
@@ -885,13 +903,19 @@ async function carregarTriagem() {
   const velocidades = validos.map(r => kgH(r.peso_kg, duracao(r)));
   const velMedia = velocidades.length ? Math.round(velocidades.reduce((s,v)=>s+v,0) / velocidades.length) : 0;
   const capDia = Math.round(velMedia * 8);
-  const capMes = Math.round(capDia * 22);
+  // Dias úteis do mês filtrado (sem feriados), mais fim de semana/feriado em que houve lançamento
+  const mesCap = mes || new Date().toISOString().slice(0, 7);
+  const [anoCap, mesNumCap] = mesCap.split('-').map(Number);
+  const extrasTri = [...new Set(triagemData.filter(r => (r.peso_kg || 0) > 0).map(r => r.data))].filter(d => d.startsWith(mesCap) && !ehDiaUtil(d));
+  const diasCapTri = diasUteisDoMes(anoCap, mesNumCap, extrasTri).length;
+  const capMes = Math.round(capDia * diasCapTri);
 
   document.getElementById('tri-kpi-total').textContent = triagemData.length;
   document.getElementById('tri-kpi-kg').textContent    = fmtKg(totalKg);
   document.getElementById('tri-kpi-vel').textContent   = velMedia > 0 ? velMedia + ' kg/h' : '—';
   document.getElementById('tri-kpi-dia').textContent   = fmtKg(capDia);
   document.getElementById('tri-kpi-mes').textContent   = fmtKg(capMes);
+  document.getElementById('tri-kpi-mes-sub').textContent = `projeção em ${diasCapTri} dias úteis`;
   document.getElementById('tri-count').textContent     = triagemData.length + ' registros';
 
   // Atualizar datalist de clientes para autocomplete

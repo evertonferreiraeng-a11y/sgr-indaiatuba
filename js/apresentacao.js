@@ -1,6 +1,6 @@
 // Geração da apresentação do Comitê (modelo "Comitê UVR Indaiatuba").
 // Cálculo puro a partir das linhas do banco + montagem do .pptx com PptxGenJS.
-import { ehDiaUtil } from './feriados.js?v=1';
+import { ehDiaUtil, diasBaseCapacidade, feriadosDoMes } from './feriados.js?v=2';
 
 // Início do plano de expansão (comparação de prensado antes × depois)
 export const PLANO_INICIO = '2026-08-14';
@@ -212,7 +212,10 @@ export function calcularDados(rows, M, corteIn, hoje) {
   // Prensas
   const prensas = equipamentos.filter(e => (e.nome || '').toLowerCase().includes('prensa') && e.capacidade_kg_mes);
   const idsPrensas = new Set(prensas.map(e => e.id));
-  const capNominal = prensas.reduce((s, e) => s + parseFloat(e.capacidade_kg_mes || 0), 0);
+  const capCadastrada = prensas.reduce((s, e) => s + parseFloat(e.capacidade_kg_mes || 0), 0);
+  // Capacidade diária = cadastrada ÷ dias de seg–sex do mês (feriado tira um dia, não redistribui)
+  const diasBase = diasBaseCapacidade(M);
+  const capDiaEq = e => parseFloat(e.capacidade_kg_mes || 0) / diasBase;
   // Disponibilidade diária (mesma regra da tela de Produção): Parado (manutenção) zera a
   // capacidade da prensa no dia; Restrição aplica o % cadastrado. Dia sem registro herda o
   // último status salvo (passado) ou usa o status atual do equipamento (hoje/futuro).
@@ -237,26 +240,40 @@ export function calcularDados(rows, M, corteIn, hoje) {
   const prodEntre = (a, b) => producao.reduce((s, r) => s + (r.data >= a && r.data <= b && idsPrensas.has(r.equipamento_id) ? parseFloat(r.peso_produzido_kg || 0) : 0), 0);
   const prodAntMesmo = prodEntre(iniAnt, fimAntMesmo), prodAntCheio = prodEntre(iniAnt, fimAnt);
   const prodPorDia = {};
+  const lancou = new Set();
   producao.forEach(r => {
     if (r.data < ini || r.data > corte || !idsPrensas.has(r.equipamento_id)) return;
-    prodPorDia[r.data] = (prodPorDia[r.data] || 0) + parseFloat(r.peso_produzido_kg || 0);
+    const kg = parseFloat(r.peso_produzido_kg || 0);
+    prodPorDia[r.data] = (prodPorDia[r.data] || 0) + kg;
+    if (kg > 0) lancou.add(`${r.equipamento_id}|${r.data}`);
   });
-  // Mesma regra da tela de Produção: sábado/domingo com lançamento também conta como dia útil
-  const extras = Object.keys(prodPorDia).filter(dt => !ehUtil(dt));
+  // Mesma regra da tela de Produção: fim de semana ou feriado com lançamento também conta como dia útil,
+  // e só para a prensa que lançou
+  const extras = Object.keys(prodPorDia).filter(dt => !ehUtil(dt) && prodPorDia[dt] > 0);
+  const contaNoDia = (e, dt) => ehUtil(dt) || lancou.has(`${e.id}|${dt}`);
   const duPrensa = du + extras.length, dpPrensa = dp + extras.filter(dt => dt <= corte).length;
   const metaPorDia = {};
   for (let dt = ini; dt <= fimMes; dt = addDias(dt, 1)) {
     if (!ehUtil(dt) && !extras.includes(dt)) continue;
-    metaPorDia[dt] = duPrensa > 0 ? prensas.reduce((s, e) => s + parseFloat(e.capacidade_kg_mes || 0) / duPrensa * fatorNoDia(e, dt), 0) : 0;
+    metaPorDia[dt] = prensas.reduce((s, e) => s + (contaNoDia(e, dt) ? capDiaEq(e) * fatorNoDia(e, dt) : 0), 0);
   }
   const capMes = Object.values(metaPorDia).reduce((s, v) => s + v, 0);
+  // Capacidade do mês antes da manutenção: já sem os feriados sem lançamento e com os dias extras lançados.
+  // capNominal − capMes é só manutenção/restrição.
+  const capNominal = Object.keys(metaPorDia).reduce((s, dt) => s + prensas.reduce((t, e) => t + (contaNoDia(e, dt) ? capDiaEq(e) : 0), 0), 0);
+  const feriadosPerdidos = feriadosDoMes(M).filter(dt => prensas.some(e => !contaNoDia(e, dt)));
+  const perdaFeriado = feriadosDoMes(M).reduce((s, dt) => s + prensas.reduce((t, e) => t + (contaNoDia(e, dt) ? 0 : capDiaEq(e)), 0), 0);
+  // Capacidade de outro mês do ano: cadastrada proporcional aos dias úteis dele (linha do gráfico)
+  const capNoMes = ym => capCadastrada * diasUteis(`${ym}-01`, fimDoMes(ym)) / diasBaseCapacidade(ym);
+  const capMesAno = mesesAno.map(mk => mk === M ? capMes : capNoMes(mk));
   const perdaCap = Math.max(0, capNominal - capMes);
   // Prensas que tiveram capacidade reduzida no mês (para citar na apresentação)
   const prensasReduzidas = prensas.map(e => {
     let perda = 0, diasParado = 0, diasRestr = 0;
     Object.keys(metaPorDia).forEach(dt => {
+      if (!contaNoDia(e, dt)) return;
       const f = fatorNoDia(e, dt);
-      perda += parseFloat(e.capacidade_kg_mes || 0) / duPrensa * (1 - f);
+      perda += capDiaEq(e) * (1 - f);
       if (f === 0) diasParado++; else if (f < 1) diasRestr++;
     });
     // ateFim: ainda parada/com restrição hoje e sem previsão de conserto — a conta considera até o fim do mês
@@ -284,9 +301,9 @@ export function calcularDados(rows, M, corteIn, hoje) {
   const porPrensa = prensas.map(e => {
     let prev = 0, diasParado = 0;
     Object.keys(metaPorDia).forEach(dt => {
-      if (dt > corte) return;
+      if (dt > corte || !contaNoDia(e, dt)) return;
       const f = fatorNoDia(e, dt);
-      prev += parseFloat(e.capacidade_kg_mes || 0) / duPrensa * f;
+      prev += capDiaEq(e) * f;
       if (f === 0) diasParado++;
     });
     const p = producao.reduce((s, r) => s + (r.data >= ini && r.data <= corte && r.equipamento_id === e.id ? parseFloat(r.peso_produzido_kg || 0) : 0), 0);
@@ -388,7 +405,7 @@ export function calcularDados(rows, M, corteIn, hoje) {
   return {
     M, ini, fimMes, corte, emAndamento, Mant, fimAntMesmo, cur, antMesmo, antCheio, meta, du, dp, dr,
     estoqueKg, valorEstoque, projecao, inicioMes, fatFech, metaFech, fracMes, prensAntesProp, mixPrensado, estoqueGrupo, mesesAno, fatMes, fatAno, metaAno, metaMes, melhor, nenhumAtingiu, semFat,
-    prodAntMesmo, prodAntCheio, prensas, capMes, capNominal, perdaCap, prensasReduzidas, metaDia, metaDiaNominal, metaDiaRestante, duPrensa, dpPrensa, prod, esperado, semProd, prodMesAno, porPrensa, projProd, prensadoMes, prensAntes, prensDepois,
+    prodAntMesmo, prodAntCheio, prensas, capMes, capNominal, capCadastrada, capMesAno, perdaFeriado, feriadosPerdidos, perdaCap, prensasReduzidas, metaDia, metaDiaNominal, metaDiaRestante, duPrensa, dpPrensa, prod, esperado, semProd, prodMesAno, porPrensa, projProd, prensadoMes, prensAntes, prensDepois,
     eqs, nOp, nRes, nPar, nParCrit, eqSt, disp, dispMes, rotDisp, comParada, problemas, colab, quadro, vagas,
   };
 }
@@ -1229,7 +1246,7 @@ export function montarApresentacao(PptxGenJS, d, { img, frases: fr, textos, acoe
     const i0 = iPrim >= 0 ? iPrim : Math.max(0, d.mesesAno.indexOf(d.M));
     const meses = d.mesesAno.slice(i0), labels = labelsAno.slice(i0);
     const valsT = valMes.slice(i0).map(v => +(v / 1000).toFixed(2));
-    const capT = meses.map(mk => +((mk === d.M ? d.capMes : d.capNominal) / 1000).toFixed(2));
+    const capT = d.capMesAno.slice(i0).map(v => +(v / 1000).toFixed(2));
     const iCur = meses.indexOf(d.M);
     const projT = d.emAndamento && !d.inicioMes && iCur >= 0 ? d.projProd / 1000 : 0;
     // Eixo com máximo fixo e área do gráfico fixa: assim dá para desenhar a caixa da projeção exatamente sobre a barra
@@ -1240,7 +1257,7 @@ export function montarApresentacao(PptxGenJS, d, { img, frases: fr, textos, acoe
       { type: pptx.ChartType.bar, data: [{ name: 'Produção das prensas (t)', labels, values: valsT }],
         // Formato com a seção do zero vazia: mês sem lançamento não mostra "0,0 t"
         options: optsBarras(meses.map(mk => mk >= mPlano ? COR.lima : COR.verde), '0.0" t";-0.0" t";""') },
-      { type: pptx.ChartType.line, data: [{ name: `Capacidade ${d.prensas.length} prensas (${nf(d.capNominal / 1000, 0)} t/mês${d.perdaCap > 0.5 ? `; ${abrevMes}: ${tCap(d, d.capMes)} t com manutenção` : ''})`, labels, values: capT }], options: optsLinha },
+      { type: pptx.ChartType.line, data: [{ name: `Capacidade ${d.prensas.length} prensas (${nf(d.capCadastrada / 1000, 0)} t/mês, menos feriados${d.perdaCap > 0.5 ? `; ${abrevMes}: ${tCap(d, d.capMes)} t com manutenção` : ''})`, labels, values: capT }], options: optsLinha },
     ], { ...optsGrafico('Produção das prensas por mês (t) · verde-claro: plano de expansão'), x: I(G.x), y: I(G.y), w: I(G.w), h: I(G.h),
       valAxisLabelFormatCode: '0', valAxisMaxVal: valMax, valAxisMajorUnit: passoEixo, layout: L });
     const feitoT = iCur >= 0 ? valsT[iCur] || 0 : 0;
@@ -1312,6 +1329,7 @@ export function montarApresentacao(PptxGenJS, d, { img, frases: fr, textos, acoe
         d.emAndamento ? `Produção: ${tn(d.prod, 1)} de ${tn(d.esperado, 1)} previstas até ${ddmm(d.corte)} (${pct(atEsp, 0)}); capacidade do mês: ${tCap(d, d.capMes)} t.`
           : `Produção: ${tn(d.prod, 1)} de ${tCap(d, d.capMes)} t (${pct(atProd, 0)}).`,
         comProj ? `Projeção: ${nf(ritmo / 1000, 1)} t/dia × ${Math.max(0, d.duPrensa - d.dpPrensa)} dias úteis restantes → ~${nf(d.projProd / 1000, 0)} t no mês.` : '',
+        d.perdaFeriado > 0.5 ? `Capacidade do mês já sem os feriados (${d.feriadosPerdidos.map(ddmm).join(', ')}): −${nf(d.perdaFeriado / 1000, 1)} t sobre as ${nf(d.capCadastrada / 1000, 0)} t cadastradas.` : '',
         d.perdaCap > 0.5 ? `Capacidade descontada a manutenção: ${textoPerdaCap(d)}.` : '',
         pelaVenda.length ? `Meses sem produção lançada (${pelaVenda.map(mk => MES_ABREV[+mk.slice(5) - 1]).join(', ')}): a barra é o prensado comercializado no mês.` : '',
         'Por semana e prensado vendido: anexo "Prensagem".',
@@ -1347,7 +1365,7 @@ export function montarApresentacao(PptxGenJS, d, { img, frases: fr, textos, acoe
       { text: `${tCap(d, d.capMes)} t`, options: { bold: true, color: COR.verm } },
       { text: ` de ${nf(d.capNominal / 1000, 0)} t (−${nf(d.perdaCap / 1000, 1)} t)`, options: { color: COR.txt2, breakLine: comProj } },
     ] : [
-      { text: `${tn(d.prod, 1)} de ${nf(d.capNominal / 1000, 0)} t de capacidade instalada: `, options: { color: COR.txt2 } },
+      { text: `${tn(d.prod, 1)} de ${nf(d.capNominal / 1000, 0)} t de capacidade do mês: `, options: { color: COR.txt2 } },
       { text: pct(d.capNominal > 0 ? d.prod / d.capNominal * 100 : null, 0), options: { bold: true, color: COR.txt, breakLine: comProj } },
     ];
     cardP(205, 345, d.emAndamento ? `PRODUÇÃO ATÉ ${ddmm(d.corte)}` : `PRODUÇÃO EM ${mes.toUpperCase()}`, tn(d.prod, 1), [
@@ -1412,6 +1430,7 @@ export function montarApresentacao(PptxGenJS, d, { img, frases: fr, textos, acoe
       apoio: [
         d.emAndamento ? `Produção: ${tn(d.prod, 1)} de ${tn(d.esperado, 1)} previstas até ${ddmm(d.corte)} (${pct(atEsp, 0)}); capacidade do mês: ${tCap(d, d.capMes)} t.`
           : `Produção: ${tn(d.prod, 1)} de ${tCap(d, d.capMes)} t (${pct(atProd, 0)}).`,
+        d.perdaFeriado > 0.5 ? `Capacidade do mês já sem os feriados (${d.feriadosPerdidos.map(ddmm).join(', ')}): −${nf(d.perdaFeriado / 1000, 1)} t sobre as ${nf(d.capCadastrada / 1000, 0)} t cadastradas.` : '',
         comProj ? `Projeção: ${nf(ritmo / 1000, 1)} t/dia × ${Math.max(0, d.duPrensa - d.dpPrensa)} dias úteis restantes → ~${nf(d.projProd / 1000, 0)} t no mês (${pct(pProj, 0)} da capacidade).` : '',
         `Ritmo: ${nf(ritmo / 1000, 1)} t/dia útil; meta: ${nf(d.metaDia / 1000, 1)} t/dia.`,
         falta > 0 ? `Para a capacidade do mês (${tCap(d, d.capMes)} t) faltam ${tn(falta, 1)}${necDia != null ? ` — ${nf(necDia / 1000, 1)} t/dia nos ${d.dr} dias úteis restantes` : ''}.` : `Capacidade do mês atingida (${pct(atProd, 0)}).`,
