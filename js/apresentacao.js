@@ -521,7 +521,7 @@ export function frasesPadrao(d, tarefas = [], fin = null) {
     // com os dois valores separados na frase. A projeção do mês fica no card do slide, não na frase
     const ritmoTxt = p => Math.round(p) >= 97 ? '**no ritmo**' : Math.round(p) >= 90 ? 'um pouco abaixo do ritmo' : '*abaixo do ritmo*';
     if (atFat == null) fat = `Até ${ddmm(d.corte)}: **${mil(d.cur.fat)}** faturados (meta não cadastrada).`;
-    else if (comEstR) fat = `Até ${ddmm(d.corte)}: **${mil(d.cur.fat)}** faturados + ${mil(d.valorEstoque)} em estoque = **${mil(d.cur.fat + d.valorEstoque)}**, ` +
+    else if (comEstR) fat = `Até ${ddmm(d.corte)}: **${mil(d.cur.fat)}** faturados + ${mil(d.valorEstoque)} (${tn(d.estoqueKg, 1)}) em estoque = **${mil(d.cur.fat + d.valorEstoque)}**, ` +
       `${pct(atFatEstR, 0)} da meta: ${ritmoTxt(atFatEstR / espR)} (esperado até aqui: ${pct(espR * 100, 0)}).`;
     else fat = `Até ${ddmm(d.corte)}: **${mil(d.cur.fat)}** faturados, ${pct(atFat, 0)} da meta: ${ritmoTxt(atFat / espR)} (esperado até aqui: ${pct(espR * 100, 0)}).`;
   } else {
@@ -792,9 +792,9 @@ export function montarApresentacao(PptxGenJS, d, { img, frases: fr, textos, acoe
     ind.push({ label: 'Faturamento', st: noRitmo(atFatEst != null ? atFatEst / espAqui : null),
       valor: comEst ? [
         { text: mil(c.fat), options: {} },
-        { text: `  + ${mil(d.valorEstoque)} em estoque`, options: { fontSize: 20, color: COR.verde } },
+        { text: `  + ${mil(d.valorEstoque)} (${tn(d.estoqueKg, 1)}) em estoque`, options: { fontSize: 16, color: COR.verde } },
       ] : mil(c.fat),
-      valorNota: comEst ? `${mil(c.fat)} faturados + ${mil(d.valorEstoque)} em estoque` : mil(c.fat),
+      valorNota: comEst ? `${mil(c.fat)} faturados + ${mil(d.valorEstoque)} (${tn(d.estoqueKg, 1)}) em estoque` : mil(c.fat),
       sub: comEst
         ? `Juntos: ${mil(fatEst)}${d.meta ? ` · ${pct(atFatEst, 0)} da meta (esperado até aqui: ${pct(espAqui * 100, 0)})` : ''}`
         : (d.emAndamento ? `${d.meta ? `${pct(atFat, 0)} da meta · ` : ''}${d.dp} de ${d.du} dias úteis` : d.meta ? `${pct(atFat, 0)} da meta de ${mil(d.meta)}` : 'sem meta cadastrada') + ticket,
@@ -901,10 +901,10 @@ export function montarApresentacao(PptxGenJS, d, { img, frases: fr, textos, acoe
       { rot: `REALIZADO ATÉ ${ddmm(d.corte)}`, valor: mil(d.cur.fat), sub: `${d.meta ? `${pct(atFat, 0)} da meta · ` : ''}${d.dp} de ${d.du} dias úteis` },
       { rot: `${ant.toUpperCase()} NO MESMO PONTO`, valor: mil(d.antMesmo.fat), sub: `fechou o mês em ${mil(d.antCheio.fat)}` },
       d.meta ? { rot: 'FALTA PARA A META', valor: mil(Math.max(0, d.meta - d.cur.fat)), cor: COR.amb, fill: COR.ambBg,
-        sub: d.valorEstoque > 0 ? `${mil(d.valorEstoque)} já em estoque para vender` : `meta do mês: ${mil(d.meta)}` } : null,
+        sub: d.valorEstoque > 0 ? `${mil(d.valorEstoque)} (${tn(d.estoqueKg, 1)}) já em estoque` : `meta do mês: ${mil(d.meta)}` } : null,
     ] : d.emAndamento ? [
       { rot: `REALIZADO ATÉ ${ddmm(d.corte)}`, valor: mil(d.cur.fat),
-        sub: d.valorEstoque > 0 ? `+ ${mil(d.valorEstoque)} em estoque para vender` : d.meta ? `${pct(atFat, 0)} da meta de ${mil(d.meta)}` : '' },
+        sub: d.valorEstoque > 0 ? `+ ${mil(d.valorEstoque)} (${tn(d.estoqueKg, 1)}) em estoque` : d.meta ? `${pct(atFat, 0)} da meta de ${mil(d.meta)}` : '' },
       { rot: d.valorEstoque > 0 ? 'PROJEÇÃO DO MÊS + ESTOQUE' : 'PROJEÇÃO DO MÊS', valor: mil(d.projecao + d.valorEstoque), cor: COR.verde, fill: COR.verdeCl,
         sub: d.meta ? `${pct((d.projecao + d.valorEstoque) / d.meta * 100, 0)} da meta de ${mil(d.meta)}` : '',
         // Selo igual ao do Resumo: realizado + estoque contra o esperado até aqui
