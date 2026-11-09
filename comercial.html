@@ -340,7 +340,10 @@
       <div class="table-card">
         <div class="table-card-header">
           <h3>Registro de Vendas</h3>
-          <span id="vnd-count" class="text-muted" style="font-size:12px"></span>
+          <div style="display:flex;align-items:center;gap:10px">
+            <span id="vnd-count" class="text-muted" style="font-size:12px"></span>
+            <button class="btn btn-outline btn-sm" id="btn-exportar-vendas" title="Baixa as vendas filtradas no formato da planilha de comercialização">⬇ Exportar Planilha</button>
+          </div>
         </div>
         <div class="table-scroll">
           <table style="font-size:12px">
@@ -2656,6 +2659,58 @@ function renderTabelaAnaMateriais() {
   }).join('');
   document.getElementById('an-mat-total').textContent = `${linhas.length} materiais`;
 }
+
+// ── Exportar planilha de comercialização (Registro de Vendas) ────────────────
+// Mesmos cabeçalhos lidos pelo "Importar Excel", para a planilha poder voltar ao sistema.
+document.getElementById('btn-exportar-vendas').addEventListener('click', () => {
+  if (!vendaData.length) { toast('Nenhuma venda para exportar', 'error'); return; }
+  const num = v => (v === null || v === undefined || v === '') ? '' : Number(v);
+  const linhas = [...vendaData]
+    .sort((a, b) => (a.data || '').localeCompare(b.data || ''))
+    .map(r => {
+      const porPeso = vendaPorPeso(r);
+      const [y, m, d] = (r.data || '').split('-').map(Number);
+      const qtd = Number(r.peso_kg) || 0;
+      const ticket = qtd ? (r.valor_total || 0) / (porPeso ? qtd / 1000 : qtd) : '';
+      return {
+        'CLIENTE':          r.clientes?.nome || '',
+        // nº de série do Excel (dia inteiro), evita o fuso jogar a data para o dia anterior
+        'DATA':             y ? Date.UTC(y, m - 1, d) / 86400000 + 25569 : '',
+        'CÓDIGO MATERIAL':  r.codigo_material || '',
+        'TIPO DE MATERIAL': r.materiais?.nome || '',
+        'KG':               num(r.peso_kg),
+        'UNIDADE':          r.unidade || '',
+        'PREÇO MATERIAL':   num(r.preco_kg),
+        'DESCONTO':         num(r.desconto),
+        'VALOR TOTAL NF':   num(r.valor_total || 0),
+        'TICKET MÉDIO':     ticket,
+        'ORDEM DE VENDA':   r.ordem_venda || '',
+        'NF':               r.nf || '',
+        'OBSERVAÇÃO':       r.observacao || '',
+      };
+    });
+
+  const ws = XLSX.utils.json_to_sheet(linhas);
+  const formatos = { B: 'dd/mm/yyyy', E: '#,##0.00', G: '"R$" #,##0.0000', H: '"R$" #,##0.00', I: '"R$" #,##0.00', J: '"R$" #,##0.00' };
+  for (let i = 0; i < linhas.length; i++) {
+    for (const [col, z] of Object.entries(formatos)) {
+      const c = ws[`${col}${i + 2}`];
+      if (c && c.t === 'n') c.z = z;
+    }
+  }
+  ws['!cols'] = [28, 12, 14, 30, 12, 9, 16, 13, 16, 16, 16, 12, 36].map(wch => ({ wch }));
+  ws['!autofilter'] = { ref: ws['!ref'] };
+
+  const tipo = document.getElementById('f-tipo-periodo').value;
+  const periodo = tipo === 'personalizado'
+    ? `${document.getElementById('f-de').value}_a_${document.getElementById('f-ate').value}`
+    : document.getElementById('f-mes').value;
+
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, 'Comercialização');
+  XLSX.writeFile(wb, `comercializacao-${periodo || new Date().toISOString().split('T')[0]}.xlsx`);
+  toast(`${linhas.length} vendas exportadas`);
+});
 
 document.getElementById('btn-an-filtrar').addEventListener('click', carregarAnalises);
 
