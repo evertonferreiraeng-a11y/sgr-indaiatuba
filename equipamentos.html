@@ -359,14 +359,22 @@ const ehFds   = iso => !ehDiaUtil(iso);   // fim de semana ou feriado
 const dm      = iso => `${iso.slice(8, 10)}/${iso.slice(5, 7)}`;
 const DIAS_FAIXA = 30;
 
+// A coluna equipamentos_snapshot.observacao só existe depois do supabase-patch35.sql.
+// Sem ela, lê e grava só a situação (o primeiro erro de "observacao" desliga o campo).
+let temObs = true;
+const erroObs  = err => !!err && temObs && /observacao/i.test(`${err.message} ${err.details || ''} ${err.hint || ''}`);
+const colsSnap = () => 'semana, equipamento_id, status' + (temObs ? ', observacao' : '');
+
 // Registros diários (equipamentos_snapshot) de um período, paginando de 1000 em 1000
 async function buscarHist(ini, fim, eqId) {
   const todos = [];
   for (let de = 0; ; de += 1000) {
-    let q = supabase.from('equipamentos_snapshot').select('semana, equipamento_id, status, observacao')
+    let q = supabase.from('equipamentos_snapshot').select(colsSnap())
       .gte('semana', ini).lte('semana', fim);
     if (eqId) q = q.eq('equipamento_id', eqId);
     const { data, error } = await q.order('semana').range(de, de + 999);
+    if (erroObs(error)) { temObs = false; de -= 1000; continue; }
+    if (error) console.error('Histórico:', error);
     if (error || !data) break;
     todos.push(...data);
     if (data.length < 1000) break;
@@ -420,7 +428,9 @@ async function carregarDia() {
   let existentes = {};
   obsDia = {};
   try {
-    const { data } = await supabase.from('equipamentos_snapshot').select('equipamento_id, status, observacao').eq('semana', snapData);
+    let { data, error } = await supabase.from('equipamentos_snapshot').select(colsSnap()).eq('semana', snapData);
+    if (erroObs(error)) { temObs = false; ({ data, error } = await supabase.from('equipamentos_snapshot').select(colsSnap()).eq('semana', snapData)); }
+    if (error) console.error('Registro do dia:', error);
     (data || []).forEach(s => { existentes[s.equipamento_id] = s.status; obsDia[s.equipamento_id] = s.observacao || null; });
   } catch (_) { /* tabela ainda não criada */ }
 
@@ -634,6 +644,30 @@ document.getElementById('btn-snap-todos').addEventListener('click', () => {
   eqData.forEach(e => { sel[e.id] = 'operando'; }); render();
 });
 
+// Grava o dia sem risco de perdê-lo: tenta upsert; se a tabela não tiver chave (semana, equipamento_id),
+// troca as linhas do dia e, se a inserção falhar, devolve as que existiam. Retorna o erro, se houver.
+async function gravarDia(dia, rows) {
+  const T = () => supabase.from('equipamentos_snapshot');
+  const semObs = () => rows.map(({ observacao, ...r }) => (temObs ? { ...r, observacao } : r));
+
+  let { error } = await T().upsert(semObs(), { onConflict: 'semana,equipamento_id' });
+  if (erroObs(error)) { temObs = false; ({ error } = await T().upsert(semObs(), { onConflict: 'semana,equipamento_id' })); }
+  if (!error) return null;
+  console.warn('Upsert do dia falhou, trocando as linhas:', error);
+
+  const { data: antes, error: errLer } = await T().select('*').eq('semana', dia);
+  if (errLer) return errLer;
+  const { error: errDel } = await T().delete().eq('semana', dia);
+  if (errDel) return errDel;
+  ({ error } = await T().insert(semObs()));
+  if (erroObs(error)) { temObs = false; ({ error } = await T().insert(semObs())); }
+  if (error && antes?.length) {
+    const { error: errVolta } = await T().insert(antes);
+    if (errVolta) console.error('Não foi possível restaurar o dia:', errVolta);
+  }
+  return error;
+}
+
 document.getElementById('btn-snap-salvar').addEventListener('click', async () => {
   if (!eqData.length) return;
   const btn = document.getElementById('btn-snap-salvar');
@@ -647,9 +681,9 @@ document.getElementById('btn-snap-salvar').addEventListener('click', async () =>
     // Guarda o motivo no histórico: mantém o que já havia no dia; senão usa a observação do cadastro
     observacao: sel[e.id] === 'operando' ? null : (obsDia[e.id] ?? e.observacao ?? null),
   }));
-  await supabase.from('equipamentos_snapshot').delete().eq('semana', snapData);
-  const { error } = await supabase.from('equipamentos_snapshot').insert(rows);
+  const error = await gravarDia(snapData, rows);
   if (error) { btn.disabled = false; renderEstado(); toast('Erro ao salvar: ' + error.message, 'error'); return; }
+  if (!temObs) rows.forEach(r => { r.observacao = null; });
 
   // Hoje: a situação marcada também vira a situação atual do equipamento (usada pelas outras telas)
   let erroCad = null;
