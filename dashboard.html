@@ -693,16 +693,7 @@ function render(d, tarefas, fin, materiaisEst = []) {
     ${lucroHTML}
     ${plano4}
 
-    <details class="db-mais">
-      <summary>Detalhe comercial e de produção <span class="sub">preços e ticket médio e cenários de equilíbrio</span></summary>
-      <section class="db-sec">
-        <p class="db-frase">${fraseHTML(fr.comp)}</p>
-        <div class="db-grid4">${cardsComp.map(([r, v, s2, cmp, vv]) => `<div class="db-card"><div class="rot">${r}</div><div class="val">${v}</div><div class="sub">${s2}</div>
-          <div class="sub" style="margin-top:8px;padding-top:8px;border-top:1px solid var(--border);display:flex;justify-content:space-between;gap:6px"><span>${cmp}</span>${pillVar(vv)}</div></div>`).join('')}</div>
-        ${cenHTML}
-      </section>
-      <p class="sub" style="text-align:center;margin:8px 0">Precisa do balanço de entradas, dos clientes ou das avaliações da equipe? <a href="dashboard-detalhado.html" style="color:var(--primary);font-weight:600">Abrir o relatório detalhado →</a></p>
-    </details>
+    <p class="sub" style="text-align:center;margin:8px 0 24px">Precisa do balanço de entradas, dos clientes ou das avaliações da equipe? <a href="dashboard-detalhado.html" style="color:var(--primary);font-weight:600">Abrir o relatório detalhado →</a></p>
   `;
 
   document.querySelectorAll('.db-ind').forEach(b => b.onclick = () => document.getElementById(b.dataset.alvo)?.scrollIntoView({ behavior:'smooth', block:'start' }));
