@@ -1,0 +1,479 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>DRE — SGR Indaiatuba</title>
+  <link rel="stylesheet" href="css/style.css" />
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4/dist/chart.umd.min.js"></script>
+  <style>
+    .dre-tabs { display:flex; gap:4px; border-bottom:1px solid var(--border); margin:0 0 16px; overflow-x:auto; }
+    .dre-tab { background:none; border:none; border-bottom:2px solid transparent; padding:10px 14px; font:inherit; font-weight:600; color:var(--text-muted); cursor:pointer; white-space:nowrap; }
+    .dre-tab.active { color:var(--primary); border-bottom-color:var(--primary); }
+    .dre-pane { display:none; } .dre-pane.active { display:block; }
+    .dre-seg { display:inline-flex; border:1px solid var(--border); border-radius:8px; overflow:hidden; background:#fff; }
+    .dre-seg button { border:none; background:none; padding:7px 12px; font:inherit; font-size:12.5px; font-weight:600; color:var(--text-muted); cursor:pointer; }
+    .dre-seg button.on { background:var(--primary); color:#fff; }
+    .dre-toolbar { display:flex; flex-wrap:wrap; gap:10px; align-items:center; justify-content:space-between; margin-bottom:12px; }
+    .dre-hint { font-size:var(--fs-caption); color:var(--text-muted); }
+    table.dre { width:100%; border-collapse:collapse; font-variant-numeric:tabular-nums; font-size:13px; }
+    table.dre th, table.dre td { padding:7px 10px; text-align:right; white-space:nowrap; border-bottom:1px solid var(--border); }
+    table.dre th:first-child, table.dre td:first-child { text-align:left; position:sticky; left:0; background:#fff; z-index:1; }
+    table.dre thead th { font-size:11px; text-transform:uppercase; letter-spacing:.05em; color:var(--text-muted); background:#f8fafc; }
+    table.dre thead th:first-child { background:#f8fafc; }
+    table.dre tr.total td { font-weight:700; background:var(--primary-bg); }
+    table.dre tr.total td:first-child { background:var(--primary-bg); }
+    table.dre tr.forte td { border-top:2px solid var(--primary-border); }
+    table.dre tr.grp td:first-child { cursor:pointer; }
+    table.dre tr.grp td:first-child::before { content:"▸ "; color:var(--text-muted); }
+    table.dre tr.grp.open td:first-child::before { content:"▾ "; }
+    table.dre tr.acc td { color:var(--text-muted); font-size:12.5px; }
+    table.dre tr.acc td:first-child { padding-left:28px; }
+    table.dre tr.acc.hide { display:none; }
+    table.dre td.col-acum, table.dre th.col-acum { background:#fffbeb; }
+    .up { color:var(--success); } .down { color:var(--danger); }
+    .dre-insights li { margin:6px 0 6px 18px; font-size:13.5px; }
+    .dre-import { border:1px dashed var(--border); border-radius:var(--radius); padding:14px; margin-top:16px; }
+    .dre-import code { background:#f1f5f9; padding:1px 5px; border-radius:4px; font-size:12px; }
+    @media (max-width: 900px) { .charts-grid { grid-template-columns:1fr; } }
+  </style>
+</head>
+<body>
+<div class="app-layout">
+  <div id="sidebar-root"></div>
+  <div class="main-content">
+    <div class="page-header">
+      <div><h2>DRE</h2><p>Demonstração do Resultado: mensal, análise vertical e horizontal, realizado × orçado</p></div>
+      <button class="btn btn-outline" id="btn-csv">Exportar CSV</button>
+    </div>
+    <div class="page-body">
+
+      <div class="card" style="padding:16px;margin-bottom:16px">
+        <div class="filters-row">
+          <div class="form-group"><label>Unidade</label><select id="f-unidade"></select></div>
+          <div class="form-group"><label>Ano</label><select id="f-ano"></select></div>
+          <div class="form-group"><label>De</label><select id="f-mes-ini"></select></div>
+          <div class="form-group"><label>Até</label><select id="f-mes-fim"></select></div>
+          <div class="form-group"><label>Comparar com</label>
+            <select id="f-base">
+              <option value="orcado">Orçado</option>
+              <option value="ano_anterior">Mesmo período do ano anterior</option>
+            </select>
+          </div>
+        </div>
+      </div>
+
+      <div class="kpi-grid" id="kpis"></div>
+
+      <nav class="dre-tabs">
+        <button class="dre-tab active" data-tab="mensal">DRE mensal</button>
+        <button class="dre-tab" data-tab="comp">Realizado × base</button>
+        <button class="dre-tab" data-tab="graf">Gráficos</button>
+        <button class="dre-tab" data-tab="lanc">Lançamentos</button>
+      </nav>
+
+      <section class="dre-pane active" id="p-mensal">
+        <div class="dre-toolbar">
+          <div class="dre-seg" id="seg-modo">
+            <button data-m="valor" class="on">Valores (R$)</button>
+            <button data-m="av">Análise vertical (%)</button>
+            <button data-m="ah">Análise horizontal (%)</button>
+          </div>
+          <span class="dre-hint">Clique numa linha com ▸ para abrir as contas · AV = % da receita líquida · AH = variação contra o mês anterior</span>
+        </div>
+        <div class="table-card"><div class="table-scroll"><table class="dre" id="t-mensal"></table></div></div>
+        <p class="dre-hint" style="margin-top:8px">O acumulado soma o IR/CS lançado em cada mês. No Portal Gerencial o IR/CS do acumulado é recalculado sobre o EBT acumulado de cada unidade, por isso o lucro líquido acumulado pode diferir de lá.</p>
+      </section>
+
+      <section class="dre-pane" id="p-comp">
+        <div class="table-card"><div class="table-scroll"><table class="dre" id="t-comp"></table></div></div>
+        <p class="dre-hint" style="margin-top:8px">▲ favorável · ▼ desfavorável. Custos e despesas aparecem negativos: gastar menos que a base é favorável.</p>
+        <div class="card" style="margin-top:16px">
+          <h3 style="font-size:14px;margin-bottom:8px">Destaques do período</h3>
+          <ul class="dre-insights" id="insights"></ul>
+        </div>
+      </section>
+
+      <section class="dre-pane" id="p-graf">
+        <div class="charts-grid">
+          <div class="chart-card"><h3>Receita líquida, custos + despesas e EBITDA</h3><div class="chart-wrap" style="height:280px"><canvas id="c-mensal"></canvas></div></div>
+          <div class="chart-card"><h3>Margens sobre a receita líquida</h3><div class="chart-wrap" style="height:280px"><canvas id="c-margens"></canvas></div></div>
+        </div>
+        <div class="chart-card"><h3>Cascata do período: da receita bruta ao lucro líquido</h3><div class="chart-wrap" style="height:300px"><canvas id="c-cascata"></canvas></div></div>
+      </section>
+
+      <section class="dre-pane" id="p-lanc">
+        <div class="card" id="box-novo">
+          <h3 style="font-size:14px;margin-bottom:12px">Novo lançamento</h3>
+          <form id="form-lanc" class="filters-row">
+            <div class="form-group"><label>Competência *</label><input type="month" id="l-comp" required /></div>
+            <div class="form-group" style="min-width:260px"><label>Conta *</label><select id="l-conta" required></select></div>
+            <div class="form-group"><label>Tipo *</label><select id="l-tipo"><option value="realizado">Realizado</option><option value="orcado">Orçado</option></select></div>
+            <div class="form-group"><label>Valor (R$) *</label><input type="number" step="0.01" id="l-valor" required /></div>
+            <div class="form-group" style="flex:1;min-width:180px"><label>Observação</label><input id="l-obs" /></div>
+            <div class="form-group" style="justify-content:flex-end"><label>&nbsp;</label><button class="btn btn-primary" type="submit">Lançar</button></div>
+          </form>
+          <p class="dre-hint">Digite o valor positivo: o sinal vem da conta. No acerto entre obras e no resultado financeiro, use negativo quando o valor reduz o resultado.</p>
+
+          <div class="dre-import">
+            <h3 style="font-size:13px;margin-bottom:6px">Importar CSV (atualização mensal pelo Portal Gerencial)</h3>
+            <p class="dre-hint" style="margin-bottom:10px">
+              Uma linha por conta e mês, separada por ponto e vírgula: <code>codigo;competencia;tipo;valor</code>, por exemplo <code>P05;11/2026;realizado;95173,84</code>.
+              Os meses e tipos que estiverem no arquivo <b>substituem</b> os lançamentos já existentes desses meses na unidade.
+            </p>
+            <div class="filters-row">
+              <div class="form-group" style="min-width:280px"><label>Arquivo</label><input type="file" id="i-arquivo" accept=".csv,.txt" /></div>
+              <div class="form-group" style="justify-content:flex-end"><label>&nbsp;</label><button class="btn btn-outline" id="btn-importar" type="button">Importar</button></div>
+            </div>
+            <div class="dre-hint" id="i-status"></div>
+          </div>
+        </div>
+        <p class="dre-hint" id="aviso-visitante" style="display:none;margin-bottom:12px">Seu perfil é de visitante: você vê os lançamentos, mas só administradores lançam ou importam.</p>
+        <div class="table-card" style="margin-top:16px">
+          <div class="table-card-header"><h3>Lançamentos do período</h3><span id="lanc-count" class="text-muted" style="font-size:12px"></span></div>
+          <div class="table-scroll"><table class="dre" id="t-lanc"></table></div>
+        </div>
+      </section>
+
+    </div>
+  </div>
+</div>
+
+<div id="toast-container"></div>
+<script type="module">
+import { initPage, supabase, toast, getPerfilUsuario } from './js/config.js?v=12';
+
+await initPage();
+
+/* ───────── Estrutura da DRE ───────── */
+const SINAL = { receita_bruta:+1, deducoes:-1, custos:-1, despesas:-1, depreciacao:-1, financeiro:+1, ir_csll:-1 };
+const LINHAS = [
+  { k:'RB',     nome:'Receita bruta',                 grupo:'receita_bruta' },
+  { k:'DED',    nome:'(−) Deduções da receita',       grupo:'deducoes' },
+  { k:'RL',     nome:'(=) Receita líquida',           total:true },
+  { k:'CUS',    nome:'(−) Custos',                    grupo:'custos' },
+  { k:'LB',     nome:'(=) Lucro bruto',               total:true },
+  { k:'DESP',   nome:'(−) Despesas operacionais',     grupo:'despesas' },
+  { k:'EBITDA', nome:'(=) EBITDA',                    total:true, forte:true },
+  { k:'DA',     nome:'(−) Depreciação',               grupo:'depreciacao' },
+  { k:'EBIT',   nome:'(=) EBIT',                      total:true },
+  { k:'FIN',    nome:'(±) Resultado financeiro',      grupo:'financeiro' },
+  { k:'LAIR',   nome:'(=) EBT (lucro antes do IR/CS)',total:true },
+  { k:'IR',     nome:'(−) Impostos/contribuições',    grupo:'ir_csll' },
+  { k:'LL',     nome:'(=) Lucro líquido',             total:true, forte:true },
+];
+const MESES = ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
+
+const S = { perfil:null, unidades:[], contas:[], dados:[], modo:'valor', abertos:new Set(), charts:{} };
+const $ = s => document.querySelector(s);
+const isAdmin = () => S.perfil?.role === 'admin';
+
+const brl  = v => (v < 0 ? '−' : '') + 'R$ ' + Math.abs(v).toLocaleString('pt-BR', { minimumFractionDigits:2, maximumFractionDigits:2 });
+const brlK = v => { const a = Math.abs(v), s = v < 0 ? '−' : '';
+  return a >= 1e6 ? `${s}R$ ${(a/1e6).toLocaleString('pt-BR',{maximumFractionDigits:2})} mi`
+                  : `${s}R$ ${(a/1e3).toLocaleString('pt-BR',{maximumFractionDigits:1})} mil`; };
+const pct  = (v, d = 1) => (v == null || !isFinite(v)) ? '—' : (v*100).toLocaleString('pt-BR',{minimumFractionDigits:d,maximumFractionDigits:d}) + '%';
+const div  = (a, b) => b ? a / b : null;
+
+/* ───────── Carga ───────── */
+async function carregarCadastros() {
+  const [u, c] = await Promise.all([
+    supabase.from('dre_unidades').select('id,nome').eq('ativo', true).order('nome'),
+    supabase.from('dre_contas').select('id,codigo,nome,grupo,natureza,ordem').eq('ativo', true).order('ordem'),
+  ]);
+  if (u.error || c.error) throw (u.error || c.error);
+  S.unidades = u.data; S.contas = c.data;
+}
+async function carregarDados() {
+  const ano = +$('#f-ano').value;
+  const { data, error } = await supabase.from('vw_dre_mensal')
+    .select('unidade_id,competencia,tipo,conta_id,valor')
+    .gte('competencia', `${ano-1}-01-01`).lte('competencia', `${ano}-12-01`);
+  if (error) throw error;
+  S.dados = data.map(r => { const [a, m] = r.competencia.split('-');
+    return { unidade_id:r.unidade_id, ano:+a, mes:+m, tipo:r.tipo, conta_id:r.conta_id, valor:+r.valor }; });
+}
+
+/* ───────── Cálculo ───────── */
+function calc(linhas) {
+  const cm = Object.fromEntries(S.contas.map(c => [c.id, c]));
+  const g = Object.fromEntries(Object.keys(SINAL).map(k => [k, 0]));
+  const porConta = {}; let variaveis = 0, fixos = 0;
+  for (const r of linhas) {
+    const c = cm[r.conta_id]; if (!c) continue;
+    const s = SINAL[c.grupo] * r.valor;
+    g[c.grupo] += s; porConta[c.id] = (porConta[c.id] || 0) + s;
+    if (['deducoes','custos','despesas'].includes(c.grupo)) {
+      if (c.natureza === 'variavel') variaveis += r.valor; else fixos += r.valor;
+    }
+  }
+  const v = { RB:g.receita_bruta, DED:g.deducoes, CUS:g.custos, DESP:g.despesas, DA:g.depreciacao, FIN:g.financeiro, IR:g.ir_csll };
+  v.RL = v.RB + v.DED; v.LB = v.RL + v.CUS; v.EBITDA = v.LB + v.DESP;
+  v.EBIT = v.EBITDA + v.DA; v.LAIR = v.EBIT + v.FIN; v.LL = v.LAIR + v.IR;
+  v.MC = div(v.RB - variaveis, v.RB);
+  v.PE = v.MC > 0 ? fixos / v.MC : null;   // receita bruta em que o EBITDA zera
+  v.porConta = porConta; v.temDados = linhas.length > 0;
+  return v;
+}
+const per = () => ({ ano:+$('#f-ano').value, ini:+$('#f-mes-ini').value, fim:+$('#f-mes-fim').value });
+const filtrar = ({ ano, ini, fim, tipo }) => {
+  const u = $('#f-unidade').value;
+  return S.dados.filter(r => r.unidade_id === u && r.ano === ano && r.mes >= ini && r.mes <= fim && r.tipo === tipo);
+};
+const realizado = p => calc(filtrar({ ...p, tipo:'realizado' }));
+const base = p => $('#f-base').value === 'orcado' ? calc(filtrar({ ...p, tipo:'orcado' })) : calc(filtrar({ ...p, ano:p.ano-1, tipo:'realizado' }));
+const nomeBase = () => $('#f-base').value === 'orcado' ? 'orçado' : 'ano anterior';
+const mesesDe = p => Array.from({ length:p.fim - p.ini + 1 }, (_, i) => p.ini + i);
+const contasDo = g => S.contas.filter(c => c.grupo === g);
+
+/* ───────── KPIs ───────── */
+function renderKpis(R, B) {
+  const delta = (a, b, pp) => {
+    if (!B.temDados || a == null || b == null) return '<span>sem base de comparação</span>';
+    const d = pp ? a - b : div(a - b, Math.abs(b));
+    if (d == null || !isFinite(d)) return '';
+    const txt = pp ? (d*100).toLocaleString('pt-BR',{maximumFractionDigits:1}) + ' p.p.' : pct(Math.abs(d));
+    return `<span class="${d >= 0 ? 'up' : 'down'}">${d >= 0 ? '▲' : '▼'} ${txt}</span> vs ${nomeBase()}`;
+  };
+  const k = [
+    ['Receita líquida', brlK(R.RL), delta(R.RL, B.RL)],
+    ['Margem bruta', pct(div(R.LB, R.RL)), delta(div(R.LB, R.RL), div(B.LB, B.RL), true)],
+    ['EBITDA', brlK(R.EBITDA), `Margem ${pct(div(R.EBITDA, R.RL))} · ${delta(R.EBITDA, B.EBITDA)}`],
+    ['Lucro líquido', brlK(R.LL), `Margem ${pct(div(R.LL, R.RL))} · ${delta(R.LL, B.LL)}`],
+    ['Ponto de equilíbrio', R.PE == null ? '—' : brlK(R.PE),
+      R.PE == null ? 'receita bruta em que o EBITDA zera' : `${R.RB >= R.PE ? 'Folga' : 'Falta'} de ${pct(Math.abs(div(R.RB - R.PE, R.RB)))} · MC ${pct(R.MC)}`],
+  ];
+  $('#kpis').innerHTML = k.map(([l, v, s]) => `<div class="kpi-card"><div class="kpi-label">${l}</div><div class="kpi-value">${v}</div><div class="kpi-sub">${s}</div></div>`).join('');
+}
+
+/* ───────── DRE mensal ───────── */
+function renderMensal() {
+  const p = per(), meses = mesesDe(p);
+  const pm = meses.map(m => realizado({ ano:p.ano, ini:m, fim:m }));
+  const ant = meses.map(m => m > 1 ? realizado({ ano:p.ano, ini:m-1, fim:m-1 }) : realizado({ ano:p.ano-1, ini:12, fim:12 }));
+  const tot = realizado(p);
+  const cel = (v, rl, prev) => {
+    if (S.modo === 'av') return pct(div(v, rl));
+    if (S.modo === 'ah') { if (!prev) return '—'; const d = (v - prev) / Math.abs(prev);
+      return `<span class="${d >= 0 ? 'up' : 'down'}">${d >= 0 ? '▲' : '▼'} ${pct(Math.abs(d))}</span>`; }
+    return v ? brl(v) : '–';
+  };
+  const celTot = v => S.modo === 'av' ? pct(div(v, tot.RL)) : (v ? brl(v) : '–');
+  let h = `<thead><tr><th>Conta</th>${meses.map(m => `<th>${MESES[m-1]}/${String(p.ano).slice(2)}</th>`).join('')}<th class="col-acum">Acumulado</th><th class="col-acum">AV</th></tr></thead><tbody>`;
+  for (const L of LINHAS) {
+    const cls = [L.total && 'total', L.forte && 'forte', L.grupo && 'grp', S.abertos.has(L.k) && 'open'].filter(Boolean).join(' ');
+    h += `<tr class="${cls}" data-k="${L.k}"><td>${L.nome}</td>${meses.map((m, i) => `<td>${cel(pm[i][L.k], pm[i].RL, ant[i][L.k])}</td>`).join('')}`
+       + `<td class="col-acum"><b>${celTot(tot[L.k])}</b></td><td class="col-acum">${pct(div(tot[L.k], tot.RL))}</td></tr>`;
+    if (L.grupo) for (const c of contasDo(L.grupo)) {
+      const t = tot.porConta[c.id] || 0;
+      h += `<tr class="acc ${S.abertos.has(L.k) ? '' : 'hide'}"><td>${c.codigo} · ${c.nome}</td>`
+         + meses.map((m, i) => `<td>${cel(pm[i].porConta[c.id] || 0, pm[i].RL, ant[i].porConta[c.id] || 0)}</td>`).join('')
+         + `<td class="col-acum">${celTot(t)}</td><td class="col-acum">${pct(div(t, tot.RL))}</td></tr>`;
+    }
+  }
+  $('#t-mensal').innerHTML = h + '</tbody>';
+  $('#t-mensal').querySelectorAll('tr.grp').forEach(tr => tr.firstElementChild.onclick = () => {
+    const k = tr.dataset.k; S.abertos.has(k) ? S.abertos.delete(k) : S.abertos.add(k); renderMensal();
+  });
+}
+
+/* ───────── Realizado × base ───────── */
+function renderComp(R, B) {
+  const p = per(), tb = B.temDados;
+  let h = `<thead><tr><th>Conta (${MESES[p.ini-1]}–${MESES[p.fim-1]}/${p.ano})</th><th>Realizado</th><th>AV</th><th>${nomeBase()[0].toUpperCase() + nomeBase().slice(1)}</th><th>AV</th><th>Var. R$</th><th>Var. %</th></tr></thead><tbody>`;
+  const lin = (nome, a, b, cls) => {
+    const d = a - b, st = d >= 0 ? 'up' : 'down', ic = d >= 0 ? '▲' : '▼';
+    return `<tr class="${cls}"><td>${nome}</td><td>${brl(a)}</td><td>${pct(div(a, R.RL))}</td>`
+      + `<td>${tb ? brl(b) : '—'}</td><td>${tb ? pct(div(b, B.RL)) : '—'}</td>`
+      + `<td class="${tb ? st : ''}">${tb ? `${ic} ${brl(d)}` : '—'}</td><td class="${tb ? st : ''}">${tb ? pct(div(d, Math.abs(b))) : '—'}</td></tr>`;
+  };
+  for (const L of LINHAS) {
+    h += lin(L.nome, R[L.k], B[L.k], [L.total && 'total', L.forte && 'forte'].filter(Boolean).join(' '));
+    if (L.grupo) for (const c of contasDo(L.grupo)) h += lin(`${c.codigo} · ${c.nome}`, R.porConta[c.id] || 0, B.porConta[c.id] || 0, 'acc');
+  }
+  $('#t-comp').innerHTML = h + '</tbody>';
+
+  const ins = [];
+  if (!R.temDados) ins.push('Não há lançamentos realizados no período.');
+  else {
+    ins.push(`Margem EBITDA de <b>${pct(div(R.EBITDA, R.RL))}</b> e margem líquida de <b>${pct(div(R.LL, R.RL))}</b>.`);
+    ins.push(`Custos consomem <b>${pct(div(-R.CUS, R.RL))}</b> da receita líquida.`);
+    const pm = mesesDe(p).map(m => ({ m, v:realizado({ ano:p.ano, ini:m, fim:m }) })).filter(x => x.v.temDados);
+    const neg = pm.filter(x => x.v.EBITDA < 0);
+    if (neg.length) ins.push(`EBITDA negativo em <b>${neg.length}</b> de ${pm.length} meses: ${neg.map(x => MESES[x.m-1]).join(', ')}.`);
+    if (pm.length) { const pior = pm.reduce((a, b) => b.v.EBITDA < a.v.EBITDA ? b : a), melhor = pm.reduce((a, b) => b.v.EBITDA > a.v.EBITDA ? b : a);
+      ins.push(`Melhor mês: <b>${MESES[melhor.m-1]}</b> (EBITDA ${brlK(melhor.v.EBITDA)}). Pior mês: <b>${MESES[pior.m-1]}</b> (EBITDA ${brlK(pior.v.EBITDA)}).`); }
+    if (R.PE != null) ins.push(R.RB >= R.PE ? `A receita bruta ficou <b>${pct(div(R.RB - R.PE, R.RB))}</b> acima do ponto de equilíbrio (${brlK(R.PE)}).`
+                                           : `A receita bruta ficou <b class="down">abaixo</b> do ponto de equilíbrio: faltaram ${brlK(R.PE - R.RB)}.`);
+    if (B.temDados) {
+      S.contas.map(c => ({ c, d:(R.porConta[c.id] || 0) - (B.porConta[c.id] || 0) })).filter(x => Math.abs(x.d) >= 0.01)
+        .sort((a, b) => Math.abs(b.d) - Math.abs(a.d)).slice(0, 3)
+        .forEach(x => ins.push(`<span class="${x.d >= 0 ? 'up' : 'down'}">${x.d >= 0 ? '▲ Favorável' : '▼ Desfavorável'}</span>: ${x.c.nome}, ${brl(x.d)} contra o ${nomeBase()}.`));
+    } else ins.push(`Ainda não há ${nomeBase()} lançado para comparar.`);
+  }
+  $('#insights').innerHTML = ins.map(i => `<li>${i}</li>`).join('');
+}
+
+/* ───────── Gráficos ───────── */
+const COR = { s1:'#2a78d6', s2:'#eb6834', s3:'#1baf7a', grid:'#e2e8f0', txt:'#64748b' };
+function opts(fmt) {
+  return { responsive:true, maintainAspectRatio:false, interaction:{ mode:'index', intersect:false },
+    plugins:{ legend:{ position:'top', align:'start', labels:{ color:COR.txt, boxWidth:10, boxHeight:10, usePointStyle:true } },
+              tooltip:{ callbacks:{ label:c => `${c.dataset.label}: ${fmt(c.parsed.y)}` } } },
+    scales:{ x:{ grid:{ display:false }, ticks:{ color:COR.txt } }, y:{ grid:{ color:COR.grid }, border:{ display:false }, ticks:{ color:COR.txt, callback:v => fmt(v) } } } };
+}
+function renderGraficos(R) {
+  if (!window.Chart) return;
+  Object.values(S.charts).forEach(c => c.destroy());
+  const p = per(), meses = mesesDe(p), mm = meses.map(m => realizado({ ano:p.ano, ini:m, fim:m })), labels = meses.map(m => MESES[m-1]);
+  const bar = { borderRadius:4, borderSkipped:'start', maxBarThickness:26 };
+  S.charts.m = new Chart($('#c-mensal'), { type:'bar', data:{ labels, datasets:[
+    { label:'Receita líquida', data:mm.map(x => x.RL), backgroundColor:COR.s1, ...bar },
+    { label:'Custos + despesas', data:mm.map(x => -(x.CUS + x.DESP)), backgroundColor:COR.s2, ...bar },
+    { label:'EBITDA', data:mm.map(x => x.EBITDA), backgroundColor:COR.s3, ...bar },
+  ] }, options:opts(brlK) });
+  const mg = (a, b) => b ? +(a / b * 100).toFixed(1) : null, ln = { borderWidth:2, pointRadius:4, pointHoverRadius:6, tension:.25 };
+  S.charts.g = new Chart($('#c-margens'), { type:'line', data:{ labels, datasets:[
+    { label:'Margem bruta', data:mm.map(x => mg(x.LB, x.RL)), borderColor:COR.s1, backgroundColor:COR.s1, ...ln },
+    { label:'Margem EBITDA', data:mm.map(x => mg(x.EBITDA, x.RL)), borderColor:COR.s2, backgroundColor:COR.s2, ...ln },
+    { label:'Margem líquida', data:mm.map(x => mg(x.LL, x.RL)), borderColor:COR.s3, backgroundColor:COR.s3, ...ln },
+  ] }, options:opts(v => v == null ? '—' : v.toLocaleString('pt-BR',{maximumFractionDigits:1}) + '%') });
+  const passos = [['Receita bruta', R.RB, 1], ['Deduções', R.DED], ['Custos', R.CUS], ['Despesas', R.DESP], ['Depreciação', R.DA], ['Financeiro', R.FIN], ['IR/CS', R.IR], ['Lucro líquido', R.LL, 1]];
+  let acc = 0; const barras = [], cores = [];
+  passos.forEach(([, v, tot]) => { if (tot) { barras.push([0, v]); acc = v; cores.push(COR.s1); } else { barras.push([acc, acc + v]); acc += v; cores.push(v >= 0 ? COR.s3 : COR.s2); } });
+  const o = opts(brlK); o.plugins.legend.display = false;
+  o.plugins.tooltip.callbacks.label = c => { const [a, b] = c.raw; return passos[c.dataIndex][2] ? brl(b) : brl(b - a); };
+  S.charts.c = new Chart($('#c-cascata'), { type:'bar', data:{ labels:passos.map(x => x[0]), datasets:[{ label:'Valor', data:barras, backgroundColor:cores, borderRadius:4, borderSkipped:false, maxBarThickness:56 }] }, options:o });
+}
+
+/* ───────── Lançamentos ───────── */
+async function renderLanc() {
+  const p = per(), u = $('#f-unidade').value;
+  $('#box-novo').style.display = isAdmin() ? '' : 'none';
+  $('#aviso-visitante').style.display = isAdmin() ? 'none' : '';
+  $('#l-conta').innerHTML = LINHAS.filter(l => l.grupo).map(l => {
+    const cs = contasDo(l.grupo); if (!cs.length) return '';
+    return `<optgroup label="${l.nome.replace(/^\(.\)\s*/, '')}">${cs.map(c => `<option value="${c.id}">${c.codigo} · ${c.nome}</option>`).join('')}</optgroup>`;
+  }).join('');
+  if (!$('#l-comp').value) $('#l-comp').value = `${p.ano}-${String(p.fim).padStart(2, '0')}`;
+  const { data, error } = await supabase.from('dre_lancamentos').select('id,competencia,tipo,valor,observacao,conta_id')
+    .eq('unidade_id', u).gte('competencia', `${p.ano}-${String(p.ini).padStart(2,'0')}-01`).lte('competencia', `${p.ano}-${String(p.fim).padStart(2,'0')}-01`)
+    .order('competencia', { ascending:false }).limit(1000);
+  if (error) { toast(error.message, 'error'); return; }
+  const cm = Object.fromEntries(S.contas.map(c => [c.id, c]));
+  $('#lanc-count').textContent = `${data.length} lançamento(s)`;
+  $('#t-lanc').innerHTML = `<thead><tr><th>Conta</th><th>Competência</th><th>Tipo</th><th>Valor</th><th style="text-align:left">Observação</th>${isAdmin() ? '<th></th>' : ''}</tr></thead><tbody>`
+    + (data.length ? data.map(r => `<tr><td>${cm[r.conta_id] ? cm[r.conta_id].codigo + ' · ' + cm[r.conta_id].nome : '(conta inativa)'}</td>`
+      + `<td>${r.competencia.slice(5, 7)}/${r.competencia.slice(0, 4)}</td><td>${r.tipo === 'orcado' ? 'Orçado' : 'Realizado'}</td><td>${brl(+r.valor)}</td>`
+      + `<td style="text-align:left">${r.observacao || ''}</td>${isAdmin() ? `<td><button class="btn-icon danger" data-del="${r.id}" title="Excluir">✕</button></td>` : ''}</tr>`).join('')
+      : `<tr><td colspan="6" class="text-muted">Nenhum lançamento no período.</td></tr>`) + '</tbody>';
+  $('#t-lanc').querySelectorAll('[data-del]').forEach(b => b.onclick = async () => {
+    if (!confirm('Excluir este lançamento?')) return;
+    const { error } = await supabase.from('dre_lancamentos').delete().eq('id', b.dataset.del);
+    if (error) return toast(error.message, 'error');
+    toast('Lançamento excluído'); await recarregar();
+  });
+}
+$('#form-lanc').onsubmit = async e => {
+  e.preventDefault();
+  const reg = { unidade_id:$('#f-unidade').value, conta_id:$('#l-conta').value, competencia:$('#l-comp').value + '-01',
+                tipo:$('#l-tipo').value, valor:+$('#l-valor').value, observacao:$('#l-obs').value || null };
+  const { error } = await supabase.from('dre_lancamentos').insert(reg);
+  if (error) return toast(error.message, 'error');
+  toast('Lançamento salvo'); $('#l-valor').value = ''; $('#l-obs').value = '';
+  await recarregar();
+};
+
+/* ───────── Importação CSV ───────── */
+$('#btn-importar').onclick = async () => {
+  const f = $('#i-arquivo').files[0]; if (!f) return toast('Escolha o arquivo CSV', 'info');
+  const txt = (await f.text()).replace(/^﻿/, '');
+  const porCodigo = Object.fromEntries(S.contas.map(c => [c.codigo.toUpperCase(), c.id]));
+  const u = $('#f-unidade').value, regs = [], erros = [];
+  txt.split(/\r?\n/).forEach((l, i) => {
+    if (!l.trim()) return;
+    const [cod, comp, tipo, val] = l.split(';').map(s => (s || '').trim());
+    if (i === 0 && /codigo/i.test(cod)) return;
+    const m = comp.match(/^(\d{1,2})\/(\d{4})$/) || comp.match(/^(\d{4})-(\d{2})/);
+    const conta = porCodigo[cod.toUpperCase()];
+    const valor = Number(val.replace(/\./g, '').replace(',', '.'));
+    const tp = (tipo || 'realizado').toLowerCase().replace('ç', 'c');
+    if (!conta || !m || !['realizado','orcado'].includes(tp) || !isFinite(valor)) { erros.push(i + 1); return; }
+    const [ano, mes] = comp.includes('/') ? [m[2], m[1]] : [m[1], m[2]];
+    regs.push({ unidade_id:u, conta_id:conta, competencia:`${ano}-${String(mes).padStart(2,'0')}-01`, tipo:tp, valor, observacao:`Importação CSV ${f.name}` });
+  });
+  if (!regs.length) return toast('Nenhuma linha válida no arquivo', 'error');
+  const chaves = [...new Set(regs.map(r => r.competencia + '|' + r.tipo))];
+  const resumo = chaves.map(k => { const [c, t] = k.split('|'); return `${c.slice(5,7)}/${c.slice(0,4)} (${t})`; }).join(', ');
+  if (!confirm(`Importar ${regs.length} linha(s)${erros.length ? ` (${erros.length} ignorada(s))` : ''}?\n\nOs lançamentos existentes destes meses serão substituídos:\n${resumo}`)) return;
+  for (const k of chaves) {
+    const [c, t] = k.split('|');
+    const { error } = await supabase.from('dre_lancamentos').delete().eq('unidade_id', u).eq('competencia', c).eq('tipo', t);
+    if (error) return toast(error.message, 'error');
+  }
+  const { error } = await supabase.from('dre_lancamentos').insert(regs);
+  if (error) return toast(error.message, 'error');
+  $('#i-status').textContent = `Importadas ${regs.length} linhas${erros.length ? `; ignoradas as linhas ${erros.slice(0, 15).join(', ')}${erros.length > 15 ? '…' : ''}` : ''}.`;
+  toast('Importação concluída'); $('#i-arquivo').value = '';
+  await recarregar();
+};
+
+/* ───────── Exportar CSV ───────── */
+$('#btn-csv').onclick = () => {
+  const p = per(), meses = mesesDe(p), mm = meses.map(m => realizado({ ano:p.ano, ini:m, fim:m })), tot = realizado(p);
+  const n = v => v.toFixed(2).replace('.', ',');
+  const out = [['Conta', ...meses.map(m => `${MESES[m-1]}/${p.ano}`), 'Acumulado', 'AV %'].join(';')];
+  for (const L of LINHAS) {
+    out.push([L.nome, ...mm.map(x => n(x[L.k])), n(tot[L.k]), tot.RL ? n(tot[L.k] / tot.RL * 100) : ''].join(';'));
+    if (L.grupo) for (const c of contasDo(L.grupo)) { const t = tot.porConta[c.id] || 0;
+      out.push([`   ${c.codigo} ${c.nome}`, ...mm.map(x => n(x.porConta[c.id] || 0)), n(t), tot.RL ? n(t / tot.RL * 100) : ''].join(';')); }
+  }
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob(['﻿' + out.join('\n')], { type:'text/csv;charset=utf-8' }));
+  a.download = `DRE_${p.ano}_${MESES[p.ini-1]}-${MESES[p.fim-1]}.csv`; a.click();
+};
+
+/* ───────── Orquestração ───────── */
+function renderTudo() {
+  if (+$('#f-mes-ini').value > +$('#f-mes-fim').value) $('#f-mes-fim').value = $('#f-mes-ini').value;
+  const p = per(), R = realizado(p), B = base(p);
+  renderKpis(R, B); renderMensal(); renderComp(R, B);
+  if ($('#p-graf').classList.contains('active')) renderGraficos(R);
+  if ($('#p-lanc').classList.contains('active')) renderLanc();
+}
+async function recarregar() {
+  try { await carregarDados(); renderTudo(); } catch (e) { toast('Erro ao carregar o DRE: ' + e.message, 'error'); }
+}
+function ultimoMesComDados() {
+  const ano = +$('#f-ano').value, u = $('#f-unidade').value;
+  const ms = S.dados.filter(r => r.ano === ano && r.unidade_id === u && r.tipo === 'realizado').map(r => r.mes);
+  return ms.length ? Math.max(...ms) : Math.max(1, new Date().getMonth());
+}
+
+document.querySelectorAll('.dre-tab').forEach(t => t.onclick = () => {
+  document.querySelectorAll('.dre-tab').forEach(x => x.classList.toggle('active', x === t));
+  document.querySelectorAll('.dre-pane').forEach(x => x.classList.toggle('active', x.id === 'p-' + t.dataset.tab));
+  renderTudo();
+});
+document.querySelectorAll('#seg-modo button').forEach(b => b.onclick = () => {
+  S.modo = b.dataset.m; document.querySelectorAll('#seg-modo button').forEach(x => x.classList.toggle('on', x === b)); renderMensal();
+});
+['#f-unidade', '#f-mes-ini', '#f-mes-fim', '#f-base'].forEach(s => $(s).onchange = renderTudo);
+$('#f-ano').onchange = async () => { await recarregar(); };
+
+try {
+  S.perfil = await getPerfilUsuario();
+  await carregarCadastros();
+  if (!S.unidades.length) throw new Error('nenhuma unidade cadastrada em dre_unidades');
+  $('#f-unidade').innerHTML = S.unidades.map(u => `<option value="${u.id}">${u.nome}</option>`).join('');
+  const a = new Date().getFullYear();
+  $('#f-ano').innerHTML = [a, a - 1, a - 2].map(x => `<option>${x}</option>`).join('');
+  const op = MESES.map((m, i) => `<option value="${i + 1}">${m}</option>`).join('');
+  $('#f-mes-ini').innerHTML = op; $('#f-mes-fim').innerHTML = op;
+  await carregarDados();
+  $('#f-mes-ini').value = 1; $('#f-mes-fim').value = ultimoMesComDados();
+  renderTudo();
+} catch (e) { toast('Erro ao abrir o DRE: ' + e.message, 'error'); }
+</script>
+</body>
+</html>
