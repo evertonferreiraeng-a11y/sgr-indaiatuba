@@ -188,6 +188,10 @@ export function sidebarHTML() {
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"/></svg>
           Tarefas
         </a>
+        <a href="dre.html">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 3v18h18"/><path d="M7 15l4-4 3 3 5-6"/><line x1="7" y1="19" x2="7" y2="17"/><line x1="11" y1="19" x2="11" y2="15"/><line x1="15" y1="19" x2="15" y2="16"/></svg>
+          DRE
+        </a>
         <div class="nav-section">Relatórios</div>
         <a href="apresentacao.html">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8M12 17v4"/><polyline points="7 12 10 9 13 11 17 7"/></svg>

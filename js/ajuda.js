@@ -201,6 +201,21 @@ export const AJUDA = {
     passos: ['Clique em <b>+ Novo Lançamento</b>, preencha e clique em <b>Salvar</b>.'],
     dicas: [],
   },
+  'dre.html': {
+    titulo: 'DRE (Demonstração do Resultado)',
+    resumo: 'Resultado econômico da unidade mês a mês: receita, deduções, custos, despesas, EBITDA e lucro líquido, com análise vertical e horizontal e comparação com o orçado ou com o ano anterior.',
+    quando: 'Todo início de mês, depois que o Portal Gerencial fechar o mês anterior, e antes das reuniões de resultado.',
+    passos: [
+      'Escolha o <b>ano</b>, o intervalo de meses e a base de comparação (<b>Orçado</b> ou <b>ano anterior</b>).',
+      'Na aba <b>DRE mensal</b>, alterne entre <b>Valores</b>, <b>Análise vertical</b> e <b>Análise horizontal</b>. Clique numa linha com ▸ para ver as contas.',
+      'Na aba <b>Realizado × base</b>, veja as variações e os destaques do período.',
+      'Para atualizar (administrador): na aba <b>Lançamentos</b>, importe o CSV do mês (<b>codigo;competencia;tipo;valor</b>) ou lance conta por conta.',
+    ],
+    dicas: [
+      'Os valores vêm do Portal Gerencial da Corpus. Se algo não bater, confira lá primeiro.',
+      'O acumulado soma o IR/CS de cada mês; no Portal ele é recalculado sobre o EBT acumulado, por isso o lucro líquido acumulado pode diferir.',
+    ],
+  },
   'relatorio.html': {
     titulo: 'Relatório de Reunião',
     resumo: 'Relatório consolidado do mês ou do ano para reunião.',
@@ -219,6 +234,7 @@ export const ROTINA_DIA = [
 
 export const ROTINA_PERIODICA = [
   '<b>Início do mês:</b> Entradas, importar a planilha da balança do mês anterior',
+  '<b>Início do mês:</b> DRE, importar o resultado do mês anterior do Portal Gerencial',
   '<b>Quinta, fim do dia:</b> Apresentação do Comitê, gerar e revisar',
   '<b>A cada venda de recicláveis:</b> Comercial + pedido no Protheus',
 ];
