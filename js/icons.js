@@ -37,7 +37,12 @@ const PATHS = {
   'pen-tool':     '<path d="M12 19l7-7 3 3-7 7-3-3z"/><path d="M18 13l-1.5-7.5L2 2l3.5 14.5L13 18l5-5z"/><path d="M2 2l7.586 7.586"/><circle cx="11" cy="11" r="2"/>',
   pin:            '<path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/>',
   broom:          '<path d="M4 21l4-4"/><path d="M20 3L9 14"/><path d="M13 8l7-7"/><path d="M9 14l-5 5 2 2 5-5"/>',
-  trophy:         '<path d="M8 21h8M12 17v4M7 4h10v6a5 5 0 0 1-10 0V4z"/><path d="M17 6h3a2 2 0 0 1-2 3.5M7 6H4a2 2 0 0 0 2 3.5"/>',
+  search:         '<circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>',
+  grid:           '<rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/>',
+  'more-horizontal': '<circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/><circle cx="5" cy="12" r="1"/>',
+  'chevron-down': '<polyline points="6 9 12 15 18 9"/>',
+  zap:            '<polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/>',
+  trophy:        '<path d="M8 21h8M12 17v4M7 4h10v6a5 5 0 0 1-10 0V4z"/><path d="M17 6h3a2 2 0 0 1-2 3.5M7 6H4a2 2 0 0 0 2 3.5"/>',
 };
 
 export function icon(name, opts = {}) {

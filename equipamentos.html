@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="pt-BR">
 <head>
   <meta charset="UTF-8" />
@@ -13,28 +13,198 @@
   <title>Equipamentos — SGR Indaiatuba</title>
   <link rel="stylesheet" href="css/style.css" />
   <style>
-    .status-btn {
-      display:inline-flex; align-items:center; gap:6px;
-      padding:5px 12px; border-radius:20px; font-size:12px; font-weight:700;
-      border:2px solid transparent; cursor:pointer; transition:all .15s;
+    :root {
+      --st-op: #10b981;  --st-op-bg: #ecfdf5;  --st-op-tx: #065f46;  --st-op-bd: #a7f3d0;
+      --st-res: #f59e0b; --st-res-bg: #fffbeb; --st-res-tx: #92400e; --st-res-bd: #fde68a;
+      --st-par: #ef4444; --st-par-bg: #fef2f2; --st-par-tx: #991b1b; --st-par-bd: #fecaca;
     }
-    .status-operando  { background:#d1fae5; color:#065f46; border-color:#6ee7b7; }
-    .status-restricao { background:#fef3c7; color:#92400e; border-color:#fcd34d; }
-    .status-parado    { background:#fee2e2; color:#991b1b; border-color:#fca5a5; }
-    .status-btn:hover { filter:brightness(0.95); }
 
-    .util-bar { height:10px; border-radius:5px; background:#e2e8f0; overflow:hidden; margin-top:6px; }
-    .util-fill { height:100%; border-radius:5px; transition:width .4s; }
+    /* ── Resumo ─────────────────────────────── */
+    .eq-resumo {
+      display: grid; grid-template-columns: auto 1fr; gap: 28px; align-items: center;
+      background: var(--card-bg); border: 1px solid var(--border); border-radius: var(--radius-lg);
+      box-shadow: var(--shadow-sm); padding: 20px 24px; margin-bottom: 20px;
+    }
+    .eq-taxa { display: flex; align-items: center; gap: 16px; }
+    .eq-ring { width: 84px; height: 84px; position: relative; flex-shrink: 0; }
+    .eq-ring svg { width: 100%; height: 100%; transform: rotate(-90deg); }
+    .eq-ring-val {
+      position: absolute; inset: 0; display: flex; align-items: center; justify-content: center;
+      font-size: 20px; font-weight: 800; letter-spacing: -.02em; color: var(--text);
+    }
+    .eq-taxa-txt .t1 { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .07em; color: var(--text-muted); }
+    .eq-taxa-txt .t2 { font-size: 15px; font-weight: 700; color: var(--text); margin-top: 4px; }
+    .eq-taxa-txt .t3 { font-size: 12px; color: var(--text-muted); margin-top: 2px; }
 
-    .kpi-eq { border-left:4px solid; }
-    .kpi-eq-op  { border-color:#10b981; }
-    .kpi-eq-res { border-color:#f59e0b; }
-    .kpi-eq-par { border-color:#ef4444; }
+    .eq-barra { display: flex; height: 12px; border-radius: 6px; background: #eef2f6; overflow: hidden; }
+    .eq-barra > div { height: 100%; transition: width .4s; }
+    .eq-barra-nota { font-size: 11.5px; color: var(--text-muted); margin-top: 8px; }
 
-    .dot { width:10px; height:10px; border-radius:50%; display:inline-block; flex-shrink:0; }
-    .dot-op  { background:#10b981; }
-    .dot-res { background:#f59e0b; }
-    .dot-par { background:#ef4444; }
+    .eq-chips { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 12px; }
+    .eq-chip {
+      display: inline-flex; align-items: center; gap: 8px; padding: 7px 14px;
+      border-radius: 999px; border: 1px solid var(--border); background: #fff;
+      font: inherit; font-size: 13px; font-weight: 600; color: #334155; cursor: pointer; transition: all .15s;
+    }
+    .eq-chip:hover { border-color: #cbd5e1; background: #f8fafc; }
+    .eq-chip .n { font-weight: 800; color: var(--text); }
+    .eq-chip .dot { width: 9px; height: 9px; border-radius: 50%; }
+    .eq-chip.ativo { background: var(--text); border-color: var(--text); color: #fff; }
+    .eq-chip.ativo .n { color: #fff; }
+    .eq-chip[data-f="operando"].ativo  { background: var(--st-op-tx);  border-color: var(--st-op-tx); }
+    .eq-chip[data-f="restricao"].ativo { background: var(--st-res-tx); border-color: var(--st-res-tx); }
+    .eq-chip[data-f="parado"].ativo    { background: var(--st-par-tx); border-color: var(--st-par-tx); }
+
+    /* ── Abas ───────────────────────────────── */
+    .eq-abas { display: flex; gap: 4px; border-bottom: 1px solid var(--border); margin-bottom: 16px; overflow-x: auto; white-space: nowrap; }
+    .eq-aba {
+      display: inline-flex; align-items: center; gap: 7px; padding: 10px 14px; margin-bottom: -1px;
+      background: none; border: none; border-bottom: 2px solid transparent; cursor: pointer;
+      font: inherit; font-size: 13.5px; font-weight: 600; color: var(--text-muted);
+    }
+    .eq-aba:hover { color: var(--text); }
+    .eq-aba.ativa { color: var(--primary); border-bottom-color: var(--primary); }
+    .eq-aba-badge { font-size: 10.5px; font-weight: 700; padding: 2px 7px; border-radius: 999px; background: var(--st-res-bg); color: var(--st-res-tx); border: 1px solid var(--st-res-bd); }
+    .eq-aba-badge.ok { background: var(--st-op-bg); color: var(--st-op-tx); border-color: var(--st-op-bd); }
+
+    /* ── Barra de ferramentas ───────────────── */
+    .eq-toolbar { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-bottom: 16px; }
+    .eq-busca { position: relative; flex: 1; min-width: 200px; max-width: 360px; }
+    .eq-busca .icon { position: absolute; left: 11px; top: 50%; transform: translateY(-50%); color: #94a3b8; }
+    .eq-busca input { padding-left: 34px; }
+    .eq-vis { display: inline-flex; border: 1px solid var(--border); border-radius: 8px; overflow: hidden; margin-left: auto; background: #fff; }
+    .eq-vis button { background: none; border: none; padding: 8px 11px; cursor: pointer; color: var(--text-muted); display: inline-flex; }
+    .eq-vis button + button { border-left: 1px solid var(--border); }
+    .eq-vis button.ativo { background: var(--primary-bg); color: var(--primary); }
+
+    /* ── Cards de equipamento ───────────────── */
+    .eq-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(290px, 1fr)); gap: 14px; }
+    .eq-card {
+      position: relative; background: var(--card-bg); border: 1px solid var(--border); border-radius: var(--radius-lg);
+      box-shadow: var(--shadow-sm); padding: 16px 16px 14px 20px; display: flex; flex-direction: column; gap: 12px;
+      transition: box-shadow .2s, transform .2s; overflow: hidden;
+    }
+    .eq-card:hover { box-shadow: var(--shadow-md); }
+    .eq-card::before { content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: 4px; background: var(--c, #cbd5e1); }
+    .eq-card.st-operando  { --c: var(--st-op); }
+    .eq-card.st-restricao { --c: var(--st-res); }
+    .eq-card.st-parado    { --c: var(--st-par); background: linear-gradient(0deg, #fff, #fff 70%, #fff7f7); }
+    .eq-card-top { display: flex; align-items: flex-start; justify-content: space-between; gap: 10px; }
+    .eq-nome { font-size: 15px; font-weight: 700; color: var(--text); line-height: 1.25; overflow-wrap: anywhere; }
+    .eq-num { display: inline-block; margin-top: 4px; font-size: 11.5px; font-weight: 600; color: #475569; background: #f1f5f9; border-radius: 6px; padding: 1px 7px; }
+    .eq-desc { font-size: 12.5px; color: var(--text-muted); margin-top: 4px; }
+    .eq-info { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+    .eq-info .lb { font-size: 10.5px; font-weight: 700; text-transform: uppercase; letter-spacing: .06em; color: #94a3b8; }
+    .eq-info .vl { font-size: 13px; color: #334155; margin-top: 2px; overflow-wrap: anywhere; }
+    .eq-info .vl small { display: block; color: var(--text-muted); font-size: 12px; }
+    .eq-obs { font-size: 12.5px; color: #475569; background: #f8fafc; border-radius: 8px; padding: 8px 10px; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
+    .eq-card.st-parado .eq-obs, .eq-card.st-restricao .eq-obs { background: var(--st-res-bg); }
+    .eq-card.st-parado .eq-obs { background: var(--st-par-bg); }
+    .eq-cap { display: flex; align-items: center; gap: 8px; font-size: 12px; color: var(--st-res-tx); font-weight: 600; }
+    .eq-cap-bar { flex: 1; height: 6px; border-radius: 3px; background: #fde68a55; overflow: hidden; }
+    .eq-cap-bar > div { height: 100%; background: var(--st-res); border-radius: 3px; }
+    .eq-card-acoes { display: flex; justify-content: flex-end; gap: 2px; margin-top: auto; padding-top: 4px; border-top: 1px solid #f1f5f9; }
+
+    /* Status pill clicável */
+    .st-pill {
+      display: inline-flex; align-items: center; gap: 5px; padding: 4px 10px; border-radius: 999px;
+      font: inherit; font-size: 12px; font-weight: 700; white-space: nowrap; border: 1px solid transparent;
+    }
+    .st-pill.operando  { background: var(--st-op-bg);  color: var(--st-op-tx);  border-color: var(--st-op-bd); }
+    .st-pill.restricao { background: var(--st-res-bg); color: var(--st-res-tx); border-color: var(--st-res-bd); }
+    .st-pill.parado    { background: var(--st-par-bg); color: var(--st-par-tx); border-color: var(--st-par-bd); }
+    button.st-pill { cursor: pointer; }
+    button.st-pill:hover { filter: brightness(.96); }
+
+    /* Menu de status */
+    .eq-menu {
+      position: absolute; z-index: 150; min-width: 210px; background: #fff; border: 1px solid var(--border);
+      border-radius: 10px; box-shadow: var(--shadow-lg); padding: 6px; display: none;
+    }
+    .eq-menu.open { display: block; }
+    .eq-menu-tit { font-size: 10.5px; font-weight: 700; text-transform: uppercase; letter-spacing: .06em; color: #94a3b8; padding: 6px 8px 4px; }
+    .eq-menu button {
+      width: 100%; display: flex; align-items: center; gap: 8px; padding: 8px; border-radius: 7px;
+      background: none; border: none; cursor: pointer; font: inherit; font-size: 13px; color: var(--text); text-align: left;
+    }
+    .eq-menu button:hover { background: #f1f5f9; }
+    .eq-menu button.atual { font-weight: 700; }
+    .eq-menu button .chk { margin-left: auto; color: var(--primary); }
+    .eq-menu hr { border: none; border-top: 1px solid #f1f5f9; margin: 4px 0; }
+    .eq-menu button.danger { color: var(--danger); }
+    .eq-menu button.danger:hover { background: var(--danger-light); }
+
+    /* ── Registro do dia ────────────────────── */
+    .rd-head {
+      display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap;
+      padding: 16px 20px; border-bottom: 1px solid var(--border);
+    }
+    .rd-data { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+    .rd-data input[type=date] { width: auto; padding: 7px 10px; }
+    .rd-estado { display: inline-flex; align-items: center; gap: 6px; font-size: 12.5px; font-weight: 600; padding: 5px 10px; border-radius: 999px; }
+    .rd-estado.salvo    { background: var(--st-op-bg);  color: var(--st-op-tx); }
+    .rd-estado.pendente { background: var(--st-res-bg); color: var(--st-res-tx); }
+    .rd-estado.alterado { background: var(--info-light); color: var(--info); }
+    .rd-resumo { display: flex; gap: 14px; font-size: 12.5px; color: var(--text-muted); padding: 10px 20px; background: #f8fafc; border-bottom: 1px solid var(--border); flex-wrap: wrap; }
+    .rd-resumo b { color: var(--text); }
+    .rd-resumo .dot, .eq-leg .dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; margin-right: 5px; }
+    .rd-lista { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 460px), 1fr)); }
+    .rd-item { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 11px 20px; border-bottom: 1px solid #f1f5f9; }
+    .rd-item.mudou { background: #f5f9ff; }
+    .rd-nome { font-size: 13.5px; font-weight: 600; color: #1e293b; min-width: 0; overflow-wrap: anywhere; }
+    .rd-nome small { color: #94a3b8; font-weight: 500; margin-left: 4px; }
+    .seg { display: inline-flex; background: #f1f5f9; border-radius: 9px; padding: 3px; gap: 2px; flex-shrink: 0; }
+    .seg button {
+      display: inline-flex; align-items: center; gap: 5px; padding: 6px 11px; border-radius: 7px; border: none;
+      background: none; cursor: pointer; font: inherit; font-size: 12px; font-weight: 600; color: #64748b; transition: all .15s;
+    }
+    .seg button:hover { color: var(--text); }
+    .seg button.on.operando  { background: #fff; color: var(--st-op-tx);  box-shadow: 0 1px 3px rgba(15,23,42,.12); }
+    .seg button.on.restricao { background: #fff; color: var(--st-res-tx); box-shadow: 0 1px 3px rgba(15,23,42,.12); }
+    .seg button.on.parado    { background: #fff; color: var(--st-par-tx); box-shadow: 0 1px 3px rgba(15,23,42,.12); }
+    .seg button.on .icon { color: inherit; }
+    .rd-foot { display: flex; justify-content: flex-end; gap: 10px; padding: 14px 20px; flex-wrap: wrap; }
+
+    /* ── Tabela ─────────────────────────────── */
+    .eq-tab td { vertical-align: middle; }
+    .eq-tab tr td:first-child { border-left: 3px solid var(--c, transparent); }
+    .eq-tab tr.st-operando  { --c: var(--st-op); }
+    .eq-tab tr.st-restricao { --c: var(--st-res); }
+    .eq-tab tr.st-parado    { --c: var(--st-par); }
+
+    .eq-vazio { text-align: center; padding: 48px 20px; color: var(--text-muted); font-size: 13px; background: var(--card-bg); border: 1px dashed var(--border); border-radius: var(--radius-lg); }
+
+    /* ── Modal ──────────────────────────────── */
+    .fm-sec { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .07em; color: var(--primary); margin: 4px 0 -4px; grid-column: 1 / -1; display: flex; align-items: center; gap: 8px; }
+    .fm-sec::after { content: ''; flex: 1; height: 1px; background: var(--border); }
+    .fm-status { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+    .fm-status label {
+      display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 12px 8px; border-radius: 10px;
+      border: 2px solid var(--border); cursor: pointer; text-transform: none; letter-spacing: 0; font-size: 13px;
+      color: #475569; font-weight: 600; text-align: center; transition: all .15s;
+    }
+    .fm-status input { position: absolute; opacity: 0; pointer-events: none; width: 1px; }
+    .fm-status label:hover { border-color: #cbd5e1; }
+    .fm-status input:checked + label.operando  { border-color: var(--st-op);  background: var(--st-op-bg);  color: var(--st-op-tx); }
+    .fm-status input:checked + label.restricao { border-color: var(--st-res); background: var(--st-res-bg); color: var(--st-res-tx); }
+    .fm-status input:checked + label.parado    { border-color: var(--st-par); background: var(--st-par-bg); color: var(--st-par-tx); }
+    .fm-status input:focus-visible + label { box-shadow: 0 0 0 3px rgba(0,102,54,.15); }
+    .fm-pct { display: flex; align-items: center; gap: 12px; }
+    .fm-pct input[type=range] { flex: 1; padding: 0; accent-color: var(--st-res); border: none; box-shadow: none; }
+    .fm-pct input[type=number] { width: 84px; }
+    .fm-hint { font-size: 12px; color: var(--text-muted); }
+
+    @media (max-width: 768px) {
+      .eq-resumo { grid-template-columns: 1fr; gap: 16px; padding: 16px; }
+      .eq-vis { margin-left: 0; }
+      .eq-busca { max-width: none; }
+      .rd-item { flex-direction: column; align-items: stretch; gap: 8px; padding: 12px 16px; }
+      .seg { width: 100%; }
+      .seg button { flex: 1; justify-content: center; padding: 8px 4px; }
+      .rd-head, .rd-resumo, .rd-foot { padding-left: 16px; padding-right: 16px; }
+      .fm-status { grid-template-columns: 1fr; }
+      .fm-status label { flex-direction: row; justify-content: flex-start; padding: 10px 12px; }
+    }
   </style>
 </head>
 <body>
@@ -42,96 +212,91 @@
   <div id="sidebar-root"></div>
   <div class="main-content">
     <div class="page-header">
-      <div><h2>Equipamentos</h2><p>Gestão e status dos equipamentos da unidade</p></div>
-      <button class="btn btn-primary" id="btn-novo-eq">+ Novo Equipamento</button>
+      <div><h2>Equipamentos</h2><p>Situação das máquinas da unidade e registro diário de disponibilidade</p></div>
+      <button class="btn btn-primary" id="btn-novo-eq" style="display:none">+ Novo Equipamento</button>
     </div>
     <div class="page-body">
 
-      <!-- KPIs -->
-      <div class="kpi-grid" style="grid-template-columns:repeat(4,1fr)">
-        <div class="kpi-card">
-          <div class="kpi-label">Total de Equipamentos</div>
-          <div class="kpi-value" id="kpi-total">—</div>
-          <div class="kpi-sub">cadastrados</div>
-        </div>
-        <div class="kpi-card kpi-eq kpi-eq-op">
-          <div class="kpi-label" style="display:flex;align-items:center;gap:4px"><span class="icon" style="width:10px;height:10px"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></span>Operando</div>
-          <div class="kpi-value" id="kpi-op">—</div>
-          <div class="kpi-sub" id="kpi-op-pct">—</div>
-        </div>
-        <div class="kpi-card kpi-eq kpi-eq-res">
-          <div class="kpi-label" style="display:flex;align-items:center;gap:4px"><span class="icon" style="width:10px;height:10px"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg></span>Com Restrição</div>
-          <div class="kpi-value" id="kpi-res">—</div>
-          <div class="kpi-sub" id="kpi-res-pct">—</div>
-        </div>
-        <div class="kpi-card kpi-eq kpi-eq-par">
-          <div class="kpi-label" style="display:flex;align-items:center;gap:4px"><span class="icon" style="width:10px;height:10px"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg></span>Parado</div>
-          <div class="kpi-value" id="kpi-par">—</div>
-          <div class="kpi-sub" id="kpi-par-pct">—</div>
-        </div>
-      </div>
-
-      <!-- Barra de utilização -->
-      <div class="card mb-16" style="padding:16px">
-        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
-          <span style="font-size:13px;font-weight:600;color:#374151">Taxa de Utilização do Equipamento</span>
-          <span id="taxa-label" style="font-size:14px;font-weight:700;color:#10b981">—</span>
-        </div>
-        <div class="util-bar">
-          <div class="util-fill" id="util-fill-op"  style="background:#10b981;float:left;width:0%"></div>
-          <div class="util-fill" id="util-fill-res" style="background:#f59e0b;float:left;width:0%"></div>
-        </div>
-        <div style="display:flex;gap:16px;margin-top:8px;font-size:12px;color:#64748b">
-          <span><span class="dot dot-op"></span> Operando</span>
-          <span><span class="dot dot-res"></span> Com restrição</span>
-          <span><span class="dot dot-par"></span> Parado</span>
-        </div>
-      </div>
-
-      <!-- Disponibilidade do Dia — alimenta a barra do Dashboard -->
-      <div class="card mb-16" style="padding:16px">
-        <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;margin-bottom:14px">
-          <div>
-            <span style="font-size:13px;font-weight:600;color:#374151;display:inline-flex;align-items:center;gap:5px"><span class="icon" style="width:13px;height:13px"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg></span>Disponibilidade do Dia</span>
-            <div style="font-size:11px;color:#94a3b8;margin-top:2px">Registre o status de cada equipamento no dia selecionado — isso alimenta a barra de disponibilidade do Dashboard.</div>
+      <!-- Resumo -->
+      <div class="eq-resumo">
+        <div class="eq-taxa">
+          <div class="eq-ring">
+            <svg viewBox="0 0 36 36">
+              <circle cx="18" cy="18" r="15.9" fill="none" stroke="#eef2f6" stroke-width="3.4"/>
+              <circle id="ring-fill" cx="18" cy="18" r="15.9" fill="none" stroke="var(--st-op)" stroke-width="3.4" stroke-linecap="round" stroke-dasharray="0 100" pathLength="100"/>
+            </svg>
+            <div class="eq-ring-val" id="taxa-val">—</div>
           </div>
-          <div style="display:flex;align-items:center;gap:8px">
-            <input type="date" id="snap-data" style="padding:6px 10px;border-radius:6px;border:1px solid #D1D5DB;font-size:13px" />
-            <button type="button" class="btn btn-outline" id="btn-snap-hoje" style="padding:6px 12px;font-size:12px">Hoje</button>
-            <button type="button" class="btn btn-primary" id="btn-snap-salvar" style="padding:6px 14px;font-size:12px">Salvar dia</button>
+          <div class="eq-taxa-txt">
+            <div class="t1">Capacidade disponível</div>
+            <div class="t2" id="taxa-t2">—</div>
+            <div class="t3" id="taxa-t3">&nbsp;</div>
           </div>
         </div>
-        <div id="snap-dia-lista"></div>
-      </div>
-
-      <!-- Tabela -->
-      <div class="table-card">
-        <div class="table-scroll">
-          <table>
-            <thead>
-              <tr>
-                <th>Equipamento</th>
-                <th>Nº Equipamento</th>
-                <th>Descrição</th>
-                <th>Função</th>
-                <th>Capacidade</th>
-                <th>Status</th>
-                <th>Observações</th>
-                <th></th>
-              </tr>
-            </thead>
-            <tbody id="tb-equip"></tbody>
-          </table>
+        <div>
+          <div class="eq-chips" id="chips"></div>
+          <div class="eq-barra" title="Capacidade disponível">
+            <div id="bar-op"  style="background:var(--st-op);width:0"></div>
+            <div id="bar-res" style="background:var(--st-res);width:0"></div>
+          </div>
+          <div class="eq-barra-nota">Verde: operando com 100%. Amarelo: equipamentos com restrição, pelo % que cada um ainda entrega. Cinza: capacidade indisponível.</div>
         </div>
       </div>
+
+      <!-- Abas -->
+      <div class="eq-abas" role="tablist">
+        <button class="eq-aba" data-aba="registro" role="tab"><i data-ic="calendar"></i> Registro do dia <span class="eq-aba-badge" id="aba-badge" style="display:none"></span></button>
+        <button class="eq-aba" data-aba="lista" role="tab"><i data-ic="wrench"></i> Equipamentos</button>
+      </div>
+
+      <!-- Aba: Registro do dia -->
+      <section id="aba-registro" hidden>
+        <div class="table-card" style="overflow:visible">
+          <div class="rd-head">
+            <div>
+              <div style="font-size:14px;font-weight:700;color:var(--text)">Como cada equipamento está no dia?</div>
+              <div style="font-size:12px;color:var(--text-muted);margin-top:2px">Esse registro alimenta a disponibilidade do Dashboard e da Apresentação.</div>
+            </div>
+            <div class="rd-data">
+              <input type="date" id="snap-data" aria-label="Dia do registro" />
+              <button type="button" class="btn btn-outline btn-sm" id="btn-snap-hoje">Hoje</button>
+              <span class="rd-estado" id="rd-estado"></span>
+            </div>
+          </div>
+          <div class="rd-resumo" id="rd-resumo"></div>
+          <div class="rd-lista" id="snap-dia-lista"></div>
+          <div class="rd-foot">
+            <button type="button" class="btn btn-outline" id="btn-snap-todos"><i data-ic="check"></i> Marcar todos como operando</button>
+            <button type="button" class="btn btn-primary" id="btn-snap-salvar"><i data-ic="save"></i> Salvar dia</button>
+          </div>
+        </div>
+      </section>
+
+      <!-- Aba: Equipamentos -->
+      <section id="aba-lista" hidden>
+        <div class="eq-toolbar">
+          <div class="eq-busca">
+            <i data-ic="search"></i>
+            <input type="search" id="busca" placeholder="Buscar por nome, nº, função…" aria-label="Buscar equipamento" />
+          </div>
+          <div class="eq-vis" role="group" aria-label="Visualização">
+            <button type="button" data-vis="cards" title="Cartões"><i data-ic="grid"></i></button>
+            <button type="button" data-vis="tabela" title="Tabela"><i data-ic="list"></i></button>
+          </div>
+        </div>
+        <div id="eq-lista"></div>
+      </section>
 
     </div>
   </div>
 </div>
 
+<!-- Menu flutuante de status / ações -->
+<div class="eq-menu" id="eq-menu" role="menu"></div>
+
 <!-- Modal: Equipamento -->
 <div class="modal-backdrop" id="modal-eq">
-  <div class="modal" style="max-width:600px">
+  <div class="modal" style="max-width:620px">
     <div class="modal-header">
       <h3 id="modal-eq-title">Novo Equipamento</h3>
       <button class="modal-close" data-close="modal-eq">✕</button>
@@ -140,25 +305,33 @@
       <form id="form-eq">
         <input type="hidden" name="id" />
         <div class="form-grid" style="grid-template-columns:repeat(2,1fr)">
-          <div class="form-group"><label>Equipamento *</label><input type="text" name="nome" required /></div>
-          <div class="form-group"><label>Nº Equipamento</label><input type="text" name="frota" /></div>
+          <div class="fm-sec">Identificação</div>
+          <div class="form-group"><label>Equipamento *</label><input type="text" name="nome" required placeholder="Ex: Prensa vertical" /></div>
+          <div class="form-group"><label>Nº Equipamento</label><input type="text" name="frota" placeholder="Ex: PR-02" /></div>
           <div class="form-group full"><label>Descrição</label><input type="text" name="descricao" placeholder="Marca, modelo, nº série…" /></div>
-          <div class="form-group"><label>Função</label><input type="text" name="funcao" /></div>
-          <div class="form-group"><label>Capacidade</label><input type="text" name="capacidade" /></div>
-          <div class="form-group"><label>Capacidade Mensal (kg)</label><input type="number" name="capacidade_kg_mes" min="0" step="1" placeholder="Ex: 24000" /></div>
-          <div class="form-group full"><label>Observações</label><textarea name="observacao" rows="2" style="width:100%;resize:vertical" placeholder="Observações gerais sobre o equipamento…"></textarea></div>
-          <div class="form-group"><label>Status *</label>
-            <select name="status" required id="sel-status-eq" onchange="toggleCapPct(this.value)">
-              <option value="operando">Operando</option>
-              <option value="restricao">Operando com Restrição</option>
-              <option value="parado">Parado / Manutenção</option>
-            </select>
+          <div class="form-group full"><label>Função</label><input type="text" name="funcao" placeholder="Para que serve na unidade" /></div>
+
+          <div class="fm-sec">Capacidade</div>
+          <div class="form-group"><label>Capacidade</label><input type="text" name="capacidade" placeholder="Ex: 30 t de força" /></div>
+          <div class="form-group"><label>Capacidade mensal (kg)</label><input type="number" name="capacidade_kg_mes" min="0" step="1" placeholder="Ex: 24000" /></div>
+
+          <div class="fm-sec">Situação</div>
+          <div class="form-group full">
+            <div class="fm-status" id="fm-status">
+              <input type="radio" name="status" id="st-op" value="operando" required /><label for="st-op" class="operando"><i data-ic="checkLg"></i> Operando</label>
+              <input type="radio" name="status" id="st-res" value="restricao" /><label for="st-res" class="restricao"><i data-ic="alertLg"></i> Com restrição</label>
+              <input type="radio" name="status" id="st-par" value="parado" /><label for="st-par" class="parado"><i data-ic="xLg"></i> Parado / manutenção</label>
+            </div>
           </div>
-          <div class="form-group" id="campo-cap-pct" style="display:none">
-            <label>% de Capacidade com Restrição</label>
-            <input type="number" name="capacidade_pct" min="1" max="99" placeholder="Ex: 60" />
-            <span style="font-size:12px;color:#64748b;margin-top:4px">Quanto % está operando com a restrição?</span>
+          <div class="form-group full" id="campo-cap-pct" hidden>
+            <label for="cap-pct-num">Quanto da capacidade ainda funciona?</label>
+            <div class="fm-pct">
+              <input type="range" id="cap-pct-range" min="5" max="95" step="5" value="50" aria-label="Percentual de capacidade" />
+              <input type="number" name="capacidade_pct" id="cap-pct-num" min="1" max="99" placeholder="%" />
+            </div>
+            <span class="fm-hint">Ex: uma prensa que só faz metade dos fardos = 50%.</span>
           </div>
+          <div class="form-group full"><label>Observações</label><textarea name="observacao" rows="2" style="width:100%;resize:vertical;min-height:64px" placeholder="Motivo da parada ou restrição, previsão de retorno…"></textarea></div>
         </div>
       </form>
     </div>
@@ -174,40 +347,247 @@
 import { initPage, supabase, toast, abrirModal, fecharModal } from './js/config.js?v=12';
 import { icon } from './js/icons.js';
 
+// Ícones nos trechos estáticos do HTML (<i data-ic="nome">)
+const ICONES_HTML = {
+  calendar: icon('calendar', { size: 15 }), wrench: icon('wrench', { size: 15 }), check: icon('check', { size: 14 }),
+  save: icon('save', { size: 14 }), search: icon('search', { size: 15 }), grid: icon('grid', { size: 16 }), list: icon('list', { size: 16 }),
+  checkLg: icon('check-circle', { size: 20 }), alertLg: icon('alert-triangle', { size: 20 }), xLg: icon('x-circle', { size: 20 }),
+};
+document.querySelectorAll('i[data-ic]').forEach(el => { el.outerHTML = ICONES_HTML[el.dataset.ic] || ''; });
+
 await initPage();
 
-let perfil, eqData = [];
+const ST = {
+  operando:  { label: 'Operando',      curto: 'Operando',  ic: 'check-circle',   cor: 'var(--st-op)'  },
+  restricao: { label: 'Com restrição', curto: 'Restrição', ic: 'alert-triangle', cor: 'var(--st-res)' },
+  parado:    { label: 'Parado',        curto: 'Parado',    ic: 'x-circle',       cor: 'var(--st-par)' },
+};
+const ORDEM = ['operando', 'restricao', 'parado'];
+
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;' }[c]));
+const pctRes = e => parseFloat(e.capacidade_pct) || 50;
+const fmtTon = kg => (kg / 1000).toLocaleString('pt-BR', { minimumFractionDigits: 1, maximumFractionDigits: 1 });
+const ls = { get: k => { try { return localStorage.getItem(k); } catch { return null; } }, set: (k, v) => { try { localStorage.setItem(k, v); } catch {} } };
+
+let perfil, isAdmin = false, eqData = [];
+let filtro = 'todos', busca = '', vis = ls.get('eq-vis') || 'cards';
 
 async function init() {
   const { data: { user } } = await supabase.auth.getUser();
   const { data: p } = await supabase.from('profiles').select('*').eq('id', user.id).single();
   perfil = p;
+  isAdmin = perfil?.role === 'admin';
+  document.getElementById('btn-novo-eq').style.display = isAdmin ? '' : 'none';
   await carregar();
 }
 
 async function carregar() {
   const { data, error } = await supabase.from('equipamentos').select('*').order('nome');
-  if (error) { console.error(error); }
+  if (error) { console.error(error); toast('Erro ao carregar equipamentos', 'error'); }
   eqData = data || [];
-  renderKPIs();
-  renderTabela();
+  renderResumo();
+  renderLista();
   await carregarSnapDia();
 }
 
-// ── Disponibilidade do Dia — alimenta a barra "Disponibilidade no Período" do Dashboard ──
-const hojeStr = () => new Date().toISOString().split('T')[0];
-let snapData = hojeStr();
-let snapSelecao = {};
+// ── Abas ──────────────────────────────────────────────────────────────────────
+function abrirAba(aba) {
+  document.querySelectorAll('.eq-aba').forEach(b => {
+    const on = b.dataset.aba === aba;
+    b.classList.toggle('ativa', on); b.setAttribute('aria-selected', on);
+  });
+  document.getElementById('aba-registro').hidden = aba !== 'registro';
+  document.getElementById('aba-lista').hidden    = aba !== 'lista';
+  history.replaceState(null, '', aba === 'lista' ? '#equipamentos' : '#registro');
+}
+document.querySelectorAll('.eq-aba').forEach(b => b.addEventListener('click', () => abrirAba(b.dataset.aba)));
+abrirAba(location.hash === '#equipamentos' ? 'lista' : 'registro');
 
-const STATUS_OPCOES = [
-  { v:'operando',  label: icon('check',{size:12}) + ' Operando',           cls:'status-operando'  },
-  { v:'restricao', label: icon('alert-triangle',{size:12}) + ' Restrição', cls:'status-restricao' },
-  { v:'parado',    label: icon('x-circle',{size:12}) + ' Parado',         cls:'status-parado'    },
-];
+// ── Resumo ────────────────────────────────────────────────────────────────────
+function renderResumo() {
+  const total = eqData.length;
+  const n = { operando: 0, restricao: 0, parado: 0 };
+  let somaRes = 0;
+  eqData.forEach(e => { if (n[e.status] !== undefined) n[e.status]++; if (e.status === 'restricao') somaRes += pctRes(e); });
+
+  const wOp  = total ? n.operando / total * 100 : 0;
+  const wRes = total ? somaRes / total : 0;
+  const taxa = Math.round(wOp + wRes);
+  const cor  = taxa >= 80 ? 'var(--st-op)' : taxa >= 50 ? 'var(--st-res)' : 'var(--st-par)';
+
+  document.getElementById('taxa-val').textContent = total ? taxa + '%' : '—';
+  const ring = document.getElementById('ring-fill');
+  ring.setAttribute('stroke-dasharray', `${taxa} 100`);
+  ring.setAttribute('stroke', cor);
+  document.getElementById('taxa-t2').textContent = total
+    ? (n.operando === total ? 'Todos operando' : `${n.operando} de ${total} operando plenamente`)
+    : 'Nenhum equipamento';
+  const fora = [];
+  if (n.restricao) fora.push(`${n.restricao} com restrição`);
+  if (n.parado)    fora.push(`${n.parado} parado${n.parado > 1 ? 's' : ''}`);
+  document.getElementById('taxa-t3').textContent = fora.join(' · ') || 'Nenhum problema registrado';
+
+  document.getElementById('bar-op').style.width  = wOp + '%';
+  document.getElementById('bar-res').style.width = wRes + '%';
+
+  const chip = (f, label, num, dot) => `<button type="button" class="eq-chip ${filtro === f ? 'ativo' : ''}" data-f="${f}">
+      ${dot ? `<span class="dot" style="background:${dot}"></span>` : ''}${label} <span class="n">${num}</span></button>`;
+  document.getElementById('chips').innerHTML =
+    chip('todos', 'Todos', total) + ORDEM.map(s => chip(s, ST[s].label, n[s], ST[s].cor)).join('');
+}
+
+document.getElementById('chips').addEventListener('click', e => {
+  const b = e.target.closest('.eq-chip'); if (!b) return;
+  filtro = filtro === b.dataset.f ? 'todos' : b.dataset.f;
+  renderResumo(); renderLista();
+  abrirAba('lista');
+});
+
+// ── Lista (cards / tabela) ────────────────────────────────────────────────────
+function filtrados() {
+  const q = busca.trim().toLowerCase();
+  return eqData
+    .filter(e => filtro === 'todos' || e.status === filtro)
+    .filter(e => !q || [e.nome, e.frota, e.funcao, e.descricao, e.observacao].some(v => (v || '').toLowerCase().includes(q)));
+}
+
+function pill(e) {
+  const s = ST[e.status] || { label: e.status, ic: 'info' };
+  const txt = e.status === 'restricao' ? `${s.curto} · ${pctRes(e)}%` : s.label;
+  const inner = `${icon(s.ic, { size: 13 })} ${esc(txt)}${isAdmin ? icon('chevron-down', { size: 12 }) : ''}`;
+  return isAdmin
+    ? `<button type="button" class="st-pill ${e.status}" data-menu="${e.id}" title="Mudar situação">${inner}</button>`
+    : `<span class="st-pill ${e.status}">${inner}</span>`;
+}
+
+function capTxt(e) {
+  if (!e.capacidade && !e.capacidade_kg_mes) return '<span style="color:#cbd5e1">—</span>';
+  return `${esc(e.capacidade || '')}${e.capacidade_kg_mes ? `<small>${fmtTon(e.capacidade_kg_mes)} t/mês</small>` : ''}`;
+}
+
+function renderLista() {
+  document.querySelectorAll('.eq-vis button').forEach(b => b.classList.toggle('ativo', b.dataset.vis === vis));
+  const cont = document.getElementById('eq-lista');
+  const lista = filtrados();
+
+  if (!eqData.length) {
+    cont.innerHTML = `<div class="eq-vazio">Nenhum equipamento cadastrado.${isAdmin ? ' Use <b>+ Novo Equipamento</b> para começar.' : ''}</div>`;
+    return;
+  }
+  if (!lista.length) {
+    cont.innerHTML = `<div class="eq-vazio">Nenhum equipamento encontrado com esse filtro.<br>
+      <button type="button" class="btn btn-outline btn-sm" style="margin-top:12px" id="btn-limpar">Limpar filtros</button></div>`;
+    document.getElementById('btn-limpar').onclick = () => {
+      filtro = 'todos'; busca = ''; document.getElementById('busca').value = ''; renderResumo(); renderLista();
+    };
+    return;
+  }
+
+  const acoes = e => isAdmin ? `
+    <button class="btn-icon" title="Editar" onclick="editarEq('${e.id}')">${icon('edit', { size: 15 })}</button>
+    <button class="btn-icon danger" title="Excluir" onclick="excluirEq('${e.id}')">${icon('trash', { size: 15 })}</button>` : '';
+
+  if (vis === 'tabela') {
+    cont.innerHTML = `<div class="table-card"><div class="table-scroll"><table class="eq-tab">
+      <thead><tr><th>Equipamento</th><th>Função</th><th>Capacidade</th><th>Situação</th><th>Observações</th><th></th></tr></thead>
+      <tbody>${lista.map(e => `<tr class="st-${e.status}">
+        <td><strong>${esc(e.nome)}</strong>${e.frota ? ` <span class="eq-num" style="margin:0 0 0 4px">${esc(e.frota)}</span>` : ''}
+          ${e.descricao ? `<div style="font-size:12px;color:var(--text-muted);margin-top:2px">${esc(e.descricao)}</div>` : ''}</td>
+        <td style="font-size:13px">${esc(e.funcao) || '<span style="color:#cbd5e1">—</span>'}</td>
+        <td style="font-size:13px">${capTxt(e).replace('<small>', '<br><small style="color:var(--text-muted)">')}</td>
+        <td>${pill(e)}</td>
+        <td style="max-width:260px;font-size:13px;color:#475569">${esc(e.observacao) || '<span style="color:#cbd5e1">—</span>'}</td>
+        <td style="white-space:nowrap;text-align:right">${acoes(e)}</td>
+      </tr>`).join('')}</tbody></table></div></div>`;
+    return;
+  }
+
+  cont.innerHTML = `<div class="eq-grid">${lista.map(e => `
+    <article class="eq-card st-${e.status}">
+      <div class="eq-card-top">
+        <div style="min-width:0">
+          <div class="eq-nome">${esc(e.nome)}</div>
+          ${e.frota ? `<span class="eq-num">Nº ${esc(e.frota)}</span>` : ''}
+          ${e.descricao ? `<div class="eq-desc">${esc(e.descricao)}</div>` : ''}
+        </div>
+        ${pill(e)}
+      </div>
+      ${e.status === 'restricao' ? `<div class="eq-cap">${pctRes(e)}% da capacidade
+        <div class="eq-cap-bar"><div style="width:${pctRes(e)}%"></div></div></div>` : ''}
+      <div class="eq-info">
+        <div><div class="lb">Função</div><div class="vl">${esc(e.funcao) || '<span style="color:#cbd5e1">—</span>'}</div></div>
+        <div><div class="lb">Capacidade</div><div class="vl">${capTxt(e)}</div></div>
+      </div>
+      ${e.observacao ? `<div class="eq-obs" title="${esc(e.observacao)}">${esc(e.observacao)}</div>` : ''}
+      ${isAdmin ? `<div class="eq-card-acoes">${acoes(e)}</div>` : ''}
+    </article>`).join('')}</div>`;
+}
+
+document.getElementById('busca').addEventListener('input', e => { busca = e.target.value; renderLista(); });
+document.querySelectorAll('.eq-vis button').forEach(b => b.addEventListener('click', () => {
+  vis = b.dataset.vis; ls.set('eq-vis', vis); renderLista();
+}));
+
+// ── Menu de status rápido ─────────────────────────────────────────────────────
+const menu = document.getElementById('eq-menu');
+let menuId = null;
+
+function fecharMenu() { menu.classList.remove('open'); menuId = null; }
+
+document.addEventListener('click', ev => {
+  const alvo = ev.target.closest('[data-menu]');
+  if (alvo) {
+    ev.stopPropagation();
+    if (menuId === alvo.dataset.menu) { fecharMenu(); return; }
+    const e = eqData.find(x => x.id === alvo.dataset.menu); if (!e) return;
+    menuId = e.id;
+    menu.innerHTML = `<div class="eq-menu-tit">Mudar situação</div>` +
+      ORDEM.map(s => `<button type="button" role="menuitem" data-st="${s}" class="${e.status === s ? 'atual' : ''}">
+        <span style="color:${ST[s].cor}">${icon(ST[s].ic, { size: 15 })}</span>${ST[s].label}${s === 'restricao' ? '…' : ''}
+        ${e.status === s ? `<span class="chk">${icon('check', { size: 14 })}</span>` : ''}</button>`).join('') +
+      `<hr><button type="button" role="menuitem" data-acao="editar">${icon('edit', { size: 15 })} Editar dados</button>`;
+    menu.classList.add('open');
+    const r = alvo.getBoundingClientRect();
+    const w = menu.offsetWidth, h = menu.offsetHeight;
+    let left = r.right - w + scrollX;
+    left = Math.max(8 + scrollX, Math.min(left, scrollX + innerWidth - w - 8));
+    let top = r.bottom + 6 + scrollY;
+    if (r.bottom + h + 12 > innerHeight) top = r.top - h - 6 + scrollY;
+    menu.style.left = left + 'px'; menu.style.top = top + 'px';
+    return;
+  }
+  if (!menu.contains(ev.target)) fecharMenu();
+});
+document.addEventListener('keydown', ev => { if (ev.key === 'Escape') fecharMenu(); });
+window.addEventListener('resize', fecharMenu);
+
+menu.addEventListener('click', async ev => {
+  const b = ev.target.closest('button'); if (!b || !menuId) return;
+  const id = menuId; fecharMenu();
+  if (b.dataset.acao === 'editar') return editarEq(id);
+  const st = b.dataset.st;
+  // Restrição precisa do % — abre o formulário já na situação certa
+  if (st === 'restricao') { editarEq(id, 'restricao'); return; }
+  await alterarStatus(id, st);
+});
+
+async function alterarStatus(id, novoStatus) {
+  const e = eqData.find(x => x.id === id); if (!e || e.status === novoStatus) return;
+  const { error } = await supabase.from('equipamentos').update({ status: novoStatus, capacidade_pct: null }).eq('id', id);
+  if (error) { toast('Erro ao atualizar situação: ' + error.message, 'error'); return; }
+  e.status = novoStatus; e.capacidade_pct = null;
+  renderResumo(); renderLista();
+  toast(`${e.nome}: ${ST[novoStatus].label}`);
+}
+
+// ── Registro do dia — alimenta "Disponibilidade no Período" do Dashboard ──────
+const hojeStr = () => { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`; };
+let snapData = hojeStr();
+let snapSelecao = {}, snapBase = {}, snapSalvo = false;
 
 async function carregarSnapDia() {
   const dataInput = document.getElementById('snap-data');
-  if (dataInput) { dataInput.max = hojeStr(); dataInput.value = snapData; }
+  dataInput.max = hojeStr(); dataInput.value = snapData;
 
   let existentes = {};
   try {
@@ -215,41 +595,69 @@ async function carregarSnapDia() {
     (data || []).forEach(s => { existentes[s.equipamento_id] = s.status; });
   } catch (_) { /* tabela ainda não criada */ }
 
-  snapSelecao = {};
-  eqData.forEach(e => { snapSelecao[e.id] = existentes[e.id] || e.status; });
+  snapSalvo = Object.keys(existentes).length > 0;
+  snapSelecao = {}; snapBase = {};
+  eqData.forEach(e => { snapSelecao[e.id] = snapBase[e.id] = existentes[e.id] || e.status; });
   renderSnapDia();
 }
 
 function renderSnapDia() {
   const cont = document.getElementById('snap-dia-lista');
-  if (!cont) return;
-  if (!eqData.length) { cont.innerHTML = '<span style="color:#94a3b8;font-size:13px">Nenhum equipamento cadastrado</span>'; return; }
+  const alterados = eqData.filter(e => snapSelecao[e.id] !== snapBase[e.id]).length;
+  const ehHoje = snapData === hojeStr();
+  const [a, m, d] = snapData.split('-');
+
+  const est = document.getElementById('rd-estado');
+  if (alterados)      { est.className = 'rd-estado alterado'; est.innerHTML = `${icon('edit', { size: 13 })} ${alterados} alteraç${alterados > 1 ? 'ões' : 'ão'} não salva${alterados > 1 ? 's' : ''}`; }
+  else if (snapSalvo) { est.className = 'rd-estado salvo';    est.innerHTML = `${icon('check-circle', { size: 13 })} ${ehHoje ? 'Hoje' : `${d}/${m}`} já registrado`; }
+  else                { est.className = 'rd-estado pendente'; est.innerHTML = `${icon('clock', { size: 13 })} ${ehHoje ? 'Hoje' : `${d}/${m}`} ainda não registrado`; }
+
+  // Badge na aba: só olha para hoje
+  const badge = document.getElementById('aba-badge');
+  if (ehHoje && eqData.length) {
+    badge.style.display = '';
+    badge.className = 'eq-aba-badge' + (snapSalvo ? ' ok' : '');
+    badge.textContent = snapSalvo ? 'feito' : 'pendente';
+  }
+
+  document.getElementById('btn-snap-salvar').innerHTML = `${icon('save', { size: 14 })} ${snapSalvo ? 'Atualizar dia' : 'Salvar dia'}`;
+
+  const n = { operando: 0, restricao: 0, parado: 0 };
+  eqData.forEach(e => { if (n[snapSelecao[e.id]] !== undefined) n[snapSelecao[e.id]]++; });
+  document.getElementById('rd-resumo').innerHTML = ORDEM.map(s =>
+    `<span><span class="dot" style="background:${ST[s].cor}"></span><b>${n[s]}</b> ${ST[s].label.toLowerCase()}</span>`).join('');
+
+  if (!eqData.length) { cont.innerHTML = '<div style="padding:24px 20px;color:#94a3b8;font-size:13px">Nenhum equipamento cadastrado</div>'; return; }
 
   cont.innerHTML = eqData.map(e => {
     const atual = snapSelecao[e.id];
-    const btns = STATUS_OPCOES.map(o => `
-      <button type="button" class="status-btn ${o.cls}" style="${atual===o.v?'':'opacity:.35'}" onclick="window._setSnapDia('${e.id}','${o.v}')">${o.label}</button>
-    `).join('');
-    return `<div style="display:flex;align-items:center;justify-content:space-between;gap:10px;padding:7px 0;border-bottom:1px solid #f1f5f9">
-      <span style="font-size:13px;font-weight:600;color:#334155">${e.nome}${e.frota ? ` <span style="color:#94a3b8;font-weight:400">(${e.frota})</span>` : ''}</span>
-      <div style="display:flex;gap:6px">${btns}</div>
+    const btns = ORDEM.map(s => `<button type="button" class="${s} ${atual === s ? 'on' : ''}" aria-pressed="${atual === s}"
+        onclick="window._setSnapDia('${e.id}','${s}')">${icon(ST[s].ic, { size: 13 })} ${ST[s].curto}</button>`).join('');
+    return `<div class="rd-item ${atual !== snapBase[e.id] ? 'mudou' : ''}">
+      <span class="rd-nome"><span class="dot" style="display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:8px;background:${ST[atual]?.cor || '#cbd5e1'}"></span>${esc(e.nome)}${e.frota ? `<small>${esc(e.frota)}</small>` : ''}</span>
+      <div class="seg" role="group" aria-label="Situação de ${esc(e.nome)}">${btns}</div>
     </div>`;
   }).join('');
 }
 
 window._setSnapDia = (id, status) => { snapSelecao[id] = status; renderSnapDia(); };
 
-document.getElementById('snap-data').addEventListener('change', async e => {
-  snapData = e.target.value || hojeStr();
+async function trocarDia(nova) {
+  const alterados = eqData.some(e => snapSelecao[e.id] !== snapBase[e.id]);
+  if (alterados && !confirm('Há alterações não salvas neste dia. Trocar de dia e descartá-las?')) {
+    document.getElementById('snap-data').value = snapData; return;
+  }
+  snapData = nova || hojeStr();
   await carregarSnapDia();
-});
-
-document.getElementById('btn-snap-hoje').addEventListener('click', async () => {
-  snapData = hojeStr();
-  await carregarSnapDia();
+}
+document.getElementById('snap-data').addEventListener('change', e => trocarDia(e.target.value));
+document.getElementById('btn-snap-hoje').addEventListener('click', () => trocarDia(hojeStr()));
+document.getElementById('btn-snap-todos').addEventListener('click', () => {
+  eqData.forEach(e => { snapSelecao[e.id] = 'operando'; }); renderSnapDia();
 });
 
 document.getElementById('btn-snap-salvar').addEventListener('click', async () => {
+  if (!eqData.length) return;
   const btn = document.getElementById('btn-snap-salvar');
   btn.disabled = true; btn.textContent = 'Salvando…';
   const rows = eqData.map(e => ({
@@ -261,129 +669,78 @@ document.getElementById('btn-snap-salvar').addEventListener('click', async () =>
   }));
   await supabase.from('equipamentos_snapshot').delete().eq('semana', snapData);
   const { error } = await supabase.from('equipamentos_snapshot').insert(rows);
-  btn.disabled = false; btn.textContent = 'Salvar dia';
-  if (error) { toast('Erro ao salvar: ' + error.message, 'error'); return; }
-  const [a,m,d] = snapData.split('-');
+  btn.disabled = false;
+  if (error) { renderSnapDia(); toast('Erro ao salvar: ' + error.message, 'error'); return; }
+  snapSalvo = true; snapBase = { ...snapSelecao };
+  renderSnapDia();
+  const [a, m, d] = snapData.split('-');
   toast(`Disponibilidade de ${d}/${m}/${a} registrada!`);
 });
 
-function renderKPIs() {
-  const total = eqData.length;
-  const op    = eqData.filter(e => e.status === 'operando').length;
-  const res   = eqData.filter(e => e.status === 'restricao').length;
-  const par   = eqData.filter(e => e.status === 'parado').length;
-  const pct   = v => total ? (v/total*100).toFixed(0)+'%' : '0%';
+window.addEventListener('beforeunload', ev => {
+  if (eqData.some(e => snapSelecao[e.id] !== snapBase[e.id])) { ev.preventDefault(); ev.returnValue = ''; }
+});
 
-  document.getElementById('kpi-total').textContent   = total;
-  document.getElementById('kpi-op').textContent      = op;
-  document.getElementById('kpi-res').textContent     = res;
-  document.getElementById('kpi-par').textContent     = par;
-  document.getElementById('kpi-op-pct').textContent  = pct(op) + ' do equipamento';
-  document.getElementById('kpi-res-pct').textContent = pct(res) + ' do equipamento';
-  document.getElementById('kpi-par-pct').textContent = pct(par) + ' do equipamento';
+// ── Formulário ────────────────────────────────────────────────────────────────
+const form = document.getElementById('form-eq');
+const pctNum = document.getElementById('cap-pct-num');
+const pctRange = document.getElementById('cap-pct-range');
 
-  // Taxa real: operando=100%, restrição=% definida pelo usuário, parado=0%
-  const somaUtil = eqData.reduce((s, e) => {
-    if (e.status === 'operando')  return s + 100;
-    if (e.status === 'restricao') return s + (parseFloat(e.capacidade_pct) || 50);
-    return s;
-  }, 0);
-  const taxaUtil = total ? (somaUtil / total).toFixed(0) : 0;
-  document.getElementById('taxa-label').textContent  = taxaUtil + '% utilizados';
-  document.getElementById('taxa-label').style.color  = taxaUtil >= 80 ? '#10b981' : taxaUtil >= 50 ? '#f59e0b' : '#ef4444';
-  document.getElementById('util-fill-op').style.width  = pct(op);
-  document.getElementById('util-fill-res').style.width = pct(res);
+function toggleCapPct() {
+  const st = form.querySelector('[name="status"]:checked')?.value;
+  document.getElementById('campo-cap-pct').hidden = st !== 'restricao';
+  pctNum.required = st === 'restricao';
+}
+form.querySelectorAll('[name="status"]').forEach(r => r.addEventListener('change', () => {
+  toggleCapPct();
+  if (r.value === 'restricao' && !pctNum.value) { pctNum.value = 50; pctRange.value = 50; }
+}));
+pctRange.addEventListener('input', () => { pctNum.value = pctRange.value; });
+pctNum.addEventListener('input', () => { if (pctNum.value) pctRange.value = pctNum.value; });
+
+function setStatusForm(st) {
+  form.querySelectorAll('[name="status"]').forEach(r => { r.checked = r.value === st; });
+  toggleCapPct();
 }
 
-function renderTabela() {
-  const isAdmin = perfil?.role === 'admin';
-  const tb = document.getElementById('tb-equip');
-
-  if (!eqData.length) {
-    tb.innerHTML = '<tr><td colspan="7" class="table-empty">Nenhum equipamento cadastrado</td></tr>';
-    return;
-  }
-
-  const statusIcons = { operando:'check', restricao:'alert-triangle', parado:'x-circle' };
-  const statusLabels = { operando:'Operando', restricao:'Com Restrição', parado:'Parado' };
-
-  tb.innerHTML = eqData.map(e => {
-    const cls = `status-${e.status}`;
-    const label = e.status === 'restricao' && e.capacidade_pct
-      ? `Com Restrição (${e.capacidade_pct}%)`
-      : (statusLabels[e.status] || e.status);
-    return `<tr>
-      <td><strong>${e.nome}</strong></td>
-      <td>${e.frota || '<span style="color:#94a3b8">—</span>'}</td>
-      <td style="max-width:220px;font-size:13px">${e.descricao || '<span style="color:#94a3b8">—</span>'}</td>
-      <td style="font-size:13px">${e.funcao || '—'}</td>
-      <td style="font-size:13px">${e.capacidade || '—'}${e.capacidade_kg_mes ? `<br><span style="color:#64748b">${(e.capacidade_kg_mes/1000).toLocaleString('pt-BR',{minimumFractionDigits:1,maximumFractionDigits:1})} ton/mês</span>` : ''}</td>
-      <td>
-        <span class="status-btn ${cls}">${icon(statusIcons[e.status] || 'info',{size:13})} ${label}</span>
-        ${isAdmin ? `<button class="btn-icon" style="margin-left:4px" onclick="editarEq('${e.id}')">${icon('settings',{size:15})}</button>` : ''}
-      </td>
-      <td style="max-width:240px;font-size:13px;color:#475569">${e.observacao || '<span style="color:#94a3b8">—</span>'}</td>
-      <td>
-        ${isAdmin ? `
-          <button class="btn-icon" onclick="editarEq('${e.id}')">${icon('edit',{size:15})}</button>
-          <button class="btn-icon danger" onclick="excluirEq('${e.id}')">${icon('trash',{size:15})}</button>
-        ` : ''}
-      </td>
-    </tr>`;
-  }).join('');
-}
-
-// ── Toggle campo % capacidade ─────────────────────────────────────────────────
-window.toggleCapPct = status => {
-  document.getElementById('campo-cap-pct').style.display = status === 'restricao' ? '' : 'none';
-};
-
-// ── Status inline ─────────────────────────────────────────────────────────────
-window.alterarStatus = async (id, novoStatus) => {
-  const { error } = await supabase.from('equipamentos').update({ status: novoStatus }).eq('id', id);
-  if (error) { toast('Erro ao atualizar status', 'error'); await carregar(); return; }
-  const e = eqData.find(x => x.id === id);
-  if (e) e.status = novoStatus;
-  renderKPIs();
-  renderTabela();
-  const labels = { operando:'Operando', restricao:'Com Restrição', parado:'Parado' };
-  toast(`Status atualizado: ${labels[novoStatus]}`);
-};
-
-// ── CRUD ──────────────────────────────────────────────────────────────────────
 document.getElementById('btn-novo-eq').addEventListener('click', () => {
   document.getElementById('modal-eq-title').textContent = 'Novo Equipamento';
-  document.getElementById('form-eq').reset();
-  document.querySelector('#form-eq [name="id"]').value = '';
-  document.querySelector('#form-eq [name="status"]').value = 'operando';
+  form.reset();
+  form.querySelector('[name="id"]').value = '';
+  pctRange.value = 50;
+  setStatusForm('operando');
   abrirModal('modal-eq');
 });
 
-window.editarEq = id => {
+window.editarEq = (id, statusInicial) => {
   const e = eqData.find(x => x.id === id); if (!e) return;
   document.getElementById('modal-eq-title').textContent = 'Editar Equipamento';
-  const f = document.getElementById('form-eq');
-  const set = (n,v) => { const el = f.querySelector(`[name="${n}"]`); if(el) el.value = v ?? ''; };
+  form.reset();
+  const set = (n, v) => { const el = form.querySelector(`[name="${n}"]:not([type=radio])`); if (el) el.value = v ?? ''; };
   set('id', e.id); set('nome', e.nome); set('frota', e.frota);
   set('descricao', e.descricao); set('funcao', e.funcao);
-  set('capacidade', e.capacidade); set('capacidade_kg_mes', e.capacidade_kg_mes); set('status', e.status);
+  set('capacidade', e.capacidade); set('capacidade_kg_mes', e.capacidade_kg_mes);
   set('capacidade_pct', e.capacidade_pct); set('observacao', e.observacao);
-  toggleCapPct(e.status);
+  const st = statusInicial || e.status;
+  if (st === 'restricao' && !pctNum.value) pctNum.value = 50;
+  pctRange.value = pctNum.value || 50;
+  setStatusForm(st);
   abrirModal('modal-eq');
+  if (statusInicial === 'restricao') setTimeout(() => pctNum.focus(), 50);
 };
 
 window.excluirEq = async id => {
-  if (!confirm('Excluir este equipamento?')) return;
+  const e = eqData.find(x => x.id === id);
+  if (!confirm(`Excluir o equipamento "${e?.nome || ''}"? Essa ação não pode ser desfeita.`)) return;
   const { error } = await supabase.from('equipamentos').delete().eq('id', id);
-  if (error) { toast('Erro ao excluir: '+error.message, 'error'); return; }
+  if (error) { toast('Erro ao excluir: ' + error.message, 'error'); return; }
   toast('Equipamento excluído!');
   await carregar();
 };
 
 document.getElementById('btn-salvar-eq').addEventListener('click', async () => {
-  const f = document.getElementById('form-eq');
-  if (!f.checkValidity()) { f.reportValidity(); return; }
-  const fd = Object.fromEntries(new FormData(f));
+  if (!form.checkValidity()) { form.reportValidity(); return; }
+  const fd = Object.fromEntries(new FormData(form));
   const payload = {
     nome:       fd.nome,
     frota:      fd.frota      || null,
@@ -397,11 +754,11 @@ document.getElementById('btn-salvar-eq').addEventListener('click', async () => {
   };
   if (fd.id) {
     const { error } = await supabase.from('equipamentos').update(payload).eq('id', fd.id);
-    if (error) { toast('Erro: '+error.message, 'error'); return; }
+    if (error) { toast('Erro: ' + error.message, 'error'); return; }
     toast('Equipamento atualizado!');
   } else {
     const { error } = await supabase.from('equipamentos').insert(payload);
-    if (error) { toast('Erro: '+error.message, 'error'); return; }
+    if (error) { toast('Erro: ' + error.message, 'error'); return; }
     toast('Equipamento cadastrado!');
   }
   fecharModal('modal-eq');
@@ -409,10 +766,9 @@ document.getElementById('btn-salvar-eq').addEventListener('click', async () => {
 });
 
 document.querySelectorAll('[data-close]').forEach(btn => btn.addEventListener('click', () => fecharModal(btn.dataset.close)));
-document.querySelectorAll('.modal-backdrop').forEach(m => m.addEventListener('click', e => { if(e.target===m) fecharModal(m.id); }));
+document.querySelectorAll('.modal-backdrop').forEach(m => m.addEventListener('click', e => { if (e.target === m) fecharModal(m.id); }));
 
 await init();
 </script>
 </body>
 </html>
-
