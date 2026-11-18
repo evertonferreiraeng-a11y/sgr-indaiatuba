@@ -59,7 +59,8 @@
           <div class="form-group"><label for="f-alvo">Margem EBITDA alvo (%)</label><input type="number" id="f-alvo" min="0" max="60" step="1" /></div>
           <div class="form-group"><label for="f-acerto">Acréscimo de receita no mês (R$)</label><input type="number" id="f-acerto" min="0" step="100" placeholder="0" /></div>
         </div>
-        <p class="ap-hint">Valores do estudo de out/26: ponto de equilíbrio de R$ 128 mil de receita bruta/mês (EBITDA zero), custos fixos de R$ 74 mil/mês (mão de obra, demais custos e despesas operacionais) e margem orçada de ~20%. O ponto de equilíbrio entra num card do slide Faturamento; com os três preenchidos, entra também o slide "Rumo ao equilíbrio" (antes × depois do plano, projeção e o volume e ticket médio necessários). Em branco, não entram.</p>
+        <p class="ap-hint" id="fin-fonte" style="font-weight:600;color:var(--primary)"></p>
+        <p class="ap-hint">Ao clicar em <b>Carregar dados</b>, o ponto de equilíbrio e os custos fixos vêm do <b>resultado real da tela DRE</b> (últimos meses fechados): gastos fixos ÷ margem de contribuição, com EBITDA zero. Sem dados no DRE, ficam os valores do estudo de out/26 (R$ 128 mil e R$ 74 mil). A margem EBITDA alvo continua sendo digitada aqui. O ponto de equilíbrio entra num card do slide Faturamento; com os três preenchidos, entra também o slide "Rumo ao equilíbrio" (antes × depois do plano, projeção e o volume e ticket médio necessários). Em branco, não entram.</p>
         <p class="ap-hint">Acréscimo de receita: valor que entra na receita do mês de referência sem ser venda (ex.: acerto entre obras transferido por outro centro de custo). Soma na comparação com o ponto de equilíbrio (card do Faturamento e slide "Rumo ao equilíbrio"); não muda o faturamento contra a meta nem o ticket médio. Guardado por mês.</p>
       </div>
 
@@ -114,6 +115,7 @@ import {
   STATUS_TAREFA, calcularDados, frasesPadrao, fraseEquilibrio, FIN_PADRAO, textoPerdaCap, montarApresentacao, periodoBusca,
   isoLocal, addDias, fimDoMes, ddmm, ddmmaaaa, nomeMes, mil, tn, pct, reais0, nf,
 } from './js/apresentacao.js?v=88';
+import { equilibrioDoDRE } from './js/equilibrio-dre.js?v=1';
 
 await initPage();
 
@@ -178,10 +180,26 @@ elAcerto.addEventListener('input', () => {
   const fr = document.getElementById('fr-equil');
   if (D && fr) fr.value = fraseEquilibrio(D, finAtual());
 });
+// Receita líquida ÷ bruta do DRE (para a margem EBITDA); sem DRE, o padrão do estudo
+let liqDRE;
 const finAtual = () => ({
   ...Object.fromEntries(CAMPOS_FIN.map(([k, id]) => [k, parseFloat(document.getElementById(id).value) || 0])),
   acerto: parseFloat(elAcerto.value) || 0,
+  ...(liqDRE ? { liq: liqDRE } : {}),
 });
+
+// Ponto de equilíbrio pelo resultado real (DRE): preenche os campos e avisa a fonte
+async function aplicarDRE(M) {
+  const fonte = document.getElementById('fin-fonte');
+  const dre = await equilibrioDoDRE(supabase, M).catch(() => null);
+  if (!dre) { liqDRE = undefined; fonte.textContent = 'Sem dados no DRE para este mês: usando os valores digitados abaixo.'; return; }
+  [['pe', 'f-pe', dre.pe], ['fixos', 'f-fixos', dre.fixos]].forEach(([k, id, v]) => {
+    document.getElementById(id).value = String(Math.round(v / 100) * 100);
+    lsSet(`sgr_apres_${k}`, document.getElementById(id).value);
+  });
+  liqDRE = dre.liq;
+  fonte.textContent = `Calculado pelo DRE (${dre.periodo}): gastos fixos de ${mil(dre.fixos)}/mês e margem de contribuição de ${pct(dre.mc * 100, 1)} → equilíbrio em ${mil(dre.pe)}/mês de receita bruta.`;
+}
 
 document.getElementById('btn-carregar').addEventListener('click', carregar);
 
@@ -212,6 +230,7 @@ async function carregar() {
     ]);
     tarefasCache = tarefas;
     D = calcularDados({ vendas, metas, producao, equipamentos, materiais, colaboradores, cargos, snapshots }, M, corte, hoje);
+    await aplicarDRE(M);
     renderConferencia();
     document.getElementById('ap-conteudo').style.display = '';
     document.getElementById('ap-status').textContent = '';

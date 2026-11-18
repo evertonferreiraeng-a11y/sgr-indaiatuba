@@ -144,6 +144,7 @@ import {
   STATUS_TAREFA, calcularDados, frasesPadrao, analiseEquilibrio, FIN_PADRAO, textoPerdaCap, periodoBusca,
   isoLocal, addDias, fimDoMes, ddmm, ddmmaaaa, nomeMes, cap, nomeMat, mil, tn, pct, reais0, nf,
 } from './js/apresentacao.js?v=88';
+import { equilibrioDoDRE } from './js/equilibrio-dre.js?v=1';
 
 await initPage();
 
@@ -196,7 +197,7 @@ async function carregar() {
   try {
     const { ini, iniMes } = periodoBusca(M);
     const fimBusca = corte > fimDoMes(M) ? fimDoMes(M) : corte;
-    const [vendas, metas, producao, equipamentos, materiais, colaboradores, cargos, snapshots, tarefas] = await Promise.all([
+    const [vendas, metas, producao, equipamentos, materiais, colaboradores, cargos, snapshots, tarefas, dre] = await Promise.all([
       fetchAll('vendas', 'data, peso_kg, unidade, valor_total, acondicionamento, materiais(nome)', [['gte','data',ini], ['lte','data',fimBusca]]),
       fetchAll('metas', 'periodo, valor_meta', [['eq','indicador','faturamento'], ['gte','periodo',ini.slice(0, 7)], ['lte','periodo',M]]),
       fetchAll('producao', 'data, peso_produzido_kg, equipamento_id', [['gte','data',ini], ['lte','data',fimBusca]]),
@@ -208,9 +209,12 @@ async function carregar() {
       fetchOpcional('equipamentos_snapshot', 'semana, equipamento_id, status', [['gte','semana',addDias(iniMes, -60)], ['lte','semana',fimBusca]]),
       fetchAll('tarefas', 'id, titulo, status, categoria, responsavel, data_vencimento, andamento')
         .catch(() => fetchOpcional('tarefas', 'id, titulo, status, categoria, responsavel, data_vencimento')),
+      // Ponto de equilíbrio pelo resultado real (DRE); sem DRE, cai no estudo financeiro da tela Apresentação
+      equilibrioDoDRE(supabase, M).catch(() => null),
     ]);
     const d = calcularDados({ vendas, metas, producao, equipamentos, materiais, colaboradores, cargos, snapshots }, M, corte, hoje);
-    const fin = finAtual(M);
+    const est = finAtual(M);
+    const fin = dre ? { pe:dre.pe, fixos:dre.fixos, liq:dre.liq, alvo:est.alvo, acerto:est.acerto, dre } : est;
     renderLembrete(colaboradores);
     render(d, tarefas, fin);
   } catch (e) {
@@ -317,7 +321,7 @@ function render(d, tarefas, fin) {
     d.melhor ? { rot:'Melhor mês do ano', val:cap(nomeMes(d.melhor.mk)), sub:`${pct(d.melhor.p, 0)} da meta` } : null,
   ];
   if (fin.pe > 0 && !d.inicioMes) cardsFat.push({ rot: refPe >= fin.pe ? 'Acima do ponto de equilíbrio' : 'Abaixo do ponto de equilíbrio', val:mil(Math.abs(refPe - fin.pe)),
-    cls: refPe >= fin.pe ? 'up' : 'down', sub:`equilíbrio: ${mil(fin.pe)}/mês de receita` });
+    cls: refPe >= fin.pe ? 'up' : 'down', sub:`equilíbrio: ${mil(fin.pe)}/mês de receita${fin.dre ? ` (DRE ${fin.dre.periodo})` : ' (estudo financeiro)'}` });
   const semanasHTML = d.semFat.length && d.meta ? `<div class="db-mini-t" style="margin-top:16px">Atingimento da meta por semana</div>` + d.semFat.map(s =>
     `<div class="hb"><span>Semana ${s.i}${s.parcial ? ' <span class="sub">(parcial)</span>' : ''}<br><span class="sub" style="font-size:11px">${ddmm(s.s.ini)} a ${ddmm(s.s.fim > d.corte ? d.corte : s.s.fim)}</span></span>
       <div class="trilho"><i style="width:${Math.min(100, s.p || 0)}%;background:${corAt(s.p)}"></i></div><span class="v"><b>${pct(s.p, 0)}</b> · ${mil(s.fat)}</span></div>`).join('') : '';
@@ -386,8 +390,11 @@ function render(d, tarefas, fin) {
       <td class="n">${x.volNec ? tn(x.volNec, 0) : '—'}<br><span class="sub" style="font-size:11px">${base.vol ? `hoje: ${tn(base.vol, 0)}` : ''}</span></td>
       <td class="n">${x.ticketNec ? reais0(x.ticketNec) + '/t' : '—'}<br><span class="sub" style="font-size:11px">${base.ticket ? `hoje: ${reais0(base.ticket)}/t` : ''}</span></td></tr>`).join('');
     equilHTML = `<section class="db-sec" id="s-equil">
-      <div class="db-sec-hd"><h2>Rumo ao equilíbrio</h2><a href="apresentacao.html">Ajustar o estudo financeiro →</a></div>
+      <div class="db-sec-hd"><h2>Rumo ao equilíbrio</h2>${fin.dre ? '<a href="dre.html">Ver no DRE →</a>' : '<a href="apresentacao.html">Ajustar o estudo financeiro →</a>'}</div>
       <p class="db-frase">${fraseHTML(fr.equil)}</p>
+      <p class="sub" style="margin:-8px 0 16px;font-size:12.5px">${fin.dre
+        ? `Ponto de equilíbrio calculado pelo <b>resultado real do DRE</b> (${fin.dre.periodo}): gastos fixos de ${mil(fin.dre.fixos)}/mês ÷ margem de contribuição de ${pct(fin.dre.mc * 100, 1)}. No período, o EBITDA real foi de ${mil(fin.dre.ebitdaMes)}/mês.`
+        : 'Sem dados no DRE: usando o estudo financeiro da tela Apresentação.'}</p>
       <div class="db-corpo">
         <div><div class="chart-wrap"><canvas id="c-equil"></canvas></div>
           <div class="db-mini-t" style="margin-top:16px">O que é preciso para cada objetivo (uma alavanca de cada vez)</div>
