@@ -131,6 +131,57 @@
     .eq-tab tr.st-parado    { --c: var(--st-par); }
     .eq-tab tr.mudou { background: #f5f9ff; }
 
+    /* ── Histórico ──────────────────────────── */
+    .h-operando { --h: var(--st-op); }  .h-restricao { --h: var(--st-res); }  .h-parado { --h: var(--st-par); }
+    .eq-hist { display: block; width: 100%; background: none; border: none; padding: 0; cursor: pointer; text-align: left; font: inherit; }
+    .eq-hist-top { display: flex; justify-content: space-between; align-items: baseline; font-size: 10.5px; font-weight: 700; text-transform: uppercase; letter-spacing: .06em; color: #94a3b8; margin-bottom: 5px; }
+    .eq-hist-top span:last-child { text-transform: none; letter-spacing: 0; font-weight: 600; color: var(--primary); font-size: 11.5px; }
+    .eq-hist:hover .eq-hist-top span:last-child { text-decoration: underline; }
+    .eq-hist-dias { display: flex; gap: 2px; }
+    .eq-hist-dias i { flex: 1; height: 14px; border-radius: 2px; background: var(--h, #eef2f6); }
+    .eq-hist-dias i.fds:not([class*="h-"]) { background: #f8fafc; }
+
+    .hm-nav { display: flex; align-items: center; gap: 8px; }
+    .hm-nav b { min-width: 130px; text-align: center; font-size: 14px; text-transform: capitalize; }
+    .hm-stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin: 16px 0; }
+    .hm-stat { border: 1px solid var(--border); border-radius: 10px; padding: 10px 12px; }
+    .hm-stat .v { font-size: 20px; font-weight: 800; color: var(--text); }
+    .hm-stat .l { font-size: 11.5px; color: var(--text-muted); display: flex; align-items: center; gap: 5px; }
+    .hm-stat .l i { width: 8px; height: 8px; border-radius: 50%; background: var(--h, #cbd5e1); }
+    .hm-cal { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; }
+    .hm-cal .wd { font-size: 10.5px; font-weight: 700; text-transform: uppercase; color: #94a3b8; text-align: center; padding-bottom: 2px; }
+    .hm-cal .d {
+      aspect-ratio: 1.6; border-radius: 7px; background: #f1f5f9; color: #94a3b8; font-size: 12px; font-weight: 600;
+      display: flex; align-items: flex-start; justify-content: flex-end; padding: 4px 6px; position: relative;
+    }
+    .hm-cal .d[class*="h-"] { background: var(--h); color: #fff; }
+    .hm-cal .d.obs::after { content: ''; position: absolute; left: 6px; bottom: 5px; width: 5px; height: 5px; border-radius: 50%; background: #fff; }
+    .hm-cal .d.hoje { outline: 2px solid var(--text); outline-offset: 1px; }
+    .hm-cal .d.fut { background: transparent; border: 1px dashed #e2e8f0; }
+    .hm-leg { display: flex; gap: 14px; flex-wrap: wrap; font-size: 12px; color: var(--text-muted); margin-top: 10px; }
+    .hm-leg span { display: inline-flex; align-items: center; gap: 5px; }
+    .hm-leg i { width: 10px; height: 10px; border-radius: 3px; background: var(--h, #f1f5f9); }
+    .hm-sec { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .07em; color: var(--text-muted); margin: 20px 0 8px; }
+    .hm-per { display: flex; gap: 10px; padding: 10px 0; border-top: 1px solid #f1f5f9; font-size: 13px; }
+    .hm-per::before { content: ''; width: 4px; border-radius: 2px; background: var(--h); flex-shrink: 0; }
+    .hm-per .t { font-weight: 700; color: var(--text); }
+    .hm-per .s { color: var(--text-muted); font-size: 12px; margin-top: 2px; }
+
+    .hg-tab { border-collapse: separate; border-spacing: 2px; width: auto; }
+    .hg-tab th, .hg-tab td { padding: 0; border: none; background: none; }
+    .hg-tab thead tr { background: none; border: none; }
+    .hg-tab th { font-size: 10px; color: #94a3b8; text-align: center; font-weight: 600; letter-spacing: 0; }
+    .hg-tab th.fds { color: #cbd5e1; }
+    .hg-tab td.nm { font-size: 12.5px; font-weight: 600; color: #334155; padding-right: 10px; white-space: nowrap; position: sticky; left: 0; background: #fff; }
+    .hg-tab td.nm small { color: #94a3b8; font-weight: 500; }
+    .hg-tab td.c i { display: block; width: 18px; height: 22px; border-radius: 3px; background: var(--h, #f1f5f9); cursor: pointer; }
+    .hg-tab td.c i.fds:not([class*="h-"]) { background: #fafbfc; }
+    .hg-tab td.c i.fut { background: transparent; }
+    .hg-tab td.tot { font-size: 12px; padding-left: 10px; white-space: nowrap; color: var(--text-muted); }
+    .hg-tab td.tot b { color: var(--text); }
+    .hg-tab tbody tr:hover td { background: none; }
+    .hg-tab tbody tr:hover td.nm { color: var(--primary); }
+
     .eq-vazio { text-align: center; padding: 48px 20px; color: var(--text-muted); font-size: 13px; background: var(--card-bg); border: 1px dashed var(--border); border-radius: var(--radius-lg); }
 
     /* ── Modal ──────────────────────────────── */
@@ -138,6 +189,8 @@
     .fm-sec::after { content: ''; flex: 1; height: 1px; background: var(--border); }
 
     @media (max-width: 768px) {
+      .hm-stats { grid-template-columns: repeat(2, 1fr); }
+      .hm-cal .d { aspect-ratio: 1; }
       .eq-resumo { grid-template-columns: 1fr; gap: 16px; padding: 16px; }
       .eq-toolbar { position: static; }
       .eq-tb-dir { margin-left: 0; width: 100%; }
@@ -199,6 +252,7 @@
             <button type="button" data-vis="cards" title="Cartões"><i data-ic="grid"></i></button>
             <button type="button" data-vis="tabela" title="Tabela"><i data-ic="list"></i></button>
           </div>
+          <button type="button" class="btn btn-outline" id="btn-hist-geral" title="Histórico de todos os equipamentos no mês"><i data-ic="clock"></i> Histórico</button>
           <button type="button" class="btn btn-outline" id="btn-snap-todos" title="Marcar todos como operando"><i data-ic="check"></i> Todos operando</button>
           <button type="button" class="btn btn-primary btn-salvar-dia" id="btn-snap-salvar"><i data-ic="save"></i> Salvar dia</button>
         </div>
@@ -244,15 +298,44 @@
   </div>
 </div>
 
+<!-- Modal: Histórico de um equipamento -->
+<div class="modal-backdrop" id="modal-hist">
+  <div class="modal" style="max-width:640px">
+    <div class="modal-header">
+      <div style="min-width:0">
+        <h3 id="hm-titulo">Histórico</h3>
+        <div id="hm-sub" style="font-size:12px;color:var(--text-muted);margin-top:2px"></div>
+      </div>
+      <button class="modal-close" data-close="modal-hist">✕</button>
+    </div>
+    <div class="modal-body" id="hm-corpo"></div>
+  </div>
+</div>
+
+<!-- Modal: Histórico geral do mês -->
+<div class="modal-backdrop" id="modal-hist-geral">
+  <div class="modal" style="max-width:1100px">
+    <div class="modal-header">
+      <div>
+        <h3>Histórico dos equipamentos</h3>
+        <div style="font-size:12px;color:var(--text-muted);margin-top:2px">Situação registrada em cada dia. Clique em um equipamento para ver os detalhes.</div>
+      </div>
+      <button class="modal-close" data-close="modal-hist-geral">✕</button>
+    </div>
+    <div class="modal-body" id="hg-corpo"></div>
+  </div>
+</div>
+
 <div id="toast-container"></div>
 <script type="module">
 import { initPage, supabase, toast, abrirModal, fecharModal } from './js/config.js?v=12';
 import { icon } from './js/icons.js';
+import { ehDiaUtil } from './js/feriados.js';
 
 // Ícones nos trechos estáticos do HTML (<i data-ic="nome">)
 const ICONES_HTML = {
   calendar: icon('calendar', { size: 14 }), check: icon('check', { size: 14 }), save: icon('save', { size: 14 }),
-  search: icon('search', { size: 15 }), grid: icon('grid', { size: 16 }), list: icon('list', { size: 16 }),
+  clock: icon('clock', { size: 14 }), search: icon('search', { size: 15 }), grid: icon('grid', { size: 16 }), list: icon('list', { size: 16 }),
 };
 document.querySelectorAll('i[data-ic]').forEach(el => { el.outerHTML = ICONES_HTML[el.dataset.ic] || ''; });
 
@@ -268,14 +351,42 @@ const ORDEM = ['operando', 'restricao', 'parado'];
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;' }[c]));
 const fmtTon = kg => (kg / 1000).toLocaleString('pt-BR', { minimumFractionDigits: 1, maximumFractionDigits: 1 });
 const ls = { get: k => { try { return localStorage.getItem(k); } catch { return null; } }, set: (k, v) => { try { localStorage.setItem(k, v); } catch {} } };
-const hojeStr = () => { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`; };
+const isoDe   = d => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+const hojeStr = () => isoDe(new Date());
+const dataDe  = iso => new Date(iso + 'T00:00:00');
+const addDias = (iso, n) => { const d = dataDe(iso); d.setDate(d.getDate() + n); return isoDe(d); };
+const ehFds   = iso => !ehDiaUtil(iso);   // fim de semana ou feriado
+const dm      = iso => `${iso.slice(8, 10)}/${iso.slice(5, 7)}`;
+const DIAS_FAIXA = 30;
+
+// Registros diários (equipamentos_snapshot) de um período, paginando de 1000 em 1000
+async function buscarHist(ini, fim, eqId) {
+  const todos = [];
+  for (let de = 0; ; de += 1000) {
+    let q = supabase.from('equipamentos_snapshot').select('semana, equipamento_id, status, observacao')
+      .gte('semana', ini).lte('semana', fim);
+    if (eqId) q = q.eq('equipamento_id', eqId);
+    const { data, error } = await q.order('semana').range(de, de + 999);
+    if (error || !data) break;
+    todos.push(...data);
+    if (data.length < 1000) break;
+  }
+  return todos;
+}
+// { [equipamento_id]: { [iso]: { status, obs } } }
+function mapaHist(rows) {
+  const m = {};
+  rows.forEach(r => { (m[r.equipamento_id] ||= {})[r.semana] = { status: r.status, obs: r.observacao || '' }; });
+  return m;
+}
 
 let perfil, isAdmin = false, eqData = [];
 let filtro = 'todos', busca = '', vis = ls.get('eq-vis') || 'cards';
 
 // Situação do dia selecionado: sel = o que está marcado na tela, base = o que está gravado
 let snapData = hojeStr(), snapSalvo = false;
-let sel = {}, base = {}, pctSel = {}, pctBase = {};
+let sel = {}, base = {}, pctSel = {}, pctBase = {}, obsDia = {};
+let hist30 = {};   // últimos 30 dias, para a faixa de cada card
 
 const ehHoje   = () => snapData === hojeStr();
 // O % de restrição fica no cadastro do equipamento; só dá para mudar no dia de hoje e sendo admin
@@ -297,6 +408,8 @@ async function carregar() {
   const { data, error } = await supabase.from('equipamentos').select('*').order('nome');
   if (error) { console.error(error); toast('Erro ao carregar equipamentos', 'error'); }
   eqData = data || [];
+  const hoje = hojeStr();
+  hist30 = mapaHist(await buscarHist(addDias(hoje, -(DIAS_FAIXA - 1)), hoje));
   await carregarDia();
 }
 
@@ -305,9 +418,10 @@ async function carregarDia() {
   dataInput.max = hojeStr(); dataInput.value = snapData;
 
   let existentes = {};
+  obsDia = {};
   try {
-    const { data } = await supabase.from('equipamentos_snapshot').select('equipamento_id, status').eq('semana', snapData);
-    (data || []).forEach(s => { existentes[s.equipamento_id] = s.status; });
+    const { data } = await supabase.from('equipamentos_snapshot').select('equipamento_id, status, observacao').eq('semana', snapData);
+    (data || []).forEach(s => { existentes[s.equipamento_id] = s.status; obsDia[s.equipamento_id] = s.observacao || null; });
   } catch (_) { /* tabela ainda não criada */ }
 
   snapSalvo = Object.keys(existentes).length > 0;
@@ -402,6 +516,25 @@ function capTxt(e) {
   return `${esc(e.capacidade || '')}${e.capacidade_kg_mes ? `<small>${fmtTon(e.capacidade_kg_mes)} t/mês</small>` : ''}`;
 }
 
+// Faixa com os últimos 30 dias registrados (clique abre o histórico completo)
+function faixaHist(e) {
+  const h = hist30[e.id] || {};
+  const hoje = hojeStr();
+  let par = 0, res = 0;
+  const dias = Array.from({ length: DIAS_FAIXA }, (_, i) => {
+    const iso = addDias(hoje, i - DIAS_FAIXA + 1);
+    const r = h[iso];
+    if (r?.status === 'parado') par++;
+    if (r?.status === 'restricao') res++;
+    const tip = `${dm(iso)}: ${r ? ST[r.status]?.label || r.status : 'sem registro'}${r?.obs ? ' — ' + r.obs : ''}`;
+    return `<i class="${r ? 'h-' + r.status : ''} ${ehFds(iso) ? 'fds' : ''}" title="${esc(tip)}"></i>`;
+  }).join('');
+  const resumo = [par && `${par}d parado`, res && `${res}d restrição`].filter(Boolean).join(' · ') || 'sem ocorrências';
+  return `<button type="button" class="eq-hist" data-hist="${e.id}" aria-label="Ver histórico de ${esc(e.nome)}">
+    <div class="eq-hist-top"><span>Últimos 30 dias · ${resumo}</span><span>Histórico ›</span></div>
+    <div class="eq-hist-dias">${dias}</div></button>`;
+}
+
 const acoes = e => isAdmin ? `
   <button class="btn-icon" title="Editar dados" onclick="editarEq('${e.id}')">${icon('edit', { size: 15 })}</button>
   <button class="btn-icon danger" title="Excluir" onclick="excluirEq('${e.id}')">${icon('trash', { size: 15 })}</button>` : '';
@@ -434,7 +567,7 @@ function renderLista() {
         <td style="font-size:13px">${capTxt(e).replace('<small>', '<br><small style="color:var(--text-muted)">')}</td>
         <td style="min-width:290px">${seletor(e, true)}${sel[e.id] === 'restricao' ? `<div style="margin-top:6px;max-width:260px">${linhaPct(e)}</div>` : ''}</td>
         <td style="max-width:240px;font-size:13px;color:#475569">${esc(e.observacao) || '<span style="color:#cbd5e1">—</span>'}</td>
-        <td style="white-space:nowrap;text-align:right">${acoes(e)}</td>
+        <td style="white-space:nowrap;text-align:right"><button class="btn-icon" title="Histórico" data-hist="${e.id}">${icon('clock', { size: 15 })}</button>${acoes(e)}</td>
       </tr>`).join('')}</tbody></table></div></div>`;
     return;
   }
@@ -455,6 +588,7 @@ function renderLista() {
       </div>
       ${e.observacao ? `<div class="eq-obs" title="${esc(e.observacao)}">${esc(e.observacao)}</div>` : ''}
       <div class="eq-card-dia">
+        ${faixaHist(e)}
         ${seletor(e)}
         ${linhaPct(e)}
       </div>
@@ -463,6 +597,8 @@ function renderLista() {
 
 // Cliques no seletor e % de restrição (delegados)
 document.getElementById('eq-lista').addEventListener('click', ev => {
+  const h = ev.target.closest('[data-hist]');
+  if (h) { abrirHistEq(h.dataset.hist); return; }
   const b = ev.target.closest('[data-set]'); if (!b) return;
   const id = b.dataset.set;
   sel[id] = b.dataset.st;
@@ -508,6 +644,8 @@ document.getElementById('btn-snap-salvar').addEventListener('click', async () =>
     equipamento_nome:  e.nome,
     equipamento_frota: e.frota || null,
     status: sel[e.id],
+    // Guarda o motivo no histórico: mantém o que já havia no dia; senão usa a observação do cadastro
+    observacao: sel[e.id] === 'operando' ? null : (obsDia[e.id] ?? e.observacao ?? null),
   }));
   await supabase.from('equipamentos_snapshot').delete().eq('semana', snapData);
   const { error } = await supabase.from('equipamentos_snapshot').insert(rows);
@@ -530,6 +668,7 @@ document.getElementById('btn-snap-salvar').addEventListener('click', async () =>
 
   btn.disabled = false;
   snapSalvo = true; base = { ...sel }; pctBase = { ...pctSel };
+  rows.forEach(r => { obsDia[r.equipamento_id] = r.observacao; (hist30[r.equipamento_id] ||= {})[snapData] = { status: r.status, obs: r.observacao || '' }; });
   render();
   const [a, m, d] = snapData.split('-');
   if (erroCad) toast('Dia salvo, mas não foi possível atualizar a situação atual: ' + erroCad.message, 'error');
@@ -537,6 +676,118 @@ document.getElementById('btn-snap-salvar').addEventListener('click', async () =>
 });
 
 window.addEventListener('beforeunload', ev => { if (nMudados()) { ev.preventDefault(); ev.returnValue = ''; } });
+
+// ── Histórico ─────────────────────────────────────────────────────────────────
+const MESES = ['janeiro','fevereiro','março','abril','maio','junho','julho','agosto','setembro','outubro','novembro','dezembro'];
+const mesAtual = () => hojeStr().slice(0, 7);
+const somaMes  = (ym, n) => { const d = dataDe(ym + '-01'); d.setMonth(d.getMonth() + n); return isoDe(d).slice(0, 7); };
+const nomeMes  = ym => `${MESES[+ym.slice(5, 7) - 1]} ${ym.slice(0, 4)}`;
+const diasDoMes = ym => { const n = new Date(+ym.slice(0, 4), +ym.slice(5, 7), 0).getDate(); return Array.from({ length: n }, (_, i) => `${ym}-${String(i + 1).padStart(2, '0')}`); };
+const navMes = (ym, acao) => `<div class="hm-nav">
+  <button type="button" class="btn btn-outline btn-sm" data-${acao}="${somaMes(ym, -1)}" aria-label="Mês anterior">‹</button>
+  <b>${nomeMes(ym)}</b>
+  <button type="button" class="btn btn-outline btn-sm" data-${acao}="${somaMes(ym, 1)}" ${ym >= mesAtual() ? 'disabled' : ''} aria-label="Próximo mês">›</button>
+</div>`;
+const legenda = `<div class="hm-leg">${ORDEM.map(s => `<span><i class="h-${s}"></i>${ST[s].label}</span>`).join('')}<span><i></i>Sem registro</span></div>`;
+
+// Agrupa dias registrados seguidos com a mesma situação (dias sem registro no meio não quebram o período)
+function periodos(h, dias) {
+  const out = [];
+  dias.filter(d => h[d]).forEach(d => {
+    const r = h[d], ult = out[out.length - 1];
+    if (ult && ult.status === r.status) { ult.fim = d; ult.n++; if (r.obs && !ult.obs.includes(r.obs)) ult.obs.push(r.obs); }
+    else out.push({ status: r.status, ini: d, fim: d, n: 1, obs: r.obs ? [r.obs] : [] });
+  });
+  return out;
+}
+
+let histEqId = null;
+async function abrirHistEq(id, ym = mesAtual()) {
+  const e = eqData.find(x => x.id === id); if (!e) return;
+  histEqId = id;
+  document.getElementById('hm-titulo').textContent = `Histórico — ${e.nome}`;
+  document.getElementById('hm-sub').textContent = [e.frota && `Nº ${e.frota}`, e.funcao].filter(Boolean).join(' · ');
+  const corpo = document.getElementById('hm-corpo');
+  corpo.innerHTML = `${navMes(ym, 'hm-mes')}<div style="padding:40px;text-align:center;color:var(--text-muted);font-size:13px">Carregando…</div>`;
+  abrirModal('modal-hist');
+
+  const dias = diasDoMes(ym);
+  const h = mapaHist(await buscarHist(dias[0], dias[dias.length - 1], id))[id] || {};
+  if (histEqId !== id) return;
+  const hoje = hojeStr();
+  const n = { operando: 0, restricao: 0, parado: 0 };
+  Object.values(h).forEach(r => { if (n[r.status] !== undefined) n[r.status]++; });
+  // Dias úteis já encerrados (hoje ainda pode ser registrado) sem nenhum registro
+  const semReg = dias.filter(d => d < hoje && ehDiaUtil(d) && !h[d]).length;
+
+  const offset = (dataDe(dias[0]).getDay() + 6) % 7; // semana começa na segunda
+  const cal = ['Seg','Ter','Qua','Qui','Sex','Sáb','Dom'].map(w => `<div class="wd">${w}</div>`).join('') +
+    '<div></div>'.repeat(offset) +
+    dias.map(d => {
+      const r = h[d];
+      const tip = `${dm(d)}: ${r ? ST[r.status]?.label : d > hoje ? '' : 'sem registro'}${r?.obs ? ' — ' + r.obs : ''}`;
+      return `<div class="d ${r ? 'h-' + r.status : ''} ${r?.obs ? 'obs' : ''} ${d === hoje ? 'hoje' : ''} ${d > hoje ? 'fut' : ''}" title="${esc(tip)}">${+d.slice(8)}</div>`;
+    }).join('');
+
+  const per = periodos(h, dias).filter(p => p.status !== 'operando').reverse();
+  const listaPer = per.length
+    ? per.map(p => `<div class="hm-per h-${p.status}"><div>
+        <div class="t">${ST[p.status]?.label || p.status} · ${p.ini === p.fim ? dm(p.ini) : `${dm(p.ini)} a ${dm(p.fim)}`} <span style="font-weight:500;color:var(--text-muted)">(${p.n} dia${p.n > 1 ? 's' : ''} registrado${p.n > 1 ? 's' : ''})</span></div>
+        <div class="s">${p.obs.length ? esc(p.obs.join(' · ')) : 'Sem observação registrada'}</div></div></div>`).join('')
+    : `<div style="font-size:13px;color:var(--text-muted);padding:8px 0">Nenhuma parada ou restrição registrada em ${nomeMes(ym)}.</div>`;
+
+  const stat = (v, l, s) => `<div class="hm-stat"><div class="v">${v}</div><div class="l"><i class="${s ? 'h-' + s : ''}"></i>${l}</div></div>`;
+  corpo.innerHTML = `${navMes(ym, 'hm-mes')}
+    <div class="hm-stats">
+      ${stat(n.operando, 'dias operando', 'operando')}${stat(n.restricao, 'dias com restrição', 'restricao')}
+      ${stat(n.parado, 'dias parado', 'parado')}${stat(semReg, 'dias úteis sem registro', '')}
+    </div>
+    <div class="hm-cal">${cal}</div>
+    ${legenda}
+    <div class="hm-sec">Paradas e restrições no mês</div>
+    ${listaPer}`;
+}
+document.getElementById('hm-corpo').addEventListener('click', ev => {
+  const b = ev.target.closest('[data-hm-mes]'); if (b && histEqId) abrirHistEq(histEqId, b.dataset.hmMes);
+});
+
+let histGeralMes = null;
+async function abrirHistGeral(ym = mesAtual()) {
+  histGeralMes = ym;
+  const corpo = document.getElementById('hg-corpo');
+  corpo.innerHTML = `${navMes(ym, 'hg-mes')}<div style="padding:40px;text-align:center;color:var(--text-muted);font-size:13px">Carregando…</div>`;
+  abrirModal('modal-hist-geral');
+
+  const dias = diasDoMes(ym);
+  const mapa = mapaHist(await buscarHist(dias[0], dias[dias.length - 1]));
+  if (histGeralMes !== ym) return;
+  const hoje = hojeStr();
+  const WD = ['D','S','T','Q','Q','S','S'];
+
+  const linhas = eqData.map(e => {
+    const h = mapa[e.id] || {};
+    const n = { operando: 0, restricao: 0, parado: 0 };
+    const cels = dias.map(d => {
+      const r = h[d]; if (r && n[r.status] !== undefined) n[r.status]++;
+      const tip = `${e.nome} · ${dm(d)}: ${r ? ST[r.status]?.label : d > hoje ? '' : 'sem registro'}${r?.obs ? ' — ' + r.obs : ''}`;
+      return `<td class="c"><i class="${r ? 'h-' + r.status : ''} ${ehFds(d) ? 'fds' : ''} ${d > hoje ? 'fut' : ''}" title="${esc(tip)}"></i></td>`;
+    }).join('');
+    const tot = [n.parado && `<b style="color:var(--st-par-tx)">${n.parado}</b> parado`, n.restricao && `<b style="color:var(--st-res-tx)">${n.restricao}</b> restr.`].filter(Boolean).join(' · ') || `<b style="color:var(--st-op-tx)">${n.operando}</b> operando`;
+    return `<tr data-hg-eq="${e.id}" style="cursor:pointer"><td class="nm">${esc(e.nome)}${e.frota ? ` <small>${esc(e.frota)}</small>` : ''}</td>${cels}<td class="tot">${tot}</td></tr>`;
+  }).join('');
+
+  corpo.innerHTML = `${navMes(ym, 'hg-mes')}
+    <div style="overflow-x:auto;margin-top:16px"><table class="hg-tab">
+      <thead><tr><th></th>${dias.map(d => `<th class="${ehFds(d) ? 'fds' : ''}">${+d.slice(8)}<br>${WD[dataDe(d).getDay()]}</th>`).join('')}<th></th></tr></thead>
+      <tbody>${linhas}</tbody></table></div>
+    ${legenda}`;
+}
+document.getElementById('btn-hist-geral').addEventListener('click', () => abrirHistGeral());
+document.getElementById('hg-corpo').addEventListener('click', ev => {
+  const b = ev.target.closest('[data-hg-mes]'); if (b) { abrirHistGeral(b.dataset.hgMes); return; }
+  const tr = ev.target.closest('[data-hg-eq]');
+  if (tr) { fecharModal('modal-hist-geral'); abrirHistEq(tr.dataset.hgEq, histGeralMes); }
+});
 
 // ── Cadastro ──────────────────────────────────────────────────────────────────
 const form = document.getElementById('form-eq');

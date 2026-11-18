@@ -87,6 +87,7 @@ export const AJUDA = {
     ],
     dicas: [
       'Clique em Operando / Com restrição / Parado no topo para ver só esses equipamentos.',
+      'A faixa colorida de cada card mostra os últimos 30 dias. Clique nela para ver o mês, com as paradas e os motivos. O botão <b>Histórico</b> mostra todos os equipamentos lado a lado.',
       'Ao salvar o dia de hoje, a situação marcada também passa a ser a situação atual do equipamento nas outras telas.',
       '<b>+ Novo Equipamento</b> só serve para cadastrar uma máquina nova. Não é preciso usar no dia a dia.',
     ],
