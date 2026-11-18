@@ -11,12 +11,11 @@ export const AJUDA = {
     resumo: 'Mostra como a unidade está no mês, na mesma ordem da apresentação do comitê: resumo, faturamento, composição de vendas, prensagem, equipamentos e equipe, rumo ao equilíbrio e plano de ação. Os números vêm sozinhos das outras telas, então aqui não se digita nada.',
     quando: 'Todo dia, para saber se o mês está no ritmo, e antes de gerar a apresentação do comitê.',
     passos: [
-      'Leia a <b>faixa verde</b> no topo: é a frase do resumo executivo. Verde é bom, vermelho pede atenção.',
-      'Confira os <b>4 selos</b> (Faturamento, Prensagem, Equipamentos e Equipe). A marquinha preta na barra é o <b>esperado até hoje</b>. Clique num selo para ir direto ao detalhe.',
-      'Em cada seção, a frase explica o número; os cards ao lado mostram realizado, projeção e o que falta.',
-      'Em <b>Plano de ação</b>, comece pelas atrasadas. Para mudar uma ação, abra a tela Tarefas.',
-      'Para ver outro mês, troque o <b>Mês</b> no topo.',
-      'Se aparecer o <b>lembrete amarelo</b> de experiência vencendo, clique em <b>Avaliar no RH →</b>.',
+      'Leia a <b>faixa verde</b> no topo: é a frase do resumo do mês. Verde é bom, vermelho pede atenção.',
+      'Confira os <b>4 selos</b> (Faturamento, Prensagem, Equipamentos e Equipe). A marquinha preta na barra é o <b>esperado até hoje</b>.',
+      'Em <b>Precisa de atenção</b> está só o que pede ação, do mais urgente para o menos. Clique no link da linha para resolver.',
+      'Em <b>Próximas ações</b>, as tarefas do comitê, com as atrasadas primeiro.',
+      'Para o detalhe de cada assunto, clique num selo ou em <b>Ver análise completa</b>.',
     ],
     dicas: [
       'Os números são os mesmos da apresentação do comitê. Se algum parecer errado, corrija na tela de origem (Comercial, Produção, Equipamentos ou RH).',
