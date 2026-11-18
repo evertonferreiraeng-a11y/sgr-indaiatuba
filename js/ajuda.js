@@ -8,19 +8,19 @@ import { temSimulacao, iniciarSimulacao } from './simulacao.js';
 export const AJUDA = {
   'dashboard.html': {
     titulo: 'Dashboard',
-    resumo: 'Mostra como a unidade está no mês, na mesma ordem da apresentação do comitê: resumo, faturamento, composição de vendas, prensagem, equipamentos e equipe, rumo ao equilíbrio e plano de ação. Os números vêm sozinhos das outras telas, então aqui não se digita nada.',
-    quando: 'Todo dia, para saber se o mês está no ritmo, e antes de gerar a apresentação do comitê.',
+    resumo: 'Acompanhamento do mês. No topo, o resumo e os 4 selos (Faturamento, Prensagem, Equipamentos e Equipe). Embaixo, 4 perguntas: vamos bater a meta, a operação está entregando, estamos dando lucro e o que estamos fazendo. Os números vêm sozinhos das outras telas, então aqui não se digita nada.',
+    quando: 'Todo dia, para saber se o mês está no ritmo e o que precisa ser cobrado, e antes de gerar a apresentação do comitê.',
     passos: [
-      'Leia a <b>faixa verde</b> no topo: é a frase do resumo executivo. Verde é bom, vermelho pede atenção.',
-      'Confira os <b>4 selos</b> (Faturamento, Prensagem, Equipamentos e Equipe). A marquinha preta na barra é o <b>esperado até hoje</b>. Clique num selo para ir direto ao detalhe.',
-      'Em cada seção, a frase explica o número; os cards ao lado mostram realizado, projeção e o que falta.',
-      'Em <b>Plano de ação</b>, comece pelas atrasadas. Para mudar uma ação, abra a tela Tarefas.',
-      'Para ver outro mês, troque o <b>Mês</b> no topo.',
-      'Se aparecer o <b>lembrete amarelo</b> de experiência vencendo, clique em <b>Avaliar no RH →</b>.',
+      'Leia a <b>faixa verde</b> e os <b>4 selos</b>. A marquinha preta na barra é o esperado até hoje. Clique num selo para ir direto ao assunto.',
+      '<b>1. Vamos bater a meta?</b> Veja quanto falta e quanto é preciso faturar <b>por dia útil</b> contra o ritmo atual. Na tabela, cada material contra a média dele: o que está abaixo e o que tem em estoque é onde buscar o que falta.',
+      '<b>2. A operação está entregando?</b> Prensas contra o previsto, quantas toneladas por dia faltam para usar a capacidade, a equipe e os equipamentos com problema.',
+      '<b>3. Estamos dando lucro?</b> A régua mostra a projeção do mês contra o ponto de equilíbrio (calculado pelo DRE), a meta e a margem-alvo.',
+      '<b>4. O que estamos fazendo?</b> As ações do comitê em aberto, com as atrasadas primeiro.',
+      'Preços, volume por tipo, metas por semana, cada prensa e cenários ficam em <b>Detalhe comercial e de produção</b>, no fim da página.',
     ],
     dicas: [
       'Os números são os mesmos da apresentação do comitê. Se algum parecer errado, corrija na tela de origem (Comercial, Produção, Equipamentos ou RH).',
-      'O ponto de equilíbrio e a margem-alvo vêm do estudo financeiro preenchido na tela Apresentação.',
+      'O ponto de equilíbrio vem do resultado real da tela DRE (últimos 3 meses fechados).',
       'O relatório detalhado de antes (balanço de entradas, clientes, avaliações da equipe) continua disponível pelo link no fim da página.',
     ],
   },

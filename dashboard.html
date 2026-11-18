@@ -102,6 +102,16 @@
     .exp-lembrete-item { display:flex; justify-content:space-between; gap:12px; flex-wrap:wrap; font-size:13px; color:#78350f; padding:6px 0; border-top:1px dashed #fde68a; }
     .exp-lembrete-item a { font-size:12px; font-weight:700; color:#006636; text-decoration:none; }
 
+    .db-q { font-size:17px !important; text-transform:none !important; letter-spacing:0 !important; color:var(--text) !important; display:inline; }
+    .db-q-n { display:inline-grid; place-items:center; width:24px; height:24px; border-radius:50%; background:var(--primary); color:#fff; font-size:12.5px; font-weight:800; margin-right:8px; vertical-align:2px; }
+    .regua { position:relative; height:22px; background:#eef2f6; border-radius:6px; margin-top:22px; }
+    .regua > i { position:absolute; left:0; top:0; bottom:0; border-radius:6px; }
+    .regua .mk { position:absolute; top:-6px; width:3px; height:34px; border-radius:2px; transform:translateX(-1px); }
+    .db-mais { margin-top:4px; }
+    .db-mais > summary { cursor:pointer; list-style:none; background:#fff; border:1px dashed var(--border); border-radius:var(--radius-lg); padding:14px 18px; font-weight:700; color:var(--primary); margin-bottom:16px; }
+    .db-mais > summary::-webkit-details-marker { display:none; }
+    .db-mais > summary::before { content:"▸ "; } .db-mais[open] > summary::before { content:"▾ "; }
+    .db-mais > summary .sub { display:block; font-weight:400; font-size:12px; margin-top:2px; }
     .vazio { text-align:center; padding:28px; color:var(--text-muted); font-size:13px; }
     .carregando { text-align:center; padding:60px; color:var(--text-muted); }
 
@@ -117,7 +127,7 @@
     @media print {
       .sidebar, .bottom-nav, .sidebar-toggle, .db-nav, .db-controles, .exp-lembrete, #btn-print, #ajuda-btn { display:none !important; }
       .main-content { margin:0 !important; padding:0 !important; }
-      .db-sec { break-inside:avoid; }
+      .db-sec { break-inside:avoid; } .db-mais > summary { display:none; }
     }
   </style>
 </head>
@@ -280,20 +290,20 @@ function render(d, tarefas, fin, materiaisEst = []) {
   const lstEq = d.problemas.slice(0, 2).map(({ e, prev }) => `${esc(nomeEq(e))} (${e.st === 'restricao' ? 'restrição, ' : ''}${prev ? `volta ${ddmm(prev)}` : 'sem previsão'})`);
   const incompleta = d.colab != null && d.colab < d.quadro;
   const inds = [
-    { alvo:'s-fat', rot:'Faturamento', st:noRitmo(atFatEst != null ? atFatEst / espAqui : null),
+    { alvo:'b-meta', rot:'Faturamento', st:noRitmo(atFatEst != null ? atFatEst / espAqui : null),
       val: mil(c.fat) + (comEst ? ` <span style="font-size:13px;color:var(--primary)">+ ${mil(d.valorEstoque)} em estoque</span>` : ''),
       sub: d.meta ? `${pct(comEst ? atFatEst : atFat, 0)} da meta de ${mil(d.meta)}${d.emAndamento ? ` · esperado ${pct(espAqui * 100, 0)}` : ''}` : 'sem meta cadastrada',
       barra: d.meta ? [ (comEst ? atFatEst : atFat), d.emAndamento ? espAqui * 100 : null ] : null,
       mot: d.meta ? (d.emAndamento ? `faltam <b>${mil(Math.max(0, d.meta * espAqui - fatEst))}</b> para o esperado até ${ddmm(d.corte)}` : `faltaram <b>${mil(Math.max(0, d.meta - c.fat))}</b> para a meta`) : '' },
-    { alvo:'s-prensa', rot:'Prensagem', st:noRitmo(atProdRef), val:`${nf(d.prod / 1000, 1)} t produzidas`,
+    { alvo:'b-oper', rot:'Prensagem', st:noRitmo(atProdRef), val:`${nf(d.prod / 1000, 1)} t produzidas`,
       sub: d.capMes > 0 ? `${pct(atProd, 0)} da capacidade do mês${d.emAndamento ? ` · esperado ${pct(d.esperado / d.capMes * 100, 0)}` : ''}` : 'sem capacidade cadastrada',
       barra: d.capMes > 0 ? [atProd, d.emAndamento ? d.esperado / d.capMes * 100 : null] : null,
       mot: d.capNominal > 0 && d.perdaCap / d.capNominal > 0.05 ? `<b>${esc(textoPerdaCap(d))}</b>` : d.dpPrensa > 0 ? `ritmo de <b>${nf(ritmoR / 1000, 1)} t/dia</b> · meta ${nf(d.metaDia / 1000, 1)} t/dia` : '' },
-    { alvo:'s-equip', rot:'Equipamentos', st:d.eqSt, val:`${d.nOp + d.nRes} de ${d.eqs.length} disponíveis`,
+    { alvo:'b-oper', rot:'Equipamentos', st:d.eqSt, val:`${d.nOp + d.nRes} de ${d.eqs.length} disponíveis`,
       sub:`${d.disp != null ? `${pct(d.disp, 0)} disponíveis ${d.rotDisp}` : d.rotDisp}${d.dispMes != null ? ` · média do mês ${pct(d.dispMes, 0)}` : ''}`,
       barra: d.disp != null ? [d.disp, null] : null,
       mot: lstEq.length ? `<b>${lstEq.join(' · ')}</b>${d.problemas.length > 2 ? ` e mais ${d.problemas.length - 2}` : ''}` : '' },
-    { alvo:'s-equip', rot:'Equipe', st:d.colab == null ? 'nd' : incompleta ? 'amb' : 'ok', val: d.colab != null ? `${d.colab} de ${d.quadro} colaboradores` : '—',
+    { alvo:'b-oper', rot:'Equipe', st:d.colab == null ? 'nd' : incompleta ? 'amb' : 'ok', val: d.colab != null ? `${d.colab} de ${d.quadro} colaboradores` : '—',
       sub: d.colab != null ? `${nf(d.colab / d.quadro * 100, 0)}% do quadro previsto` : 'sem colaboradores no RH',
       barra: d.colab != null ? [d.colab / d.quadro * 100, null] : null,
       mot: d.vagas ? `<b>${d.vagas} vaga${d.vagas > 1 ? 's' : ''}</b> em reposição` : '' },
@@ -383,7 +393,8 @@ function render(d, tarefas, fin, materiaisEst = []) {
     { fat:0, vol:0, media:0, mediaVol:0, ref:0, refVol:0, falta:0, faltaVol:0, estKg:0, estVal:0 });
   const fatMxV = Math.max(1, ...vend.map(m => Math.max(m.fat, m.media || 0)));
   const naoVMedia = naoV.reduce((x, m) => x + m.media, 0);
-  const resumoMat = nBase ? `<div class="db-grid4" style="margin-bottom:12px">
+  const resumoMat = '';
+  const _resumoMatAntigo = nBase ? `<div class="db-grid4" style="margin-bottom:12px">
       <div class="db-card"><div class="rot">${d.emAndamento ? `Vendido até ${ddmm(d.corte)}` : `Vendido em ${mes}`}</div><div class="val">${mil(T.fat)}</div><div class="sub">${tn(T.vol, 1)}${d.emAndamento ? ` · esperado pela média: ${mil(T.ref)}` : ''}</div></div>
       <div class="db-card"><div class="rot">Média mensal (${rotBase})</div><div class="val">${mil(T.media)}</div><div class="sub">${tn(T.mediaVol, 1)} por mês</div></div>
       <div class="db-card"><div class="rot">${faltaTot > 0 ? 'Falta para a média do mês' : 'Média do mês atingida'}</div><div class="val ${faltaTot > 0 ? 'amb-t' : 'up'}">${faltaTot > 0 ? mil(faltaTot) : `+${mil(T.fat - T.media)}`}</div>
@@ -417,7 +428,7 @@ function render(d, tarefas, fin, materiaisEst = []) {
       ${comEstCol ? `<td class="n">${tn(TV.estKg, 1)}<br><span class="sub" style="font-size:11px">${mil(TV.estVal)}</span></td>` : ''}
       <td class="n">${varTxt(TV.ref > 0 ? (TV.fat / TV.ref - 1) * 100 : null)}</td></tr>
     </tbody></table></div>
-    ${naoV.length ? `<p class="sub" style="margin-top:10px;font-size:12.5px"><b>${naoV.length} ${naoV.length > 1 ? 'materiais vendidos no ano ainda não saíram' : 'material vendido no ano ainda não saiu'} neste mês</b> (média de ${mil(naoVMedia)}/mês): ${naoV.slice(0, 6).map(m => esc(nomeMat(m.n))).join(', ')}${naoV.length > 6 ? ` e mais ${naoV.length - 6}` : ''}. Eles entram nos cards acima.</p>` : ''}
+    ${naoV.length ? `<p class="sub" style="margin-top:10px;font-size:12.5px"><b>${naoV.length} ${naoV.length > 1 ? 'materiais vendidos no ano ainda não saíram' : 'material vendido no ano ainda não saiu'} neste mês</b> (média de ${mil(naoVMedia)}/mês): ${naoV.slice(0, 6).map(m => esc(nomeMat(m.n))).join(', ')}${naoV.length > 6 ? ` e mais ${naoV.length - 6}` : ''}. Ainda podem sair até o fim do mês.</p>` : ''}
     <p class="sub" style="margin-top:8px;font-size:12px">${nBase ? `Média mensal de ${rotBase} (${nBase} ${nBase > 1 ? 'meses fechados' : 'mês fechado'}). ${d.emAndamento ? `Esperado até hoje = média × ${pct(espAqui * 100, 0)} do mês (${d.dp} de ${d.du} dias úteis); "Ritmo" compara o vendido com esse esperado. "Falta p/ média" é quanto falta vender até o fim do mês para chegar à média do mês inteiro. Na barra: marca preta = média do mês, marca cinza = esperado até hoje.` : 'Na barra, a marca preta é a média mensal.'}` : 'Sem meses anteriores no ano para calcular a média.'}</p>`;
 
   /* ── Prensagem ── */
@@ -505,6 +516,97 @@ function render(d, tarefas, fin, materiaisEst = []) {
       `</tbody></table></div>${abertas.length > 10 ? `<p class="sub" style="margin-top:8px">e mais ${abertas.length - 10} em Tarefas.</p>` : ''}` : ''}
   </section>`;
 
+  /* ══ 1. Vamos bater a meta do mês? ══ */
+  const dr = Math.max(0, d.du - d.dp);
+  const estM = d.emAndamento ? d.valorEstoque : 0;
+  const faltaMeta = d.meta > 0 ? Math.max(0, d.meta - c.fat) : null;
+  const faltaPosEst = faltaMeta != null ? Math.max(0, faltaMeta - estM) : null;
+  const ritmoDia = d.dp > 0 ? c.fat / d.dp : 0;
+  const necDia = faltaMeta != null && dr > 0 ? faltaMeta / dr : null;
+  const apertado = necDia != null && necDia > ritmoDia * 1.05;
+  let fraseMeta, cardsMeta;
+  if (!d.emAndamento || !d.meta) {
+    fraseMeta = fraseHTML(fr.fat);
+    cardsMeta = cardsFat.filter(Boolean).filter(k => !/equilíbrio/i.test(k.rot)).slice(0, 3);
+  } else if (faltaMeta <= 0) {
+    fraseMeta = `<span class="ok">Meta do mês já batida</span>: ${mil(c.fat)} faturados até ${ddmm(d.corte)} (${pct(atFat, 0)} da meta de ${mil(d.meta)}).`;
+    cardsMeta = [
+      { rot:`Faturado até ${ddmm(d.corte)}`, val:mil(c.fat), dest:true, selo:'ritmo', sub:`${pct(atFat, 0)} da meta de ${mil(d.meta)}` },
+      { rot:'Projeção do mês', val:mil(d.projecao + estM), sub:`${pct((d.projecao + estM) / d.meta * 100, 0)} da meta${estM ? ' · com o estoque' : ''}` },
+      { rot:'Ritmo atual', val:`${mil(ritmoDia)}/dia`, sub:`${dr} dias úteis restantes` },
+    ];
+  } else {
+    fraseMeta = `Faltam <b>${mil(faltaMeta)}</b> para a meta de ${mil(d.meta)}${estM ? `; o estoque pronto para vender (${mil(estM)}) ${estM >= faltaMeta ? '<span class="ok">cobre tudo</span>' : `cobre ${pct(estM / faltaMeta * 100, 0)}`}` : ''}. `
+      + (dr > 0 ? `Para chegar lá é preciso faturar ${apertado ? `<span class="ruim">${mil(necDia)} por dia útil</span>` : `<span class="ok">${mil(necDia)} por dia útil</span>`} nos ${dr} dias que restam; o ritmo atual é de ${mil(ritmoDia)}/dia.` : 'Não restam dias úteis no mês.');
+    cardsMeta = [
+      { rot: estM ? 'Projeção do mês + estoque' : 'Projeção do mês', val:mil(d.projecao + estM), dest:true,
+        selo:noRitmo((c.fat + estM) / d.meta * 100 / espAqui), sub:`${pct((d.projecao + estM) / d.meta * 100, 0)} da meta de ${mil(d.meta)}` },
+      { rot:'Falta para a meta', val:mil(faltaMeta), cls:'amb-t', sub: estM ? (faltaPosEst > 0 ? `vendendo o estoque, faltam ${mil(faltaPosEst)}` : 'o estoque cobre o que falta') : `${pct(atFat, 0)} da meta faturados` },
+      { rot:'Precisa faturar por dia útil', val: necDia != null ? mil(necDia) : '—', cls: apertado ? 'down' : 'up', sub:`ritmo atual ${mil(ritmoDia)}/dia · ${dr} dias úteis restantes` },
+    ];
+  }
+
+  /* ══ 2. A operação está entregando? ══ */
+  const duRestP = Math.max(0, d.duPrensa - d.dpPrensa);
+  const faltaCap = Math.max(0, d.capMes - d.prod);
+  const necT = duRestP > 0 ? faltaCap / duRestP : null;
+  const apertadoP = necT != null && necT > ritmoR * 1.05;
+  const fraseOper = d.emAndamento && d.capMes > 0
+    ? `Prensas em ${atEsp != null && Math.round(atEsp) >= 97 ? `<span class="ok">${pct(atEsp, 0)} do previsto</span>` : `<span class="ruim">${pct(atEsp, 0)} do previsto</span>`} até hoje (${nf(d.prod / 1000, 1)} de ${nf(d.esperado / 1000, 1)} t). `
+      + (duRestP > 0 ? `Para usar toda a capacidade do mês (${tCap(d.capMes)} t) faltam ${nf(faltaCap / 1000, 1)} t: ${apertadoP ? `<span class="ruim">${nf(necT / 1000, 1)} t por dia útil</span>` : `<span class="ok">${nf(necT / 1000, 1)} t por dia útil</span>`}; o ritmo atual é de ${nf(ritmoR / 1000, 1)} t/dia.` : '')
+      + (d.perdaCap > 0.5 ? ` <span class="ruim">A manutenção tirou ${nf(d.perdaCap / 1000, 1)} t da capacidade.</span>` : '')
+    : fraseHTML(fr.prensa);
+  const cardsOper = [
+    cardsPrensa[0],
+    d.emAndamento && necT != null
+      ? { rot:'Precisa prensar por dia útil', val:`${nf(necT / 1000, 1)} t/dia`, cls: apertadoP ? 'down' : 'up', sub:`ritmo atual ${nf(ritmoR / 1000, 1)} t/dia · ${duRestP} dias úteis restantes` }
+      : cardsPrensa[2],
+    { rot:'Equipe', val: d.colab != null ? `${d.colab} de ${d.quadro}` : '—', cls: d.colab == null ? '' : incompleta ? 'amb-t' : 'up', sub: d.vagas ? `${d.vagas} vaga${d.vagas > 1 ? 's' : ''} em reposição` : 'quadro completo' },
+  ];
+
+  /* ══ 3. Estamos dando lucro? ══ */
+  let lucroHTML = '';
+  if (eq && eq.base.rec > 0) {
+    const { base } = eq, eb = eq.ebitda(base.rec), mg = eq.margem(base.rec);
+    const marcas = [
+      ['Ponto de equilíbrio', eq.pe, COR.ruim],
+      ...(d.meta > 0 ? [['Meta do mês', d.meta, COR.s2]] : []),
+      ...(eq.rAlvo ? [[`Margem EBITDA de ${nf(eq.alvo, 0)}%`, eq.rAlvo, COR.s1]] : []),
+    ];
+    const esc_ = Math.max(base.rec, ...marcas.map(m => m[1])) * 1.1;
+    const posR = v => Math.min(100, v / esc_ * 100);
+    const dif = base.rec - eq.pe;
+    lucroHTML = `<section class="db-sec" id="b-lucro">
+      <div class="db-sec-hd"><div><span class="db-q-n">3</span><h2 class="db-q">Estamos dando lucro?</h2></div>${fin.dre ? '<a href="dre.html">Ver no DRE →</a>' : ''}</div>
+      <p class="db-frase">${esc(base.rot)}: <b>${mil(base.rec)}</b>, ${dif >= 0 ? `<span class="ok">${mil(dif)} acima do ponto de equilíbrio</span>` : `<span class="ruim">${mil(-dif)} abaixo do ponto de equilíbrio</span>`} (${mil(eq.pe)}/mês${fin.dre ? `, calculado pelo DRE de ${fin.dre.periodo}` : ''}). EBITDA estimado de ${eb >= 0 ? `<span class="ok">${mil(eb)}</span>` : `<span class="ruim">−${mil(-eb)}</span>`} no mês${mg != null ? ` (margem de ${nf(mg, 1)}%)` : ''}.</p>
+      <div class="db-corpo">
+        <div>
+          <div class="regua"><i style="width:${posR(base.rec)}%;background:${dif >= 0 ? COR.ok : COR.s2}"></i>
+            ${marcas.map(([n, v, cor]) => `<span class="mk" style="left:${posR(v)}%;background:${cor}" title="${n}: ${mil(v)}"></span>`).join('')}</div>
+          <div class="leg" style="margin-top:10px">
+            <span style="--c:${dif >= 0 ? COR.ok : COR.s2}">${esc(base.rot)}: <b>${mil(base.rec)}</b></span>
+            ${marcas.map(([n, v, cor]) => `<span style="--c:${cor}">${n}: <b>${mil(v)}</b></span>`).join('')}
+          </div>
+        </div>
+        <div class="db-cards">
+          ${cardHTML({ rot:'EBITDA estimado do mês', val:`${eb < 0 ? '−' : ''}${mil(Math.abs(eb))}`, cls: eb >= 0 ? 'up' : 'down', dest: eb >= 0, sub: mg != null ? `margem de ${nf(mg, 1)}% sobre a receita líquida` : '' })}
+          ${fin.dre ? cardHTML({ rot:`EBITDA real (DRE ${fin.dre.periodo})`, val:`${fin.dre.ebitdaMes < 0 ? '−' : ''}${mil(Math.abs(fin.dre.ebitdaMes))}/mês`, cls: fin.dre.ebitdaMes >= 0 ? 'up' : 'down', sub:'média dos meses fechados no DRE' }) : ''}
+        </div>
+      </div>
+    </section>`;
+  }
+
+  /* ══ Detalhe comercial (recolhido) ══ */
+  const cenHTML = eq ? `<div class="db-mini-t" style="margin-top:18px">O que é preciso para cada objetivo (uma alavanca de cada vez)</div>
+    <div class="table-scroll"><table class="db"><thead><tr><th>Objetivo</th><th style="text-align:right">Receita</th><th style="text-align:right">Volume no ticket atual</th><th style="text-align:right">Ticket no volume atual</th></tr></thead><tbody>
+    ${eq.cenarios.map(x => `<tr><td><b>${esc(x.rot)}</b></td><td class="n">${mil(x.rec)}/mês</td>
+      <td class="n">${x.volNec ? tn(x.volNec, 0) : '—'}<br><span class="sub" style="font-size:11px">${eq.base.vol ? `hoje: ${tn(eq.base.vol, 0)}` : ''}</span></td>
+      <td class="n">${x.ticketNec ? reais0(x.ticketNec) + '/t' : '—'}<br><span class="sub" style="font-size:11px">${eq.base.ticket ? `hoje: ${reais0(eq.base.ticket)}/t` : ''}</span></td></tr>`).join('')}
+    </tbody></table></div>` : '';
+
+  const plano4 = planoHTML.replace('id="s-plano"', 'id="b-plano"')
+    .replace('<h2>Plano de ação</h2>', '<div><span class="db-q-n">4</span><h2 class="db-q">O que estamos fazendo?</h2></div>');
+
   /* ── Montagem ── */
   $('#db-conteudo').innerHTML = `
     <div class="db-manchete">
@@ -513,59 +615,47 @@ function render(d, tarefas, fin, materiaisEst = []) {
       ${d.emAndamento ? `<span class="badge-parcial">Mês em andamento · dados até ${ddmm(d.corte)}</span>` : ''}
     </div>
     <div class="db-sem">${semHTML}</div>
-    <nav class="db-nav">
-      <a href="#s-fat">Faturamento</a><a href="#s-comp">Composição de vendas</a><a href="#s-prensa">Prensagem</a>
-      <a href="#s-equip">Equipamentos e equipe</a>${eq ? '<a href="#s-equil">Rumo ao equilíbrio</a>' : ''}<a href="#s-plano">Plano de ação</a>
-    </nav>
 
-    <section class="db-sec" id="s-fat">
-      <div class="db-sec-hd"><h2>Faturamento</h2><a href="comercial.html">Ver vendas →</a></div>
-      <p class="db-frase">${fraseHTML(fr.fat)}</p>
+    <section class="db-sec" id="b-meta">
+      <div class="db-sec-hd"><div><span class="db-q-n">1</span><h2 class="db-q">Vamos bater a meta do mês?</h2></div><a href="comercial.html">Ver vendas →</a></div>
+      <p class="db-frase">${fraseMeta}</p>
       <div class="db-corpo">
-        <div><div class="chart-wrap"><canvas id="c-fat"></canvas></div>${semanasHTML}</div>
-        <div class="db-cards">${cardsFat.filter(Boolean).map(cardHTML).join('')}</div>
+        <div><div class="chart-wrap" style="height:240px"><canvas id="c-fat"></canvas></div></div>
+        <div class="db-cards">${cardsMeta.map(cardHTML).join('')}</div>
       </div>
+      <div class="db-mini-t" style="margin-top:18px">De onde vem o faturamento: cada material × a média dele${rotBase ? ` (${rotBase})` : ''}</div>
+      ${matsHTML}
     </section>
 
-    <section class="db-sec" id="s-comp">
-      <div class="db-sec-hd"><h2>Composição de vendas</h2><a href="comercial.html">Ver vendas →</a></div>
-      <p class="db-frase">${fraseHTML(fr.comp)}</p>
-      <div class="db-grid4">${cardsComp.map(([r, v, s, cmp, vv]) => `<div class="db-card"><div class="rot">${r}</div><div class="val">${v}</div><div class="sub">${s}</div>
-        <div class="sub" style="margin-top:8px;padding-top:8px;border-top:1px solid var(--border);display:flex;justify-content:space-between;gap:6px"><span>${cmp}</span>${pillVar(vv)}</div></div>`).join('')}</div>
-      <div>
-        <div>
-          <div class="db-mini-t">Para onde foi o volume vendido (${tn(volT, 1)})</div>
-          ${volT > 0 ? `<div class="pilha">${grupos.filter(([g]) => c.g[g].vol > 0).map(([g, n, cor]) => `<i style="width:${c.g[g].vol / volT * 100}%;background:${cor}" title="${n}: ${tn(c.g[g].vol, 1)}"></i>`).join('')}</div>
-          <div class="leg">${grupos.filter(([g]) => c.g[g].vol > 0).map(([g, n, cor]) => `<span style="--c:${cor}">${n}: <b>${pct(c.g[g].vol / volT * 100, 0)}</b> (${tn(c.g[g].vol, 1)})</span>`).join('')}</div>` : '<div class="vazio">Sem vendas no período.</div>'}
-        </div>
-        <div style="margin-top:18px">
-          <div class="db-mini-t">Venda por material: ${d.emAndamento ? 'mês até agora' : cap(mes)} × média mensal${rotBase ? ` (${rotBase})` : ''}</div>
-          ${matsHTML}
-        </div>
-      </div>
-    </section>
-
-    <section class="db-sec" id="s-prensa">
-      <div class="db-sec-hd"><h2>Prensagem</h2><a href="producao.html">Ver produção →</a></div>
-      <p class="db-frase">${fraseHTML(fr.prensa)}</p>
+    <section class="db-sec" id="b-oper">
+      <div class="db-sec-hd"><div><span class="db-q-n">2</span><h2 class="db-q">A operação está entregando?</h2></div><span style="display:flex;gap:12px"><a href="producao.html">Produção →</a><a href="equipamentos.html">Equipamentos →</a></span></div>
+      <p class="db-frase">${fraseOper}</p>
       <div class="db-corpo">
-        <div><div class="chart-wrap"><canvas id="c-prensa"></canvas></div>${porPrensaHTML}</div>
-        <div class="db-cards">${cardsPrensa.map(cardHTML).join('')}</div>
+        <div><div class="chart-wrap" style="height:240px"><canvas id="c-prensa"></canvas></div></div>
+        <div class="db-cards">${cardsOper.filter(Boolean).map(cardHTML).join('')}</div>
       </div>
-    </section>
-
-    <section class="db-sec" id="s-equip">
-      <div class="db-sec-hd"><h2>Equipamentos e equipe</h2><span style="display:flex;gap:12px"><a href="equipamentos.html">Equipamentos →</a><a href="rh.html">RH →</a></span></div>
-      <p class="db-frase">${fraseHTML(fr.equip)}</p>
-      <div class="db-grid4">${kEq.map(([r, v, cl, s]) => `<div class="db-card"><div class="rot">${r}</div><div class="val ${cl}">${v}</div><div class="sub">${s}</div></div>`).join('')}</div>
-      <div class="db-mini-t">Equipamentos com problema</div>
+      <div class="db-mini-t" style="margin-top:18px">Equipamentos com problema</div>
       ${probHTML}
       ${voltaram.length ? `<p class="sub" style="margin-top:10px">Pararam no mês e já voltaram: ${voltaram.map(x => `${esc(nomeEq(x.e))} (${x.dias} dia${x.dias > 1 ? 's' : ''})`).join(' · ')}.</p>` : ''}
     </section>
 
-    ${equilHTML}
-    ${planoHTML}
-    <p class="sub" style="text-align:center;margin:8px 0 24px">Precisa do balanço de entradas, dos clientes ou das avaliações da equipe? <a href="dashboard-detalhado.html" style="color:var(--primary);font-weight:600">Abrir o relatório detalhado →</a></p>
+    ${lucroHTML}
+    ${plano4}
+
+    <details class="db-mais">
+      <summary>Detalhe comercial e de produção <span class="sub">preços e ticket médio, para onde foi o volume, metas por semana, cada prensa e cenários de equilíbrio</span></summary>
+      <section class="db-sec">
+        <p class="db-frase">${fraseHTML(fr.comp)}</p>
+        <div class="db-grid4">${cardsComp.map(([r, v, s2, cmp, vv]) => `<div class="db-card"><div class="rot">${r}</div><div class="val">${v}</div><div class="sub">${s2}</div>
+          <div class="sub" style="margin-top:8px;padding-top:8px;border-top:1px solid var(--border);display:flex;justify-content:space-between;gap:6px"><span>${cmp}</span>${pillVar(vv)}</div></div>`).join('')}</div>
+        <div class="db-mini-t">Para onde foi o volume vendido (${tn(volT, 1)})</div>
+        ${volT > 0 ? `<div class="pilha">${grupos.filter(([g]) => c.g[g].vol > 0).map(([g, n, cor]) => `<i style="width:${c.g[g].vol / volT * 100}%;background:${cor}" title="${n}: ${tn(c.g[g].vol, 1)}"></i>`).join('')}</div>
+        <div class="leg">${grupos.filter(([g]) => c.g[g].vol > 0).map(([g, n, cor]) => `<span style="--c:${cor}">${n}: <b>${pct(c.g[g].vol / volT * 100, 0)}</b> (${tn(c.g[g].vol, 1)})</span>`).join('')}</div>` : '<div class="vazio">Sem vendas no período.</div>'}
+        <div class="db-corpo" style="margin-top:8px"><div>${semanasHTML}</div><div>${porPrensaHTML}</div></div>
+        ${cenHTML}
+      </section>
+      <p class="sub" style="text-align:center;margin:8px 0">Precisa do balanço de entradas, dos clientes ou das avaliações da equipe? <a href="dashboard-detalhado.html" style="color:var(--primary);font-weight:600">Abrir o relatório detalhado →</a></p>
+    </details>
   `;
 
   document.querySelectorAll('.db-ind').forEach(b => b.onclick = () => document.getElementById(b.dataset.alvo)?.scrollIntoView({ behavior:'smooth', block:'start' }));
@@ -617,7 +707,7 @@ function graficos(d, eq) {
 /* ═════════════ Início ═════════════ */
 $('#f-mes').value = hoje.slice(0, 7);
 $('#f-mes').addEventListener('change', carregar);
-$('#btn-print').onclick = () => window.print();
+$('#btn-print').onclick = () => { document.querySelectorAll('.db-mais').forEach(m => m.open = true); setTimeout(() => window.print(), 300); };
 carregar();
 </script>
 </body>
