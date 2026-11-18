@@ -102,6 +102,27 @@
     .trilho-m .esp.hoje { background:#94a3b8; }
     table.db-mat tr.tot td { background:#f8fafc; border-top:2px solid var(--border); }
     table.db-mat td { vertical-align:middle; }
+    .mb-lista { display:flex; flex-direction:column; gap:4px; }
+    .mb-row { display:grid; grid-template-columns:200px 1fr 26px; gap:14px; align-items:center; padding:7px 8px; border-radius:8px; cursor:default; outline:none; }
+    .mb-row:hover, .mb-row:focus { background:#f8fafc; }
+    .mb-row.tot { border-top:1px solid var(--border); margin-top:6px; padding-top:12px; border-radius:0 0 8px 8px; }
+    .mb-nome b { display:block; font-size:13px; } .mb-nome span { font-size:11px; color:var(--text-muted); }
+    .mb-barra { position:relative; height:16px; background:#eef2f6; border-radius:8px; }
+    .mb-barra > i { position:absolute; left:0; top:0; bottom:0; border-radius:8px; }
+    .mb-barra .mk { position:absolute; top:-4px; width:3px; height:24px; border-radius:2px; transform:translateX(-1px); }
+    .mb-barra .mk.med { background:#0f172a; } .mb-barra .mk.esp { background:#94a3b8; }
+    .mb-st { font-size:13px; font-weight:800; text-align:center; color:var(--text-muted); }
+    .mb-st.up { color:var(--success); } .mb-st.down { color:var(--danger); }
+    .mb-leg { display:flex; gap:16px; flex-wrap:wrap; margin-top:10px; font-size:12px; color:var(--text-muted); }
+    .mb-leg i { display:inline-block; vertical-align:-1px; margin-right:5px; border-radius:2px; }
+    .mb-leg i.b { width:14px; height:9px; background:var(--primary); } .mb-leg i.m { width:3px; height:12px; background:#0f172a; } .mb-leg i.e { width:3px; height:12px; background:#94a3b8; }
+    .mb-leg .dica { margin-left:auto; font-style:italic; }
+    #db-tip { position:fixed; z-index:50; pointer-events:none; background:#0f172a; color:#fff; border-radius:10px; padding:10px 12px; font-size:12.5px; min-width:250px; box-shadow:0 10px 24px rgba(15,23,42,.25); opacity:0; transition:opacity .1s; }
+    #db-tip.on { opacity:1; }
+    #db-tip .tip-t { font-weight:800; font-size:13px; margin-bottom:6px; padding-bottom:6px; border-bottom:1px solid rgba(255,255,255,.15); }
+    #db-tip .tip-l { display:flex; justify-content:space-between; gap:16px; padding:2px 0; }
+    #db-tip .tip-l span { color:#cbd5e1; } #db-tip .up { color:#86efac; } #db-tip .down { color:#fca5a5; }
+    @media (max-width: 600px) { .mb-row { grid-template-columns:110px 1fr 20px; gap:8px; } .mb-leg .dica { margin-left:0; } }
     .pilha { display:flex; height:22px; border-radius:6px; overflow:hidden; margin:6px 0 8px; }
     .pilha i { display:block; height:100%; }
     .leg { display:flex; gap:14px; flex-wrap:wrap; font-size:12px; color:var(--text-muted); }
@@ -466,34 +487,42 @@ function render(d, tarefas, fin, materiaisEst = []) {
       ${comEstCol ? `<div class="db-card dest"><div class="rot">Vendido + estoque</div><div class="val">${mil(potencial)}</div><div class="sub">estoque: ${mil(T.estVal)} (${tn(T.estKg, 1)}) · ${potencial >= T.media ? `<span class="up">cobre a média</span>` : `<span class="down">faltam ${mil(T.media - potencial)}</span>`}</div></div>`
         : `<div class="db-card"><div class="rot">Resultado × média</div><div class="val ${T.fat >= T.media ? 'up' : 'down'}">${pct(T.media ? T.fat / T.media * 100 : null, 0)}</div><div class="sub">da média mensal</div></div>`}
     </div>` : '';
-  const matsHTML = !vend.length ? resumoMat + '<div class="vazio">Nenhum material vendido ainda neste mês.</div>' : resumoMat + `
-    <div class="table-scroll"><table class="db db-mat"><thead><tr>
-      <th>Material</th><th style="width:20%"></th>
-      <th style="text-align:right">${d.emAndamento ? `Vendido até ${ddmm(d.corte)}` : `Vendido em ${mes}`}</th>
-      ${d.emAndamento ? '<th style="text-align:right">Esperado até hoje</th>' : ''}
-      <th style="text-align:right">Média mensal</th>
-      <th style="text-align:right">Falta p/ média</th>
-      ${comEstCol ? '<th style="text-align:right">Em estoque</th>' : ''}
-      <th style="text-align:right">${d.emAndamento ? 'Ritmo' : 'Variação'}</th></tr></thead><tbody>
-    ${vend.map(m => `<tr>
-      <td><b>${esc(nomeMat(m.n))}</b><br><span class="sub" style="font-size:11px">${nomeG[m.g]}</span></td>
-      <td><div class="trilho-m"><i style="width:${m.fat / fatMxV * 100}%;background:${corG[m.g]}"></i>${m.media != null ? `<span class="esp" style="left:${Math.min(100, m.media / fatMxV * 100)}%" title="média mensal"></span>` : ''}${d.emAndamento && m.ref != null ? `<span class="esp hoje" style="left:${Math.min(100, m.ref / fatMxV * 100)}%" title="esperado até hoje"></span>` : ''}</div></td>
-      <td class="n">${m.fat ? vt(m.fat, m.vol) : '<span class="down">não vendido</span>'}</td>
-      ${d.emAndamento ? `<td class="n">${m.ref != null ? vt(m.ref, m.refVol) : '—'}</td>` : ''}
-      <td class="n">${m.media != null ? vt(m.media, m.mediaVol) : '—'}</td>
-      <td class="n">${m.falta == null ? '—' : m.falta > 0 ? `<b class="amb-t">${mil(m.falta)}</b><br><span class="sub" style="font-size:11px">${tn(m.faltaVol, 1)}</span>` : '<span class="up">✓ atingida</span>'}</td>
-      ${comEstCol ? `<td class="n">${m.estKg ? `${tn(m.estKg, 1)}<br><span class="sub" style="font-size:11px">${mil(m.estVal)}</span>` : '<span class="sub">—</span>'}</td>` : ''}
-      <td class="n">${varTxt(m.varp)}</td>
-    </tr>`).join('')}
-    <tr class="tot"><td><b>Total dos vendidos</b><br><span class="sub" style="font-size:11px">${vend.length} vendido${vend.length > 1 ? 's' : ''} no mês</span></td><td></td>
-      <td class="n">${vt(TV.fat, TV.vol)}</td>${d.emAndamento ? `<td class="n">${vt(TV.ref, TV.refVol)}</td>` : ''}
-      <td class="n">${vt(TV.media, TV.mediaVol)}</td>
-      <td class="n"><b class="${TV.falta > 0 ? 'amb-t' : 'up'}">${TV.falta > 0 ? mil(TV.falta) : '✓'}</b><br><span class="sub" style="font-size:11px">${TV.falta > 0 ? `${tn(TV.faltaVol, 1)} · soma dos que faltam` : ''}</span></td>
-      ${comEstCol ? `<td class="n">${tn(TV.estKg, 1)}<br><span class="sub" style="font-size:11px">${mil(TV.estVal)}</span></td>` : ''}
-      <td class="n">${varTxt(TV.ref > 0 ? (TV.fat / TV.ref - 1) * 100 : null)}</td></tr>
-    </tbody></table></div>
-    ${naoV.length ? `<p class="sub" style="margin-top:10px;font-size:12.5px"><b>${naoV.length} ${naoV.length > 1 ? 'materiais vendidos no ano ainda não saíram' : 'material vendido no ano ainda não saiu'} neste mês</b> (média de ${mil(naoVMedia)}/mês): ${naoV.slice(0, 6).map(m => esc(nomeMat(m.n))).join(', ')}${naoV.length > 6 ? ` e mais ${naoV.length - 6}` : ''}. Ainda podem sair até o fim do mês.</p>` : ''}
-    <p class="sub" style="margin-top:8px;font-size:12px">${nBase ? `Média mensal de ${rotBase} (${nBase} ${nBase > 1 ? 'meses fechados' : 'mês fechado'}). ${d.emAndamento ? `Esperado até hoje = média × ${pct(espAqui * 100, 0)} do mês (${d.dp} de ${d.du} dias úteis); "Ritmo" compara o vendido com esse esperado. "Falta p/ média" é quanto falta vender até o fim do mês para chegar à média do mês inteiro. Na barra: marca preta = média do mês, marca cinza = esperado até hoje.` : 'Na barra, a marca preta é a média mensal.'}` : 'Sem meses anteriores no ano para calcular a média.'}</p>`;
+  // Materiais: só as barras; os números aparecem ao passar o mouse (ou tocar, no celular)
+  const tipMat = (m, nome) => {
+    const lin = (r, v) => `<div class="tip-l"><span>${r}</span><b>${v}</b></div>`;
+    return `<div class="tip-t">${esc(nome)}</div>`
+      + lin(d.emAndamento ? `Vendido até ${ddmm(d.corte)}` : `Vendido em ${mes}`, `${mil(m.fat)} · ${tn(m.vol, 1)}`)
+      + (d.emAndamento && m.ref != null ? lin('Esperado até hoje', `${mil(m.ref)} · ${tn(m.refVol, 1)}`) : '')
+      + (m.media != null ? lin('Média mensal', `${mil(m.media)} · ${tn(m.mediaVol, 1)}`) : '')
+      + (m.falta != null ? lin('Falta p/ média', m.falta > 0 ? `${mil(m.falta)} · ${tn(m.faltaVol, 1)}` : '✓ atingida') : '')
+      + (d.emAndamento && m.estKg ? lin('Em estoque', `${tn(m.estKg, 1)} · ${mil(m.estVal)}`) : '')
+      + lin(d.emAndamento ? 'Ritmo' : 'Variação', m.varp == null ? 'novo' : Math.abs(m.varp) < 5 ? 'no ritmo' : `<span class="${m.varp > 0 ? 'up' : 'down'}">${seta(m.varp)} ${nf(Math.abs(m.varp), 0)}%</span>`);
+  };
+  const barraMat = (m, nome, sub, cor, mx, cls = '') => {
+    const st = m.varp == null ? '' : Math.abs(m.varp) < 5 ? '' : m.varp > 0 ? 'up' : 'down';
+    return `<div class="mb-row ${cls}" data-tip="${esc(tipMat(m, nome))}" tabindex="0">
+      <div class="mb-nome"><b>${esc(nome)}</b><span>${sub}</span></div>
+      <div class="mb-barra"><i style="width:${Math.min(100, m.fat / mx * 100)}%;background:${cor}"></i>
+        ${m.media != null ? `<span class="mk med" style="left:${Math.min(100, m.media / mx * 100)}%"></span>` : ''}
+        ${d.emAndamento && m.ref != null ? `<span class="mk esp" style="left:${Math.min(100, m.ref / mx * 100)}%"></span>` : ''}
+      </div>
+      <div class="mb-st ${st}">${m.varp == null ? '' : Math.abs(m.varp) < 5 ? '•' : seta(m.varp)}</div>
+    </div>`;
+  };
+  const mxTot = Math.max(1, TV.fat, TV.media);
+  const matsHTML = !vend.length ? '<div class="vazio">Nenhum material vendido ainda neste mês.</div>' : `
+    <div class="mb-lista">
+      ${vend.map(m => barraMat(m, nomeMat(m.n), nomeG[m.g], corG[m.g], fatMxV)).join('')}
+      ${barraMat({ ...TV, varp: TV.ref > 0 ? (TV.fat / TV.ref - 1) * 100 : null }, 'Total dos vendidos', `${vend.length} ${vend.length > 1 ? 'materiais' : 'material'}`, '#8fbfa3', mxTot, 'tot')}
+    </div>
+    <div class="mb-leg">
+      <span><i class="b"></i>vendido ${d.emAndamento ? 'até hoje' : 'no mês'}</span>
+      <span><i class="m"></i>média do mês${rotBase ? ` (${rotBase})` : ''}</span>
+      ${d.emAndamento ? '<span><i class="e"></i>esperado até hoje</span>' : ''}
+      <span>▲ ▼ ritmo contra ${d.emAndamento ? 'o esperado' : 'a média'}</span>
+      <span class="dica">Passe o mouse numa barra para ver os valores</span>
+    </div>
+    ${naoV.length ? `<p class="sub" style="margin-top:10px;font-size:12.5px"><b>${naoV.length} ${naoV.length > 1 ? 'materiais vendidos no ano ainda não saíram' : 'material vendido no ano ainda não saiu'} neste mês</b> (média de ${mil(naoVMedia)}/mês): ${naoV.slice(0, 6).map(m => esc(nomeMat(m.n))).join(', ')}${naoV.length > 6 ? ` e mais ${naoV.length - 6}` : ''}.</p>` : ''}`;
 
   /* ── Prensagem ── */
   const atEsp = d.esperado > 0 ? d.prod / d.esperado * 100 : null;
@@ -791,6 +820,27 @@ function graficos(d, eq) {
     ] }, options:opts(k$) });
   }
 }
+
+/* ═════════════ Dica (tooltip) das barras de materiais ═════════════ */
+const tip = document.createElement('div'); tip.id = 'db-tip'; document.body.appendChild(tip);
+const posTip = (x, y) => {
+  const w = tip.offsetWidth, h = tip.offsetHeight;
+  tip.style.left = Math.min(window.innerWidth - w - 12, x + 14) + 'px';
+  tip.style.top = (y + h + 20 > window.innerHeight ? y - h - 12 : y + 16) + 'px';
+};
+document.addEventListener('mousemove', e => {
+  const r = e.target.closest?.('.mb-row');
+  if (!r) { tip.classList.remove('on'); return; }
+  if (tip.dataset.k !== r.dataset.tip) { tip.innerHTML = r.dataset.tip; tip.dataset.k = r.dataset.tip; }
+  tip.classList.add('on'); posTip(e.clientX, e.clientY);
+});
+document.addEventListener('click', e => {   // celular: toque mostra/esconde
+  const r = e.target.closest?.('.mb-row');
+  if (!r) { tip.classList.remove('on'); return; }
+  tip.innerHTML = r.dataset.tip; tip.dataset.k = r.dataset.tip; tip.classList.add('on');
+  const b = r.getBoundingClientRect(); posTip(b.left + 20, b.bottom - 8);
+});
+document.addEventListener('scroll', () => tip.classList.remove('on'), { passive:true });
 
 /* ═════════════ Início ═════════════ */
 $('#f-mes').value = hoje.slice(0, 7);
