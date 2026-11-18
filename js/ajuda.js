@@ -8,10 +8,10 @@ import { temSimulacao, iniciarSimulacao } from './simulacao.js';
 export const AJUDA = {
   'dashboard.html': {
     titulo: 'Dashboard',
-    resumo: 'Acompanhamento do mês. No topo, o resumo e os 4 selos (Faturamento, Prensagem, Equipamentos e Equipe). Embaixo, 4 perguntas: vamos bater a meta, a operação está entregando, estamos dando lucro e o que estamos fazendo. Os números vêm sozinhos das outras telas, então aqui não se digita nada.',
+    resumo: 'Acompanhamento do mês. No topo, os 4 selos (Faturamento, Prensagem, Equipamentos e Equipe). Embaixo, 4 perguntas: vamos bater a meta, a operação está entregando, estamos dando lucro e o que estamos fazendo. Os números vêm sozinhos das outras telas, então aqui não se digita nada.',
     quando: 'Todo dia, para saber se o mês está no ritmo e o que precisa ser cobrado, e antes de gerar a apresentação do comitê.',
     passos: [
-      'Leia a <b>faixa verde</b> e os <b>4 selos</b>. A marquinha preta na barra é o esperado até hoje. Clique num selo para ir direto ao assunto.',
+      'Confira os <b>4 selos</b> no topo. A marquinha preta na barra é o esperado até hoje. Clique num selo para ir direto ao assunto.',
       '<b>1. Vamos bater a meta?</b> Veja quanto falta e quanto é preciso faturar <b>por dia útil</b> contra o ritmo atual. Na tabela, cada material contra a média dele: o que está abaixo e o que tem em estoque é onde buscar o que falta.',
       '<b>2. A operação está entregando?</b> Prensas contra o previsto, quantas toneladas por dia faltam para usar a capacidade, a equipe, cada prensa, o faturamento por semana, o volume por tipo e os equipamentos com problema.',
       '<b>3. Estamos dando lucro?</b> A régua mostra a projeção do mês contra o ponto de equilíbrio (calculado pelo DRE), a meta e a margem-alvo.',
