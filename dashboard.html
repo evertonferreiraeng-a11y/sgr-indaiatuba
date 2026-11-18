@@ -97,28 +97,9 @@
     .exp-lembrete-item a { font-size:12px; font-weight:700; color:#006636; text-decoration:none; }
 
     .vazio { text-align:center; padding:28px; color:var(--text-muted); font-size:13px; }
-
-    /* ── Visão limpa ── */
-    .db-topo { display:grid; grid-template-columns:1.25fr 1fr; gap:16px; }
-    .db-topo > * { min-width:0; }
-    .db-lista { list-style:none; margin:4px 0 0; padding:0; }
-    .db-lista li { display:flex; align-items:center; gap:12px; padding:11px 0; border-bottom:1px solid var(--border); font-size:13.5px; }
-    .db-lista li:last-child { border-bottom:none; }
-    .db-lista .pt { width:10px; height:10px; border-radius:50%; flex:none; background:#cbd5e1; }
-    .db-lista li.verm .pt { background:var(--danger); } .db-lista li.amb .pt { background:#d97706; } .db-lista li.tudo-ok .pt { background:var(--success); }
-    .db-lista .tx { flex:1; min-width:0; }
-    .db-lista .tx small { display:block; color:var(--text-muted); font-size:12px; margin-top:2px; }
-    .db-lista a { font-size:12px; font-weight:700; color:var(--primary); text-decoration:none; white-space:nowrap; }
-    .db-lista li.mais { color:var(--text-muted); font-size:12.5px; justify-content:center; }
-    .db-lista li.tudo-ok { color:var(--success); font-weight:600; }
-    .db-mais { margin-top:4px; }
-    .db-mais > summary { cursor:pointer; list-style:none; background:#fff; border:1px dashed var(--border); border-radius:var(--radius-lg); padding:14px 18px; font-weight:700; color:var(--primary); margin-bottom:16px; }
-    .db-mais > summary::-webkit-details-marker { display:none; }
-    .db-mais > summary::before { content:"▸ "; } .db-mais[open] > summary::before { content:"▾ "; }
-    .db-mais > summary .sub { display:block; font-weight:400; font-size:12px; margin-top:2px; }
     .carregando { text-align:center; padding:60px; color:var(--text-muted); }
 
-    @media (max-width: 1100px) { .db-sem, .db-grid4 { grid-template-columns:repeat(2,1fr); } .db-corpo, .db-topo { grid-template-columns:1fr; } }
+    @media (max-width: 1100px) { .db-sem, .db-grid4 { grid-template-columns:repeat(2,1fr); } .db-corpo { grid-template-columns:1fr; } }
     @media (max-width: 600px) {
       .db-sem, .db-grid4 { grid-template-columns:1fr; }
       .db-manchete h1 { font-size:17px; }
@@ -130,7 +111,7 @@
     @media print {
       .sidebar, .bottom-nav, .sidebar-toggle, .db-nav, .db-controles, .exp-lembrete, #btn-print, #ajuda-btn { display:none !important; }
       .main-content { margin:0 !important; padding:0 !important; }
-      .db-sec { break-inside:avoid; } .db-mais > summary { display:none; }
+      .db-sec { break-inside:avoid; }
     }
   </style>
 </head>
@@ -152,6 +133,7 @@
       </div>
     </div>
 
+    <div id="db-lembrete"></div>
     <div id="db-conteudo"><div class="carregando">Carregando indicadores…</div></div>
   </div>
 </div>
@@ -233,7 +215,8 @@ async function carregar() {
     const d = calcularDados({ vendas, metas, producao, equipamentos, materiais, colaboradores, cargos, snapshots }, M, corte, hoje);
     const est = finAtual(M);
     const fin = dre ? { pe:dre.pe, fixos:dre.fixos, liq:dre.liq, alvo:est.alvo, acerto:est.acerto, dre } : est;
-    render(d, tarefas, fin, experiencias(colaboradores));
+    renderLembrete(colaboradores);
+    render(d, tarefas, fin);
   } catch (e) {
     console.error(e);
     $('#db-conteudo').innerHTML = `<div class="card vazio">Não foi possível carregar os indicadores: ${esc(e.message)}</div>`;
@@ -241,7 +224,7 @@ async function carregar() {
 }
 
 /* ═════════════ Lembrete de experiência ═════════════ */
-function experiencias(colabs) {
+function renderLembrete(colabs) {
   const diasAte = dt => Math.round((new Date(dt + 'T00:00:00') - new Date(hoje + 'T00:00:00')) / 86400000);
   const lista = [];
   colabs.filter(c => !c.demissao).forEach(c => {
@@ -250,7 +233,12 @@ function experiencias(colabs) {
     if (c.fim_experiencia_2 && c.passou_exp_2 == null && c.passou_exp_1 !== false) per.push([2, c.fim_experiencia_2]);
     per.forEach(([p, fim]) => { const dias = diasAte(fim); if (dias >= 0 && dias <= 7) lista.push({ nome:c.nome, p, fim, dias }); });
   });
-  return lista.sort((a, b) => a.dias - b.dias);
+  lista.sort((a, b) => a.dias - b.dias);
+  const quando = n => n === 0 ? 'vence <b>hoje</b>' : n === 1 ? 'vence <b>amanhã</b>' : `vence em <b>${n} dias</b>`;
+  $('#db-lembrete').innerHTML = !lista.length ? '' : `<div class="exp-lembrete">
+    <div class="exp-lembrete-hd">⏰ Experiência vencendo nos próximos 7 dias</div>
+    ${lista.map(x => `<div class="exp-lembrete-item"><span><b>${esc(x.nome)}</b> — ${x.p}ª experiência ${quando(x.dias)} (${ddmmaaaa(x.fim)})</span><a href="rh.html">Avaliar no RH →</a></div>`).join('')}
+  </div>`;
 }
 
 /* ═════════════ Regras dos selos (iguais às do Resumo executivo da apresentação) ═════════════ */
@@ -263,7 +251,7 @@ const pillVar = v => v == null ? '' : Math.abs(v) < 2 ? '<span class="sub">está
 const nomeEq = e => e.frota ? `${e.nome} ${e.frota}` : e.nome;
 
 /* ═════════════ Render ═════════════ */
-function render(d, tarefas, fin, exps = []) {
+function render(d, tarefas, fin) {
   Object.values(charts).forEach(c => c.destroy()); charts = {};
   const fr = frasesPadrao(d, tarefas, fin);
   const eq = analiseEquilibrio(d, fin);
@@ -287,8 +275,8 @@ function render(d, tarefas, fin, exps = []) {
   const incompleta = d.colab != null && d.colab < d.quadro;
   const inds = [
     { alvo:'s-fat', rot:'Faturamento', st:noRitmo(atFatEst != null ? atFatEst / espAqui : null),
-      val: mil(c.fat),
-      sub: (comEst ? `+ ${mil(d.valorEstoque)} em estoque · ` : '') + (d.meta ? `${pct(comEst ? atFatEst : atFat, 0)} da meta${d.emAndamento ? ` · esperado ${pct(espAqui * 100, 0)}` : ''}` : 'sem meta cadastrada'),
+      val: mil(c.fat) + (comEst ? ` <span style="font-size:13px;color:var(--primary)">+ ${mil(d.valorEstoque)} em estoque</span>` : ''),
+      sub: d.meta ? `${pct(comEst ? atFatEst : atFat, 0)} da meta de ${mil(d.meta)}${d.emAndamento ? ` · esperado ${pct(espAqui * 100, 0)}` : ''}` : 'sem meta cadastrada',
       barra: d.meta ? [ (comEst ? atFatEst : atFat), d.emAndamento ? espAqui * 100 : null ] : null,
       mot: d.meta ? (d.emAndamento ? `faltam <b>${mil(Math.max(0, d.meta * espAqui - fatEst))}</b> para o esperado até ${ddmm(d.corte)}` : `faltaram <b>${mil(Math.max(0, d.meta - c.fat))}</b> para a meta`) : '' },
     { alvo:'s-prensa', rot:'Prensagem', st:noRitmo(atProdRef), val:`${nf(d.prod / 1000, 1)} t produzidas`,
@@ -312,6 +300,7 @@ function render(d, tarefas, fin, exps = []) {
       <div class="hd"><span class="rot">${k.rot}</span><span class="selo ${cls}">${rot}</span></div>
       <div class="val">${k.val}</div><div class="sub">${k.sub}</div>
       ${k.barra ? `<div class="barra"><i style="width:${Math.max(0, Math.min(100, p || 0))}%;background:${corSel(k.st)}"></i>${esp != null ? `<span class="esp" style="left:${Math.min(100, esp)}%" title="esperado até aqui"></span>` : ''}</div>` : ''}
+      ${!['ok','ritmo','nd'].includes(k.st) && k.mot ? `<div class="mot">${k.mot}</div>` : ''}
     </button>`;
   }).join('');
 
@@ -437,62 +426,18 @@ function render(d, tarefas, fin, exps = []) {
       `</tbody></table></div>${abertas.length > 10 ? `<p class="sub" style="margin-top:8px">e mais ${abertas.length - 10} em Tarefas.</p>` : ''}` : ''}
   </section>`;
 
-  /* ── O que precisa de atenção (só o que pede ação) ── */
-  const alertas = [];
-  const quandoExp = n => n === 0 ? 'hoje' : n === 1 ? 'amanhã' : `em ${n} dias`;
-  exps.forEach(x => alertas.push({ nivel:x.dias <= 1 ? 'verm' : 'amb', txt:`<b>${esc(x.nome)}</b>: ${x.p}ª experiência vence ${quandoExp(x.dias)} (${ddmm(x.fim)})`, acao:'Avaliar no RH', href:'rh.html' }));
-  inds.forEach(k => { if (!['ok','ritmo','nd'].includes(k.st) && k.mot && k.rot !== 'Equipamentos' && k.rot !== 'Equipe')
-    alertas.push({ nivel:SEL[k.st][1], txt:`<b>${k.rot}</b> ${SEL[k.st][0].toLowerCase()}: ${k.mot.replace(/<\/?b>/g, '')}`, acao:k.rot === 'Faturamento' ? 'Ver vendas' : 'Ver produção', href:k.rot === 'Faturamento' ? 'comercial.html' : 'producao.html' }); });
-  d.problemas.slice(0, 3).forEach(({ e, desde, prev }) => alertas.push({ nivel:e.st === 'parado' ? 'verm' : 'amb',
-    txt:`<b>${esc(nomeEq(e))}</b> ${e.st === 'parado' ? 'parado' : 'com restrição'}${desde ? ` desde ${ddmm(desde)}` : ''} · ${prev ? (prev < hoje ? `<span class="down">previsão vencida (${ddmm(prev)})</span>` : `volta ${ddmm(prev)}`) : 'sem previsão de volta'}`,
-    acao:'Ver equipamento', href:'equipamentos.html' }));
-  acoes.filter(atrasada).slice(0, 3).forEach(t => alertas.push({ nivel:'verm', txt:`Ação atrasada: <b>${esc(t.titulo)}</b> · ${esc(t.responsavel || 'sem responsável')} · prazo ${ddmm(t.data_vencimento)}`, acao:'Ver tarefa', href:'tarefas.html' }));
-  if (fin.pe > 0 && !d.inicioMes && refPe < fin.pe) alertas.push({ nivel:'amb', txt:`${d.emAndamento ? 'Projeção do mês' : 'Receita do mês'} <b>${mil(fin.pe - refPe)} abaixo do ponto de equilíbrio</b> (${mil(fin.pe)}/mês)`, acao:'Ver no DRE', href:'dre.html' });
-  if (d.vagas) alertas.push({ nivel:'amb', txt:`Equipe com <b>${d.colab} de ${d.quadro}</b>: ${d.vagas} vaga${d.vagas > 1 ? 's' : ''} em reposição`, acao:'Ver RH', href:'rh.html' });
-  const ordemN = { verm:0, amb:1 };
-  alertas.sort((x, y) => ordemN[x.nivel] - ordemN[y.nivel]);
-  const MAX_AL = 6;
-  const alertasHTML = alertas.length
-    ? alertas.slice(0, MAX_AL).map(a => `<li class="${a.nivel}"><span class="pt"></span><span class="tx">${a.txt}</span><a href="${a.href}">${a.acao} →</a></li>`).join('')
-      + (alertas.length > MAX_AL ? `<li class="mais">e mais ${alertas.length - MAX_AL} ponto(s) na análise completa</li>` : '')
-    : `<li class="tudo-ok"><span class="pt"></span><span class="tx">Nada pedindo ação agora: tudo dentro do ritmo.</span></li>`;
-
-  /* ── Próximas ações (atrasadas primeiro) ── */
-  const proximas = abertas.slice(0, 4);
-  const acoesHTML = proximas.length ? proximas.map(t => `<li><span class="tx"><b>${esc(t.titulo)}</b><small>${esc(t.responsavel || 'a definir')} · ${t.data_vencimento ? ddmm(t.data_vencimento) : 'sem prazo'}</small></span>${stPill(t)}</li>`).join('')
-    : '<li class="tudo-ok"><span class="tx">Nenhuma ação em aberto.</span></li>';
-
   /* ── Montagem ── */
   $('#db-conteudo').innerHTML = `
     <div class="db-manchete">
-      <div class="tag">${cap(mes)} ${d.M.slice(0, 4)}${d.emAndamento ? ` · dados até ${ddmm(d.corte)}` : ' · mês fechado'}</div>
+      <div class="tag">Resumo executivo · ${cap(mes)} ${d.M.slice(0, 4)}</div>
       <h1>${fraseHTML(fr.resumo)}</h1>
+      ${d.emAndamento ? `<span class="badge-parcial">Mês em andamento · dados até ${ddmm(d.corte)}</span>` : ''}
     </div>
     <div class="db-sem">${semHTML}</div>
-
-    <div class="db-topo">
-      <section class="db-sec db-atencao">
-        <div class="db-sec-hd"><h2>Precisa de atenção</h2><span class="sub">${alertas.length ? `${alertas.length} ponto${alertas.length > 1 ? 's' : ''}` : ''}</span></div>
-        <ul class="db-lista">${alertasHTML}</ul>
-      </section>
-      <section class="db-sec">
-        <div class="db-sec-hd"><h2>Próximas ações</h2><a href="tarefas.html">Todas →</a></div>
-        <ul class="db-lista db-acoes">${acoesHTML}</ul>
-        ${acoes.length ? `<p class="sub" style="margin-top:10px">${nOk} de ${acoes.length} concluídas${nAtr ? ` · <span class="down">${nAtr} atrasada${nAtr > 1 ? 's' : ''}</span>` : ''}</p>` : ''}
-      </section>
-    </div>
-
-    <div class="db-topo">
-      <section class="db-sec"><div class="db-sec-hd"><h2>Faturamento × meta</h2><span class="sub">${d.M.slice(0, 4)}</span></div><div class="chart-wrap" style="height:220px"><canvas id="c-top-fat"></canvas></div></section>
-      <section class="db-sec"><div class="db-sec-hd"><h2>Prensagem × capacidade</h2><span class="sub">${d.M.slice(0, 4)}</span></div><div class="chart-wrap" style="height:220px"><canvas id="c-top-prensa"></canvas></div></section>
-    </div>
-
-    <details class="db-mais" id="db-mais">
-      <summary>Ver análise completa <span class="sub">faturamento, composição de vendas, prensagem, equipamentos e equipe${eq ? ', rumo ao equilíbrio' : ''} e plano de ação</span></summary>
-      <nav class="db-nav">
-        <a href="#s-fat">Faturamento</a><a href="#s-comp">Composição de vendas</a><a href="#s-prensa">Prensagem</a>
-        <a href="#s-equip">Equipamentos e equipe</a>${eq ? '<a href="#s-equil">Rumo ao equilíbrio</a>' : ''}<a href="#s-plano">Plano de ação</a>
-      </nav>
+    <nav class="db-nav">
+      <a href="#s-fat">Faturamento</a><a href="#s-comp">Composição de vendas</a><a href="#s-prensa">Prensagem</a>
+      <a href="#s-equip">Equipamentos e equipe</a>${eq ? '<a href="#s-equil">Rumo ao equilíbrio</a>' : ''}<a href="#s-plano">Plano de ação</a>
+    </nav>
 
     <section class="db-sec" id="s-fat">
       <div class="db-sec-hd"><h2>Faturamento</h2><a href="comercial.html">Ver vendas →</a></div>
@@ -542,20 +487,11 @@ function render(d, tarefas, fin, exps = []) {
 
     ${equilHTML}
     ${planoHTML}
-    <p class="sub" style="text-align:center;margin:8px 0 8px">Precisa do balanço de entradas, dos clientes ou das avaliações da equipe? <a href="dashboard-detalhado.html" style="color:var(--primary);font-weight:600">Abrir o relatório detalhado →</a></p>
-    </details>
+    <p class="sub" style="text-align:center;margin:8px 0 24px">Precisa do balanço de entradas, dos clientes ou das avaliações da equipe? <a href="dashboard-detalhado.html" style="color:var(--primary);font-weight:600">Abrir o relatório detalhado →</a></p>
   `;
 
-  // Selo clicado: abre a análise completa já na seção certa
-  const mais = $('#db-mais');
-  let detalheFeito = false;
-  const abrirDetalhe = () => { if (!detalheFeito && mais.open) { detalheFeito = true; graficosDetalhe(d, eq); } };
-  mais.addEventListener('toggle', abrirDetalhe);
-  document.querySelectorAll('.db-ind').forEach(b => b.onclick = () => {
-    mais.open = true; abrirDetalhe();
-    setTimeout(() => document.getElementById(b.dataset.alvo)?.scrollIntoView({ behavior:'smooth', block:'start' }), 50);
-  });
-  graficosTopo(d);
+  document.querySelectorAll('.db-ind').forEach(b => b.onclick = () => document.getElementById(b.dataset.alvo)?.scrollIntoView({ behavior:'smooth', block:'start' }));
+  graficos(d, eq);
 }
 
 function cardHTML(k) {
@@ -573,38 +509,29 @@ function opts(fmt, legenda = true) {
     scales:{ x:{ grid:{ display:false }, ticks:{ color:COR.txt } }, y:{ beginAtZero:true, grid:{ color:COR.grid }, border:{ display:false }, ticks:{ color:COR.txt, callback:v => fmt(v) } } } };
 }
 const k$ = v => `R$ ${nf(v / 1000, 0)} mil`;
-const BAR = { borderRadius:4, borderSkipped:'start', maxBarThickness:34 };
-const LINHA = { type:'line', borderWidth:2, pointRadius:0, pointHoverRadius:4, borderDash:[6, 4], tension:0 };
-const rotulos = d => d.mesesAno.map(mk => MES_AB[+mk.slice(5) - 1]);
-const corMes = d => d.mesesAno.map(mk => mk === d.M && d.emAndamento ? COR.verdeCl : COR.verde);
-function chartFat(id, d) {
-  return new Chart(document.getElementById(id), { type:'bar', data:{ labels:rotulos(d), datasets:[
-    { label:'Faturamento', data:d.fatMes.map(r => r.fat), backgroundColor:corMes(d), ...BAR },
-    { label:'Meta', data:d.mesesAno.map(mk => (d.metaMes[mk] ?? d.meta) || null), borderColor:COR.s2, backgroundColor:COR.s2, ...LINHA },
+function graficos(d, eq) {
+  if (!window.Chart) return;
+  const labels = d.mesesAno.map(mk => MES_AB[+mk.slice(5) - 1]);
+  const parcial = mk => mk === d.M && d.emAndamento;
+  const bar = { borderRadius:4, borderSkipped:'start', maxBarThickness:34 };
+  const linha = { type:'line', borderWidth:2, pointRadius:0, pointHoverRadius:4, borderDash:[6, 4], tension:0 };
+
+  charts.fat = new Chart(document.getElementById('c-fat'), { type:'bar', data:{ labels, datasets:[
+    { label:'Faturamento', data:d.fatMes.map(r => r.fat), backgroundColor:d.mesesAno.map(mk => parcial(mk) ? COR.verdeCl : COR.verde), ...bar },
+    { label:'Meta', data:d.mesesAno.map(mk => (d.metaMes[mk] ?? d.meta) || null), borderColor:COR.s2, backgroundColor:COR.s2, ...linha },
   ] }, options:opts(k$) });
-}
-function chartPrensa(id, d) {
-  return new Chart(document.getElementById(id), { type:'bar', data:{ labels:rotulos(d), datasets:[
-    { label:'Produção das prensas', data:d.prodMesAno.map(v => v / 1000), backgroundColor:corMes(d), ...BAR },
-    { label:'Capacidade', data:d.capMesAno.map(v => v / 1000), borderColor:COR.s1, backgroundColor:COR.s1, ...LINHA },
+
+  charts.prensa = new Chart(document.getElementById('c-prensa'), { type:'bar', data:{ labels, datasets:[
+    { label:'Produção das prensas', data:d.prodMesAno.map(v => v / 1000), backgroundColor:d.mesesAno.map(mk => parcial(mk) ? COR.verdeCl : COR.verde), ...bar },
+    { label:'Capacidade', data:d.capMesAno.map(v => v / 1000), borderColor:COR.s1, backgroundColor:COR.s1, ...linha },
   ] }, options:opts(v => `${nf(v, 0)} t`) });
-}
-function graficosTopo(d) {
-  if (!window.Chart) return;
-  charts.topFat = chartFat('c-top-fat', d);
-  charts.topPrensa = chartPrensa('c-top-prensa', d);
-}
-function graficosDetalhe(d, eq) {
-  if (!window.Chart) return;
-  charts.fat = chartFat('c-fat', d);
-  charts.prensa = chartPrensa('c-prensa', d);
+
   if (eq && document.getElementById('c-equil')) {
-    const labels = rotulos(d);
     const rec = d.mesesAno.map((mk, i) => d.fatMes[i].fat + (mk === d.M ? eq.acerto : 0));
     charts.equil = new Chart(document.getElementById('c-equil'), { type:'bar', data:{ labels, datasets:[
-      { label:'Receita do mês', data:rec, backgroundColor:d.mesesAno.map((mk, i) => mk === d.M && d.emAndamento ? COR.verdeCl : rec[i] >= eq.pe ? COR.ok : COR.s2), ...BAR },
-      { label:`Ponto de equilíbrio (${mil(eq.pe)})`, data:labels.map(() => eq.pe), borderColor:COR.ruim, backgroundColor:COR.ruim, ...LINHA },
-      ...(eq.rAlvo ? [{ label:`Margem EBITDA de ${nf(eq.alvo, 0)}%`, data:labels.map(() => eq.rAlvo), borderColor:COR.s1, backgroundColor:COR.s1, ...LINHA }] : []),
+      { label:'Receita do mês', data:rec, backgroundColor:d.mesesAno.map((mk, i) => parcial(mk) ? COR.verdeCl : rec[i] >= eq.pe ? COR.ok : COR.s2), ...bar },
+      { label:`Ponto de equilíbrio (${mil(eq.pe)})`, data:labels.map(() => eq.pe), borderColor:COR.ruim, backgroundColor:COR.ruim, ...linha },
+      ...(eq.rAlvo ? [{ label:`Margem EBITDA de ${nf(eq.alvo, 0)}%`, data:labels.map(() => eq.rAlvo), borderColor:COR.s1, backgroundColor:COR.s1, ...linha }] : []),
     ] }, options:opts(k$) });
   }
 }
@@ -612,7 +539,7 @@ function graficosDetalhe(d, eq) {
 /* ═════════════ Início ═════════════ */
 $('#f-mes').value = hoje.slice(0, 7);
 $('#f-mes').addEventListener('change', carregar);
-$('#btn-print').onclick = () => { const m = $('#db-mais'); if (m) m.open = true; setTimeout(() => window.print(), 400); };
+$('#btn-print').onclick = () => window.print();
 carregar();
 </script>
 </body>
