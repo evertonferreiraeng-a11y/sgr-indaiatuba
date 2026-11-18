@@ -7,16 +7,21 @@ import { temSimulacao, iniciarSimulacao } from './simulacao.js';
 
 export const AJUDA = {
   'dashboard.html': {
-    titulo: 'Dashboard (Relatório do Comitê)',
-    resumo: 'Visão geral da unidade no mês ou no ano: volumes recebidos, produção, vendas e equipamentos. Os números vêm sozinhos das outras telas, então aqui não se digita nada.',
-    quando: 'Para consultar como a unidade está indo e acompanhar os lembretes do dia.',
+    titulo: 'Dashboard',
+    resumo: 'Mostra como a unidade está no mês, na mesma ordem da apresentação do comitê: resumo, faturamento, composição de vendas, prensagem, equipamentos e equipe, rumo ao equilíbrio e plano de ação. Os números vêm sozinhos das outras telas, então aqui não se digita nada.',
+    quando: 'Todo dia, para saber se o mês está no ritmo, e antes de gerar a apresentação do comitê.',
     passos: [
-      'No topo, escolha <b>Mês</b> ou <b>Ano</b> e o período que quer ver.',
-      'Use <b>Todos</b>, <b>♻ Recicláveis</b> ou <b>🚫 Não Recicláveis</b> para filtrar o balanço.',
-      'Se aparecer o <b>lembrete amarelo</b> de experiência vencendo, clique em <b>Avaliar no RH →</b> e registre se o colaborador passou.',
+      'Leia a <b>faixa verde</b> no topo: é a frase do resumo executivo. Verde é bom, vermelho pede atenção.',
+      'Confira os <b>4 selos</b> (Faturamento, Prensagem, Equipamentos e Equipe). A marquinha preta na barra é o <b>esperado até hoje</b>. Clique num selo para ir direto ao detalhe.',
+      'Em cada seção, a frase explica o número; os cards ao lado mostram realizado, projeção e o que falta.',
+      'Em <b>Plano de ação</b>, comece pelas atrasadas. Para mudar uma ação, abra a tela Tarefas.',
+      'Para ver outro mês, troque o <b>Mês</b> no topo.',
+      'Se aparecer o <b>lembrete amarelo</b> de experiência vencendo, clique em <b>Avaliar no RH →</b>.',
     ],
     dicas: [
-      'Se algum número parecer errado, o problema está na tela de origem (Entradas, Produção ou Comercial). Corrija lá e volte aqui.',
+      'Os números são os mesmos da apresentação do comitê. Se algum parecer errado, corrija na tela de origem (Comercial, Produção, Equipamentos ou RH).',
+      'O ponto de equilíbrio e a margem-alvo vêm do estudo financeiro preenchido na tela Apresentação.',
+      'O relatório detalhado de antes (balanço de entradas, clientes, avaliações da equipe) continua disponível pelo link no fim da página.',
     ],
   },
   'indicadores.html': {
