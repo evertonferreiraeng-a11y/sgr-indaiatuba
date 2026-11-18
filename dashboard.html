@@ -78,6 +78,10 @@
     .hb .trilho { height:12px; background:#eef2f6; border-radius:6px; position:relative; overflow:hidden; }
     .hb .trilho i { position:absolute; left:0; top:0; bottom:0; border-radius:6px; }
     .hb .v { text-align:right; font-variant-numeric:tabular-nums; }
+    .trilho-m { height:12px; background:#eef2f6; border-radius:6px; position:relative; }
+    .trilho-m i { position:absolute; left:0; top:0; bottom:0; border-radius:6px; }
+    .trilho-m .esp { position:absolute; top:-3px; width:2px; height:18px; background:#0f172a; border-radius:1px; }
+    table.db-mat td { vertical-align:middle; }
     .pilha { display:flex; height:22px; border-radius:6px; overflow:hidden; margin:6px 0 8px; }
     .pilha i { display:block; height:100%; }
     .leg { display:flex; gap:14px; flex-wrap:wrap; font-size:12px; color:var(--text-muted); }
@@ -337,9 +341,38 @@ function render(d, tarefas, fin) {
   ];
   const grupos = [['prensado','Prensado',COR.verde], ['granel','A granel',COR.s4], ['sucata','Sucata ferrosa',COR.cinza], ['outros','Outros',COR.s1]];
   const volT = grupos.reduce((s, [g]) => s + c.g[g].vol, 0);
-  const mats = Object.entries(Object.assign({}, ...['prensado','granel','sucata','outros'].map(g => Object.fromEntries(Object.entries(c.g[g].mat).map(([n, v]) => [`${g}|${n}`, { ...v, g, n }])))))
-    .map(([, v]) => v).sort((x, y) => y.fat - x.fat).slice(0, 6);
-  const fatMx = Math.max(1, ...mats.map(m => m.fat));
+  // Venda por material: mês selecionado × média mensal dos meses fechados anteriores do ano
+  const GRUPOS_K = ['prensado','granel','sucata','outros'];
+  const porMat = r => { const o = {}; GRUPOS_K.forEach(g => Object.entries(r.g[g].mat).forEach(([n, v]) => {
+    const m = (o[n] = o[n] || { fat:0, vol:0, g, gFat:0 }); m.fat += v.fat; m.vol += v.vol; if (v.fat > m.gFat) { m.g = g; m.gFat = v.fat; } })); return o; };
+  const curMat = porMat(c);
+  const mesesBase = d.mesesAno.map((mk, i) => ({ mk, r:d.fatMes[i] })).filter(x => x.mk < d.M);
+  const nBase = mesesBase.length;
+  const somaBase = {};
+  mesesBase.forEach(x => Object.entries(porMat(x.r)).forEach(([n, v]) => { const b = (somaBase[n] = somaBase[n] || { fat:0, vol:0, g:v.g }); b.fat += v.fat; b.vol += v.vol; }));
+  const fracEsp = d.emAndamento ? espAqui : 1;   // mês em andamento: compara com a média proporcional aos dias úteis
+  const mats = [...new Set([...Object.keys(curMat), ...Object.keys(somaBase)])].map(n => {
+    const cu = curMat[n] || { fat:0, vol:0 }, b = somaBase[n];
+    const media = b && nBase ? b.fat / nBase : null, mediaVol = b && nBase ? b.vol / nBase : null;
+    const ref = media != null ? media * fracEsp : null;
+    return { n, g:(curMat[n] || b).g, fat:cu.fat, vol:cu.vol, media, mediaVol, ref, varp:ref > 0 ? (cu.fat / ref - 1) * 100 : null };
+  }).sort((x, y) => Math.max(y.fat, y.ref || 0) - Math.max(x.fat, x.ref || 0)).slice(0, 8);
+  const fatMx = Math.max(1, ...mats.map(m => Math.max(m.fat, m.ref || 0)));
+  const rotBase = nBase ? `${MES_AB[+mesesBase[0].mk.slice(5) - 1].toLowerCase()}${nBase > 1 ? `–${MES_AB[+mesesBase[nBase - 1].mk.slice(5) - 1].toLowerCase()}` : ''}` : '';
+  const nomeG = { prensado:'prensado', granel:'a granel', sucata:'sucata', outros:'outros' };
+  const corG = { prensado:COR.verde, granel:COR.s4, sucata:COR.cinza, outros:COR.s1 };
+  const matsHTML = !mats.length ? '<div class="vazio">Sem vendas no período.</div>' : `
+    <div class="table-scroll"><table class="db db-mat"><thead><tr>
+      <th>Material</th><th style="width:38%"></th><th style="text-align:right">${d.emAndamento ? `Até ${ddmm(d.corte)}` : cap(mes)}</th>
+      <th style="text-align:right">${d.emAndamento ? 'Esperado pela média' : 'Média mensal'}</th><th style="text-align:right">Variação</th></tr></thead><tbody>
+    ${mats.map(m => `<tr>
+      <td><b>${esc(nomeMat(m.n))}</b><br><span class="sub" style="font-size:11px">${nomeG[m.g]}</span></td>
+      <td><div class="trilho-m"><i style="width:${m.fat / fatMx * 100}%;background:${corG[m.g]}"></i>${m.ref != null ? `<span class="esp" style="left:${Math.min(100, m.ref / fatMx * 100)}%" title="${d.emAndamento ? 'esperado pela média' : 'média mensal'}"></span>` : ''}</div></td>
+      <td class="n"><b>${m.fat ? mil(m.fat) : '<span class="down">não vendido</span>'}</b><br><span class="sub" style="font-size:11px">${m.vol ? tn(m.vol, 1) : ''}</span></td>
+      <td class="n">${m.ref != null ? mil(m.ref) : '—'}<br><span class="sub" style="font-size:11px">${m.media != null && d.emAndamento ? `média ${mil(m.media)}/mês` : m.mediaVol ? tn(m.mediaVol, 1) : ''}</span></td>
+      <td class="n">${m.varp == null ? '<span class="sub">novo</span>' : Math.abs(m.varp) < 5 ? '<span class="sub">na média</span>' : `<b class="${m.varp > 0 ? 'up' : 'down'}">${seta(m.varp)} ${nf(Math.abs(m.varp), 0)}%</b>`}</td>
+    </tr>`).join('')}</tbody></table></div>
+    <p class="sub" style="margin-top:8px;font-size:12px">${nBase ? `Média mensal de ${rotBase} (${nBase} ${nBase > 1 ? 'meses fechados' : 'mês fechado'}).${d.emAndamento ? ` Mês em andamento: a média é proporcional aos dias úteis já passados (${pct(espAqui * 100, 0)} do mês).` : ''} A marquinha preta na barra é a referência.` : 'Sem meses anteriores no ano para calcular a média.'}</p>`;
 
   /* ── Prensagem ── */
   const atEsp = d.esperado > 0 ? d.prod / d.esperado * 100 : null;
@@ -453,16 +486,15 @@ function render(d, tarefas, fin) {
       <p class="db-frase">${fraseHTML(fr.comp)}</p>
       <div class="db-grid4">${cardsComp.map(([r, v, s, cmp, vv]) => `<div class="db-card"><div class="rot">${r}</div><div class="val">${v}</div><div class="sub">${s}</div>
         <div class="sub" style="margin-top:8px;padding-top:8px;border-top:1px solid var(--border);display:flex;justify-content:space-between;gap:6px"><span>${cmp}</span>${pillVar(vv)}</div></div>`).join('')}</div>
-      <div class="db-corpo">
+      <div>
         <div>
           <div class="db-mini-t">Para onde foi o volume vendido (${tn(volT, 1)})</div>
           ${volT > 0 ? `<div class="pilha">${grupos.filter(([g]) => c.g[g].vol > 0).map(([g, n, cor]) => `<i style="width:${c.g[g].vol / volT * 100}%;background:${cor}" title="${n}: ${tn(c.g[g].vol, 1)}"></i>`).join('')}</div>
           <div class="leg">${grupos.filter(([g]) => c.g[g].vol > 0).map(([g, n, cor]) => `<span style="--c:${cor}">${n}: <b>${pct(c.g[g].vol / volT * 100, 0)}</b> (${tn(c.g[g].vol, 1)})</span>`).join('')}</div>` : '<div class="vazio">Sem vendas no período.</div>'}
         </div>
-        <div>
-          <div class="db-mini-t">Materiais que mais faturaram</div>
-          ${mats.map(m => `<div class="hb" style="grid-template-columns:130px 1fr 90px"><span title="${esc(m.n)}">${esc(nomeMat(m.n))}<br><span class="sub" style="font-size:11px">${{ prensado:'prensado', granel:'a granel', sucata:'sucata', outros:'outros' }[m.g]}</span></span>
-            <div class="trilho"><i style="width:${m.fat / fatMx * 100}%;background:${{ prensado:COR.verde, granel:COR.s4, sucata:COR.cinza, outros:COR.s1 }[m.g]}"></i></div><span class="v"><b>${mil(m.fat)}</b></span></div>`).join('') || '<div class="vazio">Sem vendas no período.</div>'}
+        <div style="margin-top:18px">
+          <div class="db-mini-t">Venda por material: ${d.emAndamento ? 'mês até agora' : cap(mes)} × média mensal${rotBase ? ` (${rotBase})` : ''}</div>
+          ${matsHTML}
         </div>
       </div>
     </section>
