@@ -28,6 +28,24 @@
     .db-manchete .tag { font-size:11px; font-weight:700; letter-spacing:.14em; text-transform:uppercase; color:#a7f3d0; }
     .db-manchete h1 { font-size:21px; line-height:1.35; margin:6px 0 0; font-weight:700; }
     .db-manchete .ok  { color:#86efac; } .db-manchete .ruim { color:#fecaca; text-decoration:underline; text-decoration-thickness:2px; text-underline-offset:3px; }
+    .db-manchete h1 b { color:#fff; background:rgba(255,255,255,.12); padding:0 4px; border-radius:4px; }
+    .mc-linhas { margin-top:16px; display:flex; flex-direction:column; gap:12px; }
+    .mc-linha { display:grid; grid-template-columns:110px 1fr 280px 130px; gap:14px; align-items:center; }
+    .mc-nome { font-weight:800; font-size:14px; }
+    .mc-barra { position:relative; height:16px; background:rgba(255,255,255,.18); border-radius:8px; }
+    .mc-barra i { position:absolute; left:0; top:0; bottom:0; border-radius:8px; }
+    .mc-barra i.feito { background:#fff; }
+    .mc-barra i.est { background:rgba(255,255,255,.45); }
+    .mc-esp { position:absolute; top:-5px; width:3px; height:26px; background:#fde047; border-radius:2px; transform:translateX(-1px); }
+    .mc-esp em { position:absolute; top:-17px; left:50%; transform:translateX(-50%); font-style:normal; font-size:10.5px; font-weight:700; color:#fde047; white-space:nowrap; }
+    .mc-txt { font-size:13.5px; line-height:1.3; }
+    .mc-txt b { font-size:18px; }
+    .mc-sub { display:block; font-size:11.5px; color:#bbf7d0; }
+    .mc-st { justify-self:end; font-size:11.5px; font-weight:800; padding:4px 10px; border-radius:999px; white-space:nowrap; }
+    .mc-st.ok { background:#dcfce7; color:#166534; } .mc-st.amb { background:#fef3c7; color:#92400e; } .mc-st.verm { background:#fee2e2; color:#991b1b; } .mc-st.nd { background:rgba(255,255,255,.2); color:#fff; }
+    .mc-leg { display:flex; gap:16px; flex-wrap:wrap; margin-top:14px; font-size:11.5px; color:#bbf7d0; }
+    .mc-leg i { display:inline-block; width:12px; height:8px; border-radius:3px; margin-right:5px; vertical-align:0; }
+    .mc-leg i.f { background:#fff; } .mc-leg i.e { background:rgba(255,255,255,.45); } .mc-leg i.m { width:3px; height:12px; background:#fde047; vertical-align:-2px; }
     .db-manchete .badge-parcial { display:inline-block; margin-top:10px; background:rgba(255,255,255,.14); border-radius:999px; padding:3px 10px; font-size:12px; }
 
     /* ── Semáforos ── */
@@ -74,7 +92,7 @@
     .db-mini-t { font-size:11px; font-weight:800; letter-spacing:.06em; text-transform:uppercase; color:var(--text-muted); margin:4px 0 10px; }
 
     /* Barras horizontais */
-    .hb { display:grid; grid-template-columns:150px 1fr 120px; gap:10px; align-items:center; font-size:13px; margin:7px 0; }
+    .hb { display:grid; grid-template-columns:120px 1fr 150px; gap:10px; align-items:center; font-size:13px; margin:7px 0; }
     .hb .trilho { height:12px; background:#eef2f6; border-radius:6px; position:relative; overflow:hidden; }
     .hb .trilho i { position:absolute; left:0; top:0; bottom:0; border-radius:6px; }
     .hb .v { text-align:right; font-variant-numeric:tabular-nums; }
@@ -119,6 +137,7 @@
     @media (max-width: 600px) {
       .db-sem, .db-grid4 { grid-template-columns:1fr; }
       .db-manchete h1 { font-size:17px; }
+      .mc-linha { grid-template-columns:1fr auto; gap:8px 10px; } .mc-barra { grid-column:1 / -1; order:3; margin-top:14px; } .mc-txt { grid-column:1 / -1; order:4; }
       .hb { grid-template-columns:96px 1fr 90px; }
       .db-controles .form-group { flex:1 1 100%; }
       .page-header { flex-wrap:wrap; gap:10px; }
@@ -338,7 +357,7 @@ function render(d, tarefas, fin, materiaisEst = []) {
   ];
   if (fin.pe > 0 && !d.inicioMes) cardsFat.push({ rot: refPe >= fin.pe ? 'Acima do ponto de equilíbrio' : 'Abaixo do ponto de equilíbrio', val:mil(Math.abs(refPe - fin.pe)),
     cls: refPe >= fin.pe ? 'up' : 'down', sub:`equilíbrio: ${mil(fin.pe)}/mês de receita${fin.dre ? ` (DRE ${fin.dre.periodo})` : ' (estudo financeiro)'}` });
-  const semanasHTML = d.semFat.length && d.meta ? `<div class="db-mini-t" style="margin-top:16px">Atingimento da meta por semana</div>` + d.semFat.map(s =>
+  const semanasHTML = d.semFat.length && d.meta ? `<div class="db-mini-t" style="margin-top:16px">Faturamento por semana × meta da semana</div>` + d.semFat.map(s =>
     `<div class="hb"><span>Semana ${s.i}${s.parcial ? ' <span class="sub">(parcial)</span>' : ''}<br><span class="sub" style="font-size:11px">${ddmm(s.s.ini)} a ${ddmm(s.s.fim > d.corte ? d.corte : s.s.fim)}</span></span>
       <div class="trilho"><i style="width:${Math.min(100, s.p || 0)}%;background:${corAt(s.p)}"></i></div><span class="v"><b>${pct(s.p, 0)}</b> · ${mil(s.fat)}</span></div>`).join('') : '';
 
@@ -607,13 +626,41 @@ function render(d, tarefas, fin, materiaisEst = []) {
   const plano4 = planoHTML.replace('id="s-plano"', 'id="b-plano"')
     .replace('<h2>Plano de ação</h2>', '<div><span class="db-q-n">4</span><h2 class="db-q">O que estamos fazendo?</h2></div>');
 
+  /* ── Resumo didático: quanto do mês já passou × quanto já foi feito ── */
+  const espFat = d.emAndamento ? espAqui * 100 : 100;
+  const espProd = d.emAndamento ? (d.capMes > 0 ? d.esperado / d.capMes * 100 : null) : 100;
+  const pFat = atFat, pFatEst = comEst ? atFatEst : null, pProd = atProd;
+  const stRot = d.emAndamento
+    ? { ritmo:['No ritmo','ok'], amb:['Um pouco abaixo','amb'], abaixo:['Abaixo do ritmo','verm'], nd:['Sem base','nd'] }
+    : { ritmo:['Atingido','ok'], amb:['Quase lá','amb'], abaixo:['Abaixo','verm'], nd:['Sem base','nd'] };
+  const linhaResumo = (nome, unid, p, pEst, esp, st, extra) => {
+    const [rot, cl] = stRot[st] || stRot.nd;
+    const w = v => Math.max(0, Math.min(100, v || 0));
+    return `<div class="mc-linha">
+      <div class="mc-nome">${nome}</div>
+      <div class="mc-barra">
+        ${pEst != null ? `<i class="est" style="width:${w(pEst)}%"></i>` : ''}<i class="feito" style="width:${w(p)}%"></i>
+        ${esp != null && d.emAndamento ? `<span class="mc-esp" style="left:${w(esp)}%"><em>esperado ${pct(esp, 0)}</em></span>` : ''}
+      </div>
+      <div class="mc-txt"><b>${pct(p, 0)}</b> ${unid}${pEst != null ? ` <span class="mc-sub">(${pct(pEst, 0)} contando o estoque)</span>` : ''}${extra ? `<span class="mc-sub">${extra}</span>` : ''}</div>
+      <span class="mc-st ${cl}">${rot}</span>
+    </div>`;
+  };
+  const resumoHTML = `<div class="db-manchete">
+      <div class="tag">Resumo · ${cap(mes)} ${d.M.slice(0, 4)}${d.emAndamento ? ` · dados até ${ddmm(d.corte)}` : ' · mês fechado'}</div>
+      <h1>${d.emAndamento
+        ? `Já passaram <b>${d.dp} de ${d.du} dias úteis</b> do mês. Para estar no ritmo, até hoje era preciso ter feito cerca de <b>${pct(espFat, 0)}</b> do mês.`
+        : `${cap(mes)} terminou. Veja quanto do mês foi entregue.`}</h1>
+      <div class="mc-linhas">
+        ${d.meta > 0 ? linhaResumo('Faturamento', `da meta de ${mil(d.meta)}`, pFat, pFatEst, espFat, inds[0].st, `vendido: ${mil(c.fat)}`) : ''}
+        ${d.capMes > 0 ? linhaResumo('Prensagem', `da capacidade de ${tCap(d.capMes)} t`, pProd, null, espProd, inds[1].st, `produzido: ${nf(d.prod / 1000, 1)} t`) : ''}
+      </div>
+      ${d.emAndamento ? '<div class="mc-leg"><span><i class="f"></i>feito até hoje</span><span><i class="e"></i>com o estoque pronto</span><span><i class="m"></i>onde deveria estar hoje</span></div>' : ''}
+    </div>`;
+
   /* ── Montagem ── */
   $('#db-conteudo').innerHTML = `
-    <div class="db-manchete">
-      <div class="tag">Resumo executivo · ${cap(mes)} ${d.M.slice(0, 4)}</div>
-      <h1>${fraseHTML(fr.resumo)}</h1>
-      ${d.emAndamento ? `<span class="badge-parcial">Mês em andamento · dados até ${ddmm(d.corte)}</span>` : ''}
-    </div>
+    ${resumoHTML}
     <div class="db-sem">${semHTML}</div>
 
     <section class="db-sec" id="b-meta">
@@ -634,6 +681,10 @@ function render(d, tarefas, fin, materiaisEst = []) {
         <div><div class="chart-wrap" style="height:240px"><canvas id="c-prensa"></canvas></div></div>
         <div class="db-cards">${cardsOper.filter(Boolean).map(cardHTML).join('')}</div>
       </div>
+      <div class="db-corpo" style="margin-top:6px"><div>${porPrensaHTML}</div><div>${semanasHTML}</div></div>
+      <div class="db-mini-t" style="margin-top:18px">Para onde foi o volume vendido (${tn(volT, 1)})</div>
+      ${volT > 0 ? `<div class="pilha">${grupos.filter(([g]) => c.g[g].vol > 0).map(([g, n, cor]) => `<i style="width:${c.g[g].vol / volT * 100}%;background:${cor}" title="${n}: ${tn(c.g[g].vol, 1)}"></i>`).join('')}</div>
+      <div class="leg">${grupos.filter(([g]) => c.g[g].vol > 0).map(([g, n, cor]) => `<span style="--c:${cor}">${n}: <b>${pct(c.g[g].vol / volT * 100, 0)}</b> (${tn(c.g[g].vol, 1)})</span>`).join('')}</div>` : '<div class="vazio">Sem vendas no período.</div>'}
       <div class="db-mini-t" style="margin-top:18px">Equipamentos com problema</div>
       ${probHTML}
       ${voltaram.length ? `<p class="sub" style="margin-top:10px">Pararam no mês e já voltaram: ${voltaram.map(x => `${esc(nomeEq(x.e))} (${x.dias} dia${x.dias > 1 ? 's' : ''})`).join(' · ')}.</p>` : ''}
@@ -643,15 +694,11 @@ function render(d, tarefas, fin, materiaisEst = []) {
     ${plano4}
 
     <details class="db-mais">
-      <summary>Detalhe comercial e de produção <span class="sub">preços e ticket médio, para onde foi o volume, metas por semana, cada prensa e cenários de equilíbrio</span></summary>
+      <summary>Detalhe comercial e de produção <span class="sub">preços e ticket médio e cenários de equilíbrio</span></summary>
       <section class="db-sec">
         <p class="db-frase">${fraseHTML(fr.comp)}</p>
         <div class="db-grid4">${cardsComp.map(([r, v, s2, cmp, vv]) => `<div class="db-card"><div class="rot">${r}</div><div class="val">${v}</div><div class="sub">${s2}</div>
           <div class="sub" style="margin-top:8px;padding-top:8px;border-top:1px solid var(--border);display:flex;justify-content:space-between;gap:6px"><span>${cmp}</span>${pillVar(vv)}</div></div>`).join('')}</div>
-        <div class="db-mini-t">Para onde foi o volume vendido (${tn(volT, 1)})</div>
-        ${volT > 0 ? `<div class="pilha">${grupos.filter(([g]) => c.g[g].vol > 0).map(([g, n, cor]) => `<i style="width:${c.g[g].vol / volT * 100}%;background:${cor}" title="${n}: ${tn(c.g[g].vol, 1)}"></i>`).join('')}</div>
-        <div class="leg">${grupos.filter(([g]) => c.g[g].vol > 0).map(([g, n, cor]) => `<span style="--c:${cor}">${n}: <b>${pct(c.g[g].vol / volT * 100, 0)}</b> (${tn(c.g[g].vol, 1)})</span>`).join('')}</div>` : '<div class="vazio">Sem vendas no período.</div>'}
-        <div class="db-corpo" style="margin-top:8px"><div>${semanasHTML}</div><div>${porPrensaHTML}</div></div>
         ${cenHTML}
       </section>
       <p class="sub" style="text-align:center;margin:8px 0">Precisa do balanço de entradas, dos clientes ou das avaliações da equipe? <a href="dashboard-detalhado.html" style="color:var(--primary);font-weight:600">Abrir o relatório detalhado →</a></p>
