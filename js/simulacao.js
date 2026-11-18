@@ -137,11 +137,11 @@ const ROTEIROS = {
   ],
 
   'dashboard.html': [
-    { alvo: '#f-mes', texto: 'Escolha o <b>mês</b>. O mês atual mostra os dados até ontem.' },
-    { alvo: () => document.querySelector('.db-manchete'), texto: 'A <b>frase do resumo</b>: verde é bom, vermelho pede atenção.' },
-    { alvo: () => document.querySelector('.db-sem'), texto: 'Os <b>4 selos</b> do mês. A marquinha preta é o esperado até hoje. Clique num selo para ver o detalhe.' },
+    { alvo: '#rel-btn-mes', texto: 'Escolha ver por <b>Mês</b> ou por <b>Ano</b>.' },
+    { alvo: '#rel-mes', texto: 'Escolha o período.' },
+    { alvo: '#rel-cat-todos', texto: 'Filtre por <b>Todos</b>, <b>Recicláveis</b> ou <b>Não Recicláveis</b>.' },
     { alvo: () => document.querySelector('.exp-lembrete'), texto: 'Se houver experiência vencendo em até 7 dias, aparece este <b>lembrete</b>. Clique em <b>Avaliar no RH</b>.' },
-    { alvo: () => document.getElementById('s-plano'), texto: 'No <b>Plano de ação</b>, comece pelas atrasadas.' },
+    { texto: 'Os números vêm sozinhos das outras telas. Se algo estiver errado, corrija na tela de origem.' },
   ],
 
   'indicadores.html': [
