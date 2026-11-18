@@ -377,6 +377,12 @@ function render(d, tarefas, fin, materiaisEst = []) {
   const comEstCol = d.emAndamento;
   const potencial = T.fat + T.estVal;
   const faltaTot = Math.max(0, T.media - T.fat), nAbaixo = mats.filter(m => m.falta > 0).length;
+  // Tabela: só os materiais vendidos até agora no mês
+  const vend = mats.filter(m => m.fat > 0), naoV = mats.filter(m => !(m.fat > 0) && m.media > 0);
+  const TV = vend.reduce((t, m) => { ['fat','vol','media','mediaVol','ref','refVol','falta','faltaVol','estKg','estVal'].forEach(k => t[k] += m[k] || 0); return t; },
+    { fat:0, vol:0, media:0, mediaVol:0, ref:0, refVol:0, falta:0, faltaVol:0, estKg:0, estVal:0 });
+  const fatMxV = Math.max(1, ...vend.map(m => Math.max(m.fat, m.media || 0)));
+  const naoVMedia = naoV.reduce((x, m) => x + m.media, 0);
   const resumoMat = nBase ? `<div class="db-grid4" style="margin-bottom:12px">
       <div class="db-card"><div class="rot">${d.emAndamento ? `Vendido até ${ddmm(d.corte)}` : `Vendido em ${mes}`}</div><div class="val">${mil(T.fat)}</div><div class="sub">${tn(T.vol, 1)}${d.emAndamento ? ` · esperado pela média: ${mil(T.ref)}` : ''}</div></div>
       <div class="db-card"><div class="rot">Média mensal (${rotBase})</div><div class="val">${mil(T.media)}</div><div class="sub">${tn(T.mediaVol, 1)} por mês</div></div>
@@ -385,7 +391,7 @@ function render(d, tarefas, fin, materiaisEst = []) {
       ${comEstCol ? `<div class="db-card dest"><div class="rot">Vendido + estoque</div><div class="val">${mil(potencial)}</div><div class="sub">estoque: ${mil(T.estVal)} (${tn(T.estKg, 1)}) · ${potencial >= T.media ? `<span class="up">cobre a média</span>` : `<span class="down">faltam ${mil(T.media - potencial)}</span>`}</div></div>`
         : `<div class="db-card"><div class="rot">Resultado × média</div><div class="val ${T.fat >= T.media ? 'up' : 'down'}">${pct(T.media ? T.fat / T.media * 100 : null, 0)}</div><div class="sub">da média mensal</div></div>`}
     </div>` : '';
-  const matsHTML = !mats.length ? '<div class="vazio">Sem vendas no período.</div>' : resumoMat + `
+  const matsHTML = !vend.length ? resumoMat + '<div class="vazio">Nenhum material vendido ainda neste mês.</div>' : resumoMat + `
     <div class="table-scroll"><table class="db db-mat"><thead><tr>
       <th>Material</th><th style="width:20%"></th>
       <th style="text-align:right">${d.emAndamento ? `Vendido até ${ddmm(d.corte)}` : `Vendido em ${mes}`}</th>
@@ -394,9 +400,9 @@ function render(d, tarefas, fin, materiaisEst = []) {
       <th style="text-align:right">Falta p/ média</th>
       ${comEstCol ? '<th style="text-align:right">Em estoque</th>' : ''}
       <th style="text-align:right">${d.emAndamento ? 'Ritmo' : 'Variação'}</th></tr></thead><tbody>
-    ${mats.map(m => `<tr>
+    ${vend.map(m => `<tr>
       <td><b>${esc(nomeMat(m.n))}</b><br><span class="sub" style="font-size:11px">${nomeG[m.g]}</span></td>
-      <td><div class="trilho-m"><i style="width:${m.fat / fatMx * 100}%;background:${corG[m.g]}"></i>${m.media != null ? `<span class="esp" style="left:${Math.min(100, m.media / fatMx * 100)}%" title="média mensal"></span>` : ''}${d.emAndamento && m.ref != null ? `<span class="esp hoje" style="left:${Math.min(100, m.ref / fatMx * 100)}%" title="esperado até hoje"></span>` : ''}</div></td>
+      <td><div class="trilho-m"><i style="width:${m.fat / fatMxV * 100}%;background:${corG[m.g]}"></i>${m.media != null ? `<span class="esp" style="left:${Math.min(100, m.media / fatMxV * 100)}%" title="média mensal"></span>` : ''}${d.emAndamento && m.ref != null ? `<span class="esp hoje" style="left:${Math.min(100, m.ref / fatMxV * 100)}%" title="esperado até hoje"></span>` : ''}</div></td>
       <td class="n">${m.fat ? vt(m.fat, m.vol) : '<span class="down">não vendido</span>'}</td>
       ${d.emAndamento ? `<td class="n">${m.ref != null ? vt(m.ref, m.refVol) : '—'}</td>` : ''}
       <td class="n">${m.media != null ? vt(m.media, m.mediaVol) : '—'}</td>
@@ -404,13 +410,14 @@ function render(d, tarefas, fin, materiaisEst = []) {
       ${comEstCol ? `<td class="n">${m.estKg ? `${tn(m.estKg, 1)}<br><span class="sub" style="font-size:11px">${mil(m.estVal)}</span>` : '<span class="sub">—</span>'}</td>` : ''}
       <td class="n">${varTxt(m.varp)}</td>
     </tr>`).join('')}
-    <tr class="tot"><td><b>Total</b><br><span class="sub" style="font-size:11px">${mats.length} materiais</span></td><td></td>
-      <td class="n">${vt(T.fat, T.vol)}</td>${d.emAndamento ? `<td class="n">${vt(T.ref, T.refVol)}</td>` : ''}
-      <td class="n">${vt(T.media, T.mediaVol)}</td>
-      <td class="n"><b class="${T.falta > 0 ? 'amb-t' : 'up'}">${T.falta > 0 ? mil(T.falta) : '✓'}</b><br><span class="sub" style="font-size:11px">${T.falta > 0 ? `${tn(T.faltaVol, 1)} · soma dos que faltam` : ''}</span></td>
-      ${comEstCol ? `<td class="n">${tn(T.estKg, 1)}<br><span class="sub" style="font-size:11px">${mil(T.estVal)}</span></td>` : ''}
-      <td class="n">${varTxt(T.ref > 0 ? (T.fat / T.ref - 1) * 100 : null)}</td></tr>
+    <tr class="tot"><td><b>Total dos vendidos</b><br><span class="sub" style="font-size:11px">${vend.length} vendido${vend.length > 1 ? 's' : ''} no mês</span></td><td></td>
+      <td class="n">${vt(TV.fat, TV.vol)}</td>${d.emAndamento ? `<td class="n">${vt(TV.ref, TV.refVol)}</td>` : ''}
+      <td class="n">${vt(TV.media, TV.mediaVol)}</td>
+      <td class="n"><b class="${TV.falta > 0 ? 'amb-t' : 'up'}">${TV.falta > 0 ? mil(TV.falta) : '✓'}</b><br><span class="sub" style="font-size:11px">${TV.falta > 0 ? `${tn(TV.faltaVol, 1)} · soma dos que faltam` : ''}</span></td>
+      ${comEstCol ? `<td class="n">${tn(TV.estKg, 1)}<br><span class="sub" style="font-size:11px">${mil(TV.estVal)}</span></td>` : ''}
+      <td class="n">${varTxt(TV.ref > 0 ? (TV.fat / TV.ref - 1) * 100 : null)}</td></tr>
     </tbody></table></div>
+    ${naoV.length ? `<p class="sub" style="margin-top:10px;font-size:12.5px"><b>${naoV.length} ${naoV.length > 1 ? 'materiais vendidos no ano ainda não saíram' : 'material vendido no ano ainda não saiu'} neste mês</b> (média de ${mil(naoVMedia)}/mês): ${naoV.slice(0, 6).map(m => esc(nomeMat(m.n))).join(', ')}${naoV.length > 6 ? ` e mais ${naoV.length - 6}` : ''}. Eles entram nos cards acima.</p>` : ''}
     <p class="sub" style="margin-top:8px;font-size:12px">${nBase ? `Média mensal de ${rotBase} (${nBase} ${nBase > 1 ? 'meses fechados' : 'mês fechado'}). ${d.emAndamento ? `Esperado até hoje = média × ${pct(espAqui * 100, 0)} do mês (${d.dp} de ${d.du} dias úteis); "Ritmo" compara o vendido com esse esperado. "Falta p/ média" é quanto falta vender até o fim do mês para chegar à média do mês inteiro. Na barra: marca preta = média do mês, marca cinza = esperado até hoje.` : 'Na barra, a marca preta é a média mensal.'}` : 'Sem meses anteriores no ano para calcular a média.'}</p>`;
 
   /* ── Prensagem ── */
