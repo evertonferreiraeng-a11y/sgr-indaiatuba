@@ -80,13 +80,14 @@ export const AJUDA = {
     resumo: 'Cadastro das máquinas e situação de cada uma no dia: operando, com restrição ou parada.',
     quando: '<b>Todo dia, no início do dia</b>. A Produção e a Apresentação do Comitê usam esse status.',
     passos: [
-      'Abra a aba <b>Registro do dia</b> (a data já vem em <b>Hoje</b>). Se a aba mostrar <b>pendente</b>, o dia ainda não foi registrado.',
-      'Em cada equipamento, escolha: <b>Operando</b>, <b>Restrição</b> ou <b>Parado</b>. Se estiver tudo certo, use <b>Marcar todos como operando</b>.',
+      'Confira o <b>Dia</b> no alto da lista (já vem em <b>Hoje</b>). Ao lado aparece se o dia já foi registrado.',
+      'Em cada card, marque <b>Operando</b>, <b>Restrição</b> ou <b>Parado</b>. Na restrição, informe quanto % ainda funciona. Se estiver tudo certo, use <b>Todos operando</b>.',
       'Clique em <b>Salvar dia</b>.',
-      'Se algum estiver parado ou com restrição, vá à aba <b>Equipamentos</b>, clique na situação do card e escreva o motivo em <b>Observações</b>.',
+      'Se algum estiver parado ou com restrição, clique no lápis do card e escreva o motivo em <b>Observações</b>.',
     ],
     dicas: [
       'Clique em Operando / Com restrição / Parado no topo para ver só esses equipamentos.',
+      'Ao salvar o dia de hoje, a situação marcada também passa a ser a situação atual do equipamento nas outras telas.',
       '<b>+ Novo Equipamento</b> só serve para cadastrar uma máquina nova. Não é preciso usar no dia a dia.',
     ],
   },
