@@ -81,6 +81,8 @@
     .trilho-m { height:12px; background:#eef2f6; border-radius:6px; position:relative; }
     .trilho-m i { position:absolute; left:0; top:0; bottom:0; border-radius:6px; }
     .trilho-m .esp { position:absolute; top:-3px; width:2px; height:18px; background:#0f172a; border-radius:1px; }
+    .trilho-m .esp.hoje { background:#94a3b8; }
+    table.db-mat tr.tot td { background:#f8fafc; border-top:2px solid var(--border); }
     table.db-mat td { vertical-align:middle; }
     .pilha { display:flex; height:22px; border-radius:6px; overflow:hidden; margin:6px 0 8px; }
     .pilha i { display:block; height:100%; }
@@ -220,7 +222,7 @@ async function carregar() {
     const est = finAtual(M);
     const fin = dre ? { pe:dre.pe, fixos:dre.fixos, liq:dre.liq, alvo:est.alvo, acerto:est.acerto, dre } : est;
     renderLembrete(colaboradores);
-    render(d, tarefas, fin);
+    render(d, tarefas, fin, materiais);
   } catch (e) {
     console.error(e);
     $('#db-conteudo').innerHTML = `<div class="card vazio">Não foi possível carregar os indicadores: ${esc(e.message)}</div>`;
@@ -255,7 +257,7 @@ const pillVar = v => v == null ? '' : Math.abs(v) < 2 ? '<span class="sub">está
 const nomeEq = e => e.frota ? `${e.nome} ${e.frota}` : e.nome;
 
 /* ═════════════ Render ═════════════ */
-function render(d, tarefas, fin) {
+function render(d, tarefas, fin, materiaisEst = []) {
   Object.values(charts).forEach(c => c.destroy()); charts = {};
   const fr = frasesPadrao(d, tarefas, fin);
   const eq = analiseEquilibrio(d, fin);
@@ -350,29 +352,66 @@ function render(d, tarefas, fin) {
   const nBase = mesesBase.length;
   const somaBase = {};
   mesesBase.forEach(x => Object.entries(porMat(x.r)).forEach(([n, v]) => { const b = (somaBase[n] = somaBase[n] || { fat:0, vol:0, g:v.g }); b.fat += v.fat; b.vol += v.vol; }));
-  const fracEsp = d.emAndamento ? espAqui : 1;   // mês em andamento: compara com a média proporcional aos dias úteis
+  const fracEsp = d.emAndamento ? espAqui : 1;   // mês em andamento: esperado = média × dias úteis já passados
+  // Estoque atual por material (tela Estoque): só faz sentido no mês em andamento (é a foto de hoje)
+  const estPor = {};
+  if (d.emAndamento) materiaisEst.forEach(m => { const kg = parseFloat(m.estoque_kg || 0); if (kg > 0) estPor[m.nome] = { kg, val:kg * parseFloat(m.valor_unitario || 0) }; });
+  // Todos os materiais já comercializados no ano (até o mês selecionado), vendidos ou não neste mês
   const mats = [...new Set([...Object.keys(curMat), ...Object.keys(somaBase)])].map(n => {
     const cu = curMat[n] || { fat:0, vol:0 }, b = somaBase[n];
     const media = b && nBase ? b.fat / nBase : null, mediaVol = b && nBase ? b.vol / nBase : null;
-    const ref = media != null ? media * fracEsp : null;
-    return { n, g:(curMat[n] || b).g, fat:cu.fat, vol:cu.vol, media, mediaVol, ref, varp:ref > 0 ? (cu.fat / ref - 1) * 100 : null };
-  }).sort((x, y) => Math.max(y.fat, y.ref || 0) - Math.max(x.fat, x.ref || 0)).slice(0, 8);
-  const fatMx = Math.max(1, ...mats.map(m => Math.max(m.fat, m.ref || 0)));
+    const ref = media != null ? media * fracEsp : null, refVol = mediaVol != null ? mediaVol * fracEsp : null;
+    const est = estPor[n] || { kg:0, val:0 };
+    return { n, g:(curMat[n] || b).g, fat:cu.fat, vol:cu.vol, media, mediaVol, ref, refVol,
+      falta:media != null ? Math.max(0, media - cu.fat) : null, faltaVol:mediaVol != null ? Math.max(0, mediaVol - cu.vol) : null,
+      estKg:est.kg, estVal:est.val, varp:ref > 0 ? (cu.fat / ref - 1) * 100 : null };
+  }).sort((x, y) => (y.media || 0) - (x.media || 0) || y.fat - x.fat);
+  const fatMx = Math.max(1, ...mats.map(m => Math.max(m.fat, m.media || 0)));
+  const T = mats.reduce((t, m) => { ['fat','vol','media','mediaVol','ref','refVol','falta','faltaVol','estKg','estVal'].forEach(k => t[k] += m[k] || 0); return t; },
+    { fat:0, vol:0, media:0, mediaVol:0, ref:0, refVol:0, falta:0, faltaVol:0, estKg:0, estVal:0 });
   const rotBase = nBase ? `${MES_AB[+mesesBase[0].mk.slice(5) - 1].toLowerCase()}${nBase > 1 ? `–${MES_AB[+mesesBase[nBase - 1].mk.slice(5) - 1].toLowerCase()}` : ''}` : '';
   const nomeG = { prensado:'prensado', granel:'a granel', sucata:'sucata', outros:'outros' };
   const corG = { prensado:COR.verde, granel:COR.s4, sucata:COR.cinza, outros:COR.s1 };
-  const matsHTML = !mats.length ? '<div class="vazio">Sem vendas no período.</div>' : `
+  const vt = (r, kg) => `<b>${mil(r)}</b><br><span class="sub" style="font-size:11px">${tn(kg, 1)}</span>`;
+  const varTxt = v => v == null ? '<span class="sub">novo</span>' : Math.abs(v) < 5 ? '<span class="sub">no ritmo</span>' : `<b class="${v > 0 ? 'up' : 'down'}">${seta(v)} ${nf(Math.abs(v), 0)}%</b>`;
+  const comEstCol = d.emAndamento;
+  const potencial = T.fat + T.estVal;
+  const faltaTot = Math.max(0, T.media - T.fat), nAbaixo = mats.filter(m => m.falta > 0).length;
+  const resumoMat = nBase ? `<div class="db-grid4" style="margin-bottom:12px">
+      <div class="db-card"><div class="rot">${d.emAndamento ? `Vendido até ${ddmm(d.corte)}` : `Vendido em ${mes}`}</div><div class="val">${mil(T.fat)}</div><div class="sub">${tn(T.vol, 1)}${d.emAndamento ? ` · esperado pela média: ${mil(T.ref)}` : ''}</div></div>
+      <div class="db-card"><div class="rot">Média mensal (${rotBase})</div><div class="val">${mil(T.media)}</div><div class="sub">${tn(T.mediaVol, 1)} por mês</div></div>
+      <div class="db-card"><div class="rot">${faltaTot > 0 ? 'Falta para a média do mês' : 'Média do mês atingida'}</div><div class="val ${faltaTot > 0 ? 'amb-t' : 'up'}">${faltaTot > 0 ? mil(faltaTot) : `+${mil(T.fat - T.media)}`}</div>
+        <div class="sub">${faltaTot > 0 ? `${tn(Math.max(0, T.mediaVol - T.vol), 1)} a vender · ` : ''}${nAbaixo ? `${nAbaixo} ${nAbaixo > 1 ? 'materiais' : 'material'} abaixo da média: ${mil(T.falta)}` : 'todos os materiais na média'}</div></div>
+      ${comEstCol ? `<div class="db-card dest"><div class="rot">Vendido + estoque</div><div class="val">${mil(potencial)}</div><div class="sub">estoque: ${mil(T.estVal)} (${tn(T.estKg, 1)}) · ${potencial >= T.media ? `<span class="up">cobre a média</span>` : `<span class="down">faltam ${mil(T.media - potencial)}</span>`}</div></div>`
+        : `<div class="db-card"><div class="rot">Resultado × média</div><div class="val ${T.fat >= T.media ? 'up' : 'down'}">${pct(T.media ? T.fat / T.media * 100 : null, 0)}</div><div class="sub">da média mensal</div></div>`}
+    </div>` : '';
+  const matsHTML = !mats.length ? '<div class="vazio">Sem vendas no período.</div>' : resumoMat + `
     <div class="table-scroll"><table class="db db-mat"><thead><tr>
-      <th>Material</th><th style="width:38%"></th><th style="text-align:right">${d.emAndamento ? `Até ${ddmm(d.corte)}` : cap(mes)}</th>
-      <th style="text-align:right">${d.emAndamento ? 'Esperado pela média' : 'Média mensal'}</th><th style="text-align:right">Variação</th></tr></thead><tbody>
+      <th>Material</th><th style="width:20%"></th>
+      <th style="text-align:right">${d.emAndamento ? `Vendido até ${ddmm(d.corte)}` : `Vendido em ${mes}`}</th>
+      ${d.emAndamento ? '<th style="text-align:right">Esperado até hoje</th>' : ''}
+      <th style="text-align:right">Média mensal</th>
+      <th style="text-align:right">Falta p/ média</th>
+      ${comEstCol ? '<th style="text-align:right">Em estoque</th>' : ''}
+      <th style="text-align:right">${d.emAndamento ? 'Ritmo' : 'Variação'}</th></tr></thead><tbody>
     ${mats.map(m => `<tr>
       <td><b>${esc(nomeMat(m.n))}</b><br><span class="sub" style="font-size:11px">${nomeG[m.g]}</span></td>
-      <td><div class="trilho-m"><i style="width:${m.fat / fatMx * 100}%;background:${corG[m.g]}"></i>${m.ref != null ? `<span class="esp" style="left:${Math.min(100, m.ref / fatMx * 100)}%" title="${d.emAndamento ? 'esperado pela média' : 'média mensal'}"></span>` : ''}</div></td>
-      <td class="n"><b>${m.fat ? mil(m.fat) : '<span class="down">não vendido</span>'}</b><br><span class="sub" style="font-size:11px">${m.vol ? tn(m.vol, 1) : ''}</span></td>
-      <td class="n">${m.ref != null ? mil(m.ref) : '—'}<br><span class="sub" style="font-size:11px">${m.media != null && d.emAndamento ? `média ${mil(m.media)}/mês` : m.mediaVol ? tn(m.mediaVol, 1) : ''}</span></td>
-      <td class="n">${m.varp == null ? '<span class="sub">novo</span>' : Math.abs(m.varp) < 5 ? '<span class="sub">na média</span>' : `<b class="${m.varp > 0 ? 'up' : 'down'}">${seta(m.varp)} ${nf(Math.abs(m.varp), 0)}%</b>`}</td>
-    </tr>`).join('')}</tbody></table></div>
-    <p class="sub" style="margin-top:8px;font-size:12px">${nBase ? `Média mensal de ${rotBase} (${nBase} ${nBase > 1 ? 'meses fechados' : 'mês fechado'}).${d.emAndamento ? ` Mês em andamento: a média é proporcional aos dias úteis já passados (${pct(espAqui * 100, 0)} do mês).` : ''} A marquinha preta na barra é a referência.` : 'Sem meses anteriores no ano para calcular a média.'}</p>`;
+      <td><div class="trilho-m"><i style="width:${m.fat / fatMx * 100}%;background:${corG[m.g]}"></i>${m.media != null ? `<span class="esp" style="left:${Math.min(100, m.media / fatMx * 100)}%" title="média mensal"></span>` : ''}${d.emAndamento && m.ref != null ? `<span class="esp hoje" style="left:${Math.min(100, m.ref / fatMx * 100)}%" title="esperado até hoje"></span>` : ''}</div></td>
+      <td class="n">${m.fat ? vt(m.fat, m.vol) : '<span class="down">não vendido</span>'}</td>
+      ${d.emAndamento ? `<td class="n">${m.ref != null ? vt(m.ref, m.refVol) : '—'}</td>` : ''}
+      <td class="n">${m.media != null ? vt(m.media, m.mediaVol) : '—'}</td>
+      <td class="n">${m.falta == null ? '—' : m.falta > 0 ? `<b class="amb-t">${mil(m.falta)}</b><br><span class="sub" style="font-size:11px">${tn(m.faltaVol, 1)}</span>` : '<span class="up">✓ atingida</span>'}</td>
+      ${comEstCol ? `<td class="n">${m.estKg ? `${tn(m.estKg, 1)}<br><span class="sub" style="font-size:11px">${mil(m.estVal)}</span>` : '<span class="sub">—</span>'}</td>` : ''}
+      <td class="n">${varTxt(m.varp)}</td>
+    </tr>`).join('')}
+    <tr class="tot"><td><b>Total</b><br><span class="sub" style="font-size:11px">${mats.length} materiais</span></td><td></td>
+      <td class="n">${vt(T.fat, T.vol)}</td>${d.emAndamento ? `<td class="n">${vt(T.ref, T.refVol)}</td>` : ''}
+      <td class="n">${vt(T.media, T.mediaVol)}</td>
+      <td class="n"><b class="${T.falta > 0 ? 'amb-t' : 'up'}">${T.falta > 0 ? mil(T.falta) : '✓'}</b><br><span class="sub" style="font-size:11px">${T.falta > 0 ? `${tn(T.faltaVol, 1)} · soma dos que faltam` : ''}</span></td>
+      ${comEstCol ? `<td class="n">${tn(T.estKg, 1)}<br><span class="sub" style="font-size:11px">${mil(T.estVal)}</span></td>` : ''}
+      <td class="n">${varTxt(T.ref > 0 ? (T.fat / T.ref - 1) * 100 : null)}</td></tr>
+    </tbody></table></div>
+    <p class="sub" style="margin-top:8px;font-size:12px">${nBase ? `Média mensal de ${rotBase} (${nBase} ${nBase > 1 ? 'meses fechados' : 'mês fechado'}). ${d.emAndamento ? `Esperado até hoje = média × ${pct(espAqui * 100, 0)} do mês (${d.dp} de ${d.du} dias úteis); "Ritmo" compara o vendido com esse esperado. "Falta p/ média" é quanto falta vender até o fim do mês para chegar à média do mês inteiro. Na barra: marca preta = média do mês, marca cinza = esperado até hoje.` : 'Na barra, a marca preta é a média mensal.'}` : 'Sem meses anteriores no ano para calcular a média.'}</p>`;
 
   /* ── Prensagem ── */
   const atEsp = d.esperado > 0 ? d.prod / d.esperado * 100 : null;
