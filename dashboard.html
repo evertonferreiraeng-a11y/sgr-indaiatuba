@@ -313,6 +313,14 @@
     .db-home .db-ind .barra i { position:relative; }
     .db-home .db-ind .barra i.seg-est { position:absolute; left:0; top:0; opacity:.32; }
     .db-home .barra-leg b { font-size:16px; letter-spacing:-.01em; }
+    .db-home .db-ind .barra i.seg-gap { position:absolute; top:0; height:100%; border-radius:0 999px 999px 0;
+      background:repeating-linear-gradient(135deg, #fca5a5 0 4px, #fee2e2 4px 8px); box-shadow:inset 0 0 0 1px #f87171; }
+    .barra-leg.leg2 { align-items:center; margin-top:6px; gap:8px; flex-wrap:wrap; }
+    .gap-tag { display:inline-flex; align-items:center; gap:6px; font-size:12px; font-weight:600; padding:3px 10px; border-radius:999px; white-space:nowrap; }
+    .gap-tag b { font-size:13px; font-weight:800; }
+    .gap-tag.falta { background:#fef2f2; color:#991b1b; border:1px solid #fecaca; }
+    .gap-tag.acima { background:#ecfdf3; color:#166534; border:1px solid #bbf7d0; }
+    .gap-sw { width:14px; height:8px; border-radius:2px; background:repeating-linear-gradient(135deg, #fca5a5 0 3px, #fee2e2 3px 6px); box-shadow:inset 0 0 0 1px #f87171; }
     .db-home .barra-leg .esp-txt { text-align:right; white-space:nowrap; padding-left:8px; }
     .db-home .barra-leg .esp-txt b { font-size:13px; color:var(--text); }
     .barra-leg .leg-dt { display:inline-block; width:8px; height:8px; border-radius:50%; margin:0 4px 0 8px; }
@@ -654,7 +662,14 @@ function render(d, tarefas, fin, materiaisEst = []) {
       mot: `média de <b>${nf(prodA / 1000 / nMeses, 1)} t/mês</b>${espP > prodA ? ` · faltam ${nf((espP - prodA) / 1000, 1)} t para o esperado` : ''}` });
     inds[2].cap = 'Disponíveis agora';
     inds[3].cap = 'Colaboradores agora';
+    inds[0].tot = metaA; inds[1].tot = capA;
   }
+  // Diferença para o esperado (mês fechado: para a meta) — vai pintada na barra, no lugar dos avisos de texto
+  if (!modoAno) { inds[0].tot = d.meta; inds[1].tot = d.capMes; }
+  inds[0].fmtGap = v => mil(v);
+  inds[1].fmtGap = v => `${nf(v / 1000, 1)} t`;
+  inds[0].mot = '';
+  inds[1].mot = !modoAno && d.capNominal > 0 && d.perdaCap / d.capNominal > 0.05 ? `<b>${esc(textoPerdaCap(d))}</b>` : '';
   const corSel = st => ({ ritmo:COR.ok, ok:COR.ok, amb:COR.amb, abaixo:COR.ruim, verm:COR.ruim, nd:COR.cinza }[st]);
   // Ícones dos cards (traço simples, herdam a cor do status)
   const svgI = p => `<svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${p}</svg>`;
@@ -680,13 +695,26 @@ function render(d, tarefas, fin, materiaisEst = []) {
     // Faturamento com estoque: parte cheia = faturado, parte clara = estoque
     const duas = k.solido != null;
     const sw = duas ? Math.max(0, Math.min(100, k.solido)) : pw;
+    // Falta até o esperado (ou até a meta, em mês fechado)
+    const alvoP = esp != null ? Math.min(100, esp) : 100;
+    let gapSeg = '', gapTag = '';
+    if (k.barra && k.tot > 0 && k.fmtGap) {
+      const dif = (alvoP - (p || 0)) / 100 * k.tot;
+      const fem = k.alvo === 'fat' ? 'a meta' : 'a capacidade';
+      const para = esp != null ? 'para o esperado' : `para ${fem}`;
+      const acima = esp != null ? 'acima do esperado' : `acima d${fem}`;
+      if (dif > 0.5) {
+        gapSeg = `<i class="seg-gap" style="left:${pw}%;width:${Math.max(0, alvoP - pw)}%" title="${esp != null ? 'falta' : 'faltou'} ${k.fmtGap(dif)} ${para}"></i>`;
+        gapTag = `<span class="gap-tag falta"><span class="gap-sw"></span>${esp != null ? 'falta' : 'faltou'} <b>${k.fmtGap(dif)}</b> ${para}</span>`;
+      } else gapTag = `<span class="gap-tag acima">✓ <b>${k.fmtGap(-dif)}</b> ${acima}</span>`;
+    }
     return `<button class="db-ind ${cls}" data-alvo="${k.alvo}">
       <div class="hd"><span class="ind-ic">${ICO[k.alvo] || ''}</span><span class="rot">${k.rot}</span><span class="selo ${cls}">${rot}</span></div>
       ${k.cap ? `<div class="ind-cap">${k.cap}</div>` : ''}
       <div class="val-row"><div class="val">${k.val}</div>${k.ext ? `<div class="ind-ext">${k.ext}</div>` : ''}</div><div class="sub">${k.sub}</div>
-      ${k.barra ? `<div class="barra">${duas ? `<i class="seg-est" style="width:${pw}%;background:${cor}"></i>` : ''}<i style="width:${sw}%;background:${cor}"></i>${esp != null ? `<span class="esp" style="left:${Math.min(100, esp)}%" title="esperado até aqui"></span>` : ''}</div>
+      ${k.barra ? `<div class="barra">${duas ? `<i class="seg-est" style="width:${pw}%;background:${cor}"></i>` : ''}<i style="width:${sw}%;background:${cor}"></i>${gapSeg}${esp != null ? `<span class="esp" style="left:${Math.min(100, esp)}%" title="esperado até aqui"></span>` : ''}</div>
         <div class="barra-leg"><span><b style="color:${cor}">${pct(p, 0)}</b>${k.barRot ? ` ${k.barRot}` : ''}</span>${esp != null ? `<span class="esp-txt" title="esperado até hoje: ${pct(esp, 0)}">esperado <b>${k.espVal || pct(esp, 0)}</b></span>` : ''}</div>
-        ${duas ? `<div class="barra-leg" style="justify-content:flex-start;margin-top:2px"><span><span class="leg-dt" style="background:${cor};margin-left:0"></span>faturado <span class="leg-dt" style="background:${cor};opacity:.32"></span>estoque</span></div>` : ''}` : ''}
+        ${duas || gapTag ? `<div class="barra-leg leg2">${duas ? `<span><span class="leg-dt" style="background:${cor};margin-left:0"></span>faturado <span class="leg-dt" style="background:${cor};opacity:.32"></span>estoque</span>` : '<span></span>'}${gapTag}</div>` : ''}` : ''}
       ${!['ok','ritmo','nd'].includes(k.st) && k.mot ? `<div class="mot"><span class="mot-ic">${MOT_ICO[k.alvo] || ''}</span><span>${k.mot}</span></div>` : ''}
       <div class="ver">Ver detalhes <span>→</span></div>
     </button>`;
