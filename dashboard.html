@@ -145,9 +145,7 @@
     .ton-meses b { display:block; font-size:12.5px; color:var(--text); }
     .ton-meses .cur b { color:var(--primary); }
     .ton-meses .rot { grid-column:1 / -1; text-align:left; font-weight:800; letter-spacing:.05em; text-transform:uppercase; font-size:10.5px; margin-left:-50px; }
-    .mt-ton { margin-top:12px; padding-top:10px; border-top:2px dashed #cfe3d6; }
-    .mt-ton-hd { font-size:11px; font-weight:800; letter-spacing:.05em; text-transform:uppercase; color:var(--text-muted); margin-bottom:2px; }
-    .mt-ton .mt-ln b { font-size:14px; }
+    .mt-ln b .mt-t { font-size:11.5px; font-weight:600; color:var(--text-muted); margin-left:4px; white-space:nowrap; }
     .mb-barra { position:relative; height:16px; background:#eef2f6; border-radius:8px; }
     .mb-barra > i { position:absolute; left:0; top:0; bottom:0; border-radius:8px; }
     .mb-barra .mk { position:absolute; top:-4px; width:3px; height:24px; border-radius:2px; transform:translateX(-1px); }
@@ -953,25 +951,18 @@ function render(d, tarefas, fin, materiaisEst = []) {
     const barraMeta = `<div class="mt-barra"><i class="f" style="width:${w(c.fat)}%"></i>${estM ? `<i class="e" style="left:${w(c.fat)}%;width:${w(garantido) - w(c.fat)}%"></i>` : ''}</div>
 `;
     // um card só: meta, barra e as três parcelas (faturado + estoque + falta = meta)
-    const linha = (cls, rot, v, extra = '') => `<div class="mt-ln ${extra}"><span><i class="${cls}"></i>${rot}</span><b>${mil(v)}</b><em>${pct(v / d.meta * 100, 0)}</em></div>`;
-    const linhas = `<div class="mt-lns">
-        ${linha('f', `Faturado até ${ddmm(d.corte)}`, c.fat)}
-        ${estM ? linha('e', 'Em estoque (pronto para vender)', estM) : ''}
-        ${batida ? `<div class="mt-ln tot"><span>A meta está ${c.fat >= d.meta ? 'batida' : 'garantida com o estoque'}</span></div>`
-          : linha('', estM ? 'Falta (somando faturado + estoque)' : 'Falta para a meta', faltaMeta, 'tot')}
-      </div>`;
-    // Toneladas: vendido, estoque e quanto falta vender no ticket médio atual para fechar a meta
+    // Toneladas pequenas ao lado de cada valor (falta: estimada pelo ticket médio do mês)
     const ticketT = c.vol > 0 ? c.fat / (c.vol / 1000) : (d.antCheio.vol > 0 ? d.antCheio.fat / (d.antCheio.vol / 1000) : null);
     const tFaltaKg = !batida && ticketT ? faltaMeta / ticketT * 1000 : 0;
-    const lnT = (cls, rot, txt, extra = '') => `<div class="mt-ln ${extra}"><span>${cls != null ? `<i class="${cls}"></i>` : ''}${rot}</span><b>${txt}</b><em></em></div>`;
-    const tonHTML = `<div class="mt-ton"><div class="mt-ton-hd">Em toneladas</div>
-        ${lnT('f', `Vendido até ${ddmm(d.corte)}${ticketT && c.vol > 0 ? ` <small style="color:var(--text-muted)">· ${reais0(ticketT)}/t</small>` : ''}`, tn(c.vol, 1))}
-        ${d.estoqueKg > 0 ? lnT('e', 'Em estoque (pronto para vender)', tn(d.estoqueKg, 1)) : ''}
-        ${tFaltaKg > 0 ? lnT('', `Falta vender${ticketT ? ` <small style="color:var(--text-muted)">(no ticket de ${reais0(ticketT)}/t)</small>` : ''}`, `~${tn(tFaltaKg, 0)}`, 'tot') : ''}
-        ${d.antCheio.vol > 0 ? lnT(null, `${cap(nomeMes(d.Mant))} inteiro`, tn(d.antCheio.vol, 1)) : ''}
+    const linha = (cls, rot, v, extra = '', kg = null, tit = '', aprox = false) => `<div class="mt-ln ${extra}"><span><i class="${cls}"></i>${rot}</span><b>${mil(v)}${kg ? ` <small class="mt-t"${tit ? ` title="${tit}"` : ''}>${aprox ? '~' : ''}${tn(kg, aprox ? 0 : 1)}</small>` : ''}</b><em>${pct(v / d.meta * 100, 0)}</em></div>`;
+    const linhas = `<div class="mt-lns">
+        ${linha('f', `Faturado até ${ddmm(d.corte)}`, c.fat, '', c.vol, ticketT && c.vol > 0 ? `ticket médio ${reais0(ticketT)}/t` : '')}
+        ${estM ? linha('e', 'Em estoque (pronto para vender)', estM, '', d.estoqueKg) : ''}
+        ${batida ? `<div class="mt-ln tot"><span>A meta está ${c.fat >= d.meta ? 'batida' : 'garantida com o estoque'}</span></div>`
+          : linha('', estM ? 'Falta (somando faturado + estoque)' : 'Falta para a meta', faltaMeta, 'tot', tFaltaKg, ticketT ? `estimado no ticket de ${reais0(ticketT)}/t` : '', true)}
       </div>`;
     cardsMeta = [
-      { rot:'Meta do mês', val:mil(d.meta), dest:true, selo: batida ? 'ritmo' : noRitmo(pG / espAqui), extra: barraMeta + linhas + tonHTML },
+      { rot:'Meta do mês', val:mil(d.meta), dest:true, selo: batida ? 'ritmo' : noRitmo(pG / espAqui), extra: barraMeta + linhas },
     ];
   }
 
