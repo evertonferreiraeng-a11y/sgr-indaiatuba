@@ -171,6 +171,14 @@
     .st-dia .tr { height:10px; background:#f1f5f9; border-radius:999px; overflow:hidden; }
     .st-dia .tr i { display:block; height:100%; background:#f87171; border-radius:999px; }
     .st-dia b { text-align:right; color:#0f172a; }
+    .aval-item { background:#f8fafc; border-radius:8px; padding:12px; margin-bottom:8px; }
+    .aval-top  { display:flex; align-items:center; justify-content:space-between; margin-bottom:8px; flex-wrap:wrap; gap:6px; }
+    .aval-nota { font-size:22px; font-weight:800; }
+    .aval-criterios { display:grid; grid-template-columns:repeat(7,1fr); gap:4px; }
+    @media(max-width:600px){ .aval-criterios{ grid-template-columns:repeat(4,1fr); } }
+    .crit-pill { background:#fff; border:1px solid #e2e8f0; border-radius:6px; padding:4px 6px; text-align:center; }
+    .crit-pill .cn { font-size:13px; font-weight:700; }
+    .crit-pill .cl { font-size:9px; color:#94a3b8; line-height:1.2; }
     .st-aval { display:flex; flex-direction:column; gap:6px; }
     .st-aval-row { display:flex; align-items:center; gap:10px; font-size:12.5px; }
     .st-aval-row span { width:74px; color:#64748b; }
@@ -687,16 +695,17 @@ function renderEstatisticas() {
   // Últimos 6 meses: presenças, justificadas e faltas empilhadas
   const meses = [];
   for (let i = 5; i >= 0; i--) { const d = new Date(); d.setDate(1); d.setMonth(d.getMonth() - i); meses.push(`${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`); }
-  const porMes = meses.map(k => { const l = ocColab.filter(o => o.data.startsWith(k)); return { k, p: presencaDias(l).p, j: nJust(l), f: nAus(l) - nJust(l), o: n(l, 'ferias') }; });
-  const maxM = Math.max(1, ...porMes.map(m => m.p + m.j + m.f + m.o));
+  // Só presença (verde) e falta (vermelho): justificada também é falta
+  const porMes = meses.map(k => { const l = ocColab.filter(o => o.data.startsWith(k)); return { k, p: presencaDias(l).p, f: nAus(l) }; });
+  const maxM = Math.max(1, ...porMes.map(m => m.p + m.f));
   const MES_AB = ['jan','fev','mar','abr','mai','jun','jul','ago','set','out','nov','dez'];
   const barras = porMes.map(m => {
-    const aus = m.j + m.f, tot = m.p + aus + m.o, h = tot / maxM * 88;
+    const aus = m.f, tot = m.p + aus, h = tot / maxM * 88;
     const seg = (v, c) => v ? `<i style="height:${v / tot * 100}%;background:${c}"></i>` : '';
     const sel = m.k === mesSel;
-    return `<div title="${MES_AB[+m.k.slice(5) - 1]}: ${m.p} presenças, ${aus} faltas (${m.f} sem justif., ${m.j} justificadas) · ${m.o} dias de férias">
+    return `<div title="${MES_AB[+m.k.slice(5) - 1]}: ${m.p} presenças, ${aus} faltas">
       <em>${aus ? `<span style="color:#dc2626">${aus}</span>` : ''}</em>
-      <div class="st-pilha" style="height:${Math.max(3, h)}px${sel ? ';box-shadow:0 0 0 2px #0f5132' : ''}">${seg(m.p, '#4ade80')}${seg(m.o, '#38bdf8')}${seg(m.j, '#fbbf24')}${seg(m.f, '#ef4444')}</div>
+      <div class="st-pilha" style="height:${Math.max(3, h)}px${sel ? ';box-shadow:0 0 0 2px #0f5132' : ''}">${seg(m.p, '#4ade80')}${seg(m.f, '#ef4444')}</div>
       <span${sel ? ' style="color:#0f5132;font-weight:800"' : ''}>${MES_AB[+m.k.slice(5) - 1]}</span></div>`;
   }).join('');
 
@@ -712,8 +721,19 @@ function renderEstatisticas() {
   const corNota = v => v >= 7 ? '#22c55e' : v >= 5 ? '#f59e0b' : '#ef4444';
   const crit = CRITERIOS.map(k => { const vs = avalsColab.map(a => parseFloat(a[k]) || 0).filter(v => v > 0); return { k, v: vs.length ? vs.reduce((s, x) => s + x, 0) / vs.length : null }; }).filter(x => x.v != null);
   const ultAval = avalsColab.map(a => a.data_avaliacao).filter(Boolean).sort().pop();
-  const avalHTML = crit.length ? `<div class="st-aval">${crit.map(x => `<div class="st-aval-row"><span>${ROT[x.k]}</span><div class="tr"><i style="width:${x.v * 10}%;background:${corNota(x.v)}"></i></div><b style="color:${corNota(x.v)}">${x.v.toFixed(1)}</b></div>`).join('')}</div>
-      <div class="st-leg" style="margin-top:10px">${avalsColab.length} avaliaç${avalsColab.length === 1 ? 'ão' : 'ões'}${ultAval ? ` · última em ${dataBR(ultAval)}` : ''}</div>`
+  // Quadradinhos com as notas, igual ao card do RH: uma linha por avaliação (mais recente primeiro)
+  const ROT_Q = ['Relac.','Resp.','Coop.','Conhec.','Inter.','Atitude','Produt.'];
+  const corQ = v => v >= 7 ? '#16a34a' : v >= 5 ? '#d97706' : v > 0 ? '#dc2626' : '#94a3b8';
+  const mediaAv = a => { const vs = CRITERIOS.map(k => parseFloat(a[k]) || 0).filter(v => v > 0); return vs.length ? vs.reduce((s, x) => s + x, 0) / vs.length : null; };
+  const avalOrd = [...avalsColab].sort((a, b) => (b.data_avaliacao || '').localeCompare(a.data_avaliacao || ''));
+  const avalHTML = avalOrd.length ? avalOrd.map(a => {
+      const m = mediaAv(a);
+      return `<div class="aval-item">
+        <div class="aval-top"><span style="font-size:12px;color:#64748b">${dataBR(a.data_avaliacao) || ''}${a.avaliador ? ` · ${a.avaliador}` : ''}</span>
+          <span class="aval-nota" style="color:${corQ(m)}">${m !== null ? m.toFixed(1) : '—'}</span></div>
+        <div class="aval-criterios">${CRITERIOS.map((k, i) => { const v = parseFloat(a[k]); return `<div class="crit-pill"><div class="cn" style="color:${corQ(v)}">${isNaN(v) ? '—' : v}</div><div class="cl">${ROT_Q[i]}</div></div>`; }).join('')}</div>
+      </div>`;
+    }).join('') + `<div class="st-leg" style="margin-top:10px">${avalsColab.length} avaliaç${avalsColab.length === 1 ? 'ão' : 'ões'}${crit.length ? ` · média geral ${(crit.reduce((s, x) => s + x.v, 0) / crit.length).toFixed(1)}` : ''}${ultAval ? ` · última em ${dataBR(ultAval)}` : ''}</div>`
     : '<div class="st-vazio">Nenhuma avaliação registrada.</div>';
 
   el.innerHTML = `
@@ -724,7 +744,7 @@ function renderEstatisticas() {
     <div class="st-sec">Últimos 6 meses</div>
     <div class="st-graf">
       <div class="st-box"><h4>Presenças e ausências por mês</h4><div class="st-barras">${barras}</div>
-        <div class="st-leg"><span><i style="background:#4ade80"></i>Presente</span><span><i style="background:#ef4444"></i>Sem justif.</span><span><i style="background:#fbbf24"></i>Justificada</span><span><i style="background:#38bdf8"></i>Férias</span></div></div>
+        <div class="st-leg"><span><i style="background:#4ade80"></i>Presente</span><span><i style="background:#ef4444"></i>Falta</span></div></div>
       <div class="st-box"><h4>Faltas por dia da semana</h4><div class="st-dias">${dias}</div></div>
     </div>
     <div class="st-sec">Avaliação de desempenho</div>
