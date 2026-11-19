@@ -274,6 +274,24 @@
     .gs-grp h3 { margin:0 0 2px; font-size:12px; font-weight:800; letter-spacing:.06em; text-transform:uppercase; }
     .gs-grp h3.crit { color:#b91c1c; } .gs-grp h3.aten { color:#b45309; } .gs-grp h3.info { color:#1d4ed8; } .gs-grp h3.ok { color:#15803d; }
     .gs-grp h3 small { color:var(--text-muted); }
+    .pf-box { margin-top:14px; border:1px solid #d6e9dd; background:#f6fbf8; border-radius:12px; padding:14px 16px; }
+    .pf-hd { display:flex; align-items:baseline; gap:10px 16px; flex-wrap:wrap; margin-bottom:10px; }
+    .pf-hd h3 { margin:0; font-size:15px; font-weight:800; color:var(--primary); }
+    .pf-hd span { font-size:12.5px; color:#475569; } .pf-hd span b { color:var(--text); font-size:14px; }
+    .pf-alvos { display:flex; gap:8px; flex-wrap:wrap; margin-bottom:12px; }
+    .pf-alvo { display:flex; flex-direction:column; padding:7px 12px; border-radius:9px; background:#fff; border:1px solid #e2e8f0; min-width:150px; }
+    .pf-alvo span { font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:.04em; color:#64748b; }
+    .pf-alvo b { font-size:15px; } .pf-alvo em { font-style:normal; font-size:12px; font-weight:700; }
+    .pf-alvo.falta em { color:#b91c1c; } .pf-alvo.ok em { color:#15803d; }
+    .pf-als { display:flex; flex-direction:column; gap:6px; }
+    .pf-al { display:flex; gap:12px; align-items:flex-start; background:#fff; border:1px solid #e2e8f0; border-radius:9px; padding:9px 12px; }
+    .pf-al b { font-size:13.5px; } .pf-al p { margin:2px 0 0; font-size:12.5px; color:#475569; line-height:1.45; }
+    .pf-v { flex:none; min-width:96px; text-align:right; font-weight:800; font-size:14px; color:#15803d; }
+    .pf-al.gar .pf-v { color:#b45309; font-size:11px; text-transform:uppercase; letter-spacing:.04em; padding-top:2px; }
+    .pf-tot { margin-top:10px; font-size:13.5px; } .pf-tot b { color:#15803d; }
+    .pf-tot small { display:block; font-size:11.5px; color:var(--text-muted); margin-top:2px; }
+    .pf-custo { margin-top:8px; font-size:13px; color:#991b1b; background:#fef2f2; border-radius:8px; padding:8px 12px; }
+    @media (max-width:600px) { .pf-al { flex-direction:column; gap:4px; } .pf-v { text-align:left; } }
     @media (max-width:600px) { .gs-top { grid-template-columns:1fr; } .gs-it { flex-direction:column; gap:6px; } .gs-cont { margin-left:0; } }
     .pp-sec { background:#fff; border:1px solid var(--border); border-radius:18px; box-shadow:var(--shadow-sm); padding:16px 18px; }
     .pp-pres { flex:1; display:flex; flex-direction:column; min-height:0; }
@@ -474,7 +492,7 @@ const COR = { verde:'#006636', verdeCl:'#8fbfa3', s1:'#2a78d6', s2:'#eb6834', s3
 let charts = {};
 // Mês ou Ano (total do ano até o mês escolhido)
 let modoAno = lsGet('sgr_db_modo') === 'ano';
-let gestaoOp = [], abrirPainel = null;   // análise da gestão (preenchida no render) e abridor da janela de detalhes
+let gestaoOp = [], planoFat = null, abrirPainel = null;   // análise da gestão (preenchida no render) e abridor da janela de detalhes
 
 // Frases da apresentação: **x** = verde (bom), *x* = vermelho (atenção)
 const fraseHTML = s => esc(s).replace(/\*\*([^*]+)\*\*/g, '<span class="ok">$1</span>').replace(/\*([^*]+)\*/g, '<span class="ruim">$1</span>');
@@ -626,6 +644,24 @@ function renderPessoas(colabs, ocMes) {
 }
 
 /* ═════════════ Análise da gestão da operação (campo no fim da tela + janela completa) ═════════════ */
+// Plano para o faturamento / resultado: fechamento previsto, quanto falta para cada alvo e as alavancas em R$
+function planoHTML() {
+  const p = planoFat; if (!p) return '';
+  const alvos = p.alvos.map(x => { const dif = x.v - p.proj;
+    return `<div class="pf-alvo ${dif > 0 ? 'falta' : 'ok'}"><span>${x.rot}</span><b>${mil(x.v)}</b><em>${dif > 0 ? `faltam ${mil(dif)}` : `✓ ${mil(-dif)} acima`}</em></div>`; }).join('');
+  const lin = x => `<div class="pf-al${x.garantir ? ' gar' : ''}"><span class="pf-v">${x.garantir ? 'proteger' : '+' + mil(x.v)}</span><div><b>${x.titulo}${x.garantir ? ` (${mil(x.v)})` : ''}</b><p>${x.como}</p></div></div>`;
+  const fecha = p.proj + p.potencial;
+  return `<div class="pf-box">
+    <div class="pf-hd"><h3>Plano para o faturamento e o resultado</h3>
+      <span>${p.andamento ? 'Fechamento previsto no ritmo atual (com o estoque)' : 'Faturado no mês'}: <b>${mil(p.proj)}</b></span></div>
+    ${alvos ? `<div class="pf-alvos">${alvos}</div>` : ''}
+    ${p.alav.length ? `<div class="pf-als">${p.alav.map(lin).join('')}</div>
+      ${p.potencial > 0 ? `<div class="pf-tot">Potencial somado: <b>+${mil(p.potencial)}</b>${p.andamento ? ` · buscando tudo, o mês fecharia perto de <b>${mil(fecha)}</b>` : ' que ficou na mesa no mês'}<small>Estimativas pelos dados do sistema; algumas alavancas se sobrepõem.</small></div>` : ''}`
+      : '<div class="gs-vazio">✓ Nenhuma alavanca de faturamento pendente pelos dados atuais.</div>'}
+    ${p.custo ? `<div class="pf-custo">${p.custo}</div>` : ''}
+  </div>`;
+}
+
 function renderGestao(pessoas = []) {
   const el = $('#db-gestao'); if (!el) return;
   const ORD = { crit:0, aten:1, info:2, ok:3 };
@@ -641,9 +677,11 @@ function renderGestao(pessoas = []) {
       <div class="gs-cont">${['crit'].map(k => `<span class="${k}"><b>${n(k)}</b>${NIV[k][0].toLowerCase()}</span>`).join('')}</div>
     </div>
     ${top.length ? `<div class="gs-top">${top.map(item).join('')}</div>` : '<div class="gs-vazio">✓ Nenhum ponto crítico no momento.</div>'}
+    ${planoHTML()}
     <button type="button" class="gs-btn" id="gs-abrir">Ver análise completa (${todos.length} pontos) →</button>`;
   const full = $('#gs-full');
   if (full) full.innerHTML = `<p class="gs-meta">Leitura automática por regras, com os dados do período selecionado no topo. Serve de apoio: confira nos detalhes de cada área antes de agir.</p>`
+    + planoHTML()
     + ['crit', 'aten', 'info', 'ok'].filter(k => n(k)).map(k => `<div class="gs-grp"><h3 class="${k}">${NIV[k][0]} <small>(${n(k)})</small></h3>${todos.filter(x => x.nivel === k).map(item).join('')}</div>`).join('');
   $('#gs-abrir').onclick = () => abrirPainel && abrirPainel('gestao');
 }
@@ -1227,6 +1265,57 @@ function render(d, tarefas, fin, materiaisEst = []) {
     const atras = (tarefas || []).filter(t => !['concluida', 'cancelada'].includes(t.status) && t.data_vencimento && t.data_vencimento < hoje);
     if (atras.length) add('Tarefas', atras.length >= 3 ? 'crit' : 'aten', `${atras.length} ${atras.length > 1 ? 'tarefas atrasadas' : 'tarefa atrasada'}: ${atras.slice(0, 3).map(t => esc(t.titulo)).join(', ')}${atras.length > 3 ? '…' : ''}.`, 'Rever prazos e responsáveis na tela de Tarefas.');
     gestaoOp = P;
+
+    /* ── Plano para o faturamento / resultado: quanto falta e onde buscar (em R$) ── */
+    const frM = d.emAndamento ? espAqui : 1;
+    const proj = d.emAndamento ? d.projecao + d.valorEstoque : c.fat;   // fechamento previsto no ritmo atual (+ estoque)
+    const oRef = temOut ? d.fatMes[iOut] : null;
+    const alvos = [];
+    if (d.meta > 0) alvos.push({ rot:'Meta do mês', v:d.meta });
+    if (oRef) alvos.push({ rot:'Outubro (melhor mês)', v:oRef.fat });
+    if (eq && eq.pe > 0) alvos.push({ rot:'Ponto de equilíbrio', v:eq.pe - (fin.acerto || 0) });
+    const alav = [];
+    const addA = (titulo, v, como) => { if (v > 500) alav.push({ titulo, v, como }); };
+    // 1) Estoque pronto (já está na projeção: só vira resultado se sair)
+    if (d.emAndamento && d.valorEstoque > 0)
+      alav.push({ titulo:'Vender o estoque pronto', v:d.valorEstoque, garantir:true,
+        como:`${tn(d.estoqueKg, 1)} prontos para vender, já contados na projeção. Se não sair este mês, a projeção cai ${mil(d.valorEstoque)}. Fechar a retirada com os compradores.` });
+    // 2) Materiais que venderam na referência e ainda não saíram
+    if (naoV.length) addA(`Vender os materiais que ${refFixo ? 'saíram em outubro' : 'saem no ano'} e ainda não saíram`, naoVMedia,
+      `${naoV.slice(0, 5).map(m => esc(nomeMat(m.n))).join(', ')}${naoV.length > 5 ? ` e mais ${naoV.length - 5}` : ''}. Verificar o pátio e agendar a venda.`);
+    // 3) Materiais vendendo abaixo da referência (projeção do material até o fim do mês contra a referência)
+    const baixos = mats.filter(m => m.media > 0 && m.fat > 0).map(m => ({ ...m, gap:m.media - m.fat / frM })).filter(m => m.gap > 0).sort((x, y) => y.gap - x.gap);
+    if (baixos.length) addA(`Voltar ao volume ${refFixo ? 'de outubro' : 'médio'} nos materiais que estão vendendo menos`, baixos.reduce((s, m) => s + m.gap, 0),
+      `Maiores diferenças: ${baixos.slice(0, 3).map(m => `${esc(nomeMat(m.n))} (${mil(m.gap)})`).join(', ')}. Reforçar triagem e oferta desses materiais.`);
+    // 4) Preço médio
+    const pRef = oRef?.preco || a.preco, pRot = oRef ? 'outubro' : antN;
+    const volProj = c.vol / frM;
+    if (c.preco && pRef && c.preco < pRef)
+      addA(`Recuperar o preço médio de ${pRot}`, volProj / 1000 * (pRef - c.preco),
+        `${reais0(c.preco)}/t hoje contra ${reais0(pRef)}/t em ${pRot}, sobre ~${tn(volProj, 0)} no mês. Renegociar os principais compradores ou buscar outro comprador.`);
+    // 5) Vender mais prensado (prensado vale mais que a granel)
+    const pctRef = oRef?.pctPrensado ?? a.pctPrensado;
+    const premio = c.g.prensado.preco && c.g.granel.preco ? c.g.prensado.preco - c.g.granel.preco : 0;
+    if (c.pctPrensado != null && pctRef != null && c.pctPrensado < pctRef && premio > 0) {
+      const tExtra = (c.g.prensado.vol + c.g.granel.vol) / frM * (pctRef - c.pctPrensado) / 100 / 1000;
+      addA(`Prensar antes de vender (voltar a ${pct(pctRef, 0)} prensado)`, tExtra * premio,
+        `~${nf(tExtra, 1)} t a mais saindo prensado, ganho de ${reais0(premio)}/t sobre o granel.`);
+    }
+    // 6) Capacidade perdida das prensas (o que ainda dá para recuperar no mês)
+    if (d.perdaCap > 0 && premio > 0 && d.capNominal > 0 && d.perdaCap / d.capNominal > 0.05) {
+      const rest = d.emAndamento && d.duPrensa > 0 ? Math.max(0, 1 - d.dpPrensa / d.duPrensa) : 1;
+      addA('Voltar as prensas paradas/limitadas', d.perdaCap * rest / 1000 * premio,
+        `${tn(d.perdaCap * rest, 1)} de capacidade perdida${d.emAndamento ? ' no restante do mês' : ''}. Cada tonelada prensada no lugar do granel vale ${reais0(premio)} a mais.`);
+    }
+    alav.sort((x, y) => (y.garantir ? 1e12 : y.v) - (x.garantir ? 1e12 : x.v));
+    const potencial = alav.filter(x => !x.garantir).reduce((s, x) => s + x.v, 0);
+    // Resultado: se mesmo com tudo não chega no equilíbrio, o resto é custo
+    let custo = null;
+    if (eq && eq.pe > 0) {
+      const peAj = eq.pe - (fin.acerto || 0), sobra = peAj - (proj + potencial);
+      if (sobra > 0) custo = `Mesmo buscando todo o potencial, faltariam ${mil(sobra)} para o ponto de equilíbrio: essa parte precisa vir de redução de custos fixos (ver o DRE).`;
+    }
+    planoFat = { proj, alvos, alav, potencial, custo, andamento:d.emAndamento };
   }
 
   /* ── Montagem ── */
