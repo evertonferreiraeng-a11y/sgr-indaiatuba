@@ -444,8 +444,6 @@ function render(d, tarefas, fin, materiaisEst = []) {
     ['Preço a granel', c.g.granel.preco ? `${reais0(c.g.granel.preco)}/t` : '—', 'mesmos materiais, sem prensar', `${antAb}: ${a.g.granel.preco ? reais0(a.g.granel.preco) + '/t' : '—'}`, varPct(c.g.granel.preco, a.g.granel.preco)],
     ['Saiu prensado', pct(c.pctPrensado, 0), 'do volume que pode ser prensado', `${antAb}: ${pct(a.pctPrensado, 0)}`, c.pctPrensado != null && a.pctPrensado != null ? c.pctPrensado - a.pctPrensado : null],
   ];
-  const grupos = [['prensado','Prensado',COR.verde], ['granel','A granel',COR.s4], ['sucata','Sucata ferrosa',COR.cinza], ['outros','Outros',COR.s1]];
-  const volT = grupos.reduce((s, [g]) => s + c.g[g].vol, 0);
   // Venda por material: mês selecionado × média mensal dos meses fechados anteriores do ano
   const GRUPOS_K = ['prensado','granel','sucata','outros'];
   const porMat = r => { const o = {}; GRUPOS_K.forEach(g => Object.entries(r.g[g].mat).forEach(([n, v]) => {
@@ -767,9 +765,6 @@ function render(d, tarefas, fin, materiaisEst = []) {
         <div class="db-cards">${cardsOper.filter(Boolean).map(cardHTML).join('')}</div>
       </div>
       <div style="margin-top:6px">${porPrensaHTML}</div>
-      <div class="db-mini-t" style="margin-top:18px">Para onde foi o volume vendido (${tn(volT, 1)})</div>
-      ${volT > 0 ? `<div class="pilha">${grupos.filter(([g]) => c.g[g].vol > 0).map(([g, n, cor]) => `<i style="width:${c.g[g].vol / volT * 100}%;background:${cor}" title="${n}: ${tn(c.g[g].vol, 1)}"></i>`).join('')}</div>
-      <div class="leg">${grupos.filter(([g]) => c.g[g].vol > 0).map(([g, n, cor]) => `<span style="--c:${cor}">${n}: <b>${pct(c.g[g].vol / volT * 100, 0)}</b> (${tn(c.g[g].vol, 1)})</span>`).join('')}</div>` : '<div class="vazio">Sem vendas no período.</div>'}
       <div class="db-mini-t" style="margin-top:18px">Equipamentos com problema</div>
       ${probHTML}
       ${voltaram.length ? `<p class="sub" style="margin-top:10px">Pararam no mês e já voltaram: ${voltaram.map(x => `${esc(nomeEq(x.e))} (${x.dias} dia${x.dias > 1 ? 's' : ''})`).join(' · ')}.</p>` : ''}
