@@ -290,7 +290,7 @@
 import { supabase, initPage, dataBR, toast, abrirModal, fecharModal } from './js/config.js?v=12';
 import { icon } from './js/icons.js';
 import { nomeFeriado } from './js/feriados.js?v=4';
-import { montarFormOc, resetFormOc, preencherFormOc, lerFormOc, gravarOcorrencia, OC_LABEL, TIPOS_FALTA, ehFalta, rotuloOc, rotuloCal } from './js/oc-form.js?v=5';
+import { montarFormOc, resetFormOc, preencherFormOc, lerFormOc, gravarOcorrencia, OC_LABEL, TIPOS_FALTA, ehFalta, rotuloOc, rotuloCal } from './js/oc-form.js?v=6';
 
 await initPage();
 
@@ -307,7 +307,7 @@ const TIPO_LABEL = OC_LABEL;
 const TIPO_COR   = { atraso:'background:#fef9c3;color:#854d0e', falta:'background:#fee2e2;color:#991b1b', atestado:'background:#fef3c7;color:#92400e', falta_declaracao:'background:#ffedd5;color:#9a3412', ferias:'background:#e0f2fe;color:#075985', declaracao:'background:#ede9fe;color:#5b21b6', advertencia:'background:#ffe4e6;color:#9f1239', elogio:'background:#f1f5f9;color:#475569', outro:'background:#dcfce7;color:#166534' };
 const TIPO_PONTO = { atraso:'#ca8a04', falta:'#dc2626', atestado:'#d97706', falta_declaracao:'#ea580c', ferias:'#0284c7', declaracao:'#7c3aed', advertencia:'#e11d48', elogio:'#94a3b8', outro:'#16a34a' };
 // No calendário, quando há mais de um registro no dia, vale o mais "grave"
-const TIPO_PESO  = { falta:0, falta_declaracao:1, atestado:2, ferias:3, advertencia:4, atraso:5, declaracao:6, elogio:7, outro:8 };
+const TIPO_PESO  = { falta:0, falta_declaracao:1, atestado:2, ferias:3, atraso:5, declaracao:6, elogio:7, outro:8, advertencia:9 };
 const DIAS_SEMANA = ['Dom','Seg','Ter','Qua','Qui','Sex','Sáb'];
 const DIAS_AB = ['dom','seg','ter','qua','qui','sex','sáb'];
 const MESES = ['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
@@ -592,7 +592,7 @@ function presencaDias(lista) {
   const dias = {};
   lista.forEach(o => {
     if (ehFalta(o)) dias[o.data] = 'f';
-    else if (o.tipo !== 'ferias' && !dias[o.data]) dias[o.data] = 'p';
+    else if (!['ferias', 'advertencia'].includes(o.tipo) && !dias[o.data]) dias[o.data] = 'p';
   });
   const b = Object.keys(dias).length, p = Object.values(dias).filter(v => v === 'p').length;
   return { p, b, pct: b ? Math.round(p / b * 100) : null };
@@ -892,7 +892,7 @@ async function salvarOc() {
     toast(msg, 'error'); return;
   }
   toast(fd.id ? 'Ocorrência atualizada!' : 'Ocorrência registrada!');
-  const { error: presErr } = await supabase.from('presenca_diaria').upsert(
+  const { error: presErr } = oc.presente === null ? {} : await supabase.from('presenca_diaria').upsert(   // advertência não mexe na presença
     [{ colaborador_id: colabId, data: fd.data, presente: oc.presente, observacao: fd.descricao || null }],
     { onConflict: 'colaborador_id,data' }
   );

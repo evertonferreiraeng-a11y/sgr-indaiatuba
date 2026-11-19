@@ -402,7 +402,7 @@
 <script type="module">
 import { initPage, supabase, dataBR, toast, abrirModal, fecharModal } from './js/config.js?v=12';
 import { icon } from './js/icons.js';
-import { montarFormOc, resetFormOc, lerFormOc, gravarOcorrencia, TIPOS_FALTA, TIPOS_AUSENTE } from './js/oc-form.js?v=5';
+import { montarFormOc, resetFormOc, lerFormOc, gravarOcorrencia, TIPOS_FALTA, TIPOS_AUSENTE } from './js/oc-form.js?v=6';
 
 await initPage();
 
@@ -1118,7 +1118,7 @@ document.getElementById('btn-salvar-oc').addEventListener('click', async () => {
   }
   toast(fd.id ? 'Ocorrência atualizada!' : 'Ocorrência registrada!');
   // Salva presença junto com a ocorrência
-  const { error: presErr } = await supabase.from('presenca_diaria').upsert(
+  const { error: presErr } = oc.presente === null ? {} : await supabase.from('presenca_diaria').upsert(   // advertência não mexe na presença
     [{ colaborador_id: fd.colaborador_id, data: fd.data, presente: oc.presente, observacao: fd.descricao||null }],
     { onConflict: 'colaborador_id,data' }
   );

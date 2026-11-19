@@ -10,7 +10,7 @@
 //   atestado          Justificada (conta como falta)
 //   falta_declaracao  Declaração de horas — as horas da declaração são abonadas, o resto do dia conta como falta
 //   ferias            Férias — só informativo: não conta como falta nem como presença
-// (advertencia continua existindo nos registros antigos, mas não é mais oferecida)
+// Advertência: terceiro botão. É só anotação (para contar quantas a pessoa tem); não mexe na presença do dia.
 
 export const TIPOS_FALTA   = ['falta', 'atestado', 'falta_declaracao'];   // sempre contam como falta
 export const TIPOS_AUSENTE = [...TIPOS_FALTA, 'ferias'];                   // a pessoa não estava na empresa
@@ -21,6 +21,7 @@ export const ehFalta = o => TIPOS_FALTA.includes(o.tipo) || (['elogio', 'declara
 
 const MOTIVOS = {
   falta:    [['falta', 'Injustificada'], ['atestado', 'Justificada (atestado)'], ['falta_declaracao', 'Declaração de horas'], ['ferias', 'Férias']],
+  advertencia: [],
   presente: [['outro', 'Normal'], ['atraso', 'Atraso'], ['declaracao', 'Declaração de horas'], ['elogio', 'Outro']],
 };
 const hhmm = t => t ? String(t).slice(0, 5) : '';
@@ -52,6 +53,7 @@ export function rotuloOc(o) {
 export function rotuloCal(o) {
   const h = o.horas ? ' ' + fmtHoras(o.horas) : '';
   if (o.tipo === 'ferias') return { situacao: 'Férias', motivo: '' };
+  if (o.tipo === 'advertencia') return { situacao: 'Advertência', motivo: '' };
   const mot = { falta: 'injustificada', atestado: 'justificada', falta_declaracao: `declaração${h}`, outro: '',
     declaracao: `declaração${h}`, advertencia: 'advertência', elogio: 'outro',
     atraso: o.hora_chegada ? `atraso · ${hhmm(o.hora_chegada)}` : `atraso${h}` }[o.tipo] ?? '';
@@ -60,7 +62,9 @@ export function rotuloCal(o) {
 
 const CSS = `
   .ocf-hide { display:none !important; }
-  .ocf-sit { display:grid; grid-template-columns:1fr 1fr; gap:8px; }
+  .ocf-sit { display:grid; grid-template-columns:1fr 1fr 1fr; gap:8px; }
+  .ocf-sit button[data-sit="advertencia"].on { border-color:#e11d48; background:#fff1f2; color:#9f1239; }
+  .ocf-sit button[data-sit="advertencia"].on i { background:#e11d48; color:#fff; }
   .ocf-sit button { display:flex; align-items:center; justify-content:center; gap:8px; padding:11px 10px; border-radius:10px;
     border:1.5px solid #e2e8f0; background:#fff; font:inherit; font-size:14px; font-weight:700; color:#475569; cursor:pointer; }
   .ocf-sit button i { font-style:normal; width:22px; height:22px; border-radius:50%; display:grid; place-items:center; font-size:12px; background:#f1f5f9; }
@@ -100,10 +104,11 @@ export function montarFormOc(container) {
       <div class="ocf-sit">
         <button type="button" data-sit="presente"><i>✓</i>Presente</button>
         <button type="button" data-sit="falta"><i>✕</i>Falta</button>
+        <button type="button" data-sit="advertencia"><i>!</i>Advertência</button>
       </div>
       <input type="hidden" name="tipo" />
     </div>
-    <div class="form-group full"><label id="ocf-mot-lbl">Motivo *</label><div class="ocf-mot" id="ocf-mot"></div></div>
+    <div class="form-group full" id="ocf-mot-wrap"><label id="ocf-mot-lbl">Motivo *</label><div class="ocf-mot" id="ocf-mot"></div></div>
     <div class="form-group full ocf-hide" id="ocf-dec"><label>Declaração</label>
       <div class="ocf-box">
         <div class="ocf-linha"><b>Horas da declaração *</b><input type="number" name="horas" min="0.25" max="24" step="0.25" placeholder="ex.: 1,5" /><small>1,5 = 1h30</small></div>
@@ -126,6 +131,9 @@ export function montarFormOc(container) {
         <div class="ocf-aviso">O dia conta como presença; o atraso fica registrado.</div>
       </div>
     </div>
+    <div class="form-group full ocf-hide" id="ocf-adv">
+      <div class="ocf-box"><div class="ocf-aviso">A advertência fica registrada só como anotação (para saber quantas a pessoa tem). Não muda a presença nem a falta do dia — descreva o motivo abaixo.</div></div>
+    </div>
     <div class="form-group full ocf-hide" id="ocf-ferias">
       <div class="ocf-box"><div class="ocf-aviso">Férias é só informativo: o dia não conta como falta nem como presença.</div></div>
     </div>`;
@@ -142,6 +150,8 @@ export function montarFormOc(container) {
     outro: container.querySelector('#ocf-outro'),
     outroConta: container.querySelectorAll('[name="outro_conta"]'),
     ferias: container.querySelector('#ocf-ferias'),
+    adv: container.querySelector('#ocf-adv'),
+    motWrap: container.querySelector('#ocf-mot-wrap'),
     atraso: container.querySelector('#ocf-atraso'),
     chegada: container.querySelector('[name="hora_chegada"]'),
     horasAtraso: container.querySelector('[name="horas_atraso"]'),
@@ -149,7 +159,7 @@ export function montarFormOc(container) {
     atrasoCalc: container.querySelector('#ocf-atraso-calc'),
     data: container.closest('form')?.querySelector('[name="data"]'),
   };
-  el.sit.forEach(b => b.addEventListener('click', () => { setSituacao(b.dataset.sit); setTipo(b.dataset.sit === 'falta' ? 'falta' : 'outro'); }));
+  el.sit.forEach(b => b.addEventListener('click', () => { setSituacao(b.dataset.sit); setTipo({ falta: 'falta', advertencia: 'advertencia' }[b.dataset.sit] || 'outro'); }));
   // Ao digitar as horas, sugere abonar todas (enquanto o abono não for mexido)
   el.horas.addEventListener('input', () => { if (!el.abono.dataset.mexido) el.abono.value = el.horas.value; avisoDec(); });
   el.abono.addEventListener('input', () => { el.abono.dataset.mexido = '1'; });
@@ -189,7 +199,8 @@ function setSituacao(s, extra = null) {
   situacao = s;
   el.sit.forEach(b => b.classList.toggle('on', b.dataset.sit === s));
   el.motLbl.textContent = s === 'falta' ? 'Motivo da falta *' : s === 'presente' ? 'Registro do dia *' : 'Motivo *';
-  const lista = s ? [...MOTIVOS[s]] : [];
+  mostrar(el.motWrap, s !== 'advertencia');
+  const lista = s && MOTIVOS[s] ? [...MOTIVOS[s]] : [];
   if (extra && !lista.some(([t]) => t === extra)) lista.push([extra, OC_LABEL[extra] || extra]);   // registro antigo (ex.: advertência)
   el.mot.innerHTML = s ? lista.map(([t, l]) => {
     const [c, bg] = COR_MOT[t] || ['#475569', '#f1f5f9'];
@@ -204,6 +215,7 @@ function setTipo(t) {
   mostrar(el.abonoLinha, t === 'declaracao');          // na falta com declaração, abona as horas da própria declaração
   mostrar(el.outro, t === 'elogio');
   mostrar(el.ferias, t === 'ferias');
+  mostrar(el.adv, t === 'advertencia');
   mostrar(el.atraso, t === 'atraso');
   if (t === 'atraso') calcAtraso();
   avisoDec();
@@ -215,12 +227,12 @@ export function resetFormOc() {
   el.tipo.value = ''; el.horas.value = ''; el.abono.value = ''; delete el.abono.dataset.mexido;
   el.outroConta.forEach(r => { r.checked = r.value === 'presenca'; });
   el.chegada.value = ''; el.horasAtraso.value = '';
-  [el.dec, el.outro, el.ferias, el.atraso].forEach(n => mostrar(n, false));
+  [el.dec, el.outro, el.ferias, el.atraso, el.adv].forEach(n => mostrar(n, false));
 }
 
 export function preencherFormOc(o) {
   resetFormOc();
-  setSituacao(TIPOS_AUSENTE.includes(o.tipo) ? 'falta' : 'presente', o.tipo);
+  setSituacao(o.tipo === 'advertencia' ? 'advertencia' : TIPOS_AUSENTE.includes(o.tipo) ? 'falta' : 'presente', o.tipo);
   setTipo(o.tipo);
   if (o.tipo === 'atraso') { el.horasAtraso.value = o.horas ?? ''; el.chegada.value = hhmm(o.hora_chegada); }
   else el.horas.value = o.horas ?? '';
@@ -254,6 +266,8 @@ export function lerFormOc() {
   }
   const conta = TIPOS_FALTA.includes(tipo) || (tipo === 'elogio' && outroConta() === 'falta');
   const presente = !TIPOS_AUSENTE.includes(tipo) && !conta;
+  // Advertência é só anotação: presente = null avisa a tela para não mexer na presença do dia
+  if (tipo === 'advertencia') return { tipo, presente: null, conta_como_falta: false, horas: null, horas_abono: null, hora_chegada: null };
   return { tipo, presente, conta_como_falta: conta, horas, horas_abono, hora_chegada };
 }
 
