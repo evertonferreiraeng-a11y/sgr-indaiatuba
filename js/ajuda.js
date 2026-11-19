@@ -104,7 +104,7 @@ export const AJUDA = {
       'Clique em <b>+ Nova Venda</b>.',
       'Preencha <b>Data</b>, <b>Cliente</b>, <b>Tipo de Material</b>, <b>Quantidade</b> e o preço. Se tiver, informe a <b>NF</b>.',
       'Clique em <b>Salvar</b>.',
-      'Para ver se a meta está sendo atingida, confira <b>Acompanhamento de Meta Semanal</b>.',
+      'Para ver se a meta está sendo atingida, confira o card <b>Faturamento</b> no <b>Dashboard</b>.',
     ],
     dicas: [
       '<b>Pedido de venda no Protheus:</b> abra o último pedido do mesmo comprador, faça uma cópia e altere o volume (e o valor, se mudou).',
