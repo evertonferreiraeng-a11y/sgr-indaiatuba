@@ -414,8 +414,8 @@
         </div>
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
           <div class="form-group">
-            <label>Preenchido *</label>
-            <input type="number" name="preenchido" min="0" required style="width:100%" />
+            <label>Preenchido <small style="font-weight:500;color:#94a3b8">(automático: ativos no cargo)</small></label>
+            <input type="number" name="preenchido" readonly tabindex="-1" style="width:100%;background:#f1f5f9;color:#475569" title="Calculado pelos colaboradores ativos neste cargo" />
           </div>
           <div class="form-group">
             <label>Total de Vagas *</label>
@@ -501,6 +501,7 @@ async function recarregarTudo() {
     renderKPIs();
     renderAtencao();
     renderColaboradores();
+    if (document.getElementById('tbody-vagas')) renderBalancoVagas();
 
   } catch(e) {
     console.error('Erro:', e);
@@ -1140,6 +1141,11 @@ await init();
 if (perfil?.role !== 'admin') document.querySelectorAll('.so-adm').forEach(b => b.style.display = 'none');
 
 // ── Balanço de Vagas ─────────────────────────────────────────────────────────
+// Preenchido = colaboradores ativos (sem demissão) vinculados ao cargo
+function ativosNoCargo(cargo) {
+  const nome = (cargo.nome || '').trim().toLowerCase();
+  return colabData.filter(c => !c.demissao && (c.cargo_id ? c.cargo_id === cargo.id : (c.cargo || '').trim().toLowerCase() === nome)).length;
+}
 function renderBalancoVagas() {
   const tbody  = document.getElementById('tbody-vagas');
   const isAdm  = perfil?.role === 'admin';
@@ -1148,7 +1154,7 @@ function renderBalancoVagas() {
     return;
   }
   tbody.innerHTML = cargoData.map(cargo => {
-    const preenchido = cargo.preenchido ?? 0;
+    const preenchido = ativosNoCargo(cargo);
     const total      = cargo.total_vagas ?? 0;
     const emAberto   = total - preenchido;
     const completo   = total > 0 && preenchido >= total;
@@ -1190,7 +1196,7 @@ window.editarCargo = id => {
   const f = document.getElementById('form-cargo');
   f.querySelector('[name="id"]').value          = c.id;
   f.querySelector('[name="nome"]').value        = c.nome ?? '';
-  f.querySelector('[name="preenchido"]').value  = c.preenchido ?? 0;
+  f.querySelector('[name="preenchido"]').value  = ativosNoCargo(c);
   f.querySelector('[name="total_vagas"]').value = c.total_vagas ?? 0;
   f.querySelector('[name="observacao"]').value  = c.observacao ?? '';
   abrirModal('modal-cargo');
@@ -1209,7 +1215,8 @@ document.getElementById('btn-salvar-cargo').addEventListener('click', async () =
   const f = document.getElementById('form-cargo');
   if (!f.checkValidity()) { f.reportValidity(); return; }
   const fd = Object.fromEntries(new FormData(f));
-  const payload = { nome: fd.nome, preenchido: parseInt(fd.preenchido) || 0, total_vagas: parseInt(fd.total_vagas) || 0, observacao: fd.observacao?.trim() || null };
+  const cargoAtual = cargoData.find(x => x.id === fd.id);
+  const payload = { nome: fd.nome, preenchido: ativosNoCargo(cargoAtual || { nome: fd.nome }), total_vagas: parseInt(fd.total_vagas) || 0, observacao: fd.observacao?.trim() || null };
   if (fd.id) {
     const { error } = await supabase.from('cargos').update(payload).eq('id', fd.id);
     if (error) { toast('Erro: ' + error.message, 'error'); return; }
