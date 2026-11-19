@@ -223,10 +223,48 @@
     .carregando { text-align:center; padding:60px; color:var(--text-muted); }
 
     /* ── Tela inicial: 4 cards grandes no meio ── */
-    .db-home { display:grid; align-content:center; padding:14px 0 18px; }
-    .db-home-hd { margin:0 auto 14px; width:100%; max-width:1180px; text-align:center; }
-    .db-home .db-sem { grid-template-columns:repeat(2, minmax(0, 1fr)); width:100%; max-width:1180px; margin:0 auto !important; }
+    .db-home { display:grid; grid-template-columns:minmax(0, 1fr) minmax(0, 1fr); gap:22px; align-items:stretch; padding:16px 0 18px; }
+    .db-home-col { display:flex; flex-direction:column; min-width:0; }
+    .db-home-hd { margin:0 0 12px; }
+    .db-home .db-sem { grid-template-columns:repeat(2, minmax(0, 1fr)); flex:1; margin:0 !important; }
+    @media (max-width: 1250px) { .db-home { grid-template-columns:1fr; } }
     @media (max-width: 700px) { .db-home .db-sem { grid-template-columns:1fr; } }
+
+    /* ── Painel da equipe ── */
+    .db-pessoas { flex:1; display:flex; flex-direction:column; gap:14px; min-height:0; }
+    .pp-sec { background:#fff; border:1px solid var(--border); border-radius:18px; box-shadow:var(--shadow-sm); padding:16px 18px; }
+    .pp-pres { flex:1; display:flex; flex-direction:column; min-height:0; }
+    .pp-hd { display:flex; justify-content:space-between; align-items:baseline; gap:10px; margin-bottom:10px; }
+    .pp-hd h3 { font-size:12.5px; font-weight:800; letter-spacing:.08em; text-transform:uppercase; color:var(--text-muted); margin:0; }
+    .pp-hd h3 span { margin-left:6px; color:var(--text); letter-spacing:0; }
+    .pp-hd a { font-size:12.5px; font-weight:700; color:var(--primary); text-decoration:none; white-space:nowrap; }
+    .pp-exps { display:flex; flex-direction:column; gap:6px; max-height:180px; overflow:auto; }
+    .pp-exp { display:grid; grid-template-columns:34px minmax(0,1fr) auto auto; gap:10px; align-items:center; padding:8px 10px; border-radius:12px; background:#f8fafc; text-decoration:none; color:inherit; border:1px solid transparent; }
+    .pp-exp:hover { border-color:var(--primary-border); background:var(--primary-bg); }
+    .pp-av { width:34px; height:34px; border-radius:50%; display:grid; place-items:center; font-size:12px; font-weight:800; background:#e2e8f0; color:#334155; }
+    .pp-nm { display:flex; flex-direction:column; min-width:0; } .pp-nm b { font-size:13.5px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; } .pp-nm span { font-size:12px; color:var(--text-muted); }
+    .pp-q { font-size:12px; font-weight:700; color:var(--text-muted); white-space:nowrap; }
+    .pp-exp em { font-style:normal; font-size:12px; font-weight:700; color:#fff; background:var(--primary); border-radius:999px; padding:4px 10px; white-space:nowrap; }
+    .pp-exp.prox { background:#fffbeb; } .pp-exp.prox .pp-av { background:#fde68a; color:#92400e; } .pp-exp.prox .pp-q { color:#b45309; }
+    .pp-exp.urg { background:#fef2f2; } .pp-exp.urg .pp-av { background:#fecaca; color:#991b1b; } .pp-exp.urg .pp-q { color:var(--danger); }
+    .pp-aviso { font-size:12.5px; color:#92400e; background:#fffbeb; border:1px solid #fde68a; border-radius:10px; padding:8px 12px; margin-bottom:10px; }
+    .pp-stats { display:grid; grid-template-columns:repeat(4, 1fr); gap:8px; }
+    .pp-stat { border-radius:12px; background:#f8fafc; padding:10px 12px; }
+    .pp-stat b { display:block; font-size:24px; font-weight:800; line-height:1.1; color:var(--text); }
+    .pp-stat span { font-size:12px; color:var(--text-muted); }
+    .pp-stat.ok { background:#ecfdf3; } .pp-stat.ok b { color:var(--success); }
+    .pp-stat.ruim { background:#fef2f2; } .pp-stat.ruim b { color:var(--danger); }
+    .pp-stat.amb { background:#fffbeb; } .pp-stat.amb b { color:#b45309; }
+    .pp-sub { font-size:11.5px; font-weight:800; letter-spacing:.07em; text-transform:uppercase; color:var(--text-muted); margin:14px 0 6px; }
+    .pp-auss { display:flex; flex-direction:column; gap:6px; }
+    .pp-aus { display:flex; align-items:center; gap:10px; padding:8px 12px; border-radius:10px; border-left:4px solid #94a3b8; background:#f8fafc; font-size:13.5px; }
+    .pp-aus.falta { border-left-color:var(--danger); background:#fef2f2; } .pp-aus.just { border-left-color:#d97706; background:#fffbeb; } .pp-aus.fer { border-left-color:#2563eb; background:#eff6ff; }
+    .pp-obs { font-size:12px; color:var(--text-muted); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; min-width:0; }
+    .pp-tag { margin-left:auto; font-size:10.5px; font-weight:800; letter-spacing:.04em; text-transform:uppercase; white-space:nowrap; color:var(--text-muted); }
+    .pp-aus.falta .pp-tag { color:#991b1b; } .pp-aus.just .pp-tag { color:#92400e; } .pp-aus.fer .pp-tag { color:#1e40af; }
+    .pp-chips { display:flex; flex-wrap:wrap; gap:6px; overflow:auto; min-height:0; }
+    .pp-chips span { font-size:12.5px; padding:4px 10px; border-radius:999px; background:#ecfdf3; color:#166534; border:1px solid #bbf7d0; }
+    .pp-vazio { font-size:13px; color:var(--text-muted); padding:6px 2px; } .pp-vazio.ok { color:var(--success); font-weight:600; }
     .db-home-hd h2 { font-size:22px; font-weight:800; letter-spacing:-.02em; color:var(--text); margin:0; }
     .db-home-hd p { margin:4px 0 0; font-size:13.5px; color:var(--text-muted); }
     .db-home .db-sem { gap:14px 16px; margin:0; }
@@ -399,33 +437,68 @@ async function carregar() {
       // Ponto de equilíbrio pelo resultado real (DRE); sem DRE, cai no estudo financeiro da tela Apresentação
       equilibrioDoDRE(supabase, M).catch(() => null),
     ]);
+    // Chamada de hoje (tela RH): Presente / Falta / Justificada; sem lançamento = presente
+    const ocHoje = await fetchOpcional('ocorrencias', 'colaborador_id, tipo, descricao', [['eq','data',hoje]]).catch(() => []);
     const d = calcularDados({ vendas, metas, producao, equipamentos, materiais, colaboradores, cargos, snapshots }, M, corte, hoje);
     const est = finAtual(M);
     const fin = dre ? { pe:dre.pe, fixos:dre.fixos, liq:dre.liq, alvo:est.alvo, acerto:est.acerto, dre } : est;
-    renderLembrete(colaboradores);
     render(d, tarefas, fin, materiais);
+    renderPessoas(colaboradores, ocHoje || []);
   } catch (e) {
     console.error(e);
     $('#db-conteudo').innerHTML = `<div class="card vazio">Não foi possível carregar os indicadores: ${esc(e.message)}</div>`;
   }
 }
 
-/* ═════════════ Lembrete de experiência ═════════════ */
-function renderLembrete(colabs) {
+/* ═════════════ Painel da equipe (metade direita da tela inicial) ═════════════ */
+// Vencimento de experiência (próximos 30 dias) + presença de hoje, pela chamada da tela RH
+function renderPessoas(colabs, ocHoje) {
+  const alvo = $('#db-pessoas'); if (!alvo) return;
   const diasAte = dt => Math.round((new Date(dt + 'T00:00:00') - new Date(hoje + 'T00:00:00')) / 86400000);
-  const lista = [];
-  colabs.filter(c => !c.demissao).forEach(c => {
-    const per = [];
-    if (c.fim_experiencia_1 && c.passou_exp_1 == null) per.push([1, c.fim_experiencia_1]);
-    if (c.fim_experiencia_2 && c.passou_exp_2 == null && c.passou_exp_1 !== false) per.push([2, c.fim_experiencia_2]);
-    per.forEach(([p, fim]) => { const dias = diasAte(fim); if (dias >= 0 && dias <= 7) lista.push({ nome:c.nome, p, fim, dias }); });
+  const ativos = colabs.filter(c => !c.demissao && (!c.data_admissao || c.data_admissao <= hoje)).sort((a, b) => a.nome.localeCompare(b.nome));
+
+  // Experiência
+  const exp = [];
+  ativos.forEach(c => {
+    if (c.fim_experiencia_1 && c.passou_exp_1 == null) exp.push({ c, p:1, fim:c.fim_experiencia_1 });
+    if (c.fim_experiencia_2 && c.passou_exp_2 == null && c.passou_exp_1 !== false) exp.push({ c, p:2, fim:c.fim_experiencia_2 });
   });
-  lista.sort((a, b) => a.dias - b.dias);
-  const quando = n => n === 0 ? 'vence <b>hoje</b>' : n === 1 ? 'vence <b>amanhã</b>' : `vence em <b>${n} dias</b>`;
-  $('#db-lembrete').innerHTML = !lista.length ? '' : `<div class="exp-lembrete">
-    <div class="exp-lembrete-hd"><span class="exp-ic">⏰</span>Experiência vencendo <span class="exp-n">${lista.length}</span></div>
-    <div class="exp-itens">${lista.map(x => `<a class="exp-item" href="rh.html" title="Avaliar no RH"><b>${esc(x.nome)}</b><span>${x.p}ª experiência ${quando(x.dias)} · ${ddmm(x.fim)}</span><em>Avaliar →</em></a>`).join('')}</div>
-  </div>`;
+  const expLista = exp.map(x => ({ ...x, dias:diasAte(x.fim) })).filter(x => x.dias >= -7 && x.dias <= 30).sort((a, b) => a.dias - b.dias);
+  const quando = n => n < 0 ? `venceu há ${-n} dia${n < -1 ? 's' : ''}` : n === 0 ? 'vence hoje' : n === 1 ? 'vence amanhã' : `vence em ${n} dias`;
+  const expHTML = expLista.length ? expLista.map(x => `<a class="pp-exp ${x.dias <= 0 ? 'urg' : x.dias <= 7 ? 'prox' : ''}" href="rh.html" title="Avaliar no RH">
+      <span class="pp-av">${esc(x.c.nome.trim().split(/\s+/).map(p => p[0]).slice(0, 2).join('').toUpperCase())}</span>
+      <span class="pp-nm"><b>${esc(x.c.nome)}</b><span>${x.p}ª experiência · ${ddmm(x.fim)}</span></span>
+      <span class="pp-q">${quando(x.dias)}</span><em>Avaliar →</em></a>`).join('')
+    : '<div class="pp-vazio">Nenhuma experiência vencendo nos próximos 30 dias.</div>';
+
+  // Presença de hoje
+  const ocPor = {}; ocHoje.forEach(o => { if (['outro','falta','atestado'].includes(o.tipo)) ocPor[o.colaborador_id] = o; });
+  const lancados = ativos.filter(c => ocPor[c.id]).length;
+  const ferias = ativos.filter(c => c.em_ferias);
+  const trab = ativos.filter(c => !c.em_ferias);
+  const faltas = trab.filter(c => ocPor[c.id]?.tipo === 'falta');
+  const justif = trab.filter(c => ocPor[c.id]?.tipo === 'atestado');
+  const presentes = trab.filter(c => !['falta','atestado'].includes(ocPor[c.id]?.tipo));
+  const obs = c => ocPor[c.id]?.descricao ? `<span class="pp-obs">${esc(ocPor[c.id].descricao)}</span>` : '';
+  const pessoaAus = (c, cls, rot) => `<div class="pp-aus ${cls}"><b>${esc(c.nome)}</b>${obs(c)}<span class="pp-tag">${rot}</span></div>`;
+  const ausHTML = [...faltas.map(c => pessoaAus(c, 'falta', 'Falta')), ...justif.map(c => pessoaAus(c, 'just', 'Justificada')), ...ferias.map(c => pessoaAus(c, 'fer', 'Férias'))].join('')
+    || '<div class="pp-vazio ok">✓ Ninguém faltou hoje.</div>';
+  const stat = (n, rot, cls) => `<div class="pp-stat ${cls}"><b>${n}</b><span>${rot}</span></div>`;
+
+  alvo.innerHTML = `
+    <div class="pp-sec">
+      <div class="pp-hd"><h3>Vencimento de experiência</h3><a href="rh.html">RH →</a></div>
+      <div class="pp-exps">${expHTML}</div>
+    </div>
+    <div class="pp-sec pp-pres">
+      <div class="pp-hd"><h3>Presença de hoje <span>${ddmm(hoje)}</span></h3><a href="rh.html">Lançar chamada →</a></div>
+      ${lancados ? '' : '<div class="pp-aviso">A chamada de hoje ainda não foi lançada no RH: todos aparecem como presentes.</div>'}
+      <div class="pp-stats">${stat(presentes.length, 'presentes', 'ok')}${stat(faltas.length, 'faltas', faltas.length ? 'ruim' : '')}${stat(justif.length, 'justificadas', justif.length ? 'amb' : '')}${stat(ferias.length, 'férias', '')}</div>
+      <div class="pp-sub">Faltas e ausências</div>
+      <div class="pp-auss">${ausHTML}</div>
+      <div class="pp-sub">Presentes (${presentes.length})</div>
+      <div class="pp-chips">${presentes.map(c => `<span>${esc(c.nome)}</span>`).join('') || '<div class="pp-vazio">—</div>'}</div>
+    </div>`;
 }
 
 /* ═════════════ Regras dos selos (iguais às do Resumo executivo da apresentação) ═════════════ */
@@ -856,8 +929,14 @@ function render(d, tarefas, fin, materiaisEst = []) {
       <div class="db-modal-hd"><h2>${titulo}</h2><span class="db-modal-links">${links}</span></div>${corpo}</div>`;
   $('#db-conteudo').innerHTML = `
     <div class="db-home">
-      <div class="db-home-hd"><h2>Resumo de ${mes} de ${d.M.slice(0, 4)}</h2><p>Clique num card para ver os gráficos e os detalhes.</p></div>
-      <div class="db-sem">${semHTML}</div>
+      <div class="db-home-col">
+        <div class="db-home-hd"><h2>Resumo de ${mes} de ${d.M.slice(0, 4)}</h2><p>Clique num card para ver os gráficos e os detalhes.</p></div>
+        <div class="db-sem">${semHTML}</div>
+      </div>
+      <div class="db-home-col">
+        <div class="db-home-hd"><h2>Equipe</h2><p>Experiência e presença do dia, pela tela RH.</p></div>
+        <aside class="db-pessoas" id="db-pessoas"><div class="pp-vazio">Carregando…</div></aside>
+      </div>
     </div>
 
     <div class="db-modal" id="db-modal" hidden>
