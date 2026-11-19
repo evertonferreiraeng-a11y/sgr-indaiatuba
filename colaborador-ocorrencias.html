@@ -87,7 +87,7 @@
     .cal-day.t-advertencia { background:#fff1f2; border-color:#fda4af; } .cal-day.t-advertencia .cal-daynum { color:#9f1239; }
     .cal-day.t-falta_declaracao { background:#fff7ed; border-color:#fdba74; } .cal-day.t-falta_declaracao .cal-daynum { color:#9a3412; }
     .cal-day.t-atraso { background:#fefce8; border-color:#fde047; } .cal-day.t-atraso .cal-daynum { color:#854d0e; }
-    .cal-day.t-feriado { background:#f0fdfa; border-color:#99f6e4; border-style:dashed; } .cal-day.t-feriado .cal-daynum { color:#0f766e; }
+    .cal-day.t-feriado { background:#fef2f2; border-color:#fca5a5; border-style:dashed; } .cal-day.t-feriado .cal-daynum { color:#b91c1c; }
     .cal-day.t-ferias { background:#f0f9ff; border-color:#7dd3fc; } .cal-day.t-ferias .cal-daynum { color:#075985; }
     .cal-day.t-declaracao { background:#f5f3ff; border-color:#c4b5fd; } .cal-day.t-declaracao .cal-daynum { color:#5b21b6; }
     .cal-day.t-elogio { background:#f1f5f9; border-color:#e2e8f0; }
@@ -420,7 +420,6 @@ function montarLayout() {
           <div class="cal-weekdays">${DIAS_SEMANA.map(d => `<div>${d}</div>`).join('')}</div>
           <div class="cal-grid" id="cal-grid"></div>
           <div class="cal-legend">
-            ${['outro','atraso','declaracao','elogio','advertencia','falta','atestado','falta_declaracao','ferias'].map(t => `<span><i style="background:${TIPO_PONTO[t]}"></i>${TIPO_LABEL[t]}</span>`).join('')}<span><i style="background:#14b8a6"></i>Feriado</span>
             <span style="margin-left:auto;font-weight:500">${isAdm ? 'Clique num dia para lançar ou editar' : ''}</span>
           </div>
         </div>
@@ -803,7 +802,7 @@ function renderCalendario() {
     const rc = princ ? rotuloCal(princ) : null;
     const corTxt = falta ? '#dc2626' : (TIPO_PONTO[princ?.tipo] || '#64748b');
     const rot = princ ? `<span class="cal-tipo" style="color:${corTxt}"><i style="background:${TIPO_PONTO[princ.tipo] || '#94a3b8'}"></i>${rc.situacao}${ocsDia.length > 1 ? ` +${ocsDia.length - 1}` : ''}</span>${rc.motivo || feriado ? `<span class="cal-mot">${esc(rc.motivo || 'feriado')}${rc.motivo && feriado ? ' · feriado' : ''}</span>` : ''}`
-      : feriado ? `<span class="cal-tipo" style="color:#0f766e"><i style="background:#14b8a6"></i>Feriado</span><span class="cal-mot">${esc(feriado)}</span>` : '';
+      : feriado ? `<span class="cal-tipo" style="color:#dc2626"><i style="background:#dc2626"></i>Feriado</span><span class="cal-mot">${esc(feriado)}</span>` : '';
     cells += `<div class="${cls}" onclick="window._abrirNovaOcData('${dateStr}')" title="${esc(dica)}">
       <div class="cal-daynum">${d}</div>${rot}
     </div>`;
