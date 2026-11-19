@@ -2,7 +2,7 @@
 // Lê colaboradores, ocorrências e avaliações e monta um diagnóstico com indicadores,
 // pessoas que pedem atenção, destaques, padrões e recomendações práticas.
 // Só leitura: não grava nada.
-import { TIPOS_FALTA } from './oc-form.js?v=6';
+import { TIPOS_FALTA } from './oc-form.js?v=7';
 
 const META_PRESENCA = 95;           // % de presença esperada
 const pad = n => String(n).padStart(2, '0');
@@ -22,7 +22,7 @@ const plural = (n, s, p) => `${n} ${n === 1 ? s : p}`;
 function presenca(lista) {
   const d = {};
   lista.forEach(o => { const k = o.colaborador_id + o.data;
-    if (ehFalta(o)) d[k] = 'f'; else if (!['ferias', 'advertencia'].includes(o.tipo) && !d[k]) d[k] = 'p'; });
+    if (ehFalta(o)) d[k] = 'f'; else if (!['ferias', 'advertencia', 'abono'].includes(o.tipo) && !d[k]) d[k] = 'p'; });
   const v = Object.values(d), p = v.filter(x => x === 'p').length;
   return { p, b: v.length, pct: pct(p, v.length) };
 }

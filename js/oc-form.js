@@ -4,7 +4,7 @@
 // Presente
 //   outro       Normal — a pessoa veio
 //   declaracao  Declaração de horas — informa as horas e quantas abonar (conta como presença)
-//   elogio      Outro — escolhe se conta como presença ou como falta
+//   elogio      Outro — escolhe se conta como presença ou como falta (ou abono → grava tipo 'abono', neutro)
 // Falta
 //   falta             Injustificada (conta como falta)
 //   atestado          Justificada (conta como falta)
@@ -15,6 +15,8 @@
 export const TIPOS_FALTA   = ['falta', 'atestado', 'falta_declaracao'];   // sempre contam como falta
 export const TIPOS_AUSENTE = [...TIPOS_FALTA, 'ferias'];                   // a pessoa não estava na empresa
 export const TIPOS_COM_HORAS = ['declaracao', 'falta_declaracao'];
+// Não contam nem como falta nem como presença no indicador (férias, advertência e dia abonado)
+export const TIPOS_NEUTROS = ['ferias', 'advertencia', 'abono'];
 
 // A ocorrência conta como falta?
 export const ehFalta = o => TIPOS_FALTA.includes(o.tipo) || (['elogio', 'declaracao'].includes(o.tipo) && !!o.conta_como_falta);
@@ -29,7 +31,7 @@ const hhmm = t => t ? String(t).slice(0, 5) : '';
 // Nome completo de cada tipo (histórico, legenda, resumo)
 export const OC_LABEL = {
   falta: 'Falta injustificada', atestado: 'Falta justificada', falta_declaracao: 'Falta c/ declaração', ferias: 'Férias',
-  outro: 'Presente', atraso: 'Atraso', declaracao: 'Declaração', advertencia: 'Advertência', elogio: 'Outro',
+  outro: 'Presente', atraso: 'Atraso', declaracao: 'Declaração', advertencia: 'Advertência', elogio: 'Outro', abono: 'Abonado',
 };
 
 export const fmtHoras = h => {
@@ -41,6 +43,7 @@ export const fmtHoras = h => {
 // Rótulo de uma ocorrência (histórico)
 export function rotuloOc(o) {
   if (o.tipo === 'elogio') return o.conta_como_falta ? 'Outro (falta)' : 'Outro (presença)';
+  if (o.tipo === 'abono') return 'Abonado';
   if (o.tipo === 'atraso') return ['Atraso', o.horas ? fmtHoras(o.horas) : '', o.hora_chegada ? `chegou ${hhmm(o.hora_chegada)}` : ''].filter(Boolean).join(' · ');
   const base = OC_LABEL[o.tipo] || o.tipo;
   if (!TIPOS_COM_HORAS.includes(o.tipo) || !o.horas) return base;
@@ -54,6 +57,7 @@ export function rotuloCal(o) {
   const h = o.horas ? ' ' + fmtHoras(o.horas) : '';
   if (o.tipo === 'ferias') return { situacao: 'Férias', motivo: '' };
   if (o.tipo === 'advertencia') return { situacao: 'Advertência', motivo: '' };
+  if (o.tipo === 'abono') return { situacao: 'Abonado', motivo: '' };
   const mot = { falta: 'injustificada', atestado: 'justificada', falta_declaracao: `declaração${h}`, outro: '',
     declaracao: `declaração${h}`, advertencia: 'advertência', elogio: 'outro',
     atraso: o.hora_chegada ? `atraso · ${hhmm(o.hora_chegada)}` : `atraso${h}` }[o.tipo] ?? '';
@@ -121,6 +125,7 @@ export function montarFormOc(container) {
         <div class="ocf-opc">
           <label><input type="radio" name="outro_conta" value="presenca" checked /> Contar como presença</label>
           <label><input type="radio" name="outro_conta" value="falta" /> Contar como falta</label>
+          <label><input type="radio" name="outro_conta" value="abono" /> Abono <small style="color:#94a3b8;font-weight:500">(não conta como falta nem presença)</small></label>
         </div>
       </div>
     </div>
@@ -232,6 +237,7 @@ export function resetFormOc() {
 
 export function preencherFormOc(o) {
   resetFormOc();
+  if (o.tipo === 'abono') { setSituacao('presente'); setTipo('elogio'); el.outroConta.forEach(r => { r.checked = r.value === 'abono'; }); return; }
   setSituacao(o.tipo === 'advertencia' ? 'advertencia' : TIPOS_AUSENTE.includes(o.tipo) ? 'falta' : 'presente', o.tipo);
   setTipo(o.tipo);
   if (o.tipo === 'atraso') { el.horasAtraso.value = o.horas ?? ''; el.chegada.value = hhmm(o.hora_chegada); }
@@ -268,6 +274,8 @@ export function lerFormOc() {
   const presente = !TIPOS_AUSENTE.includes(tipo) && !conta;
   // Advertência é só anotação: presente = null avisa a tela para não mexer na presença do dia
   if (tipo === 'advertencia') return { tipo, presente: null, conta_como_falta: false, horas: null, horas_abono: null, hora_chegada: null };
+  // Abono: dia abonado (ex.: saiu mais cedo com autorização). Não conta como falta nem como presença
+  if (tipo === 'elogio' && outroConta() === 'abono') return { tipo: 'abono', presente: null, conta_como_falta: false, horas: null, horas_abono: null, hora_chegada: null };
   return { tipo, presente, conta_como_falta: conta, horas, horas_abono, hora_chegada };
 }
 

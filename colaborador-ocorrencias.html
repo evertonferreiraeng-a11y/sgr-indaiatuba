@@ -84,6 +84,7 @@
     .cal-day.t-outro { background:#f0fdf4; border-color:#bbf7d0; } .cal-day.t-outro .cal-daynum { color:#15803d; }
     .cal-day.t-falta { background:#fef2f2; border-color:#fecaca; } .cal-day.t-falta .cal-daynum { color:#b91c1c; }
     .cal-day.t-atestado { background:#fffbeb; border-color:#fde68a; } .cal-day.t-atestado .cal-daynum { color:#b45309; }
+    .cal-day.t-abono { background:#f0f9ff; border-color:#7dd3fc; }
     .cal-day.t-advertencia { background:#fff1f2; border-color:#fda4af; } .cal-day.t-advertencia .cal-daynum { color:#9f1239; }
     .cal-day.t-falta_declaracao { background:#fff7ed; border-color:#fdba74; } .cal-day.t-falta_declaracao .cal-daynum { color:#9a3412; }
     .cal-day.t-atraso { background:#fefce8; border-color:#fde047; } .cal-day.t-atraso .cal-daynum { color:#854d0e; }
@@ -267,6 +268,7 @@
               <option value="declaracao">Declaração de horas</option>
               <option value="advertencia">Advertência</option>
               <option value="elogio">Outro</option>
+              <option value="abono">Abonado</option>
             </optgroup>
           </select>
         </div>
@@ -330,7 +332,7 @@
 import { supabase, initPage, dataBR, toast, abrirModal, fecharModal } from './js/config.js?v=12';
 import { icon } from './js/icons.js';
 import { nomeFeriado } from './js/feriados.js?v=4';
-import { montarFormOc, resetFormOc, preencherFormOc, lerFormOc, gravarOcorrencia, OC_LABEL, TIPOS_FALTA, ehFalta, rotuloOc, rotuloCal } from './js/oc-form.js?v=6';
+import { montarFormOc, resetFormOc, preencherFormOc, lerFormOc, gravarOcorrencia, OC_LABEL, TIPOS_FALTA, ehFalta, rotuloOc, rotuloCal } from './js/oc-form.js?v=7';
 
 await initPage();
 
@@ -344,10 +346,10 @@ if (!colabId) {
 }
 
 const TIPO_LABEL = OC_LABEL;
-const TIPO_COR   = { atraso:'background:#fef9c3;color:#854d0e', falta:'background:#fee2e2;color:#991b1b', atestado:'background:#fef3c7;color:#92400e', falta_declaracao:'background:#ffedd5;color:#9a3412', ferias:'background:#e0f2fe;color:#075985', declaracao:'background:#ede9fe;color:#5b21b6', advertencia:'background:#ffe4e6;color:#9f1239', elogio:'background:#f1f5f9;color:#475569', outro:'background:#dcfce7;color:#166534' };
-const TIPO_PONTO = { atraso:'#ca8a04', falta:'#dc2626', atestado:'#d97706', falta_declaracao:'#ea580c', ferias:'#0284c7', declaracao:'#7c3aed', advertencia:'#e11d48', elogio:'#94a3b8', outro:'#16a34a' };
+const TIPO_COR   = { abono:'background:#e0f2fe;color:#0369a1', atraso:'background:#fef9c3;color:#854d0e', falta:'background:#fee2e2;color:#991b1b', atestado:'background:#fef3c7;color:#92400e', falta_declaracao:'background:#ffedd5;color:#9a3412', ferias:'background:#e0f2fe;color:#075985', declaracao:'background:#ede9fe;color:#5b21b6', advertencia:'background:#ffe4e6;color:#9f1239', elogio:'background:#f1f5f9;color:#475569', outro:'background:#dcfce7;color:#166534' };
+const TIPO_PONTO = { abono:'#0284c7', atraso:'#ca8a04', falta:'#dc2626', atestado:'#d97706', falta_declaracao:'#ea580c', ferias:'#0284c7', declaracao:'#7c3aed', advertencia:'#e11d48', elogio:'#94a3b8', outro:'#16a34a' };
 // No calendário, quando há mais de um registro no dia, vale o mais "grave"
-const TIPO_PESO  = { falta:0, falta_declaracao:1, atestado:2, ferias:3, atraso:5, declaracao:6, elogio:7, outro:8, advertencia:9 };
+const TIPO_PESO  = { falta:0, falta_declaracao:1, atestado:2, ferias:3, atraso:5, declaracao:6, elogio:7, outro:8, abono:8, advertencia:9 };
 const DIAS_SEMANA = ['Dom','Seg','Ter','Qua','Qui','Sex','Sáb'];
 const DIAS_AB = ['dom','seg','ter','qua','qui','sex','sáb'];
 const MESES = ['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
@@ -643,7 +645,7 @@ function presencaDias(lista) {
   const dias = {};
   lista.forEach(o => {
     if (ehFalta(o)) dias[o.data] = 'f';
-    else if (!['ferias', 'advertencia'].includes(o.tipo) && !dias[o.data]) dias[o.data] = 'p';
+    else if (!['ferias', 'advertencia', 'abono'].includes(o.tipo) && !dias[o.data]) dias[o.data] = 'p';
   });
   const b = Object.keys(dias).length, p = Object.values(dias).filter(v => v === 'p').length;
   return { p, b, pct: b ? Math.round(p / b * 100) : null };
@@ -807,7 +809,7 @@ function renderEstatisticas() {
     ${advs.length ? `<div class="oc-lista">${advs.map(linha).join('')}</div>` : '<div class="st-vazio">Nenhuma advertência registrada.</div>'}`;
 
   // ── Aba Ocorrências: resumo do período por tipo e os registros que não são presença normal ──
-  const ORD = ['falta','atestado','falta_declaracao','ferias','atraso','declaracao','elogio','advertencia','outro'];
+  const ORD = ['falta','atestado','falta_declaracao','ferias','atraso','declaracao','elogio','abono','advertencia','outro'];
   const chips = ORD.filter(t => n(doPer, t)).map(t => `<span style="${TIPO_COR[t] || ''}">${n(doPer, t)} ${(TIPO_LABEL[t] || t).toLowerCase()}</span>`).join('');
   const especiais = doPer.filter(o => o.tipo !== 'outro').sort((a, b) => b.data.localeCompare(a.data));
   const ocResumo = document.getElementById('co-oc-resumo');
@@ -891,7 +893,7 @@ function renderHistorico() {
   // Resumo do que está filtrado na tela do histórico
   const cnt = t => lista.filter(o => o.tipo === t).length;
   document.getElementById('h-resumo').innerHTML = `<span style="background:#e2e8f0;color:#334155">${lista.length} registro${lista.length === 1 ? '' : 's'}</span>`
-    + ['outro','atraso','declaracao','elogio','advertencia','falta','atestado','falta_declaracao','ferias'].filter(t => cnt(t)).map(t => `<span style="${TIPO_COR[t]}">${cnt(t)} ${TIPO_LABEL[t].toLowerCase()}</span>`).join('');
+    + ['outro','atraso','declaracao','elogio','abono','advertencia','falta','atestado','falta_declaracao','ferias'].filter(t => cnt(t)).map(t => `<span style="${TIPO_COR[t]}">${cnt(t)} ${TIPO_LABEL[t].toLowerCase()}</span>`).join('');
   if (!lista.length) { document.getElementById('hist-lista').innerHTML = '<p class="hist-empty">Nenhuma ocorrência no período selecionado.</p>'; return; }
   // Agrupa por mês
   const grupos = [];
@@ -1011,7 +1013,7 @@ async function salvarOc() {
   const payload = { colaborador_id: colabId, tipo: oc.tipo, data: fd.data, descricao: fd.descricao || null, conta_como_falta: oc.conta_como_falta, horas: oc.horas, horas_abono: oc.horas_abono, hora_chegada: oc.hora_chegada };
   const { error } = await gravarOcorrencia(supabase, fd.id || null, payload);
   if (error) {
-    const msg = /tipo_check/i.test(error.message || '') ? 'Este tipo ainda não está liberado no banco. Rode o supabase-patch41.sql no Supabase.' : 'Erro: ' + error.message;
+    const msg = /tipo_check/i.test(error.message || '') ? 'Este tipo ainda não está liberado no banco. Rode o supabase-patch43.sql no Supabase.' : 'Erro: ' + error.message;
     toast(msg, 'error'); return;
   }
   toast(fd.id ? 'Ocorrência atualizada!' : 'Ocorrência registrada!');

@@ -439,8 +439,8 @@
 <script type="module">
 import { initPage, supabase, dataBR, toast, abrirModal, fecharModal } from './js/config.js?v=12';
 import { icon } from './js/icons.js';
-import { montarFormOc, resetFormOc, lerFormOc, gravarOcorrencia, TIPOS_FALTA, TIPOS_AUSENTE } from './js/oc-form.js?v=6';
-import { analisarEquipe, CSS_ANALISE } from './js/rh-analise.js?v=1';
+import { montarFormOc, resetFormOc, lerFormOc, gravarOcorrencia, TIPOS_FALTA, TIPOS_AUSENTE } from './js/oc-form.js?v=7';
+import { analisarEquipe, CSS_ANALISE } from './js/rh-analise.js?v=2';
 
 await initPage();
 
@@ -537,7 +537,7 @@ function renderKPIs() {
   const presenca = lista => {
     const d = {};
     lista.forEach(o => { const k = o.colaborador_id + o.data;
-      if (ehF(o)) d[k] = 'f'; else if (!['ferias', 'advertencia'].includes(o.tipo) && !d[k]) d[k] = 'p'; });
+      if (ehF(o)) d[k] = 'f'; else if (!['ferias', 'advertencia', 'abono'].includes(o.tipo) && !d[k]) d[k] = 'p'; });
     const v = Object.values(d), p = v.filter(x => x === 'p').length;
     return v.length ? Math.round(p / v.length * 100) : null;
   };
@@ -1104,7 +1104,7 @@ document.getElementById('btn-salvar-oc').addEventListener('click', async () => {
   const payload = { colaborador_id: fd.colaborador_id, tipo: oc.tipo, data: fd.data, descricao: fd.descricao||null, conta_como_falta: oc.conta_como_falta, horas: oc.horas, horas_abono: oc.horas_abono, hora_chegada: oc.hora_chegada };
   const { error } = await gravarOcorrencia(supabase, fd.id || null, payload);
   if (error) {
-    const msg = /tipo_check/i.test(error.message || '') ? 'Este tipo ainda não está liberado no banco. Rode o supabase-patch41.sql no Supabase.' : 'Erro: ' + error.message;
+    const msg = /tipo_check/i.test(error.message || '') ? 'Este tipo ainda não está liberado no banco. Rode o supabase-patch43.sql no Supabase.' : 'Erro: ' + error.message;
     toast(msg, 'error'); return;
   }
   toast(fd.id ? 'Ocorrência atualizada!' : 'Ocorrência registrada!');
