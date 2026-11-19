@@ -1102,8 +1102,6 @@ function render(d, tarefas, fin, materiaisEst = []) {
               <div class="ton-meses" style="grid-template-columns:repeat(${d.mesesAno.length}, 1fr)"><span class="rot">Toneladas vendidas</span>${d.mesesAno.map((mk, i) => `<span class="${mk === d.M ? 'cur' : ''}"><b>${nf((d.fatMes[i].vol || 0) / 1000, 1)}</b>${MES_AB[+mk.slice(5) - 1].toLowerCase()}</span>`).join('')}</div></div>
             <div class="db-cards">${cardsMeta.map(cardHTML).join('')}</div>
           </div>
-          <div class="db-mini-t" style="margin-top:18px">De onde vem o faturamento: ${refFixo ? 'cada material × outubro (referência)' : `cada material × a média dele${rotBase ? ` (${rotBase})` : ''}`}</div>
-          ${matsHTML}
         </section>
         ${lucroHTML}`)}
 
