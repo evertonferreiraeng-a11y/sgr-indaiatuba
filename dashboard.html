@@ -223,17 +223,36 @@
     .carregando { text-align:center; padding:60px; color:var(--text-muted); }
 
     /* ── Tela inicial: 4 cards grandes no meio ── */
-    .db-home { min-height:calc(100vh - 300px); display:grid; align-content:center; padding:24px 0; }
-    .db-home .db-sem { gap:18px; margin:0; }
-    .db-home .db-ind { padding:26px 26px 22px; border-left-width:8px; border-radius:var(--radius-lg); display:flex; flex-direction:column; min-height:240px; }
-    .db-home .db-ind .rot { font-size:12.5px; }
-    .db-home .db-ind .val { font-size:28px; margin:14px 0 4px; }
+    .db-home { min-height:calc(100vh - 290px); display:grid; align-content:center; padding:28px 0 36px; }
+    .db-home-hd { margin:0 0 18px; }
+    .db-home-hd h2 { font-size:22px; font-weight:800; letter-spacing:-.02em; color:var(--text); margin:0; }
+    .db-home-hd p { margin:4px 0 0; font-size:13.5px; color:var(--text-muted); }
+    .db-home .db-sem { gap:20px; margin:0; }
+    .db-home .db-ind { --st:#94a3b8; --st-bg:#f1f5f9; position:relative; overflow:hidden; display:flex; flex-direction:column; min-height:290px;
+      padding:24px 24px 20px; border:1px solid var(--border); border-radius:18px; background:#fff; box-shadow:var(--shadow-sm);
+      transition:transform .18s ease, box-shadow .18s ease, border-color .18s ease; }
+    .db-home .db-ind::before { content:""; position:absolute; inset:0 0 auto 0; height:5px; background:var(--st); }
+    .db-home .db-ind.ok   { --st:var(--success); --st-bg:#ecfdf3; }
+    .db-home .db-ind.amb  { --st:#d97706; --st-bg:#fffbeb; }
+    .db-home .db-ind.verm { --st:var(--danger); --st-bg:#fef2f2; }
+    .db-home .db-ind:hover { transform:translateY(-4px); box-shadow:var(--shadow-lg); border-color:transparent; }
+    .db-home .db-ind:focus-visible { outline:3px solid var(--primary-border); outline-offset:2px; }
+    .db-home .db-ind .hd { justify-content:flex-start; gap:12px; }
+    .db-home .db-ind .selo { margin-left:auto; }
+    .ind-ic { flex:none; width:44px; height:44px; border-radius:12px; display:grid; place-items:center; background:var(--st-bg); color:var(--st); }
+    .db-home .db-ind .rot { font-size:12.5px; letter-spacing:.08em; }
+    .db-home .db-ind .val { font-size:34px; line-height:1.1; margin:20px 0 6px; letter-spacing:-.03em; }
+    .ind-ext { align-self:flex-start; font-size:12.5px; font-weight:700; color:var(--primary); background:var(--primary-bg); border:1px solid var(--primary-border); border-radius:999px; padding:3px 10px; margin-bottom:8px; }
     .db-home .db-ind .sub { font-size:13.5px; }
-    .db-home .db-ind .barra { height:8px; margin-top:16px; }
-    .db-home .db-ind .barra .esp { height:14px; }
-    .db-home .db-ind .mot { font-size:13px; margin-top:14px; padding-top:12px; }
-    .db-ind .ver { margin-top:auto; padding-top:16px; font-size:12.5px; font-weight:700; color:var(--primary); opacity:.75; transition:opacity .15s; }
-    .db-ind:hover .ver { opacity:1; }
+    .db-home .db-ind .barra { height:10px; margin-top:18px; border-radius:999px; background:#eef2f6; }
+    .db-home .db-ind .barra i { border-radius:999px; }
+    .db-home .db-ind .barra .esp { top:-4px; height:18px; width:3px; }
+    .barra-leg { display:flex; justify-content:space-between; margin-top:6px; font-size:12px; color:var(--text-muted); }
+    .barra-leg b { font-size:13px; }
+    .db-home .db-ind .mot { font-size:13px; line-height:1.45; margin-top:14px; padding:10px 12px; border:0; border-radius:10px; background:var(--st-bg); }
+    .db-ind .ver { margin-top:auto; padding-top:18px; display:flex; align-items:center; justify-content:space-between; font-size:13px; font-weight:700; color:var(--primary); }
+    .db-ind .ver span { width:30px; height:30px; border-radius:50%; display:grid; place-items:center; background:var(--primary-bg); transition:transform .18s, background .18s, color .18s; }
+    .db-ind:hover .ver span { transform:translateX(3px); background:var(--primary); color:#fff; }
 
     /* ── Janela de detalhes ── */
     .db-modal { position:fixed; inset:0; z-index:50; display:flex; justify-content:center; align-items:flex-start; padding:28px 20px; }
@@ -446,7 +465,7 @@ function render(d, tarefas, fin, materiaisEst = []) {
   const incompleta = d.colab != null && d.colab < d.quadro;
   const inds = [
     { alvo:'fat', rot:'Faturamento', st:noRitmo(atFatEst != null ? atFatEst / espAqui : null),
-      val: mil(c.fat) + (comEst ? ` <span style="font-size:13px;color:var(--primary)">+ ${mil(d.valorEstoque)} em estoque</span>` : ''),
+      val: mil(c.fat), ext: comEst ? `+ ${mil(d.valorEstoque)} em estoque` : '',
       sub: d.meta ? `${pct(comEst ? atFatEst : atFat, 0)} da meta de ${mil(d.meta)}${d.emAndamento ? ` · esperado ${pct(espAqui * 100, 0)}` : ''}` : 'sem meta cadastrada',
       barra: d.meta ? [ (comEst ? atFatEst : atFat), d.emAndamento ? espAqui * 100 : null ] : null,
       mot: d.meta ? (d.emAndamento ? `faltam <b>${mil(Math.max(0, d.meta * espAqui - fatEst))}</b> para o esperado até ${ddmm(d.corte)}` : `faltaram <b>${mil(Math.max(0, d.meta - c.fat))}</b> para a meta`) : '' },
@@ -464,15 +483,25 @@ function render(d, tarefas, fin, materiaisEst = []) {
       mot: d.vagas ? `<b>${d.vagas} vaga${d.vagas > 1 ? 's' : ''}</b> em reposição` : '' },
   ];
   const corSel = st => ({ ritmo:COR.ok, ok:COR.ok, amb:COR.amb, abaixo:COR.ruim, verm:COR.ruim, nd:COR.cinza }[st]);
+  // Ícones dos cards (traço simples, herdam a cor do status)
+  const svgI = p => `<svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${p}</svg>`;
+  const ICO = {
+    fat:    svgI('<line x1="12" y1="2" x2="12" y2="22"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>'),
+    prensa: svgI('<path d="M12 2 2 7l10 5 10-5-10-5z"/><path d="m2 17 10 5 10-5"/><path d="m2 12 10 5 10-5"/>'),
+    equip:  svgI('<path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/>'),
+    equipe: svgI('<path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>'),
+  };
   const semHTML = inds.map(k => {
     const [rot, cls] = SEL[k.st];
     const [p, esp] = k.barra || [];
+    const pw = Math.max(0, Math.min(100, p || 0));
     return `<button class="db-ind ${cls}" data-alvo="${k.alvo}">
-      <div class="hd"><span class="rot">${k.rot}</span><span class="selo ${cls}">${rot}</span></div>
-      <div class="val">${k.val}</div><div class="sub">${k.sub}</div>
-      ${k.barra ? `<div class="barra"><i style="width:${Math.max(0, Math.min(100, p || 0))}%;background:${corSel(k.st)}"></i>${esp != null ? `<span class="esp" style="left:${Math.min(100, esp)}%" title="esperado até aqui"></span>` : ''}</div>` : ''}
+      <div class="hd"><span class="ind-ic">${ICO[k.alvo] || ''}</span><span class="rot">${k.rot}</span><span class="selo ${cls}">${rot}</span></div>
+      <div class="val">${k.val}</div>${k.ext ? `<div class="ind-ext">${k.ext}</div>` : ''}<div class="sub">${k.sub}</div>
+      ${k.barra ? `<div class="barra"><i style="width:${pw}%;background:${corSel(k.st)}"></i>${esp != null ? `<span class="esp" style="left:${Math.min(100, esp)}%" title="esperado até aqui"></span>` : ''}</div>
+        <div class="barra-leg"><b style="color:${corSel(k.st)}">${pct(p, 0)}</b>${esp != null ? `<span>esperado ${pct(esp, 0)}</span>` : ''}</div>` : ''}
       ${!['ok','ritmo','nd'].includes(k.st) && k.mot ? `<div class="mot">${k.mot}</div>` : ''}
-      <div class="ver">Ver detalhes →</div>
+      <div class="ver">Ver detalhes <span>→</span></div>
     </button>`;
   }).join('');
 
@@ -823,7 +852,10 @@ function render(d, tarefas, fin, materiaisEst = []) {
   const painel = (id, titulo, links, corpo) => `<div class="db-painel" data-painel="${id}" hidden>
       <div class="db-modal-hd"><h2>${titulo}</h2><span class="db-modal-links">${links}</span></div>${corpo}</div>`;
   $('#db-conteudo').innerHTML = `
-    <div class="db-home"><div class="db-sem">${semHTML}</div></div>
+    <div class="db-home">
+      <div class="db-home-hd"><h2>Resumo de ${mes} de ${d.M.slice(0, 4)}</h2><p>Clique num card para ver os gráficos e os detalhes.</p></div>
+      <div class="db-sem">${semHTML}</div>
+    </div>
 
     <div class="db-modal" id="db-modal" hidden>
       <div class="db-modal-fundo" data-fechar></div>
