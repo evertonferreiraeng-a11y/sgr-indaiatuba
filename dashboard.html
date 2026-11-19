@@ -788,27 +788,6 @@ function render(d, tarefas, fin, materiaisEst = []) {
     </section>`;
   }
 
-  /* ── Plano de ação ── */
-  const cats = [...new Set(tarefas.map(t => t.categoria).filter(Boolean))];
-  const catSalva = lsGet('sgr_apres_cat');
-  const cat = catSalva != null && (catSalva === '' || cats.includes(catSalva)) ? catSalva : (cats.find(x => /plano|comit/i.test(x)) || '');
-  const acoes = tarefas.filter(t => t.status !== 'cancelada' && (!cat || t.categoria === cat));
-  const atrasada = t => t.data_vencimento && t.data_vencimento < hoje && t.status !== 'concluida';
-  const ordemSt = t => atrasada(t) ? 0 : t.status === 'em_andamento' ? 1 : t.status === 'pendente' ? 2 : 3;
-  acoes.sort((x, y) => ordemSt(x) - ordemSt(y) || (x.data_vencimento || '9999').localeCompare(y.data_vencimento || '9999'));
-  const nAtr = acoes.filter(atrasada).length, nAnd = acoes.filter(t => t.status === 'em_andamento').length, nOk = acoes.filter(t => t.status === 'concluida').length;
-  const stPill = t => { const s = atrasada(t) ? ['Atrasada','#fee2e2','#991b1b'] : t.status === 'em_andamento' ? ['Em andamento','#fef3c7','#92400e'] : t.status === 'concluida' ? ['Concluída','#dcfce7','#166534'] : [STATUS_TAREFA[t.status] || t.status || '—','#f1f5f9','#475569'];
-    return `<span class="st-pill" style="background:${s[1]};color:${s[2]}">${esc(s[0])}</span>`; };
-  const abertas = acoes.filter(t => t.status !== 'concluida');
-  const planoHTML = `<section class="db-sec" id="s-plano">
-    <div class="db-sec-hd"><h2>Plano de ação</h2><a href="tarefas.html">Abrir Tarefas →</a></div>
-    <p class="db-frase">${acoes.length ? `${acoes.length} ações${cat ? ` em <b>${esc(cat)}</b>` : ''}: <span class="ok">${nOk} concluída${nOk === 1 ? '' : 's'}</span>, ${nAnd} em andamento${nAtr ? `, <span class="ruim">${nAtr} atrasada${nAtr > 1 ? 's' : ''}</span>` : ''}.${nAtr ? ' Comece pelas atrasadas: motivo e nova data.' : ''}` : 'Nenhuma ação cadastrada. Cadastre as ações do comitê em Tarefas.'}</p>
-    ${abertas.length ? `<div class="table-scroll"><table class="db"><thead><tr><th>Ação</th><th>Responsável</th><th>Prazo</th><th>Status</th></tr></thead><tbody>` +
-      abertas.slice(0, 10).map(t => `<tr><td><b>${esc(t.titulo)}</b>${t.andamento ? `<br><span class="sub" style="font-size:12px">${esc(t.andamento)}</span>` : ''}</td>
-        <td>${esc(t.responsavel || 'a definir')}</td><td class="${atrasada(t) ? 'down' : ''}">${t.data_vencimento ? ddmmaaaa(t.data_vencimento) : 'a definir'}</td><td>${stPill(t)}</td></tr>`).join('') +
-      `</tbody></table></div>${abertas.length > 10 ? `<p class="sub" style="margin-top:8px">e mais ${abertas.length - 10} em Tarefas.</p>` : ''}` : ''}
-  </section>`;
-
   /* ══ 1. Vamos bater a meta do mês? ══ */
   const estM = d.emAndamento ? d.valorEstoque : 0;
   // o estoque pronto para vender já conta como vendido: o que falta é meta − faturado − estoque
@@ -898,8 +877,6 @@ function render(d, tarefas, fin, materiaisEst = []) {
       <td class="n">${x.ticketNec ? reais0(x.ticketNec) + '/t' : '—'}<br><span class="sub" style="font-size:11px">${eq.base.ticket ? `hoje: ${reais0(eq.base.ticket)}/t` : ''}</span></td></tr>`).join('')}
     </tbody></table></div>` : '';
 
-  const plano4 = planoHTML.replace('id="s-plano"', 'id="b-plano"')
-    .replace('<h2>Plano de ação</h2>', '<div><span class="db-q-n">4</span><h2 class="db-q">O que estamos fazendo?</h2></div>');
 
   /* ── Resumo didático: quanto do mês já passou × quanto já foi feito ── */
   const espFat = d.emAndamento ? espAqui * 100 : 100;
@@ -990,11 +967,10 @@ function render(d, tarefas, fin, materiaisEst = []) {
           ${voltaram.length ? `<p class="sub" style="margin-top:8px;font-size:12px">Pararam no mês e já voltaram: ${voltaram.map(x => `${esc(nomeEq(x.e))} (${x.dias} dia${x.dias > 1 ? 's' : ''})`).join(' · ')}.</p>` : ''}
         </section>`)}
 
-        ${painel('equipe', 'Equipe', '<a href="rh.html">RH →</a><a href="tarefas.html">Tarefas →</a>', `
+        ${painel('equipe', 'Equipe', '<a href="rh.html">RH →</a>', `
         <section class="db-sec">
           <div class="db-grid2">${kEq.slice(2, 4).map(cardEq).join('')}</div>
-        </section>
-        ${plano4}`)}
+        </section>`)}
 
         <p class="sub" style="text-align:center;margin:4px 0 8px">Precisa do balanço de entradas, dos clientes ou das avaliações da equipe? <a href="dashboard-detalhado.html" style="color:var(--primary);font-weight:600">Abrir o relatório detalhado →</a></p>
       </div>
