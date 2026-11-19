@@ -277,7 +277,7 @@
 <script type="module">
 import { supabase, initPage, dataBR, toast, abrirModal, fecharModal } from './js/config.js?v=12';
 import { icon } from './js/icons.js';
-import { montarFormOc, resetFormOc, preencherFormOc, lerFormOc, gravarOcorrencia, OC_LABEL, TIPOS_FALTA, rotuloOc, rotuloCal } from './js/oc-form.js?v=1';
+import { montarFormOc, resetFormOc, preencherFormOc, lerFormOc, gravarOcorrencia, OC_LABEL, TIPOS_FALTA, ehFalta, rotuloOc, rotuloCal } from './js/oc-form.js?v=2';
 
 await initPage();
 
@@ -577,7 +577,7 @@ async function carregarOcorrencias() {
 // Presença contada por dia: o dia é falta se tiver qualquer registro de falta; senão, com qualquer registro, é presença
 function presencaDias(lista) {
   const dias = {};
-  lista.forEach(o => { dias[o.data] = dias[o.data] || TIPOS_FALTA.includes(o.tipo); });
+  lista.forEach(o => { dias[o.data] = dias[o.data] || ehFalta(o); });
   const b = Object.keys(dias).length, p = Object.values(dias).filter(f => !f).length;
   return { p, b, pct: b ? Math.round(p / b * 100) : null };
 }
@@ -587,8 +587,8 @@ function renderEstatisticas() {
   const doAno = ocColab.filter(o => o.data.startsWith(ano) && o.data <= hoje);
   const n = (lista, t) => lista.filter(o => o.tipo === t).length;
   // Conta como falta: sem justificativa, justificada (atestado) e férias — a mesma regra do "conta como falta no KPI"
-  const nAus = lista => lista.filter(o => TIPOS_FALTA.includes(o.tipo)).length;
-  const nJust = lista => n(lista, 'atestado') + n(lista, 'falta_declaracao');
+  const nAus = lista => lista.filter(ehFalta).length;
+  const nJust = lista => lista.filter(o => o.tipo === 'atestado' || o.tipo === 'falta_declaracao' || (o.tipo === 'declaracao' && o.conta_como_falta)).length;
   const presenca = presencaDias;
   const corPres = v => v == null ? '' : v >= 95 ? 'verde' : v >= 85 ? 'amarelo' : 'vermelho';
   const detalhe = lista => { const f = n(lista, 'falta'), j = nJust(lista), o = n(lista, 'ferias');
@@ -596,7 +596,7 @@ function renderEstatisticas() {
   const pAno = presenca(doAno);
   const faltasAno = nAus(doAno), advAno = n(doAno, 'advertencia');
   // Última falta (qualquer ausência) e dias desde então
-  const ultFalta = ocColab.filter(o => TIPOS_FALTA.includes(o.tipo) && o.data <= hoje).map(o => o.data).sort().pop();
+  const ultFalta = ocColab.filter(o => ehFalta(o) && o.data <= hoje).map(o => o.data).sort().pop();
   const diasDesde = dt => Math.round((new Date(hoje + 'T00:00:00') - new Date(dt + 'T00:00:00')) / 86400000);
   const ref = ultFalta || colaborador.data_admissao;
   const semFaltar = ref ? diasDesde(ref) : null;
@@ -669,7 +669,7 @@ function renderEstatisticas() {
   }).join('');
 
   // Faltas (todas as ausências) por dia da semana (seg a sáb)
-  const ausencias = ocColab.filter(o => TIPOS_FALTA.includes(o.tipo));
+  const ausencias = ocColab.filter(ehFalta);
   const porDia = [1, 2, 3, 4, 5, 6].map(w => ({ w, v: ausencias.filter(o => new Date(o.data + 'T00:00:00').getDay() === w).length }));
   const maxD = Math.max(1, ...porDia.map(x => x.v));
   const dias = ausencias.length ? porDia.map(x => `<div class="st-dia"><span>${DIAS_AB[x.w]}</span><div class="tr"><i style="width:${x.v / maxD * 100}%"></i></div><b>${x.v}</b></div>`).join('')
@@ -713,7 +713,7 @@ function ocFiltradas(doHistorico = false) {
   return ocColab.filter(o => {
     if (ini && o.data < ini) return false;
     if (fim && o.data > fim) return false;
-    if (tipo === '@falta') { if (!TIPOS_FALTA.includes(o.tipo)) return false; }
+    if (tipo === '@falta') { if (!ehFalta(o)) return false; }
     else if (tipo && o.tipo !== tipo) return false;
     return true;
   }).sort((a,b) => b.data.localeCompare(a.data));
@@ -846,10 +846,10 @@ async function salvarOc() {
   const oc = lerFormOc();
   if (oc.erro) { toast(oc.erro, 'error'); return; }
   const fd = Object.fromEntries(new FormData(f));
-  const payload = { colaborador_id: colabId, tipo: oc.tipo, data: fd.data, descricao: fd.descricao || null, conta_como_falta: oc.conta_como_falta, horas: oc.horas };
+  const payload = { colaborador_id: colabId, tipo: oc.tipo, data: fd.data, descricao: fd.descricao || null, conta_como_falta: oc.conta_como_falta, horas: oc.horas, horas_abono: oc.horas_abono };
   const { error } = await gravarOcorrencia(supabase, fd.id || null, payload);
   if (error) {
-    const msg = /tipo_check/i.test(error.message || '') ? 'Este tipo ainda não está liberado no banco. Rode o supabase-patch39.sql no Supabase.' : 'Erro: ' + error.message;
+    const msg = /tipo_check/i.test(error.message || '') ? 'Este tipo ainda não está liberado no banco. Rode o supabase-patch40.sql no Supabase.' : 'Erro: ' + error.message;
     toast(msg, 'error'); return;
   }
   toast(fd.id ? 'Ocorrência atualizada!' : 'Ocorrência registrada!');

@@ -1,11 +1,16 @@
 // Formulário de ocorrência compartilhado (colaborador-ocorrencias.html e rh.html)
 // Primeiro escolhe a situação do dia (Presente ou Falta), depois o motivo.
-// O "tipo" gravado no banco continua o mesmo de sempre:
+// O "tipo" gravado no banco:
 //   Falta    → falta (injustificada) · atestado (justificada) · falta_declaracao (declaração de horas, faltou o resto) · ferias
 //   Presente → outro (normal) · declaracao (com horas) · advertencia · elogio (outro)
+// "Conta como falta" não é mais escolhido na mão: sai do motivo.
+// Na declaração: horas da declaração + quantas horas abonar, ou (se estava presente) colocar como falta.
 
 export const TIPOS_FALTA = ['falta', 'atestado', 'falta_declaracao', 'ferias'];
 export const TIPOS_COM_HORAS = ['declaracao', 'falta_declaracao'];
+
+// A ocorrência conta como falta? (tipos de falta, ou declaração que foi colocada como falta)
+export const ehFalta = o => TIPOS_FALTA.includes(o.tipo) || (o.tipo === 'declaracao' && !!o.conta_como_falta);
 
 export const MOTIVOS = {
   falta:    [['falta', 'Injustificada'], ['atestado', 'Justificada (atestado)'], ['falta_declaracao', 'Declaração de horas'], ['ferias', 'Férias']],
@@ -18,26 +23,34 @@ export const OC_LABEL = {
   outro: 'Presente', declaracao: 'Declaração', advertencia: 'Advertência', elogio: 'Outro',
 };
 
-const fmtHoras = h => {
+export const fmtHoras = h => {
   const v = parseFloat(h); if (!v) return '';
   const hh = Math.floor(v), mm = Math.round((v - hh) * 60);
   return mm ? `${hh}h${String(mm).padStart(2, '0')}` : `${hh}h`;
 };
-export { fmtHoras };
 
-// Rótulo de uma ocorrência; inclui as horas da declaração quando houver
+// Texto das horas: "2h · abonou 1h" / "2h · como falta"
+function txtHoras(o) {
+  if (!TIPOS_COM_HORAS.includes(o.tipo) || !o.horas) return '';
+  let t = fmtHoras(o.horas);
+  if (o.tipo === 'declaracao' && o.conta_como_falta) t += ' · como falta';
+  else if (o.horas_abono != null) t += parseFloat(o.horas_abono) > 0 ? ` · abonou ${fmtHoras(o.horas_abono)}` : ' · sem abono';
+  return t;
+}
+
+// Rótulo de uma ocorrência (histórico)
 export function rotuloOc(o) {
-  const base = OC_LABEL[o.tipo] || o.tipo;
-  return TIPOS_COM_HORAS.includes(o.tipo) && o.horas ? `${base} · ${fmtHoras(o.horas)}` : base;
+  const base = o.tipo === 'declaracao' && o.conta_como_falta ? 'Declaração (falta)' : (OC_LABEL[o.tipo] || o.tipo);
+  const h = txtHoras(o);
+  return h ? `${base} · ${h}` : base;
 }
 
 // Rótulo do calendário em duas partes: situação do dia + motivo
 export function rotuloCal(o) {
-  const falta = TIPOS_FALTA.includes(o.tipo);
   const h = o.horas ? ' ' + fmtHoras(o.horas) : '';
   const mot = { falta: 'injustificada', atestado: 'justificada', falta_declaracao: `declaração${h}`, ferias: 'férias', outro: '',
     declaracao: `declaração${h}`, advertencia: 'advertência', elogio: 'outro' }[o.tipo] ?? '';
-  return { situacao: falta ? 'Falta' : 'Presente', motivo: mot };
+  return { situacao: ehFalta(o) ? 'Falta' : 'Presente', motivo: mot };
 }
 
 const CSS = `
@@ -53,9 +66,17 @@ const CSS = `
   .ocf-mot button { padding:7px 12px; border-radius:999px; border:1.5px solid #e2e8f0; background:#fff; font:inherit; font-size:13px; font-weight:600; color:#475569; cursor:pointer; }
   .ocf-mot button.on { border-color:var(--c,#0f5132); background:var(--bg,#f0fdf4); color:var(--c,#0f5132); }
   .ocf-mot-vazio { font-size:12.5px; color:#94a3b8; padding:6px 0; }
-  .ocf-horas { display:flex; align-items:center; gap:8px; }
-  .ocf-horas input { width:110px; }
-  .ocf-horas span { font-size:12.5px; color:#64748b; }
+  .ocf-dec { background:#f8fafc; border:1px solid #e2e8f0; border-radius:12px; padding:12px 14px; display:flex; flex-direction:column; gap:10px; }
+  .ocf-linha { display:flex; align-items:center; gap:10px; flex-wrap:wrap; font-size:13.5px; color:#334155; }
+  .ocf-linha > b { font-size:13px; color:#334155; }
+  .ocf-linha input[type=number] { width:90px; }
+  .ocf-linha small { color:#64748b; font-size:12px; }
+  .ocf-opc { display:flex; flex-direction:column; gap:8px; }
+  .ocf-opc label { display:flex; align-items:center; gap:8px; font-size:13.5px; font-weight:600; color:#334155; cursor:pointer; text-transform:none; letter-spacing:0; margin:0; }
+  .ocf-opc label[hidden] { display:none; }
+  .ocf-opc input[type=radio] { width:16px; height:16px; accent-color:#0f5132; margin:0; flex:none; }
+  .ocf-opc input[type=number] { width:80px; }
+  .ocf-aviso { font-size:12px; color:#64748b; }
 `;
 const COR_MOT = {
   falta: ['#b91c1c', '#fef2f2'], atestado: ['#b45309', '#fffbeb'], falta_declaracao: ['#9a3412', '#fff7ed'], ferias: ['#0369a1', '#f0f9ff'],
@@ -64,7 +85,7 @@ const COR_MOT = {
 
 let el = {};
 
-// Desenha os campos dentro do container (no lugar dos antigos Tipo / Presença no dia / Conta como falta)
+// Desenha os campos dentro do container
 export function montarFormOc(container) {
   if (!document.getElementById('ocf-css')) {
     const st = document.createElement('style'); st.id = 'ocf-css'; st.textContent = CSS; document.head.appendChild(st);
@@ -78,27 +99,44 @@ export function montarFormOc(container) {
       <input type="hidden" name="tipo" />
     </div>
     <div class="form-group full"><label id="ocf-mot-lbl">Motivo *</label><div class="ocf-mot" id="ocf-mot"></div></div>
-    <div class="form-group full" id="ocf-horas-wrap" hidden><label>Horas da declaração *</label>
-      <div class="ocf-horas"><input type="number" name="horas" min="0.25" max="24" step="0.25" placeholder="ex.: 1,5" /><span>horas (1,5 = 1h30)</span></div>
-    </div>
-    <div class="form-group full">
-      <label style="display:flex;align-items:center;gap:10px;cursor:pointer;font-weight:600">
-        <input type="checkbox" name="conta_como_falta" id="chk-conta-falta" style="width:16px;height:16px;accent-color:#dc2626" />
-        <span>Conta como falta no KPI?</span>
-      </label>
-      <p style="margin:4px 0 0 26px;font-size:12px;color:#64748b">Marca sozinho quando a situação é Falta. Pode mudar se precisar.</p>
+    <div class="form-group full" id="ocf-dec" hidden><label>Declaração</label>
+      <div class="ocf-dec">
+        <div class="ocf-linha"><b>Horas da declaração *</b><input type="number" name="horas" min="0.25" max="24" step="0.25" placeholder="ex.: 1,5" /><small>1,5 = 1h30</small></div>
+        <div class="ocf-opc">
+          <label><input type="radio" name="dec_trat" value="abonar" checked /> Abonar <input type="number" name="horas_abono" min="0" max="24" step="0.25" /> horas</label>
+          <label id="ocf-opc-falta"><input type="radio" name="dec_trat" value="falta" /> Colocar como falta</label>
+        </div>
+        <div class="ocf-aviso" id="ocf-aviso"></div>
+      </div>
     </div>`;
   el = {
     sit: container.querySelectorAll('.ocf-sit button'),
     tipo: container.querySelector('[name="tipo"]'),
     mot: container.querySelector('#ocf-mot'),
     motLbl: container.querySelector('#ocf-mot-lbl'),
-    horasWrap: container.querySelector('#ocf-horas-wrap'),
+    dec: container.querySelector('#ocf-dec'),
     horas: container.querySelector('[name="horas"]'),
-    chk: container.querySelector('#chk-conta-falta'),
+    abono: container.querySelector('[name="horas_abono"]'),
+    trat: container.querySelectorAll('[name="dec_trat"]'),
+    optFalta: container.querySelector('#ocf-opc-falta'),
+    aviso: container.querySelector('#ocf-aviso'),
   };
   el.sit.forEach(b => b.addEventListener('click', () => { setSituacao(b.dataset.sit); setTipo(b.dataset.sit === 'falta' ? 'falta' : 'outro'); }));
+  // Ao digitar as horas, sugere abonar todas (enquanto o abono não for mexido)
+  el.horas.addEventListener('input', () => { if (!el.abono.dataset.mexido) el.abono.value = el.horas.value; atualizarAviso(); });
+  el.abono.addEventListener('input', () => { el.abono.dataset.mexido = '1'; setTrat('abonar'); atualizarAviso(); });
+  el.abono.addEventListener('focus', () => { setTrat('abonar'); atualizarAviso(); });
+  el.trat.forEach(r => r.addEventListener('change', atualizarAviso));
   setSituacao('');
+}
+
+const trat = () => [...el.trat].find(r => r.checked)?.value || 'abonar';
+function setTrat(v) { el.trat.forEach(r => { r.checked = r.value === v; }); }
+
+function atualizarAviso() {
+  const t = el.tipo.value;
+  if (t === 'falta_declaracao') el.aviso.textContent = 'O dia conta como falta. As horas abonadas ficam registradas.';
+  else el.aviso.textContent = trat() === 'falta' ? 'O dia vai contar como falta.' : 'O dia conta como presença.';
 }
 
 let situacao = '';
@@ -112,46 +150,66 @@ function setSituacao(s) {
   }).join('') : '<span class="ocf-mot-vazio">Escolha primeiro se a pessoa veio ou faltou.</span>';
   el.mot.querySelectorAll('button').forEach(b => b.addEventListener('click', () => setTipo(b.dataset.t)));
 }
-function setTipo(t, manterChk = false) {
+function setTipo(t) {
   el.tipo.value = t;
   el.mot.querySelectorAll('button').forEach(b => b.classList.toggle('on', b.dataset.t === t));
-  el.horasWrap.hidden = !TIPOS_COM_HORAS.includes(t);
-  if (!manterChk) el.chk.checked = TIPOS_FALTA.includes(t);
+  el.dec.hidden = !TIPOS_COM_HORAS.includes(t);
+  // "Colocar como falta" só aparece quando a pessoa estava presente; do lado da falta o dia já é falta
+  el.optFalta.hidden = t !== 'declaracao';
+  if (t !== 'declaracao') setTrat('abonar');
+  atualizarAviso();
 }
 
 export function resetFormOc() {
   setSituacao('');
-  el.tipo.value = ''; el.horas.value = ''; el.horasWrap.hidden = true; el.chk.checked = false;
+  el.tipo.value = ''; el.horas.value = ''; el.abono.value = ''; delete el.abono.dataset.mexido;
+  setTrat('abonar'); el.dec.hidden = true;
 }
 
 export function preencherFormOc(o) {
+  resetFormOc();
   setSituacao(TIPOS_FALTA.includes(o.tipo) ? 'falta' : 'presente');
-  setTipo(o.tipo, true);
-  el.chk.checked = !!o.conta_como_falta;
+  setTipo(o.tipo);
   el.horas.value = o.horas ?? '';
+  el.abono.value = o.horas_abono ?? '';
+  if (o.horas_abono != null) el.abono.dataset.mexido = '1';
+  setTrat(o.tipo === 'declaracao' && o.conta_como_falta ? 'falta' : 'abonar');
+  atualizarAviso();
 }
 
-// Lê os campos. Devolve { erro } ou { tipo, presente, conta_como_falta, horas }
+// Lê os campos. Devolve { erro } ou { tipo, presente, conta_como_falta, horas, horas_abono }
 export function lerFormOc() {
   if (!situacao) return { erro: 'Escolha se a pessoa estava presente ou faltou.' };
   const tipo = el.tipo.value;
   if (!tipo) return { erro: 'Escolha o motivo.' };
-  let horas = null;
+  const num = v => parseFloat(String(v).replace(',', '.'));
+  let horas = null, horas_abono = null, comoFalta = false;
   if (TIPOS_COM_HORAS.includes(tipo)) {
-    horas = parseFloat(String(el.horas.value).replace(',', '.'));
+    horas = num(el.horas.value);
     if (!horas || horas <= 0) { el.horas.focus(); return { erro: 'Informe quantas horas a declaração cobre.' }; }
+    comoFalta = tipo === 'declaracao' && trat() === 'falta';
+    if (comoFalta) horas_abono = 0;
+    else {
+      horas_abono = el.abono.value === '' ? horas : num(el.abono.value);
+      if (isNaN(horas_abono) || horas_abono < 0) { el.abono.focus(); return { erro: 'Informe quantas horas abonar (pode ser 0).' }; }
+      if (horas_abono > horas) { el.abono.focus(); return { erro: 'As horas abonadas não podem passar das horas da declaração.' }; }
+    }
   }
-  return { tipo, presente: !TIPOS_FALTA.includes(tipo), conta_como_falta: el.chk.checked, horas };
+  const falta = TIPOS_FALTA.includes(tipo) || comoFalta;
+  return { tipo, presente: !falta, conta_como_falta: falta, horas, horas_abono };
 }
 
-// Grava a ocorrência. Se a coluna "horas" ainda não existir no banco (patch 39 não rodado),
-// grava sem ela e coloca as horas no começo da descrição para não perder a informação.
+// Grava a ocorrência. Se as colunas de horas ainda não existirem no banco (patch 40 não rodado),
+// grava sem elas e coloca as horas no começo da descrição para não perder a informação.
 export async function gravarOcorrencia(supabase, id, payload) {
   const exec = p => id ? supabase.from('ocorrencias').update(p).eq('id', id) : supabase.from('ocorrencias').insert(p);
   let { error } = await exec(payload);
   if (error && /horas/i.test(error.message || '')) {
-    const { horas, ...resto } = payload;
-    if (horas) resto.descricao = `Declaração de ${fmtHoras(horas)}${resto.descricao ? ' — ' + resto.descricao : ''}`;
+    const { horas, horas_abono, ...resto } = payload;
+    if (horas) {
+      const tr = payload.tipo === 'declaracao' && payload.conta_como_falta ? 'como falta' : horas_abono > 0 ? `abonou ${fmtHoras(horas_abono)}` : 'sem abono';
+      resto.descricao = `Declaração de ${fmtHoras(horas)} (${tr})${resto.descricao ? ' — ' + resto.descricao : ''}`;
+    }
     ({ error } = await exec(resto));
   }
   return { error };
