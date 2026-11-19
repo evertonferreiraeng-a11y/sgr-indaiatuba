@@ -111,6 +111,14 @@
     .eq-dist i { display:block; }
 
     /* Lista de colaboradores */
+    .cl-toggle { display:flex; align-items:center; gap:10px; width:100%; font:inherit; color:#0f172a; background:#fff; border:1px solid #e2e8f0; border-radius:14px; padding:14px 18px; cursor:pointer; text-align:left; margin-bottom:16px; transition:background .12s; }
+    .cl-toggle:hover { background:#f6fbf8; border-color:#16a34a; }
+    .cl-toggle b { font-size:15px; font-weight:800; }
+    .cl-seta { display:inline-block; color:#006636; font-size:14px; transition:transform .15s; }
+    .cl-toggle[aria-expanded="true"] .cl-seta { transform:rotate(90deg); }
+    .cl-n { font-size:12px; font-weight:800; background:#e2e8f0; color:#475569; border-radius:999px; padding:1px 9px; }
+    .cl-dica { margin-left:auto; font-size:12.5px; color:#64748b; }
+    #cl-secao { margin-bottom:16px; }
     .cl-lista { background:#fff; border:1px solid #e2e8f0; border-radius:14px; overflow:hidden; }
     .cl-row { display:grid; grid-template-columns:minmax(260px, 2.2fr) minmax(120px, 1fr) minmax(150px, 1.1fr) minmax(170px, 1.2fr) 44px; align-items:center; gap:14px; padding:11px 18px; border-bottom:1px solid #f1f5f9; cursor:pointer; transition:background .12s; }
     .cl-row:last-child { border-bottom:none; }
@@ -179,6 +187,12 @@
       <!-- Precisa de atenção -->
       <div id="rh-atencao"></div>
 
+      <!-- Colaboradores (recolhido; clique para mostrar) -->
+      <button type="button" class="cl-toggle" id="cl-toggle" aria-expanded="false">
+        <span class="cl-seta">▸</span><b>Colaboradores</b><span class="cl-n" id="cl-toggle-n"></span>
+        <span class="cl-dica" id="cl-toggle-dica">clique para mostrar a lista</span>
+      </button>
+      <div id="cl-secao" hidden>
       <!-- Filtros -->
       <div class="rh-filtros mb-16">
         <div class="filters-row" style="margin:0">
@@ -206,6 +220,7 @@
 
       <!-- Grid -->
       <div id="grid-colaboradores" class="cl-lista"></div>
+      </div>
 
       <!-- Balanço de Vagas -->
       <div style="margin-top:32px">
@@ -710,6 +725,7 @@ function renderColaboradores() {
   }).join('');
   const fnSel = CHIPS.find(k => k[0] === filtroRapido)[3];
   const lista = base.filter(c => fnSel(inf.get(c.id)));
+  document.getElementById('cl-toggle-n').textContent = colabData.filter(c => !c.demissao).length + ' ativos';
   document.getElementById('rh-cont').textContent = `${lista.length} de ${base.length} colaborador${base.length === 1 ? '' : 'es'}`;
 
   const grid = document.getElementById('grid-colaboradores');
@@ -1122,6 +1138,14 @@ document.getElementById('btn-salvar-oc').addEventListener('click', async () => {
 document.getElementById('busca-colab').addEventListener('input', renderColaboradores);
 document.getElementById('f-ordem').addEventListener('change', renderColaboradores);
 document.getElementById('f-sit').addEventListener('change', renderColaboradores);
+// Lista de colaboradores fica recolhida; o botão mostra/oculta
+document.getElementById('cl-toggle').addEventListener('click', () => {
+  const sec = document.getElementById('cl-secao'), btn = document.getElementById('cl-toggle');
+  const abrir = sec.hidden;
+  sec.hidden = !abrir;
+  btn.setAttribute('aria-expanded', abrir);
+  document.getElementById('cl-toggle-dica').textContent = abrir ? 'clique para ocultar' : 'clique para mostrar a lista';
+});
 document.querySelectorAll('[data-close]').forEach(btn => btn.addEventListener('click', () => fecharModal(btn.dataset.close)));
 
 // ── Análise da equipe (gerada na hora a partir dos dados carregados) ──
