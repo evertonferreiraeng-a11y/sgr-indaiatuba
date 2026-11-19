@@ -1,6 +1,6 @@
 // Geração da apresentação do Comitê (modelo "Comitê UVR Indaiatuba").
 // Cálculo puro a partir das linhas do banco + montagem do .pptx com PptxGenJS.
-import { ehDiaUtil, diasBaseCapacidade, feriadosDoMes } from './feriados.js?v=2';
+import { ehDiaUtil, diasBaseCapacidade, feriadosDoMes } from './feriados.js?v=4';
 
 // Início do plano de expansão (comparação de prensado antes × depois)
 export const PLANO_INICIO = '2026-08-14';

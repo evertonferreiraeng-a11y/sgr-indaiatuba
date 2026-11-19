@@ -2,7 +2,7 @@
 // Nacionais fixos + Sexta-feira Santa (móvel, calculada pela Páscoa). Para incluir um feriado
 // municipal ou um dia de ponto facultativo em que a unidade não abre, adicione em EXTRAS (AAAA-MM-DD ou MM-DD).
 const FIXOS = ['01-01', '04-21', '05-01', '09-07', '10-12', '11-02', '11-15', '11-20', '12-25'];
-const EXTRAS = [];
+const EXTRAS = ['12-09'];   // 09/12 — Aniversário de Indaiatuba (municipal)
 
 // Domingo de Páscoa (algoritmo de Meeus/Jones/Butcher)
 function pascoa(ano) {
@@ -26,7 +26,7 @@ function feriadosDoAno(ano) {
 
 // Nome do feriado (para mostrar no calendário). Só informativo: não muda nenhuma conta.
 const NOMES = { '01-01': 'Confraternização Universal', '04-21': 'Tiradentes', '05-01': 'Dia do Trabalho', '09-07': 'Independência',
-  '10-12': 'Nossa Sra. Aparecida', '11-02': 'Finados', '11-15': 'Proclamação da República', '11-20': 'Consciência Negra', '12-25': 'Natal' };
+  '10-12': 'Nossa Sra. Aparecida', '11-02': 'Finados', '11-15': 'Proclamação da República', '11-20': 'Consciência Negra', '12-09': 'Aniversário de Indaiatuba', '12-25': 'Natal' };
 export function nomeFeriado(iso) {
   if (!ehFeriado(iso)) return '';
   if (NOMES[iso.slice(5, 10)]) return NOMES[iso.slice(5, 10)];
