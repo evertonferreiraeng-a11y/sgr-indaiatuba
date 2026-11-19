@@ -164,6 +164,7 @@
     <div class="page-header">
       <div><h2>Recursos Humanos</h2><p>Colaboradores, avaliações e ocorrências</p></div>
       <div style="display:flex;gap:8px;flex-wrap:wrap">
+        <button class="btn btn-outline" id="btn-analise" style="border-color:#006636;color:#006636;font-weight:700">Análise da equipe</button>
         <button class="btn btn-outline so-adm" id="btn-nova-oc">+ Ocorrência</button>
         <button class="btn btn-outline so-adm" id="btn-lancar-faltas">Lançar Faltas</button>
         <button class="btn btn-outline so-adm" id="btn-nova-aval">+ Avaliação</button>
@@ -235,6 +236,21 @@
 </div>
 
 <!-- Modal: Colaborador -->
+<!-- Modal: Análise da equipe -->
+<div class="modal-backdrop" id="modal-analise">
+  <div class="modal" style="max-width:960px;width:96vw">
+    <div class="modal-header">
+      <h3>Análise da equipe</h3>
+      <button class="modal-close" data-close="modal-analise">✕</button>
+    </div>
+    <div class="modal-body" id="analise-body"></div>
+    <div class="modal-footer">
+      <button class="btn btn-outline" id="btn-imprimir-analise" style="margin-right:auto">Imprimir / PDF</button>
+      <button class="btn btn-primary" data-close="modal-analise">Fechar</button>
+    </div>
+  </div>
+</div>
+
 <div class="modal-backdrop" id="modal-colab">
   <div class="modal" style="max-width:580px">
     <div class="modal-header">
@@ -424,6 +440,7 @@
 import { initPage, supabase, dataBR, toast, abrirModal, fecharModal } from './js/config.js?v=12';
 import { icon } from './js/icons.js';
 import { montarFormOc, resetFormOc, lerFormOc, gravarOcorrencia, TIPOS_FALTA, TIPOS_AUSENTE } from './js/oc-form.js?v=6';
+import { analisarEquipe, CSS_ANALISE } from './js/rh-analise.js?v=1';
 
 await initPage();
 
@@ -1105,6 +1122,18 @@ document.getElementById('busca-colab').addEventListener('input', renderColaborad
 document.getElementById('f-ordem').addEventListener('change', renderColaboradores);
 document.getElementById('f-sit').addEventListener('change', renderColaboradores);
 document.querySelectorAll('[data-close]').forEach(btn => btn.addEventListener('click', () => fecharModal(btn.dataset.close)));
+
+// ── Análise da equipe (gerada na hora a partir dos dados carregados) ──
+document.head.insertAdjacentHTML('beforeend', `<style>${CSS_ANALISE}</style>`);
+document.getElementById('btn-analise').addEventListener('click', () => {
+  document.getElementById('analise-body').innerHTML = analisarEquipe({ colabs: colabData, ocs: ocData, avals: avalData, hoje: hojeISO() });
+  abrirModal('modal-analise');
+});
+document.getElementById('btn-imprimir-analise').addEventListener('click', () => {
+  document.body.classList.add('imprimindo-an');
+  window.print();
+  setTimeout(() => document.body.classList.remove('imprimindo-an'), 500);
+});
 document.querySelectorAll('.modal-backdrop').forEach(m => m.addEventListener('click', e => { if(e.target===m) fecharModal(m.id); }));
 
 await init();
