@@ -618,8 +618,9 @@ function render(d, tarefas, fin, materiaisEst = []) {
   /* ══ 1. Vamos bater a meta do mês? ══ */
   const dr = Math.max(0, d.du - d.dp);
   const estM = d.emAndamento ? d.valorEstoque : 0;
-  const faltaMeta = d.meta > 0 ? Math.max(0, d.meta - c.fat) : null;
-  const faltaPosEst = faltaMeta != null ? Math.max(0, faltaMeta - estM) : null;
+  // o estoque pronto para vender já conta como vendido: o que falta é meta − faturado − estoque
+  const garantido = c.fat + estM;
+  const faltaMeta = d.meta > 0 ? Math.max(0, d.meta - garantido) : null;
   const ritmoDia = d.dp > 0 ? c.fat / d.dp : 0;
   const necDia = faltaMeta != null && dr > 0 ? faltaMeta / dr : null;
   const apertado = necDia != null && necDia > ritmoDia * 1.05;
@@ -627,28 +628,27 @@ function render(d, tarefas, fin, materiaisEst = []) {
   if (!d.emAndamento || !d.meta) {
     fraseMeta = fraseHTML(fr.fat);
     cardsMeta = cardsFat.filter(Boolean).filter(k => !/equilíbrio/i.test(k.rot)).slice(0, 3);
-  } else if (faltaMeta <= 0) {
-    fraseMeta = `<span class="ok">Meta do mês já batida</span>: ${mil(c.fat)} faturados até ${ddmm(d.corte)} (${pct(atFat, 0)} da meta de ${mil(d.meta)}).`;
-    cardsMeta = [
-      { rot:`Faturado até ${ddmm(d.corte)}`, val:mil(c.fat), dest:true, selo:'ritmo', sub:`${pct(atFat, 0)} da meta de ${mil(d.meta)}` },
-      { rot:'Projeção do mês', val:mil(d.projecao + estM), sub:`${pct((d.projecao + estM) / d.meta * 100, 0)} da meta${estM ? ' · com o estoque' : ''}` },
-      { rot:'Ritmo atual', val:`${mil(ritmoDia)}/dia`, sub:`${dr} dias úteis restantes` },
-    ];
   } else {
-    fraseMeta = `Faturamos <b>${mil(c.fat)}</b> até ${ddmm(d.corte)}, ${pct(atFat, 0)} da meta de ${mil(d.meta)}. `
-      + (dr > 0 ? `Faltam <b>${mil(faltaMeta)}</b> em ${dr} dia${dr > 1 ? 's' : ''} út${dr > 1 ? 'eis' : 'il'}.` : `<span class="ruim">Faltam ${mil(faltaMeta)} e não restam dias úteis.</span>`);
-    // barra: faturado | estoque pronto | o que falta (fundo)
+    const pG = garantido / d.meta * 100;
+    const comEstTxt = estM ? ` + <b>${mil(estM)}</b> em estoque = <b>${mil(garantido)}</b>` : '';
+    const batida = faltaMeta <= 0;
+    fraseMeta = `Faturamos <b>${mil(c.fat)}</b> até ${ddmm(d.corte)}${comEstTxt}, ${pct(pG, 0)} da meta de ${mil(d.meta)}. `
+      + (batida ? `<span class="ok">${c.fat >= d.meta ? 'Meta do mês já batida.' : 'Vendendo o estoque, a meta está garantida.'}</span>`
+        : dr > 0 ? `Faltam <b>${mil(faltaMeta)}</b> em ${dr} dia${dr > 1 ? 's' : ''} út${dr > 1 ? 'eis' : 'il'}.` : `<span class="ruim">Faltam ${mil(faltaMeta)} e não restam dias úteis.</span>`);
+    // barra: faturado | estoque pronto | o que resta (fundo)
     const w = v => Math.max(0, Math.min(100, v / d.meta * 100));
-    const barraMeta = `<div class="mt-barra"><i class="f" style="width:${w(c.fat)}%"></i>${estM ? `<i class="e" style="left:${w(c.fat)}%;width:${w(c.fat + estM) - w(c.fat)}%"></i>` : ''}</div>
-      <div class="mt-leg"><span><i class="f"></i>faturado ${pct(atFat, 0)}</span>${estM ? `<span><i class="e"></i>estoque ${pct(estM / d.meta * 100, 0)}</span>` : ''}<span><i></i>resta ${pct(faltaPosEst / d.meta * 100, 0)}</span></div>`;
+    const barraMeta = `<div class="mt-barra"><i class="f" style="width:${w(c.fat)}%"></i>${estM ? `<i class="e" style="left:${w(c.fat)}%;width:${w(garantido) - w(c.fat)}%"></i>` : ''}</div>
+      <div class="mt-leg"><span><i class="f"></i>faturado ${pct(atFat, 0)}</span>${estM ? `<span><i class="e"></i>estoque ${pct(estM / d.meta * 100, 0)}</span>` : ''}${batida ? '' : `<span><i></i>falta ${pct(faltaMeta / d.meta * 100, 0)}</span>`}</div>`;
     const vezes = necDia != null && ritmoDia > 0 ? necDia / ritmoDia : null;
     cardsMeta = [
-      { rot:'Falta para a meta', val:mil(faltaMeta), dest:true, selo:noRitmo((c.fat + estM) / d.meta * 100 / espAqui),
-        sub:`de ${mil(d.meta)}`, extra:barraMeta },
-      dr > 0 ? { rot:'Precisa faturar por dia útil', val:mil(necDia), cls: apertado ? 'down' : 'up',
+      batida
+        ? { rot:'Meta do mês', val:mil(d.meta), dest:true, selo:'ritmo', sub:`${pct(pG, 0)} garantido${estM ? ', contando o estoque' : ''}`, extra:barraMeta }
+        : { rot:'Falta para a meta', val:mil(faltaMeta), dest:true, selo:noRitmo(pG / espAqui),
+            sub:`de ${mil(d.meta)}${estM ? ', já contando o estoque' : ''}`, extra:barraMeta },
+      !batida && dr > 0 ? { rot:'Precisa faturar por dia útil', val:mil(necDia), cls: apertado ? 'down' : 'up',
         sub:`hoje o ritmo é ${mil(ritmoDia)}/dia${apertado && vezes ? ` (precisa de ${nf(vezes, 1)}×)` : ''}` } : null,
-      estM ? { rot:'Estoque pronto para vender', val:mil(estM),
-        sub: estM >= faltaMeta ? '<span class="up">cobre tudo o que falta</span>' : `cobre ${pct(estM / faltaMeta * 100, 0)} do que falta` } : null,
+      { rot: estM ? 'Faturado + estoque' : `Faturado até ${ddmm(d.corte)}`, val:mil(garantido),
+        sub: estM ? `${mil(c.fat)} faturado + ${mil(estM)} em estoque` : `${pct(atFat, 0)} da meta` },
     ].filter(Boolean);
   }
 
@@ -814,10 +814,16 @@ function graficos(d, eq) {
   const bar = { borderRadius:4, borderSkipped:'start', maxBarThickness:34 };
   const linha = { type:'line', borderWidth:2, pointRadius:0, pointHoverRadius:4, borderDash:[6, 4], tension:0 };
 
+  // mês corrente: o estoque pronto para vender entra empilhado sobre o faturado
+  const temEst = d.emAndamento && d.valorEstoque > 0;
+  const optFat = opts(k$);
+  if (temEst) { optFat.scales.x.stacked = true; optFat.scales.y.stacked = true; }
   charts.fat = new Chart(document.getElementById('c-fat'), { type:'bar', data:{ labels, datasets:[
-    { label:'Faturamento', data:d.fatMes.map(r => r.fat), backgroundColor:d.mesesAno.map(mk => parcial(mk) ? COR.verdeCl : COR.verde), ...bar },
-    { label:'Meta', data:d.mesesAno.map(mk => (d.metaMes[mk] ?? d.meta) || null), borderColor:COR.s2, backgroundColor:COR.s2, ...linha },
-  ] }, options:opts(k$) });
+    { label:'Faturamento', data:d.fatMes.map(r => r.fat), backgroundColor:d.mesesAno.map(mk => parcial(mk) && !temEst ? COR.verdeCl : COR.verde), stack:'f', ...bar,
+      borderRadius:x => temEst && d.mesesAno[x.dataIndex] === d.M ? 0 : 4 },
+    ...(temEst ? [{ label:'Estoque pronto', data:d.mesesAno.map(mk => mk === d.M ? d.valorEstoque : null), backgroundColor:'#86c5a0', stack:'f', ...bar, borderSkipped:false }] : []),
+    { label:'Meta', data:d.mesesAno.map(mk => (d.metaMes[mk] ?? d.meta) || null), borderColor:COR.s2, backgroundColor:COR.s2, stack:'meta', ...linha },
+  ] }, options:optFat });
 
   charts.prensa = new Chart(document.getElementById('c-prensa'), { type:'bar', data:{ labels, datasets:[
     { label:'Produção das prensas', data:d.prodMesAno.map(v => v / 1000), backgroundColor:d.mesesAno.map(mk => parcial(mk) ? COR.verdeCl : COR.verde), ...bar },
