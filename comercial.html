@@ -99,6 +99,10 @@
     .vd-preco-ref b{color:var(--text)}
     .vd-preco-ref.alerta{color:#92400e;background:#fef3c7;border-radius:6px;padding:4px 8px}
     .vd-preco-ref.alerta b{color:#92400e}
+    .vd-excluir-resumo{background:#f8fafc;border:1px solid var(--border);border-radius:10px;padding:10px 14px;display:flex;flex-direction:column;gap:6px}
+    .vd-excluir-resumo div{display:flex;justify-content:space-between;gap:12px;font-size:13px}
+    .vd-excluir-resumo span{color:var(--text-muted)}
+    .vd-excluir-resumo b{text-align:right}
     @media (max-width:1100px){.vd-kpis{grid-template-columns:1fr}}
 
     /* tabelas largas rolam dentro do card em vez de alargar a página */
@@ -478,6 +482,25 @@
   </div>
 </div>
 
+<!-- Modal: Confirmar exclusão de venda -->
+<div class="modal-backdrop" id="modal-excluir-venda">
+  <div class="modal" style="max-width:440px">
+    <div class="modal-header">
+      <h3>Excluir venda?</h3>
+      <button class="modal-close" data-close="modal-excluir-venda">✕</button>
+    </div>
+    <div class="modal-body">
+      <p style="margin:0 0 12px;font-size:13.5px">Tem certeza que deseja excluir esta venda? <b>Essa ação não pode ser desfeita.</b></p>
+      <div class="vd-excluir-resumo" id="excluir-venda-resumo"></div>
+      <p style="margin:12px 0 0;font-size:12px;color:var(--text-muted)">A saída de estoque lançada junto com essa venda também será removida.</p>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-outline" data-close="modal-excluir-venda">Cancelar</button>
+      <button class="btn btn-danger" id="btn-confirmar-excluir-venda">Sim, excluir</button>
+    </div>
+  </div>
+</div>
+
 <!-- Modal: Novo Cliente (a partir da Venda) -->
 <div class="modal-backdrop" id="modal-cliente">
   <div class="modal">
@@ -845,14 +868,36 @@ window.editarVenda = id => {
   abrirModal('modal-venda');
 };
 
-window.excluirVenda = async id => {
-  if (!confirm('Excluir esta venda?')) return;
-  const { error } = await supabase.from('vendas').delete().eq('id', id);
-  if (error) { toast('Erro ao excluir','error'); return; }
-  await supabase.from('estoque_movimentacoes').delete().eq('origem_id',id).eq('origem_tipo','venda');
-  toast('Venda excluída!');
-  carregar();
+// Excluir: abre uma janela de confirmação com os dados da venda
+let vendaAExcluir = null;
+window.excluirVenda = id => {
+  const r = vendaData.find(v => v.id === id);
+  if (!r) return;
+  vendaAExcluir = id;
+  const qtd = r.peso_kg ? (vendaPorPeso(r) ? ton(r.peso_kg) : `${r.peso_kg} ${r.unidade || 'UN'}`) : '—';
+  const lin = (k, v) => `<div><span>${k}</span><b>${v}</b></div>`;
+  document.getElementById('excluir-venda-resumo').innerHTML =
+    lin('Cliente', r.clientes?.nome || '—') + lin('Data', dataBR(r.data)) +
+    lin('Material', r.materiais?.nome || '—') + lin('Quantidade', qtd) +
+    lin('Valor NF', moeda(r.valor_total || 0)) +
+    (r.ordem_venda ? lin('Ordem de venda', r.ordem_venda) : '') + (r.nf ? lin('NF', r.nf) : '');
+  abrirModal('modal-excluir-venda');
 };
+
+document.getElementById('btn-confirmar-excluir-venda').addEventListener('click', async function() {
+  const id = vendaAExcluir;
+  if (!id) return;
+  this.disabled = true;
+  try {
+    const { error } = await supabase.from('vendas').delete().eq('id', id);
+    if (error) { toast('Erro ao excluir', 'error'); return; }
+    await supabase.from('estoque_movimentacoes').delete().eq('origem_id', id).eq('origem_tipo', 'venda');
+    vendaAExcluir = null;
+    fecharModal('modal-excluir-venda');
+    toast('Venda excluída!');
+    carregar();
+  } finally { this.disabled = false; }
+});
 
 document.getElementById('btn-salvar-venda').addEventListener('click', () => salvarVenda(false));
 document.getElementById('btn-salvar-outra-venda').addEventListener('click', () => salvarVenda(true));
