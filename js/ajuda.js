@@ -107,6 +107,10 @@ export const AJUDA = {
       'Para ver se a meta está sendo atingida, confira o card <b>Faturamento</b> no <b>Dashboard</b>.',
     ],
     dicas: [
+      '<b>Repetir venda:</b> o botão de copiar na linha abre uma nova venda já com cliente, material e preço daquela; é só informar a quantidade.',
+      'Ao escolher cliente e material, o <b>preço da última venda</b> aparece embaixo do campo Preço (e já vem preenchido). Se o preço digitado ficar 15% ou mais acima ou abaixo, aparece um aviso.',
+      '<b>Salvar e lançar outra:</b> salva e deixa a janela aberta com o mesmo cliente, data, ordem de venda e NF, para lançar o próximo material do pedido.',
+      'O aviso amarelo <b>pedidos aguardando NF</b> mostra as vendas sem nota; clique nele para ver só essas e completar a NF depois.',
       '<b>Pedido de venda no Protheus:</b> abra o último pedido do mesmo comprador, faça uma cópia e altere o volume (e o valor, se mudou).',
       'Se o cliente não aparecer na lista, cadastre em <b>Novo Cliente</b>.',
       '<b>⬇ Exportar Planilha</b> (em Registro de Vendas) baixa a planilha de comercialização com as vendas filtradas, no mesmo formato aceito pelo <b>Importar Excel</b>.',

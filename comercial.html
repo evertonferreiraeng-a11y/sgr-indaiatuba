@@ -90,6 +90,15 @@
     .vd-acoes{white-space:nowrap}
     .vd-acoes .btn-icon{opacity:.45;transition:opacity .12s}
     .vd-tabela tbody tr:hover .vd-acoes .btn-icon{opacity:1}
+    .vd-acoes .vd-repetir{color:var(--primary)}
+    .vd-semnf-chip{font:inherit;font-size:12px;color:#92400e;background:#fef3c7;border:1px solid #fcd34d;padding:5px 12px;border-radius:20px;cursor:pointer;transition:.12s}
+    .vd-semnf-chip:hover{background:#fde68a}
+    .vd-semnf-chip.ativo{background:#92400e;color:#fff;border-color:#92400e}
+    .vd-preco-ref{font-size:11.5px;color:var(--text-muted);margin-top:4px;line-height:1.35}
+    .vd-preco-ref:empty{display:none}
+    .vd-preco-ref b{color:var(--text)}
+    .vd-preco-ref.alerta{color:#92400e;background:#fef3c7;border-radius:6px;padding:4px 8px}
+    .vd-preco-ref.alerta b{color:#92400e}
     @media (max-width:1100px){.vd-kpis{grid-template-columns:1fr}}
 
     /* tabelas largas rolam dentro do card em vez de alargar a página */
@@ -205,7 +214,10 @@
       <div class="table-card vd-tabela">
         <div class="table-card-header">
           <h3>Registro de Vendas <span id="vnd-count" class="vd-count"></span></h3>
-          <button class="btn btn-outline btn-sm" id="btn-exportar-vendas" title="Baixa as vendas filtradas no formato da planilha de comercialização">⬇ Exportar Planilha</button>
+          <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+            <button type="button" class="vd-semnf-chip" id="btn-sem-nf" style="display:none" title="Clique para ver só os pedidos que ainda não têm nota fiscal"></button>
+            <button class="btn btn-outline btn-sm" id="btn-exportar-vendas" title="Baixa as vendas filtradas no formato da planilha de comercialização">⬇ Exportar Planilha</button>
+          </div>
         </div>
         <div class="table-scroll">
           <table>
@@ -448,7 +460,7 @@
               <option value="L"></option>
             </datalist>
           </div>
-          <div class="form-group"><label>Preço Material (R$)</label><input type="number" name="preco_kg" min="0" step="0.01" /></div>
+          <div class="form-group"><label>Preço Material (R$)</label><input type="number" name="preco_kg" min="0" step="0.01" /><div class="vd-preco-ref" id="preco-ref"></div></div>
           <div class="form-group"><label>Desconto (R$)</label><input type="number" name="desconto" min="0" step="0.01" value="0" /></div>
           <div class="form-group"><label>Valor Total NF (R$)</label><input type="number" name="valor_total" min="0" step="0.01" /></div>
           <div class="form-group"><label>Ticket Médio</label><input type="number" name="ticket_medio" min="0" step="0.01" readonly style="background:#f8fafc" /></div>
@@ -460,6 +472,7 @@
     </div>
     <div class="modal-footer">
       <button class="btn btn-outline" data-close="modal-venda">Cancelar</button>
+      <button class="btn btn-outline" id="btn-salvar-outra-venda" title="Salva e já deixa a janela aberta para o próximo pedido, mantendo cliente, data, ordem de venda e NF">Salvar e lançar outra</button>
       <button class="btn btn-primary" id="btn-salvar-venda">Salvar</button>
     </div>
   </div>
@@ -671,12 +684,24 @@ async function renderKPIs() {
 function renderTabela() {
   const isAdmin = perfil?.role === 'admin';
   document.getElementById('vnd-count').textContent = `${vendaData.length} ${vendaData.length === 1 ? 'venda' : 'vendas'}`;
+
+  // Pedidos aguardando NF
+  const semNF = vendaData.filter(r => !r.nf).length;
+  const chip = document.getElementById('btn-sem-nf');
+  if (!semNF) soSemNF = false;
+  chip.style.display = semNF ? '' : 'none';
+  chip.classList.toggle('ativo', soSemNF);
+  chip.innerHTML = soSemNF
+    ? `Mostrando só os ${semNF} sem NF · <u>ver todas</u>`
+    : `<b>${semNF}</b> ${semNF === 1 ? 'pedido aguardando' : 'pedidos aguardando'} NF`;
+
+  const linhas = soSemNF ? vendaData.filter(r => !r.nf) : vendaData;
   const tb = document.getElementById('tb-vendas');
-  if (!vendaData.length) {
+  if (!linhas.length) {
     tb.innerHTML = '<tr><td colspan="14" class="table-empty">Nenhuma venda encontrada</td></tr>';
     return;
   }
-  tb.innerHTML = vendaData.map(r => {
+  tb.innerHTML = linhas.map(r => {
     const porPeso = vendaPorPeso(r);
     const ticket = r.peso_kg ? (r.valor_total||0)/(porPeso ? r.peso_kg/1000 : r.peso_kg) : null;
     const qtd = r.peso_kg
@@ -702,23 +727,103 @@ function renderTabela() {
       <td class="vd-num">${r.nf ? `<span class="vd-nf">${r.nf}</span>` : '<span class="vd-semnf" title="Venda sem nota fiscal informada">sem NF</span>'}</td>
       <td class="vd-obs">${r.observacao ? `<span title="${String(r.observacao).replace(/"/g,'&quot;')}">${r.observacao}</span>` : vazio}</td>
       <td class="vd-acoes">
+        <button class="btn-icon vd-repetir" onclick="repetirVenda('${r.id}')" title="Repetir venda: abre uma nova já preenchida com este cliente, material e preço">${ICO_REPETIR}</button>
         ${isAdmin ? `
           <button class="btn-icon" onclick="editarVenda('${r.id}')">${icon('edit', { size: 15 })}</button>
           <button class="btn-icon danger" onclick="excluirVenda('${r.id}')">${icon('trash', { size: 15 })}</button>
-        ` : '—'}
+        ` : ''}
       </td>
     </tr>`;
   }).join('');
 }
 
 // ── CRUD ──────────────────────────────────────────────────────────────────────
-document.getElementById('btn-nova-venda').addEventListener('click', () => {
-  document.getElementById('modal-venda-title').textContent = 'Nova Venda';
+const ICO_REPETIR = '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>';
+let soSemNF = false;
+document.getElementById('btn-sem-nf').addEventListener('click', () => { soSemNF = !soSemNF; renderTabela(); });
+
+// data de hoje no fuso local (toISOString usa UTC e, à noite, já daria o dia seguinte)
+const hojeLocal = () => { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`; };
+const campoVenda = n => document.querySelector(`#form-venda [name="${n}"]`);
+
+// Abre a janela de Nova Venda; "base" preenche campos (usado no Repetir venda)
+function abrirNovaVenda(base = {}) {
+  document.getElementById('modal-venda-title').textContent = base.titulo || 'Nova Venda';
   document.getElementById('form-venda').reset();
-  document.querySelector('#form-venda [name="id"]').value = '';
-  document.querySelector('#form-venda [name="data"]').value = new Date().toISOString().split('T')[0];
+  campoVenda('id').value = '';
+  campoVenda('data').value = hojeLocal();
+  Object.entries(base.campos || {}).forEach(([n, v]) => { if (campoVenda(n)) campoVenda(n).value = v ?? ''; });
+  document.getElementById('btn-salvar-outra-venda').style.display = '';
+  precoRef = null; precoAuto = false;
+  atualizarPrecoRef();
   abrirModal('modal-venda');
-});
+  setTimeout(() => (base.foco ? campoVenda(base.foco) : campoVenda('cliente_id'))?.focus(), 50);
+}
+
+document.getElementById('btn-nova-venda').addEventListener('click', () => abrirNovaVenda());
+
+window.repetirVenda = id => {
+  const r = vendaData.find(v => v.id === id);
+  if (!r) return;
+  abrirNovaVenda({
+    titulo: 'Nova Venda (repetindo pedido)',
+    campos: {
+      cliente_id: r.cliente_id, material_id: r.material_id, acondicionamento: r.acondicionamento,
+      codigo_material: r.codigo_material, unidade: r.unidade, preco_kg: r.preco_kg, desconto: 0,
+    },
+    foco: 'peso_kg',
+  });
+  buscarPrecoRef(false);
+};
+
+// ── Preço sugerido: última venda do material para o cliente (ou, sem ela, para qualquer cliente) ──
+let precoRef = null, precoAuto = false, precoSeq = 0;
+const fmtPreco = v => 'R$ ' + Number(v).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 4 });
+
+async function buscarPrecoRef(preencher = true) {
+  const cli = campoVenda('cliente_id').value, mat = campoVenda('material_id').value;
+  const seq = ++precoSeq;
+  if (campoVenda('id').value || !mat) { precoRef = null; atualizarPrecoRef(); return; }
+  const { data } = await supabase.from('vendas')
+    .select('preco_kg, data, cliente_id, unidade, clientes(nome)')
+    .eq('material_id', mat).not('preco_kg', 'is', null).gt('preco_kg', 0)
+    .order('data', { ascending: false }).limit(30);
+  if (seq !== precoSeq) return; // usuário trocou de cliente/material no meio da busca
+  const rows = data || [];
+  const doCliente = cli && rows.find(r => r.cliente_id === cli);
+  const ref = doCliente || rows[0];
+  precoRef = ref ? { valor: +ref.preco_kg, data: ref.data, unidade: ref.unidade, doCliente: !!doCliente, cliente: ref.clientes?.nome } : null;
+  const preco = campoVenda('preco_kg');
+  if (preencher && precoRef && (!preco.value || precoAuto)) {
+    preco.value = precoRef.valor;
+    precoAuto = true;
+    recalcVenda();
+  }
+  atualizarPrecoRef();
+}
+
+function atualizarPrecoRef() {
+  const el = document.getElementById('preco-ref');
+  if (!precoRef) { el.innerHTML = ''; el.className = 'vd-preco-ref'; return; }
+  const un = (precoRef.unidade || 'kg').toLowerCase();
+  const quem = precoRef.doCliente ? 'Última venda para este cliente' : `Última venda deste material (${precoRef.cliente || 'outro cliente'})`;
+  let txt = `${quem}: <b>${fmtPreco(precoRef.valor)}/${un}</b> em ${dataBR(precoRef.data)}`;
+  let cls = 'vd-preco-ref';
+  const atual = parseFloat(campoVenda('preco_kg').value);
+  if (atual > 0 && precoRef.valor > 0) {
+    const dif = (atual - precoRef.valor) / precoRef.valor * 100;
+    if (Math.abs(dif) >= 15) {
+      cls += ' alerta';
+      txt = `⚠ Preço ${Math.abs(dif).toFixed(0)}% ${dif > 0 ? 'acima' : 'abaixo'} da última venda. ` + txt;
+    }
+  }
+  el.className = cls;
+  el.innerHTML = txt;
+}
+
+campoVenda('cliente_id').addEventListener('change', () => buscarPrecoRef());
+campoVenda('material_id').addEventListener('change', () => buscarPrecoRef());
+campoVenda('preco_kg').addEventListener('input', () => { precoAuto = false; atualizarPrecoRef(); });
 
 window.editarVenda = id => {
   const r = vendaData.find(v=>v.id===id);
@@ -735,6 +840,8 @@ window.editarVenda = id => {
   set('nf',r.nf); set('observacao',r.observacao);
   const ticket = r.peso_kg ? (r.valor_total||0)/r.peso_kg : 0;
   set('ticket_medio', ticket ? ticket.toFixed(4) : '');
+  document.getElementById('btn-salvar-outra-venda').style.display = 'none';
+  precoRef = null; atualizarPrecoRef();
   abrirModal('modal-venda');
 };
 
@@ -747,7 +854,17 @@ window.excluirVenda = async id => {
   carregar();
 };
 
-document.getElementById('btn-salvar-venda').addEventListener('click', async () => {
+document.getElementById('btn-salvar-venda').addEventListener('click', () => salvarVenda(false));
+document.getElementById('btn-salvar-outra-venda').addEventListener('click', () => salvarVenda(true));
+
+let salvandoVenda = false;
+async function salvarVenda(lancarOutra) {
+  if (salvandoVenda) return;
+  salvandoVenda = true;
+  try { await salvarVendaInterno(lancarOutra); } finally { salvandoVenda = false; }
+}
+
+async function salvarVendaInterno(lancarOutra) {
   const f = document.getElementById('form-venda');
   if (!f.checkValidity()) { f.reportValidity(); return; }
   const fd = Object.fromEntries(new FormData(f));
@@ -779,9 +896,17 @@ document.getElementById('btn-salvar-venda').addEventListener('click', async () =
     });
     toast('Venda registrada!');
   }
-  fecharModal('modal-venda');
+  if (lancarOutra && !fd.id) {
+    // mantém o que costuma se repetir no mesmo pedido (cliente, data, OV e NF) e limpa o resto
+    abrirNovaVenda({
+      campos: { cliente_id: fd.cliente_id, data: fd.data, ordem_venda: fd.ordem_venda, nf: fd.nf, desconto: 0 },
+      foco: 'material_id',
+    });
+  } else {
+    fecharModal('modal-venda');
+  }
   carregar();
-});
+}
 
 document.getElementById('btn-filtrar').addEventListener('click', carregar);
 document.querySelectorAll('[data-close]').forEach(btn=>btn.addEventListener('click',()=>fecharModal(btn.dataset.close)));
