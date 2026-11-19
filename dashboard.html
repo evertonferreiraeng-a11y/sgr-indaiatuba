@@ -638,7 +638,7 @@ function renderGestao(pessoas = []) {
   el.innerHTML = `
     <div class="gs-hd">
       <span class="gs-ic"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg></span>
-      <div><h2>Análise da gestão da operação</h2><p>Leitura geral da unidade: faturamento, volumes, preço, materiais, resultado, prensagem, equipamentos, tarefas e pessoas.</p></div>
+      <div><h2>Análise da gestão da operação</h2><p>Leitura geral da unidade: faturamento, volumes, preço, materiais, resultado, prensagem, equipamentos, tarefas e pessoas. Referência: outubro, nosso melhor mês.</p></div>
       <div class="gs-cont">${['crit', 'aten', 'ok'].map(k => `<span class="${k}"><b>${n(k)}</b>${NIV[k][0].toLowerCase()}</span>`).join('')}</div>
     </div>
     ${top.length ? `<div class="gs-top">${top.map(item).join('')}</div>` : '<div class="gs-vazio">✓ Nenhum ponto crítico ou de atenção no momento.</div>'}
@@ -1151,18 +1151,53 @@ function render(d, tarefas, fin, materiaisEst = []) {
     if (d.emAndamento && d.meta > 0 && d.valorEstoque > d.meta * 0.2)
       add('Estoque', 'aten', `Estoque pronto parado: ${mil(d.valorEstoque)} (${tn(d.estoqueKg, 1)}), ${pct(d.valorEstoque / d.meta * 100, 0)} da meta do mês.`,
         'Estoque só vira resultado quando sai. Programar a retirada com os compradores ainda neste mês.');
-    // Volume e preço
-    if (d.emAndamento && am.vol > 0) {
+    // Referência: outubro/2026 (melhor mês — onde queremos chegar e passar)
+    const iOut = d.mesesAno.indexOf(MES_REF_MAT);
+    const temOut = refFixo && iOut >= 0 && d.fatMes[iOut]?.fat > 0;
+    if (temOut) {
+      const o = d.fatMes[iOut], fr = d.emAndamento ? espAqui : 1;
+      const quando = d.emAndamento ? 'no mesmo ritmo até hoje' : 'no mês';
+      // Faturamento
+      const alvo = o.fat * fr, rF = fatEst / alvo * 100;
+      const txtF = `${mil(fatEst)}${comEst ? ' (com o estoque)' : ''} contra ${mil(alvo)} de outubro ${quando}; outubro fechou em ${mil(o.fat)}.`;
+      if (rF >= 100) add('Outubro', 'ok', `Faturamento passando outubro: ${pct(rF, 0)} do ritmo de outubro.`, `${txtF} Manter e fechar acima de ${mil(o.fat)}.`);
+      else add('Outubro', rF < 85 ? 'crit' : 'aten', `Faturamento em ${pct(rF, 0)} do ritmo de outubro (melhor mês).`, `${txtF} Faltam ${mil(alvo - fatEst)} para igualar outubro${d.emAndamento ? ' até hoje' : ''}.`);
+      // Volume
+      if (o.vol > 0) {
+        const alvoV = o.vol * fr, rV = c.vol / alvoV * 100;
+        if (rV >= 100) add('Outubro', 'ok', `Volume vendido passando outubro: ${tn(c.vol, 1)} (${pct(rV, 0)} do ritmo).`, `Outubro fechou com ${tn(o.vol, 1)}.`);
+        else add('Outubro', rV < 85 ? 'crit' : 'aten', `Volume vendido em ${pct(rV, 0)} do ritmo de outubro: ${tn(c.vol, 1)} contra ${tn(alvoV, 1)}.`, `Faltam ${tn(alvoV - c.vol, 1)} para igualar outubro${d.emAndamento ? ' até hoje' : ''} (fechou com ${tn(o.vol, 1)}). Ver triagem, estoque no pátio e retiradas.`);
+      }
+      // Preço médio
+      if (c.preco && o.preco) {
+        const v = varPct(c.preco, o.preco);
+        if (v < -5) add('Outubro', 'aten', `Preço médio ${nf(-v, 0)}% abaixo de outubro: ${reais0(c.preco)}/t contra ${reais0(o.preco)}/t.`, 'Checar se foi mix (material mais barato) ou preço do comprador; renegociar os principais materiais.');
+        else if (v >= 0) add('Outubro', 'ok', `Preço médio igual ou acima de outubro: ${reais0(c.preco)}/t (outubro ${reais0(o.preco)}/t).`, 'Manter compradores e mix.');
+      }
+      // Prensado
+      if (c.pctPrensado != null && o.pctPrensado != null && c.pctPrensado < o.pctPrensado - 5)
+        add('Outubro', 'aten', `Menos material saiu prensado que em outubro: ${pct(c.pctPrensado, 0)} contra ${pct(o.pctPrensado, 0)}.`, `${ratioPG ? `O prensado vale ${nf(ratioPG, 1)}× o a granel. ` : ''}Priorizar a prensagem antes de vender a granel.`);
+      // Prensagem
+      const pOut = d.prodMesAno?.[iOut] || 0;
+      if (pOut > 0) {
+        const frP = d.emAndamento && d.duPrensa > 0 && d.dpPrensa > 0 ? d.dpPrensa / d.duPrensa : fr;
+        const alvoP = pOut * frP, rP = d.prod / alvoP * 100;
+        if (rP >= 100) add('Outubro', 'ok', `Prensagem passando outubro: ${tn(d.prod, 1)} (${pct(rP, 0)} do ritmo).`, `Outubro prensou ${tn(pOut, 1)}.`);
+        else add('Outubro', rP < 85 ? 'crit' : 'aten', `Prensagem em ${pct(rP, 0)} do ritmo de outubro: ${tn(d.prod, 1)} contra ${tn(alvoP, 1)}.`, `Outubro prensou ${tn(pOut, 1)} no mês. Ver material para prensar, equipe e paradas.`);
+      }
+    }
+    // Volume e preço (sem outubro como referência: compara com o mês anterior)
+    if (!temOut && d.emAndamento && am.vol > 0) {
       const v = varPct(c.vol, am.vol);
       if (v != null && v < -10) add('Volume', 'aten', `Volume vendido ${nf(-v, 0)}% menor que ${antN} no mesmo ponto (${tn(c.vol, 1)} × ${tn(am.vol, 1)}).`, 'Verificar se há material retido no pátio ou comprador atrasando retirada.');
       else if (v != null && v > 10) add('Volume', 'ok', `Volume vendido ${nf(v, 0)}% maior que ${antN} no mesmo ponto (${tn(c.vol, 1)}).`, 'Bom giro de material.');
     }
-    if (c.preco && a.preco) {
+    if (!temOut && c.preco && a.preco) {
       const v = varPct(c.preco, a.preco);
       if (v < -5) add('Preço', 'aten', `Preço médio caiu ${nf(-v, 0)}%: ${reais0(c.preco)}/t contra ${reais0(a.preco)}/t em ${antN}.`, 'Checar se foi mix (material mais barato) ou preço do comprador; renegociar ou buscar outro comprador para os principais materiais.');
       else if (v > 5) add('Preço', 'ok', `Preço médio subiu ${nf(v, 0)}%: ${reais0(c.preco)}/t.`, 'Manter os compradores e o mix atuais.');
     }
-    if (c.pctPrensado != null && a.pctPrensado != null && c.pctPrensado < a.pctPrensado - 5)
+    if (!temOut && c.pctPrensado != null && a.pctPrensado != null && c.pctPrensado < a.pctPrensado - 5)
       add('Prensado', 'aten', `Menos material saiu prensado: ${pct(c.pctPrensado, 0)} (${pct(a.pctPrensado, 0)} em ${antN}).`, `${ratioPG ? `O prensado vale ${nf(ratioPG, 1)}× o a granel. ` : ''}Priorizar a prensagem dos materiais prensáveis antes de vender a granel.`);
     // Materiais
     const abaixo = mats.filter(m => m.media > 0 && m.fat > 0 && m.varp != null && m.varp < -30).sort((x, y) => (y.falta || 0) - (x.falta || 0));
