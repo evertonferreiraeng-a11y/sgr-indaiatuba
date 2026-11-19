@@ -93,22 +93,66 @@
     .tv-barras i.vz { background:#e2e8f0; } .tv-barras i.fut { background:#f8fafc; }
     .tv-barras span { font-size:9px; color:#94a3b8; line-height:1; }
 
+    /* Estatísticas da equipe */
+    .eq-box { background:#fff; border:1px solid #e2e8f0; border-radius:14px; padding:16px 18px; margin-bottom:16px; }
+    .eq-hd { display:flex; align-items:baseline; gap:10px; margin-bottom:12px; flex-wrap:wrap; }
+    .eq-hd h3 { margin:0; font-size:15px; font-weight:800; color:#0f172a; display:inline-flex; align-items:center; gap:8px; }
+    .eq-hd h3 .icon { color:#006636; }
+    .eq-hd > span { font-size:12.5px; color:#64748b; }
+    .eq-grid { display:grid; grid-template-columns:repeat(auto-fit, minmax(150px, 1fr)); gap:10px; }
+    @media (min-width:1280px) { .eq-grid { grid-template-columns:repeat(7, minmax(0, 1fr)); } }
+    .eq-tile { background:#f8fafc; border:1px solid #eef2f7; border-radius:12px; padding:12px 14px; display:flex; flex-direction:column; min-width:0; }
+    .eq-tile .eq-rot { font-size:11px; font-weight:800; letter-spacing:.05em; text-transform:uppercase; color:#64748b; }
+    .eq-tile > b { font-size:26px; font-weight:800; line-height:1.15; margin-top:4px; }
+    .eq-tile small { font-size:12px; color:#64748b; margin-top:2px; line-height:1.35; }
+    .eq-tile .kpi-cmp { align-self:flex-start; }
+    .eq-tile .tv-barras { height:30px; margin-top:6px; }
+    .eq-dist { display:flex; height:6px; border-radius:999px; overflow:hidden; gap:2px; margin-top:8px; }
+    .eq-dist i { display:block; }
+
+    /* Lista de colaboradores */
+    .cl-lista { background:#fff; border:1px solid #e2e8f0; border-radius:14px; overflow:hidden; }
+    .cl-row { display:grid; grid-template-columns:minmax(260px, 2.2fr) minmax(120px, 1fr) minmax(150px, 1.1fr) minmax(170px, 1.2fr) 44px; align-items:center; gap:14px; padding:11px 18px; border-bottom:1px solid #f1f5f9; cursor:pointer; transition:background .12s; }
+    .cl-row:last-child { border-bottom:none; }
+    .cl-row:hover { background:#f6fbf8; }
+    .cl-row.cl-head { cursor:default; background:#f8fafc; padding-top:9px; padding-bottom:9px; font-size:11px; font-weight:800; letter-spacing:.05em; text-transform:uppercase; color:#64748b; }
+    .cl-row.cl-head:hover { background:#f8fafc; }
+    .cl-row.demitido { opacity:.6; }
+    .cl-nome { display:flex; align-items:center; gap:12px; min-width:0; }
+    .cl-nome .colab-avatar { width:38px; height:38px; font-size:13px; }
+    .cl-nome b { display:block; font-size:14px; color:#0f172a; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+    .cl-nome small { display:block; font-size:12px; color:#64748b; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+    .cl-cel { font-size:13px; color:#334155; min-width:0; }
+    .cl-cel small { display:block; font-size:11.5px; color:#94a3b8; }
+    .cl-cel .exp-badge { margin-top:0; }
+    .cl-acao { display:flex; justify-content:flex-end; }
+    @media (max-width:900px) {
+      .cl-row { grid-template-columns:1fr auto 40px; }
+      .cl-row .cl-chapa, .cl-row .cl-adm { display:none; }
+      .cl-row.cl-head { display:none; }
+    }
+
     /* Precisa de atenção */
-    .at-box { background:#fff; border:1px solid #e2e8f0; border-radius:12px; padding:14px 16px; margin-bottom:16px; }
-    .at-hd { display:flex; align-items:center; gap:10px; margin-bottom:10px; flex-wrap:wrap; }
-    .at-hd h3 { font-size:14px; font-weight:800; margin:0; color:#0f172a; }
-    .at-hd .at-n { font-size:12px; font-weight:800; color:#fff; background:#dc2626; border-radius:999px; padding:1px 9px; }
-    .at-hd .at-leg { margin-left:auto; font-size:12px; color:#64748b; }
-    .at-lista { display:grid; grid-template-columns:repeat(auto-fill, minmax(330px, 1fr)); gap:8px; }
-    .at-item { display:flex; align-items:center; gap:10px; padding:9px 12px; border-radius:10px; border:1px solid transparent; border-left:4px solid #94a3b8; background:#f8fafc; cursor:pointer; text-align:left; font:inherit; color:inherit; width:100%; }
+    .at-box { background:#fff; border:1px solid #e2e8f0; border-left:4px solid #dc2626; border-radius:14px; padding:16px 18px; margin-bottom:16px; }
+    .at-hd { display:flex; align-items:center; gap:12px; margin-bottom:12px; flex-wrap:wrap; }
+    .at-ic { width:36px; height:36px; border-radius:10px; display:grid; place-items:center; background:#fee2e2; color:#dc2626; flex:none; }
+    .at-hd h3 { font-size:15px; font-weight:800; margin:0; color:#0f172a; }
+    .at-sub { font-size:12.5px; color:#64748b; }
+    .at-cats { margin-left:auto; display:flex; flex-wrap:wrap; gap:6px; }
+    .at-cats span { display:inline-flex; align-items:center; gap:6px; font-size:12px; color:#475569; background:#f8fafc; border:1px solid #e2e8f0; border-radius:999px; padding:4px 10px; }
+    .at-cats i { width:8px; height:8px; border-radius:50%; }
+    .at-lista { display:grid; grid-template-columns:repeat(auto-fill, minmax(380px, 1fr)); gap:8px; }
+    .at-mot { display:flex; flex-wrap:wrap; gap:4px; margin-top:3px; }
+    .at-mot em { font-style:normal; font-size:12px; color:#475569; background:rgba(255,255,255,.75); border:1px solid rgba(15,23,42,.08); border-radius:6px; padding:1px 7px; }
+    .at-item { display:flex; align-items:center; gap:12px; padding:10px 14px; border-radius:10px; border:1px solid transparent; border-left:4px solid #94a3b8; background:#f8fafc; cursor:pointer; text-align:left; font:inherit; color:inherit; width:100%; }
     .at-item:hover { box-shadow:0 2px 8px rgba(0,0,0,.08); }
     .at-item.urg { border-left-color:#dc2626; background:#fef2f2; } .at-item.med { border-left-color:#d97706; background:#fffbeb; } .at-item.inf { border-left-color:#2563eb; background:#eff6ff; }
     .at-av { flex:none; width:32px; height:32px; border-radius:50%; display:grid; place-items:center; font-size:12px; font-weight:800; color:#fff; background:#64748b; }
     .at-item.urg .at-av { background:#dc2626; } .at-item.med .at-av { background:#d97706; } .at-item.inf .at-av { background:#2563eb; }
     .at-tx { min-width:0; flex:1; display:flex; flex-direction:column; }
-    .at-tx b { font-size:13.5px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+    .at-tx b { font-size:14px; color:#0f172a; }
     .at-tx span { font-size:12px; color:#475569; }
-    .at-acao { flex:none; font-size:12px; font-weight:700; color:#006636; white-space:nowrap; }
+    .at-acao { flex:none; font-size:12px; font-weight:700; color:#006636; white-space:nowrap; background:#fff; border:1px solid #d1e7dd; border-radius:8px; padding:5px 10px; }
     .at-vazio { font-size:13px; color:#16a34a; font-weight:600; }
     .at-mais { margin-top:8px; font-size:12.5px; font-weight:700; color:#006636; background:none; border:none; cursor:pointer; padding:2px 0; }
   </style>
@@ -128,31 +172,8 @@
     </div>
     <div class="page-body">
 
-      <!-- KPIs -->
-      <div class="kpi-grid" style="grid-template-columns:repeat(5,1fr)">
-        <div class="kpi-card" style="padding:14px 16px">
-          <div class="kpi-label">Colaboradores</div>
-          <div style="display:flex;align-items:baseline;gap:10px;margin:4px 0 2px">
-            <div class="kpi-value" id="kpi-total" style="font-size:28px">—</div>
-            <span style="font-size:12px;color:#64748b">total</span>
-          </div>
-          <div style="display:flex;gap:10px;margin-top:6px;flex-wrap:wrap">
-            <span style="font-size:12px;font-weight:600;color:#16a34a;display:inline-flex;align-items:center;gap:4px"><span class="icon" style="width:11px;height:11px"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></span><span id="kpi-ativos">—</span> ativos</span>
-            <span style="font-size:12px;font-weight:600;color:#2563eb;display:inline-flex;align-items:center;gap:4px"><span class="icon" style="width:11px;height:11px"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg></span><span id="kpi-ferias">—</span> férias</span>
-          </div>
-        </div>
-        <div class="kpi-card"><div class="kpi-label">Em Experiência</div><div class="kpi-value" id="kpi-exp">—</div><div class="kpi-sub">1º ou 2º período</div></div>
-        <div class="kpi-card"><div class="kpi-label">Nota Média Geral</div><div class="kpi-value" id="kpi-nota-media">—</div><div class="kpi-sub">ativos + experiência</div></div>
-        <div class="kpi-card"><div class="kpi-label">Faltas (mês)</div><div class="kpi-value" id="kpi-faltas">—</div><div class="kpi-sub" id="kpi-faltas-sub">marcadas como falta</div><div id="kpi-faltas-cmp"></div></div>
-        <div class="kpi-card" style="padding:14px 16px">
-          <div class="kpi-label">Turnover</div>
-          <div style="display:flex;align-items:baseline;gap:8px;margin:2px 0 0">
-            <div class="kpi-value" id="kpi-turnover" style="font-size:26px">—</div>
-            <span class="kpi-sub" id="kpi-turnover-sub" style="font-size:11px">anual</span>
-          </div>
-          <div id="kpi-turnover-meses" class="tv-barras"></div>
-        </div>
-      </div>
+      <!-- Estatísticas da equipe (preenchido por renderKPIs) -->
+      <div id="rh-equipe" class="eq-box"></div>
 
       <!-- Precisa de atenção -->
       <div id="rh-atencao"></div>
@@ -183,7 +204,7 @@
       </div>
 
       <!-- Grid -->
-      <div id="grid-colaboradores" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(360px,1fr));gap:16px"></div>
+      <div id="grid-colaboradores" class="cl-lista"></div>
 
       <!-- Balanço de Vagas -->
       <div style="margin-top:32px">
@@ -471,79 +492,85 @@ async function recarregarTudo() {
   }
 }
 
-// ── KPIs ──────────────────────────────────────────────────────────────────────
+// ── Estatísticas da equipe ────────────────────────────────────────────────────
+// Mês atual até hoje, só colaboradores ativos. Comparações com o mesmo trecho do mês anterior (dia 1 até o mesmo dia).
 function renderKPIs() {
-  const hoje   = new Date().toISOString().split('T')[0];
+  const el = document.getElementById('rh-equipe'); if (!el) return;
+  const hoje   = hojeISO();
   const ativos = colabData.filter(c => !c.demissao);
-  const emExp  = ativos.filter(c =>
-    (c.fim_experiencia_1 && hoje <= c.fim_experiencia_1) ||
-    (c.fim_experiencia_2 && hoje <= c.fim_experiencia_2)
-  );
-  const iniMes = `${anoAtualVal}-${String(mesAtualVal).padStart(2,'0')}-01`;
-  const fimMes = new Date(anoAtualVal, mesAtualVal, 0).toISOString().split('T')[0];
-  const ocMes  = ocData.filter(r => r.data >= iniMes && r.data <= fimMes);
-  const demAno = colabData.filter(c => c.demissao && c.demissao.startsWith(String(anoAtualVal))).length;
-  const hc     = ativos.length + demAno;
-  const tv     = hc ? ((demAno / hc) * 100).toFixed(1) : '0';
-
-  const MES_ABREV = ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
-  const porMes = {};
-  colabData.forEach(c => {
-    if (c.demissao && c.demissao.startsWith(String(anoAtualVal))) {
-      const mm = parseInt(c.demissao.slice(5, 7), 10);
-      porMes[mm] = (porMes[mm] || 0) + 1;
-    }
-  });
-  // Saídas por mês do ano em mini barras (passe o mouse para ver o número)
-  const maxSaida = Math.max(1, ...Object.values(porMes));
-  const listaMesesHtml = MES_ABREV.map((nm, i) => {
-    const mm = i + 1, n = porMes[mm] || 0, fut = mm > mesAtualVal;
-    const h = fut || !n ? 2 : Math.max(6, n / maxSaida * 26);
-    return `<div title="${nm}/${String(anoAtualVal).slice(2)}: ${fut ? '—' : `${n} saída${n === 1 ? '' : 's'}`}"><i class="${fut ? 'fut' : n ? '' : 'vz'}" style="height:${h}px"></i><span>${nm[0]}</span></div>`;
-  }).join('');
-
-  // Faltas: comparação com o mesmo período do mês anterior (dia 1 até o mesmo dia)
-  const hojeL = hojeISO(), diaHoje = +hojeL.slice(8, 10);
-  const dAnt = new Date(anoAtualVal, mesAtualVal - 2, 1);
-  const ymAnt = `${dAnt.getFullYear()}-${String(dAnt.getMonth() + 1).padStart(2, '0')}`;
-  const ultAnt = new Date(dAnt.getFullYear(), dAnt.getMonth() + 1, 0).getDate();
-  const fimAntCmp = `${ymAnt}-${String(Math.min(diaHoje, ultAnt)).padStart(2, '0')}`;
-  const faltasMes = ocMes.filter(r => r.conta_como_falta);
-  const faltasAnt = ocData.filter(r => r.conta_como_falta && r.data >= `${ymAnt}-01` && r.data <= fimAntCmp).length;
-  const pessoasFalta = new Set(faltasMes.map(r => r.colaborador_id)).size;
-  const dif = faltasMes.length - faltasAnt;
-  document.getElementById('kpi-faltas-sub').textContent = faltasMes.length ? `em ${pessoasFalta} pessoa${pessoasFalta === 1 ? '' : 's'}` : 'nenhuma falta no mês';
-  document.getElementById('kpi-faltas-cmp').innerHTML = `<span class="kpi-cmp ${dif > 0 ? 'up' : dif < 0 ? 'down' : 'eq'}" title="${MES_ABREV[dAnt.getMonth()]} de 1 a ${Math.min(diaHoje, ultAnt)}: ${faltasAnt} falta${faltasAnt === 1 ? '' : 's'}">${dif > 0 ? '▲' : dif < 0 ? '▼' : '='} ${dif === 0 ? 'igual a' : `${Math.abs(dif)} vs`} ${MES_ABREV[dAnt.getMonth()].toLowerCase()}</span>`;
-
+  const idsAt  = new Set(ativos.map(c => c.id));
+  const emExp  = ativos.filter(c => (c.fim_experiencia_1 && hoje <= c.fim_experiencia_1) || (c.fim_experiencia_2 && hoje <= c.fim_experiencia_2));
   const emFerias = ativos.filter(c => c.em_ferias);
-  const ativosTrabalho = ativos.filter(c => !c.em_ferias);
-  document.getElementById('kpi-total').textContent   = ativos.length;
-  document.getElementById('kpi-ativos').textContent  = ativosTrabalho.length;
-  document.getElementById('kpi-ferias').textContent  = emFerias.length;
-  document.getElementById('kpi-exp').textContent     = emExp.length;
-  document.getElementById('kpi-faltas').textContent    = faltasMes.length;
-  document.getElementById('kpi-faltas').style.color    = faltasMes.length ? '#dc2626' : '';
-  document.getElementById('kpi-turnover').textContent  = tv + '%';
-  document.getElementById('kpi-turnover-sub').textContent = demAno ? `${demAno} saída${demAno === 1 ? '' : 's'} em ${anoAtualVal}` : `nenhuma saída em ${anoAtualVal}`;
-  document.getElementById('kpi-turnover').style.color = parseFloat(tv) > 0 ? '#dc2626' : 'var(--success)';
-  document.getElementById('kpi-turnover-meses').innerHTML = listaMesesHtml;
+  const MES_ABREV = ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
+  const MES_NOME  = ['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
+  const pad = n => String(n).padStart(2, '0');
 
-  // Nota média geral: ativos + em experiência com pelo menos uma avaliação
-  const idsAtivos = new Set(ativos.map(c => c.id));
-  const notasAtivos = colabData
-    .filter(c => idsAtivos.has(c.id))
-    .map(c => {
-      const avals = avalData.filter(a => a.colaborador_id === c.id);
-      const medias = avals.map(calcMediaAval).filter(v => v !== null);
-      return medias.length ? medias.reduce((a,b)=>a+b,0)/medias.length : null;
-    })
-    .filter(v => v !== null);
-  const notaMedia = notasAtivos.length
-    ? (notasAtivos.reduce((a,b)=>a+b,0) / notasAtivos.length).toFixed(1)
-    : '—';
-  const elNota = document.getElementById('kpi-nota-media');
-  elNota.textContent = notaMedia !== '—' ? notaMedia : '—';
-  elNota.style.color = notaMedia === '—' ? '' : parseFloat(notaMedia) >= 7 ? 'var(--success)' : parseFloat(notaMedia) >= 5 ? '#D97706' : '#DC2626';
+  const iniMes = `${hoje.slice(0, 7)}-01`;
+  const diaHoje = +hoje.slice(8, 10);
+  const dAnt = new Date(anoAtualVal, mesAtualVal - 2, 1);
+  const ymAnt = `${dAnt.getFullYear()}-${pad(dAnt.getMonth() + 1)}`;
+  const ultAnt = new Date(dAnt.getFullYear(), dAnt.getMonth() + 1, 0).getDate();
+  const fimAnt = `${ymAnt}-${pad(Math.min(diaHoje, ultAnt))}`;
+  const ocMes = ocData.filter(o => o.data >= iniMes && o.data <= hoje && idsAt.has(o.colaborador_id));
+  const ocAnt = ocData.filter(o => o.data >= `${ymAnt}-01` && o.data <= fimAnt && idsAt.has(o.colaborador_id));
+
+  const ehF = o => !!o.conta_como_falta || TIPOS_FALTA.includes(o.tipo);
+  // Presença da equipe: por pessoa e dia — falta se houver falta; presente se houver registro que não seja férias/advertência
+  const presenca = lista => {
+    const d = {};
+    lista.forEach(o => { const k = o.colaborador_id + o.data;
+      if (ehF(o)) d[k] = 'f'; else if (!['ferias', 'advertencia'].includes(o.tipo) && !d[k]) d[k] = 'p'; });
+    const v = Object.values(d), p = v.filter(x => x === 'p').length;
+    return v.length ? Math.round(p / v.length * 100) : null;
+  };
+  const presMes = presenca(ocMes), presAnt = presenca(ocAnt);
+  const faltasMes = ocMes.filter(ehF), faltasAnt = ocAnt.filter(ehF).length;
+  const pessoasFalta = new Set(faltasMes.map(o => o.colaborador_id)).size;
+  const atrasos = ocMes.filter(o => o.tipo === 'atraso'), atrasosAnt = ocAnt.filter(o => o.tipo === 'atraso').length;
+  const hAtr = atrasos.reduce((s, o) => s + (parseFloat(o.horas) || 0), 0);
+  const fmtH = v => { const h = Math.floor(v), m = Math.round((v - h) * 60); return m ? `${h}h${pad(m)}` : `${h}h`; };
+  const advAno = ocData.filter(o => o.tipo === 'advertencia' && o.data.startsWith(String(anoAtualVal)) && idsAt.has(o.colaborador_id));
+  const advMes = advAno.filter(o => o.data >= iniMes).length;
+
+  // Notas: média de cada pessoa e a distribuição (recomendado / observação / não recomendado / sem avaliação)
+  const notas = ativos.map(c => { const m = avalData.filter(a => a.colaborador_id === c.id).map(calcMediaAval).filter(v => v !== null); return m.length ? m.reduce((a, b) => a + b, 0) / m.length : null; });
+  const comNota = notas.filter(v => v !== null);
+  const notaMedia = comNota.length ? comNota.reduce((a, b) => a + b, 0) / comNota.length : null;
+  const dist = [['#16a34a', 'recomendados', comNota.filter(v => v >= 7).length], ['#d97706', 'em obs.', comNota.filter(v => v >= 5 && v < 7).length],
+                ['#dc2626', 'não rec.', comNota.filter(v => v < 5).length], ['#cbd5e1', 'sem nota', notas.length - comNota.length]];
+
+  // Turnover do ano + saídas por mês
+  const demAno = colabData.filter(c => c.demissao && c.demissao.startsWith(String(anoAtualVal)));
+  const hc = ativos.length + demAno.length;
+  const tv = hc ? demAno.length / hc * 100 : 0;
+  const porMes = {}; demAno.forEach(c => { const mm = +c.demissao.slice(5, 7); porMes[mm] = (porMes[mm] || 0) + 1; });
+  const maxSaida = Math.max(1, ...Object.values(porMes));
+  const barrasTv = MES_ABREV.map((nm, i) => { const mm = i + 1, n = porMes[mm] || 0, fut = mm > mesAtualVal, h = fut || !n ? 2 : Math.max(6, n / maxSaida * 22);
+    return `<div title="${nm}/${String(anoAtualVal).slice(2)}: ${fut ? '—' : `${n} saída${n === 1 ? '' : 's'}`}"><i class="${fut ? 'fut' : n ? '' : 'vz'}" style="height:${h}px"></i><span>${nm[0]}</span></div>`; }).join('');
+
+  // Comparação: para faltas/atrasos, subir é ruim (vermelho); para presença, subir é bom
+  const cmp = (v, a, bomSubir = false, suf = '') => {
+    const d = v - a, lbl = MES_ABREV[dAnt.getMonth()].toLowerCase();
+    if (a == null || v == null) return '';
+    const cls = d === 0 ? 'eq' : (d > 0) === bomSubir ? 'down' : 'up';
+    return `<span class="kpi-cmp ${cls}" title="${MES_ABREV[dAnt.getMonth()]} de 1 a ${Math.min(diaHoje, ultAnt)}: ${a}${suf}">${d > 0 ? '▲' : d < 0 ? '▼' : '='} ${d === 0 ? 'igual a' : `${Math.abs(d)}${suf} vs`} ${lbl}</span>`;
+  };
+  const corPres = v => v == null ? '#94a3b8' : v >= 95 ? '#16a34a' : v >= 85 ? '#d97706' : '#dc2626';
+  const corNota = v => v == null ? '#94a3b8' : v >= 7 ? '#16a34a' : v >= 5 ? '#d97706' : '#dc2626';
+  const tile = (rot, val, cor, sub, extra = '') => `<div class="eq-tile"><span class="eq-rot">${rot}</span><b style="color:${cor}">${val}</b><small>${sub}</small>${extra}</div>`;
+
+  el.innerHTML = `
+    <div class="eq-hd"><h3>${icon('users', { size:16 })} Equipe</h3><span>${MES_NOME[mesAtualVal - 1]} de ${anoAtualVal} · até hoje</span></div>
+    <div class="eq-grid">
+      ${tile('Colaboradores ativos', ativos.length, '#0f172a', `${emExp.length} em experiência · ${emFerias.length} em férias`)}
+      ${tile('Presença no mês', presMes == null ? '—' : `${presMes}%`, corPres(presMes), presMes == null ? 'sem lançamentos no mês' : 'dias presentes ÷ dias lançados', cmp(presMes, presAnt, true, presAnt == null ? '' : ' p.p.'))}
+      ${tile('Faltas no mês', faltasMes.length, faltasMes.length ? '#dc2626' : '#16a34a', faltasMes.length ? `em ${pessoasFalta} pessoa${pessoasFalta === 1 ? '' : 's'}` : 'nenhuma falta', cmp(faltasMes.length, faltasAnt))}
+      ${tile('Atrasos no mês', atrasos.length, atrasos.length ? '#a16207' : '#16a34a', atrasos.length ? `${fmtH(hAtr)} no total` : 'nenhum atraso', cmp(atrasos.length, atrasosAnt))}
+      ${tile(`Advertências ${anoAtualVal}`, advAno.length, advAno.length ? '#be123c' : '#16a34a', advMes ? `${advMes} neste mês` : 'nenhuma neste mês')}
+      ${tile('Nota média', notaMedia == null ? '—' : notaMedia.toFixed(1), corNota(notaMedia), dist.filter(d => d[2]).map(d => `<span style="color:${d[0] === '#cbd5e1' ? '#64748b' : d[0]}">${d[2]} ${d[1]}</span>`).join(' · ') || 'sem avaliações',
+        `<div class="eq-dist">${dist.filter(d => d[2]).map(d => `<i style="flex:${d[2]};background:${d[0]}" title="${d[2]} ${d[1]}"></i>`).join('')}</div>`)}
+      ${tile('Turnover', `${tv.toFixed(1)}%`, tv > 0 ? '#dc2626' : '#16a34a', demAno.length ? `${demAno.length} saída${demAno.length === 1 ? '' : 's'} em ${anoAtualVal}` : `nenhuma saída em ${anoAtualVal}`, `<div class="tv-barras">${barrasTv}</div>`)}
+    </div>`;
 }
 
 // ── Precisa de atenção ────────────────────────────────────────────────────────
@@ -566,29 +593,29 @@ function renderAtencao() {
     exps.forEach(([p, fim]) => {
       const n = dias(fim);
       if (n < -15 || n > 15) return;
-      itens.push({ c, peso: n <= 3 ? 0 : 2, cls: n <= 3 ? 'urg' : n <= 7 ? 'med' : 'inf',
+      itens.push({ cat: 'exp', c, peso: n <= 3 ? 0 : 2, cls: n <= 3 ? 'urg' : n <= 7 ? 'med' : 'inf',
         motivo: `${p}ª experiência ${quando(n)} (${dataBR(fim)})`, acao: isAdm ? 'Definir resultado →' : 'Ver →', abrir: isAdm ? () => editarColab(c.id) : () => abrirHistoricoOc(c.id) });
     });
     // Reprovado na experiência e ainda sem data de demissão
     if (c.passou_exp_1 === false || c.passou_exp_2 === false)
-      itens.push({ c, peso: 1, cls: 'urg', motivo: `Reprovado na ${c.passou_exp_2 === false ? '2ª' : '1ª'} experiência, sem desligamento registrado`, acao: isAdm ? 'Registrar →' : 'Ver →', abrir: isAdm ? () => editarColab(c.id) : () => abrirHistoricoOc(c.id) });
+      itens.push({ cat: 'rep', c, peso: 1, cls: 'urg', motivo: `Reprovado na ${c.passou_exp_2 === false ? '2ª' : '1ª'} experiência, sem desligamento registrado`, acao: isAdm ? 'Registrar →' : 'Ver →', abrir: isAdm ? () => editarColab(c.id) : () => abrirHistoricoOc(c.id) });
     // Nota baixa (média das avaliações abaixo de 5)
     const medias = avalData.filter(a => a.colaborador_id === c.id).map(calcMediaAval).filter(v => v !== null);
     const nota = medias.length ? medias.reduce((a, b) => a + b, 0) / medias.length : null;
     if (nota !== null && nota < 5)
-      itens.push({ c, peso: 3, cls: 'urg', motivo: `Nota ${nota.toFixed(1)}: não recomendado, avaliar desligamento`, acao: 'Ver avaliações →', abrir: () => verAvaliacoes(c.id) });
+      itens.push({ cat: 'nota', c, peso: 3, cls: 'urg', motivo: `Nota ${nota.toFixed(1)}: não recomendado, avaliar desligamento`, acao: 'Ver avaliações →', abrir: () => verAvaliacoes(c.id) });
     // Faltas repetidas no mês
     const f = ocData.filter(o => o.colaborador_id === c.id && o.conta_como_falta && o.data >= iniMes && o.data <= hoje).length;
     if (f >= 2)
-      itens.push({ c, peso: f >= 4 ? 1 : 4, cls: f >= 4 ? 'urg' : 'med', motivo: `${f} faltas neste mês`, acao: 'Ver calendário →', abrir: () => abrirHistoricoOc(c.id) });
+      itens.push({ cat: 'falta', c, peso: f >= 4 ? 1 : 4, cls: f >= 4 ? 'urg' : 'med', motivo: `${f} faltas neste mês`, acao: 'Ver calendário →', abrir: () => abrirHistoricoOc(c.id) });
   });
   // Uma linha por pessoa: o motivo mais urgente decide a cor e a ação; os outros entram no texto
   const ORD = { urg:0, med:1, inf:2 };
   const porPessoa = {};
   itens.sort((a, b) => a.peso - b.peso).forEach(x => {
     const g = porPessoa[x.c.id];
-    if (!g) porPessoa[x.c.id] = { ...x, motivos:[x.motivo] };
-    else { g.motivos.push(x.motivo); if (ORD[x.cls] < ORD[g.cls]) g.cls = x.cls; }
+    if (!g) porPessoa[x.c.id] = { ...x, motivos:[x.motivo], itensP:[x] };
+    else { g.motivos.push(x.motivo); g.itensP.push(x); if (ORD[x.cls] < ORD[g.cls]) g.cls = x.cls; }
   });
   const agrupados = Object.values(porPessoa).map(g => ({ ...g, motivo: g.motivos.join(' · ') }))
     .sort((a, b) => ORD[a.cls] - ORD[b.cls] || a.peso - b.peso || a.c.nome.localeCompare(b.c.nome));
@@ -596,12 +623,17 @@ function renderAtencao() {
   window._atencao = itens;
   const MAX = 6, vis = atencaoTodos ? itens : itens.slice(0, MAX);
   const ini = n => n.trim().split(/\s+/).map(p => p[0]).filter((_, i, a) => i === 0 || i === a.length - 1).join('').toUpperCase();
+  // Contagem de pessoas por tipo de pendência (para o resumo do cabeçalho)
+  const CATS = [['exp', 'experiência vencendo', '#2563eb'], ['rep', 'reprovação sem desligamento', '#dc2626'], ['nota', 'nota baixa', '#dc2626'], ['falta', 'faltas repetidas', '#d97706']];
+  const nCat = k => itens.filter(x => x.itensP.some(y => y.cat === k)).length;
+  const urg = itens.filter(x => x.cls === 'urg').length;
   el.innerHTML = `<div class="at-box">
-    <div class="at-hd">${icon('alert-triangle', { size:16 })}<h3>Precisa de atenção</h3>${itens.length ? `<span class="at-n">${itens.length}</span>` : ''}
-      <span class="at-leg">experiência, reprovações, nota baixa e faltas repetidas</span></div>
+    <div class="at-hd"><span class="at-ic">${icon('alert-triangle', { size:18 })}</span>
+      <div><h3>Precisa de atenção</h3><span class="at-sub">${itens.length ? `${itens.length} pessoa${itens.length === 1 ? '' : 's'}${urg ? ` · <b style="color:#dc2626">${urg} urgente${urg === 1 ? '' : 's'}</b>` : ''}` : 'tudo em dia'}</span></div>
+      <div class="at-cats">${CATS.filter(([k]) => nCat(k)).map(([k, rot, cor]) => `<span><i style="background:${cor}"></i><b>${nCat(k)}</b> ${rot}</span>`).join('')}</div></div>
     ${itens.length ? `<div class="at-lista">${vis.map((x, i) => `<button type="button" class="at-item ${x.cls}" onclick="_atencao[${i}].abrir()">
         <span class="at-av">${ini(x.c.nome)}</span>
-        <span class="at-tx"><b>${x.c.nome}</b><span>${x.motivo}</span></span>
+        <span class="at-tx"><b>${x.c.nome}</b><span class="at-mot">${x.motivos.map(m => `<em>${m}</em>`).join('')}</span></span>
         <span class="at-acao">${x.acao}</span></button>`).join('')}</div>
       ${itens.length > MAX ? `<button type="button" class="at-mais" onclick="_alternarAtencao()">${atencaoTodos ? 'Mostrar menos' : `Ver todos (${itens.length})`}</button>` : ''}`
       : '<div class="at-vazio">✓ Nada pendente: nenhuma experiência vencendo, reprovação em aberto, nota baixa ou falta repetida.</div>'}
@@ -664,7 +696,7 @@ function renderColaboradores() {
 
   const grid = document.getElementById('grid-colaboradores');
   if (!lista.length) {
-    grid.innerHTML = '<p class="text-muted" style="padding:16px">Nenhum colaborador encontrado com esses filtros.</p>';
+    grid.innerHTML = '<p class="text-muted" style="padding:16px;margin:0">Nenhum colaborador encontrado com esses filtros.</p>';
     return;
   }
 
@@ -676,107 +708,48 @@ function renderColaboradores() {
     if (ordem === 'admissao' && (a.data_admissao || '') !== (b.data_admissao || '')) return (b.data_admissao || '').localeCompare(a.data_admissao || '');
     return a.nome.localeCompare(b.nome);
   });
-  grid.innerHTML = listaOrdenada.map(c => cardHTML(c, isAdm, hoje, iniMes, fimMes)).join('');
+  grid.innerHTML = '<div class="cl-row cl-head"><div>Colaborador</div><div>Chapa</div><div>Admissão</div><div>Situação</div><div></div></div>'
+    + listaOrdenada.map(c => cardHTML(c, isAdm, hoje)).join('');
 }
 let filtroRapido = '';
 window._filtroRapido = k => { filtroRapido = k; renderColaboradores(); };
 
-function cardHTML(c, isAdm, hoje, iniMes, fimMes) {
-  const avals   = avalData.filter(a => a.colaborador_id === c.id)
-                          .sort((a,b) => (b.data_avaliacao||'') > (a.data_avaliacao||'') ? 1 : -1);
-  const ocColab = ocData.filter(o => o.colaborador_id === c.id);
-  const ocMes   = ocColab.filter(o => o.data >= iniMes && o.data <= fimMes);
-  const faltasC = ocMes.filter(o => o.conta_como_falta).length;
-  const atestC  = ocMes.filter(o => o.tipo === 'atestado').length;
-  const advertC = ocMes.filter(o => o.tipo === 'advertencia').length;
-  const outroC  = ocMes.filter(o => o.tipo === 'elogio').length;
-
-  const mediaUltima = avals[0] ? calcMediaAval(avals[0]) : null;
-  const todasMedias = avals.map(calcMediaAval).filter(v => v !== null);
-  const notaAtual   = todasMedias.length ? todasMedias.reduce((a,b)=>a+b,0)/todasMedias.length : null;
-
+// Uma linha por colaborador: nome e cargo, chapa, admissão (tempo de casa) e situação do contrato.
+// Faltas, notas e ocorrências ficam na tela do colaborador (clique na linha).
+function cardHTML(c, isAdm, hoje) {
   const cargoNome = c.cargo || cargoData.find(x => x.id === c.cargo_id)?.nome || 'Sem cargo';
 
-  // Badge de status — mostra a experiência mais próxima a vencer
+  // Situação do contrato — mostra a experiência mais próxima a vencer
   let expTag = '';
-  const ap1 = c.passou_exp_1; // true | false | null
-  const ap2 = c.passou_exp_2;
-  if (c.demissao) {
-    expTag = badge('#fee2e2','#991b1b', `Demitido ${dataBR(c.demissao)}`);
-  } else if (ap2 === true) {
-    expTag = badge('#d1fae5','#065f46', icon('check',{size:11}) + ' Aprovado — Efetivado');
-  } else if (ap2 === false) {
-    expTag = badge('#fee2e2','#991b1b', icon('x-circle',{size:11}) + ' Reprovado 2ª Exp.');
-  } else if (ap1 === false) {
-    expTag = badge('#fee2e2','#991b1b', icon('x-circle',{size:11}) + ' Reprovado 1ª Exp.');
-  } else if (c.fim_experiencia_1 && hoje <= c.fim_experiencia_1) {
-    // 1ª ainda vigente → mostra ela (a mais próxima)
-    expTag = badge('#dbeafe','#1e40af',`1ª Exp. até ${dataBR(c.fim_experiencia_1)}`);
-  } else if (ap1 === true && c.fim_experiencia_2 && hoje <= c.fim_experiencia_2) {
-    expTag = badge('#fef3c7','#92400e',`2ª Exp. até ${dataBR(c.fim_experiencia_2)}`);
-  } else if (c.fim_experiencia_2 && hoje <= c.fim_experiencia_2) {
-    // passou da 1ª pelo prazo, na 2ª
-    expTag = badge('#fef3c7','#92400e',`2ª Exp. até ${dataBR(c.fim_experiencia_2)}`);
-  } else if (c.fim_experiencia_2 && hoje > c.fim_experiencia_2) {
-    expTag = badge('#d1fae5','#065f46', icon('check',{size:11}) + ' Efetivado');
-  } else if (c.fim_experiencia_1 && hoje > c.fim_experiencia_1) {
-    expTag = badge('#fef3c7','#92400e', icon('clock',{size:11}) + ' Aguardando 2ª exp.');
+  const ap1 = c.passou_exp_1, ap2 = c.passou_exp_2;
+  if (c.demissao) expTag = badge('#fee2e2','#991b1b', `Desligado em ${dataBR(c.demissao)}`);
+  else if (c.em_ferias) expTag = badge('#e0f2fe','#075985', 'Em férias');
+  else if (ap2 === true) expTag = badge('#d1fae5','#065f46', icon('check',{size:11}) + ' Efetivado');
+  else if (ap2 === false) expTag = badge('#fee2e2','#991b1b', icon('x-circle',{size:11}) + ' Reprovado 2ª exp.');
+  else if (ap1 === false) expTag = badge('#fee2e2','#991b1b', icon('x-circle',{size:11}) + ' Reprovado 1ª exp.');
+  else if (c.fim_experiencia_1 && hoje <= c.fim_experiencia_1) expTag = badge('#dbeafe','#1e40af', `1ª exp. até ${dataBR(c.fim_experiencia_1)}`);
+  else if (c.fim_experiencia_2 && hoje <= c.fim_experiencia_2) expTag = badge('#fef3c7','#92400e', `2ª exp. até ${dataBR(c.fim_experiencia_2)}`);
+  else if (c.fim_experiencia_2 && hoje > c.fim_experiencia_2) expTag = badge('#d1fae5','#065f46', icon('check',{size:11}) + ' Efetivado');
+  else if (c.fim_experiencia_1 && hoje > c.fim_experiencia_1) expTag = badge('#fef3c7','#92400e', icon('clock',{size:11}) + ' Aguardando 2ª exp.');
+  else expTag = badge('#f1f5f9','#475569', 'Ativo');
+
+  // Tempo de casa
+  let casa = '';
+  if (c.data_admissao) {
+    const fim = c.demissao || hoje;
+    const m = (+fim.slice(0, 4) - +c.data_admissao.slice(0, 4)) * 12 + (+fim.slice(5, 7) - +c.data_admissao.slice(5, 7)) - (+fim.slice(8, 10) < +c.data_admissao.slice(8, 10) ? 1 : 0);
+    casa = m < 1 ? 'menos de 1 mês' : m < 12 ? `${m} ${m === 1 ? 'mês' : 'meses'}` : `${Math.floor(m / 12)} ano${m >= 24 ? 's' : ''}${m % 12 ? ` e ${m % 12} ${m % 12 === 1 ? 'mês' : 'meses'}` : ''}`;
   }
 
-  // Recomendação baseada sempre na Nota Atual (média de todas as avaliações)
-  let rec;
-  if (notaAtual === null || isNaN(notaAtual))
-    rec = { cls:'rec-nd', icon:icon('list',{size:13}), texto:'SEM AVALIAÇÃO — Registre avaliações para acompanhar o desempenho' };
-  else if (notaAtual >= 7)
-    rec = { cls:'rec-ok', icon:icon('check',{size:13}), texto:`RECOMENDADO (${notaAtual.toFixed(1)}) — Manter colaborador` };
-  else if (notaAtual >= 5)
-    rec = { cls:'rec-att', icon:icon('alert-triangle',{size:13}), texto:`EM OBSERVAÇÃO (${notaAtual.toFixed(1)}) — Acompanhar de perto` };
-  else
-    rec = { cls:'rec-no', icon:icon('x-circle',{size:13}), texto:`NÃO RECOMENDADO (${notaAtual.toFixed(1)}) — Avaliar desligamento` };
-
-  // Cores do avatar por situação
-  const avatarBg = c.demissao ? '#94a3b8' : notaAtual === null ? '#64748b' : notaAtual >= 7 ? '#16a34a' : notaAtual >= 5 ? '#d97706' : '#dc2626';
-  const notaStr  = notaAtual !== null && !isNaN(notaAtual) ? notaAtual.toFixed(1) : '—';
-  const notaCor  = notaAtual === null ? '#94a3b8' : notaAtual >= 7 ? '#16a34a' : notaAtual >= 5 ? '#d97706' : '#dc2626';
-
-  return `<div class="colab-card" onclick="abrirHistoricoOc('${c.id}')" title="Abrir calendário e histórico">
-    <div class="colab-summary">
-      <div class="colab-top">
-        <div class="colab-avatar" style="background:${avatarBg}">${c.nome.trim().split(/\s+/).filter((_, i, a) => i === 0 || i === a.length - 1).map(p => p[0]).join("").toUpperCase()}</div>
-        <div class="colab-info">
-          <h4>${c.nome}</h4>
-          <p class="sub">${cargoNome}${c.chapa ? ` · Chapa ${c.chapa}` : ''}</p>
-          <p class="sub">Admissão: ${dataBR(c.data_admissao)||'—'}</p>
-          ${expTag ? `<div style="margin-top:4px">${expTag}</div>` : ''}
-        </div>
-        ${isAdm ? `<div class="colab-actions" onclick="event.stopPropagation()">
-          <button class="btn-icon" onclick="editarColab('${c.id}')" title="Editar">${icon('edit',{size:15})}</button>
-        </div>` : ''}
-      </div>
-      <div class="colab-stats">
-        <div class="colab-stat">
-          <div class="val" style="color:${faltasC>0?'#dc2626':'#0f172a'}">${faltasC}</div>
-          <div class="lbl">Faltas</div>
-        </div>
-        <div class="colab-stat">
-          <div class="val" style="color:${atestC>0?'#d97706':'#0f172a'}">${atestC}</div>
-          <div class="lbl">Justif.</div>
-        </div>
-        <div class="colab-stat">
-          <div class="val" style="color:${advertC>0?'#dc2626':'#0f172a'}">${advertC}</div>
-          <div class="lbl">Advert.</div>
-        </div>
-        <div class="colab-stat">
-          <div class="val" style="color:#475569">${outroC}</div>
-          <div class="lbl">Outros</div>
-        </div>
-        <div class="colab-stat colab-stat-nota" style="background:#f8faff" onclick="event.stopPropagation();verAvaliacoes('${c.id}')" title="Ver avaliações (${avals.length})">
-          <div class="val" style="color:${notaCor}">${notaStr}</div>
-          <div class="lbl" style="color:#6366f1">Nota</div>
-        </div>
-      </div>
-      <div class="recomendacao ${rec.cls}">${rec.icon} ${rec.texto}</div>
-    </div>
+  const iniciais = c.nome.trim().split(/\s+/).filter((_, i, a) => i === 0 || i === a.length - 1).map(p => p[0]).join('').toUpperCase();
+  const avBg = c.demissao ? '#94a3b8' : '#006636';
+  return `<div class="cl-row${c.demissao ? ' demitido' : ''}" onclick="abrirHistoricoOc('${c.id}')" title="Abrir calendário, faltas, advertências e avaliações">
+    <div class="cl-nome"><div class="colab-avatar" style="background:${avBg}">${iniciais}</div>
+      <div style="min-width:0"><b>${c.nome}</b><small>${cargoNome}</small></div></div>
+    <div class="cl-cel cl-chapa">${c.chapa || '—'}</div>
+    <div class="cl-cel cl-adm">${dataBR(c.data_admissao) || '—'}${casa ? `<small>${casa}</small>` : ''}</div>
+    <div class="cl-cel">${expTag}</div>
+    <div class="cl-acao" onclick="event.stopPropagation()">${isAdm ? `<button class="btn-icon" onclick="editarColab('${c.id}')" title="Editar cadastro">${icon('edit',{size:15})}</button>` : ''}</div>
   </div>`;
 }
 
