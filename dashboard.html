@@ -304,6 +304,8 @@
     .db-home .db-ind .barra i { position:relative; }
     .db-home .db-ind .barra i.seg-est { position:absolute; left:0; top:0; opacity:.32; }
     .db-home .barra-leg b { font-size:16px; letter-spacing:-.01em; }
+    .db-home .barra-leg .esp-txt { text-align:right; white-space:nowrap; padding-left:8px; }
+    .db-home .barra-leg .esp-txt b { font-size:13px; color:var(--text); }
     .barra-leg .leg-dt { display:inline-block; width:8px; height:8px; border-radius:50%; margin:0 4px 0 8px; }
     .db-ind .ver { margin-top:auto; padding-top:10px; display:flex; align-items:center; justify-content:space-between; font-size:13px; font-weight:700; color:var(--primary); }
     .db-ind .ver span { width:26px; height:26px; border-radius:50%; display:grid; place-items:center; background:var(--primary-bg); transition:transform .18s, background .18s, color .18s; }
@@ -586,10 +588,12 @@ function render(d, tarefas, fin, materiaisEst = []) {
     { alvo:'fat', rot:'Faturamento', st:noRitmo(atFatEst != null ? atFatEst / espAqui : null),
       cap:'Faturado no mês', val: mil(c.fat), solido: comEst && d.meta ? atFat : null, ext: comEst ? `+ ${mil(d.valorEstoque)} em estoque` : '',
       sub: d.meta ? `meta de ${mil(d.meta)}` : 'sem meta cadastrada',
+      espVal: d.meta && d.emAndamento ? mil(d.meta * espAqui) : "",
       barra: d.meta ? [ (comEst ? atFatEst : atFat), d.emAndamento ? espAqui * 100 : null ] : null, barRot: comEst ? 'da meta, com o estoque' : 'da meta',
       mot: d.meta ? (d.emAndamento ? `faltam <b>${mil(Math.max(0, d.meta * espAqui - fatEst))}</b> para o esperado até ${ddmm(d.corte)}` : `faltaram <b>${mil(Math.max(0, d.meta - c.fat))}</b> para a meta`) : '' },
     { alvo:'prensa', rot:'Prensagem', st:noRitmo(atProdRef), cap:'Produzido no mês', val:`${nf(d.prod / 1000, 1)} t`,
       sub: d.capMes > 0 ? `capacidade do mês: ${nf(d.capMes / 1000, 0)} t` : 'sem capacidade cadastrada',
+      espVal: d.capMes > 0 && d.emAndamento ? `${nf(d.esperado / 1000, 1)} t` : "",
       barra: d.capMes > 0 ? [atProd, d.emAndamento ? d.esperado / d.capMes * 100 : null] : null, barRot: 'da capacidade',
       mot: d.capNominal > 0 && d.perdaCap / d.capNominal > 0.05 ? `<b>${esc(textoPerdaCap(d))}</b>` : d.dpPrensa > 0 ? `ritmo de <b>${nf(ritmoR / 1000, 1)} t/dia</b> · meta ${nf(d.metaDia / 1000, 1)} t/dia` : '' },
     { alvo:'equip', rot:'Equipamentos', st:d.eqSt, cap:'Disponíveis', val:`${d.nOp + d.nRes} de ${d.eqs.length}`,
@@ -631,7 +635,7 @@ function render(d, tarefas, fin, materiaisEst = []) {
       ${k.cap ? `<div class="ind-cap">${k.cap}</div>` : ''}
       <div class="val-row"><div class="val">${k.val}</div>${k.ext ? `<div class="ind-ext">${k.ext}</div>` : ''}</div><div class="sub">${k.sub}</div>
       ${k.barra ? `<div class="barra">${duas ? `<i class="seg-est" style="width:${pw}%;background:${cor}"></i>` : ''}<i style="width:${sw}%;background:${cor}"></i>${esp != null ? `<span class="esp" style="left:${Math.min(100, esp)}%" title="esperado até aqui"></span>` : ''}</div>
-        <div class="barra-leg"><span><b style="color:${cor}">${pct(p, 0)}</b>${k.barRot ? ` ${k.barRot}` : ''}</span>${esp != null ? `<span>esperado ${pct(esp, 0)}</span>` : ''}</div>
+        <div class="barra-leg"><span><b style="color:${cor}">${pct(p, 0)}</b>${k.barRot ? ` ${k.barRot}` : ''}</span>${esp != null ? `<span class="esp-txt" title="esperado até hoje: ${pct(esp, 0)}">esperado <b>${k.espVal || pct(esp, 0)}</b></span>` : ''}</div>
         ${duas ? `<div class="barra-leg" style="justify-content:flex-start;margin-top:2px"><span><span class="leg-dt" style="background:${cor};margin-left:0"></span>faturado <span class="leg-dt" style="background:${cor};opacity:.32"></span>estoque</span></div>` : ''}` : ''}
       ${!['ok','ritmo','nd'].includes(k.st) && k.mot ? `<div class="mot"><span class="mot-ic">${MOT_ICO[k.alvo] || ''}</span><span>${k.mot}</span></div>` : ''}
       <div class="ver">Ver detalhes <span>→</span></div>
