@@ -249,6 +249,32 @@
 
     /* ── Painel da equipe ── */
     .db-pessoas { flex:1; display:flex; flex-direction:column; gap:14px; min-height:0; }
+    /* Análise da gestão da operação */
+    .gs-box { background:#fff; border:1px solid var(--border, #e2e8f0); border-top:4px solid var(--primary); border-radius:14px; padding:18px 20px; margin:4px 0 24px; box-shadow:0 1px 3px rgba(15,23,42,.05); }
+    .gs-hd { display:flex; align-items:center; gap:14px; flex-wrap:wrap; margin-bottom:14px; }
+    .gs-ic { width:40px; height:40px; border-radius:11px; display:grid; place-items:center; background:#e8f5ee; color:var(--primary); flex:none; }
+    .gs-hd h2 { margin:0; font-size:18px; font-weight:800; }
+    .gs-hd p { margin:2px 0 0; font-size:12.5px; color:var(--text-muted); }
+    .gs-cont { margin-left:auto; display:flex; gap:8px; flex-wrap:wrap; }
+    .gs-cont span { display:inline-flex; align-items:baseline; gap:6px; font-size:12px; font-weight:700; padding:5px 12px; border-radius:999px; }
+    .gs-cont span b { font-size:15px; }
+    .gs-cont .crit { background:#fee2e2; color:#991b1b; } .gs-cont .aten { background:#fef3c7; color:#92400e; } .gs-cont .ok { background:#dcfce7; color:#166534; }
+    .gs-top { display:grid; grid-template-columns:repeat(auto-fit, minmax(360px, 1fr)); gap:10px; }
+    .gs-it { display:flex; gap:12px; align-items:flex-start; padding:11px 14px; border-radius:10px; border:1px solid #eef2f7; border-left:4px solid #94a3b8; background:#f8fafc; margin-bottom:0; }
+    .gs-it.crit { border-left-color:#dc2626; background:#fef2f2; } .gs-it.aten { border-left-color:#d97706; background:#fffbeb; }
+    .gs-it.info { border-left-color:#2563eb; background:#eff6ff; } .gs-it.ok { border-left-color:#16a34a; background:#f0fdf4; }
+    .gs-it b { font-size:13.5px; color:var(--text); line-height:1.4; }
+    .gs-it p { margin:3px 0 0; font-size:12.5px; color:#475569; line-height:1.45; }
+    .gs-ar { flex:none; font-size:10.5px; font-weight:800; text-transform:uppercase; letter-spacing:.04em; color:#475569; background:#fff; border:1px solid #e2e8f0; border-radius:6px; padding:2px 7px; margin-top:1px; min-width:86px; text-align:center; }
+    .gs-btn { margin-top:14px; font:inherit; font-size:13.5px; font-weight:700; color:#fff; background:var(--primary); border:none; border-radius:10px; padding:10px 18px; cursor:pointer; }
+    .gs-btn:hover { filter:brightness(1.1); }
+    .gs-vazio { font-size:13.5px; color:#16a34a; font-weight:600; }
+    .gs-meta { font-size:12.5px; color:var(--text-muted); margin:0 0 6px; }
+    .gs-grp { margin-top:16px; display:flex; flex-direction:column; gap:8px; }
+    .gs-grp h3 { margin:0 0 2px; font-size:12px; font-weight:800; letter-spacing:.06em; text-transform:uppercase; }
+    .gs-grp h3.crit { color:#b91c1c; } .gs-grp h3.aten { color:#b45309; } .gs-grp h3.info { color:#1d4ed8; } .gs-grp h3.ok { color:#15803d; }
+    .gs-grp h3 small { color:var(--text-muted); }
+    @media (max-width:600px) { .gs-top { grid-template-columns:1fr; } .gs-it { flex-direction:column; gap:6px; } .gs-cont { margin-left:0; } }
     .pp-sec { background:#fff; border:1px solid var(--border); border-radius:18px; box-shadow:var(--shadow-sm); padding:16px 18px; }
     .pp-pres { flex:1; display:flex; flex-direction:column; min-height:0; }
     .pp-hd { display:flex; justify-content:space-between; align-items:baseline; gap:10px; margin-bottom:10px; }
@@ -448,6 +474,7 @@ const COR = { verde:'#006636', verdeCl:'#8fbfa3', s1:'#2a78d6', s2:'#eb6834', s3
 let charts = {};
 // Mês ou Ano (total do ano até o mês escolhido)
 let modoAno = lsGet('sgr_db_modo') === 'ano';
+let gestaoOp = [], abrirPainel = null;   // análise da gestão (preenchida no render) e abridor da janela de detalhes
 
 // Frases da apresentação: **x** = verde (bom), *x* = vermelho (atenção)
 const fraseHTML = s => esc(s).replace(/\*\*([^*]+)\*\*/g, '<span class="ok">$1</span>').replace(/\*([^*]+)\*/g, '<span class="ruim">$1</span>');
@@ -579,6 +606,47 @@ function renderPessoas(colabs, ocMes) {
       <div class="pp-sub">Faltas e ausências</div>
       <div class="pp-auss">${ausHTML}</div>
     </div>`;
+
+  // Pessoas na análise da gestão: experiência vencendo, faltas repetidas no mês e chamada do dia
+  const PP = [];
+  const addP = (nivel, titulo, acao) => PP.push({ area:'Pessoas', nivel, titulo, acao });
+  const expUrg = expTodas.filter(x => x.dias <= 7);
+  if (expUrg.length) addP(expUrg.some(x => x.dias <= 0) ? 'crit' : 'aten', `${expUrg.length} ${expUrg.length > 1 ? 'experiências vencem' : 'experiência vence'} em até 7 dias: ${expUrg.map(x => `${esc(x.c.nome.split(' ')[0])} (${ddmm(x.fim)})`).join(', ')}.`,
+    'Avaliar e decidir antes do vencimento (no RH). Depois do prazo, efetiva automaticamente.');
+  const TF = ['falta', 'atestado', 'falta_declaracao'];
+  const fPor = {}; ocMes.filter(o => TF.includes(o.tipo)).forEach(o => { fPor[o.colaborador_id] = (fPor[o.colaborador_id] || 0) + 1; });
+  const rep = ativos.filter(c => (fPor[c.id] || 0) >= 3).sort((a, b) => fPor[b.id] - fPor[a.id]);
+  if (rep.length) addP('aten', `${rep.length} ${rep.length > 1 ? 'pessoas com' : 'pessoa com'} 3 ou mais faltas no mês: ${rep.slice(0, 4).map(c => `${esc(c.nome.split(' ')[0])} (${fPor[c.id]})`).join(', ')}.`,
+    'Conversa individual registrada e acompanhamento. Ver a Análise da equipe no RH.');
+  const injMes = ocMes.filter(o => o.tipo === 'falta').length;
+  if (injMes >= 3) addP('aten', `${injMes} faltas sem justificativa no mês.`, 'Aplicar a política de faltas de forma consistente (conversa, advertência) e registrar.');
+  if (!lancados) addP('info', 'A chamada de hoje ainda não foi lançada no RH.', 'Lançar a presença do dia para os indicadores ficarem corretos.');
+  else if (!faltas.length && !justif.length) addP('ok', 'Ninguém faltou hoje.', 'Equipe completa no dia.');
+  renderGestao(PP);
+}
+
+/* ═════════════ Análise da gestão da operação (campo no fim da tela + janela completa) ═════════════ */
+function renderGestao(pessoas = []) {
+  const el = $('#db-gestao'); if (!el) return;
+  const ORD = { crit:0, aten:1, info:2, ok:3 };
+  const todos = [...gestaoOp, ...pessoas].sort((a, b) => ORD[a.nivel] - ORD[b.nivel]);
+  const n = k => todos.filter(x => x.nivel === k).length;
+  const NIV = { crit:['Agir agora', 'crit'], aten:['Atenção', 'aten'], info:['Acompanhar', 'info'], ok:['Indo bem', 'ok'] };
+  const item = x => `<div class="gs-it ${x.nivel}"><span class="gs-ar">${x.area}</span><div><b>${x.titulo}</b><p>${x.acao}</p></div></div>`;
+  const prior = todos.filter(x => x.nivel === 'crit' || x.nivel === 'aten');
+  const top = prior.slice(0, 4);
+  el.innerHTML = `
+    <div class="gs-hd">
+      <span class="gs-ic"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg></span>
+      <div><h2>Análise da gestão da operação</h2><p>Leitura geral da unidade: faturamento, volumes, preço, materiais, resultado, prensagem, equipamentos, tarefas e pessoas.</p></div>
+      <div class="gs-cont">${['crit', 'aten', 'ok'].map(k => `<span class="${k}"><b>${n(k)}</b>${NIV[k][0].toLowerCase()}</span>`).join('')}</div>
+    </div>
+    ${top.length ? `<div class="gs-top">${top.map(item).join('')}</div>` : '<div class="gs-vazio">✓ Nenhum ponto crítico ou de atenção no momento.</div>'}
+    <button type="button" class="gs-btn" id="gs-abrir">Ver análise completa (${todos.length} pontos) →</button>`;
+  const full = $('#gs-full');
+  if (full) full.innerHTML = `<p class="gs-meta">Leitura automática por regras, com os dados do período selecionado no topo. Serve de apoio: confira nos detalhes de cada área antes de agir.</p>`
+    + ['crit', 'aten', 'info', 'ok'].filter(k => n(k)).map(k => `<div class="gs-grp"><h3 class="${k}">${NIV[k][0]} <small>(${n(k)})</small></h3>${todos.filter(x => x.nivel === k).map(item).join('')}</div>`).join('');
+  $('#gs-abrir').onclick = () => abrirPainel && abrirPainel('gestao');
 }
 
 /* ═════════════ Regras dos selos (iguais às do Resumo executivo da apresentação) ═════════════ */
@@ -1066,6 +1134,67 @@ function render(d, tarefas, fin, materiaisEst = []) {
       ${d.emAndamento ? '<div class="mc-leg"><span><i class="f"></i>feito até hoje</span>' + (pFatEst != null ? '<span><i class="e"></i>estoque pronto para vender</span>' : '') + '<span><i class="m"></i>onde deveria estar hoje</span></div>' : ''}
     </div>`;
 
+  /* ── Análise da gestão da operação: leitura geral por regras (pessoas entram depois, em renderPessoas) ── */
+  {
+    const P = [];
+    const add = (area, nivel, titulo, acao) => P.push({ area, nivel, titulo, acao });
+    const a = d.antCheio, am = d.antMesmo, antN = nomeMes(d.Mant);
+    // Faturamento
+    if (d.meta > 0) {
+      const r = (atFatEst ?? atFat) / (d.emAndamento ? espAqui : 1);
+      const faltaEsp = Math.max(0, d.meta * (d.emAndamento ? espAqui : 1) - fatEst);
+      if (r < 90) add('Faturamento', 'crit', `Faturamento abaixo do ritmo: ${pct(atFatEst ?? atFat, 0)} da meta${comEst ? ' (com o estoque)' : ''}${d.emAndamento ? `, esperado ${pct(espAqui * 100, 0)}` : ''}.`,
+        `Faltam ${mil(faltaEsp)} para o ${d.emAndamento ? 'esperado até hoje' : 'alvo'}. Priorizar cargas de maior valor e acelerar a saída do estoque pronto.`);
+      else if (r < 97) add('Faturamento', 'aten', `Faturamento um pouco abaixo do ritmo (${pct(atFatEst ?? atFat, 0)} da meta).`, `Faltam ${mil(faltaEsp)} para o esperado. Antecipar as próximas cargas.`);
+      else add('Faturamento', 'ok', `Faturamento no ritmo da meta (${pct(atFatEst ?? atFat, 0)}${comEst ? ' com o estoque' : ''}).`, 'Manter o ritmo de vendas.');
+    }
+    if (d.emAndamento && d.meta > 0 && d.valorEstoque > d.meta * 0.2)
+      add('Estoque', 'aten', `Estoque pronto parado: ${mil(d.valorEstoque)} (${tn(d.estoqueKg, 1)}), ${pct(d.valorEstoque / d.meta * 100, 0)} da meta do mês.`,
+        'Estoque só vira resultado quando sai. Programar a retirada com os compradores ainda neste mês.');
+    // Volume e preço
+    if (d.emAndamento && am.vol > 0) {
+      const v = varPct(c.vol, am.vol);
+      if (v != null && v < -10) add('Volume', 'aten', `Volume vendido ${nf(-v, 0)}% menor que ${antN} no mesmo ponto (${tn(c.vol, 1)} × ${tn(am.vol, 1)}).`, 'Verificar se há material retido no pátio ou comprador atrasando retirada.');
+      else if (v != null && v > 10) add('Volume', 'ok', `Volume vendido ${nf(v, 0)}% maior que ${antN} no mesmo ponto (${tn(c.vol, 1)}).`, 'Bom giro de material.');
+    }
+    if (c.preco && a.preco) {
+      const v = varPct(c.preco, a.preco);
+      if (v < -5) add('Preço', 'aten', `Preço médio caiu ${nf(-v, 0)}%: ${reais0(c.preco)}/t contra ${reais0(a.preco)}/t em ${antN}.`, 'Checar se foi mix (material mais barato) ou preço do comprador; renegociar ou buscar outro comprador para os principais materiais.');
+      else if (v > 5) add('Preço', 'ok', `Preço médio subiu ${nf(v, 0)}%: ${reais0(c.preco)}/t.`, 'Manter os compradores e o mix atuais.');
+    }
+    if (c.pctPrensado != null && a.pctPrensado != null && c.pctPrensado < a.pctPrensado - 5)
+      add('Prensado', 'aten', `Menos material saiu prensado: ${pct(c.pctPrensado, 0)} (${pct(a.pctPrensado, 0)} em ${antN}).`, `${ratioPG ? `O prensado vale ${nf(ratioPG, 1)}× o a granel. ` : ''}Priorizar a prensagem dos materiais prensáveis antes de vender a granel.`);
+    // Materiais
+    const abaixo = mats.filter(m => m.media > 0 && m.fat > 0 && m.varp != null && m.varp < -30).sort((x, y) => (y.falta || 0) - (x.falta || 0));
+    if (abaixo.length) add('Materiais', 'aten', `${abaixo.length} ${abaixo.length > 1 ? 'materiais vendendo' : 'material vendendo'} bem abaixo da referência: ${abaixo.slice(0, 3).map(m => `${esc(nomeMat(m.n))} (${seta(m.varp)} ${nf(Math.abs(m.varp), 0)}%)`).join(', ')}.`,
+      'Ver se é falta de material na triagem, estoque parado ou queda de procura.');
+    if (naoV.length) add('Materiais', naoVMedia > (d.meta || 0) * 0.05 ? 'aten' : 'info', `${naoV.length} ${naoV.length > 1 ? 'materiais vendidos' : 'material vendido'} ${refFixo ? 'em outubro' : 'no ano'} ainda não ${naoV.length > 1 ? 'saíram' : 'saiu'} (${mil(naoVMedia)}): ${naoV.slice(0, 4).map(m => esc(nomeMat(m.n))).join(', ')}${naoV.length > 4 ? '…' : ''}.`,
+      'Confirmar se há volume acumulado e agendar a venda.');
+    // Lucro
+    if (eq && eq.base.rec > 0) {
+      const dif = eq.base.rec - eq.pe, eb = eq.ebitda(eq.base.rec);
+      if (dif < 0) add('Resultado', 'crit', `Projeção ${mil(-dif)} abaixo do ponto de equilíbrio (${mil(eq.pe)}/mês). EBITDA estimado: −${mil(-eb)}.`, 'Combinar mais receita (volume e preço) com revisão dos custos fixos. Ver o DRE.');
+      else add('Resultado', 'ok', `Projeção ${mil(dif)} acima do ponto de equilíbrio. EBITDA estimado: ${mil(eb)}.`, 'Manter o controle dos custos.');
+    }
+    // Prensagem
+    if (d.capMes > 0) {
+      if (atProdRef != null && atProdRef < 90) add('Prensagem', 'crit', `Prensagem abaixo do previsto: ${tn(d.prod, 1)}, ${pct(atProdRef, 0)} do esperado ${d.emAndamento ? 'até hoje' : 'no mês'}.`, `Ritmo atual de ${nf(ritmoR / 1000, 1)} t/dia contra meta de ${nf(d.metaDia / 1000, 1)} t/dia. Ver falta de material, equipe ou parada de prensa.`);
+      else if (atProdRef != null && atProdRef < 97) add('Prensagem', 'aten', `Prensagem um pouco abaixo do previsto (${pct(atProdRef, 0)}).`, 'Acompanhar o ritmo diário das prensas.');
+      else if (atProdRef != null) add('Prensagem', 'ok', `Prensagem no ritmo (${pct(atProdRef, 0)} do previsto).`, 'Manter.');
+      if (d.capNominal > 0 && d.perdaCap / d.capNominal > 0.05) add('Prensagem', 'aten', `${esc(textoPerdaCap(d))}.`, 'Cobrar a manutenção e a previsão de volta.');
+    }
+    // Equipamentos
+    d.problemas.forEach(({ e, prev }) => add('Equipamentos', e.st === 'parado' ? 'crit' : 'aten',
+      `${esc(nomeEq(e))} ${e.st === 'parado' ? 'parado' : 'com restrição'}${prev ? ` (volta prevista ${ddmm(prev)})` : ', sem previsão de volta'}.`,
+      prev ? 'Acompanhar o prazo com a manutenção.' : 'Definir responsável e prazo para o conserto.'));
+    // Quadro
+    if (incompleta) add('Equipe', 'aten', `Quadro incompleto: ${d.colab} de ${d.quadro}${d.vagas ? ` (${d.vagas} vaga${d.vagas > 1 ? 's' : ''} em reposição)` : ''}.`, 'Acelerar a reposição: quadro incompleto pesa na triagem e na prensagem.');
+    // Tarefas atrasadas
+    const atras = (tarefas || []).filter(t => !['concluida', 'cancelada'].includes(t.status) && t.data_vencimento && t.data_vencimento < hoje);
+    if (atras.length) add('Tarefas', atras.length >= 3 ? 'crit' : 'aten', `${atras.length} ${atras.length > 1 ? 'tarefas atrasadas' : 'tarefa atrasada'}: ${atras.slice(0, 3).map(t => esc(t.titulo)).join(', ')}${atras.length > 3 ? '…' : ''}.`, 'Rever prazos e responsáveis na tela de Tarefas.');
+    gestaoOp = P;
+  }
+
   /* ── Montagem ── */
   // Tela inicial: só os 4 cards; cada um abre uma janela com os gráficos e detalhes dele
   const cardEq = ([rot, val, cls, sub]) => cardHTML({ rot, val, cls, sub });
@@ -1083,10 +1212,14 @@ function render(d, tarefas, fin, materiaisEst = []) {
       </div>
     </div>
 
+    <section class="gs-box" id="db-gestao"><div class="pp-vazio">Montando a análise…</div></section>
+
     <div class="db-modal" id="db-modal" hidden>
       <div class="db-modal-fundo" data-fechar></div>
       <div class="db-modal-caixa" role="dialog" aria-modal="true">
         <button type="button" class="db-modal-x" data-fechar title="Fechar (Esc)">×</button>
+
+        ${painel('gestao', 'Análise da gestão da operação', '', '<div id="gs-full"></div>')}
 
         ${painel('fat', 'Faturamento', '<a href="comercial.html">Ver vendas →</a>', `
         <section class="db-sec" id="b-meta">
@@ -1139,6 +1272,7 @@ function render(d, tarefas, fin, materiaisEst = []) {
   };
   const fechar = () => { modal.hidden = true; document.body.classList.remove('db-modal-aberto'); };
   document.querySelectorAll('.db-ind').forEach(b => b.onclick = () => abrir(b.dataset.alvo));
+  abrirPainel = abrir;
   modal.querySelectorAll('[data-fechar]').forEach(x => x.onclick = fechar);
   document.onkeydown = e => { if (e.key === 'Escape' && !modal.hidden) fechar(); };
   graficos(d, eq);
