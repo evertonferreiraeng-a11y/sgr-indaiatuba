@@ -85,11 +85,13 @@
     .cal-day.t-falta { background:#fef2f2; border-color:#fecaca; } .cal-day.t-falta .cal-daynum { color:#b91c1c; }
     .cal-day.t-atestado { background:#fffbeb; border-color:#fde68a; } .cal-day.t-atestado .cal-daynum { color:#b45309; }
     .cal-day.t-advertencia { background:#fff1f2; border-color:#fda4af; } .cal-day.t-advertencia .cal-daynum { color:#9f1239; }
+    .cal-day.t-falta_declaracao { background:#fff7ed; border-color:#fdba74; } .cal-day.t-falta_declaracao .cal-daynum { color:#9a3412; }
     .cal-day.t-ferias { background:#f0f9ff; border-color:#7dd3fc; } .cal-day.t-ferias .cal-daynum { color:#075985; }
     .cal-day.t-declaracao { background:#f5f3ff; border-color:#c4b5fd; } .cal-day.t-declaracao .cal-daynum { color:#5b21b6; }
     .cal-day.t-elogio { background:#f1f5f9; border-color:#e2e8f0; }
     .cal-tipo { font-size:10.5px; font-weight:700; line-height:1.2; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; display:flex; align-items:center; gap:4px; }
     .cal-tipo i { width:6px; height:6px; border-radius:50%; flex:none; }
+    .cal-mot { display:block; font-size:10px; font-weight:600; color:#64748b; margin:1px 0 0 10px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
     .cal-legend { display:flex; gap:14px; flex-wrap:wrap; margin-top:14px; padding-top:12px; border-top:1px solid #f1f5f9; }
     .cal-legend span { display:flex; align-items:center; gap:6px; font-size:12px; color:#64748b; font-weight:600; }
     .cal-legend i { width:10px; height:10px; border-radius:50%; display:inline-block; }
@@ -212,13 +214,19 @@
         <div class="form-group"><label>Tipo</label>
           <select id="h-tipo">
             <option value="">Todos</option>
-            <option value="falta">Falta injustificada</option>
-            <option value="atestado">Justificada</option>
-            <option value="ferias">Férias</option>
-            <option value="declaracao">Declaração</option>
-            <option value="outro">Presente</option>
-            <option value="advertencia">Advertência</option>
-            <option value="elogio">Outro</option>
+            <option value="@falta">Todas as faltas</option>
+            <optgroup label="Falta">
+              <option value="falta">Injustificada</option>
+              <option value="atestado">Justificada (atestado)</option>
+              <option value="falta_declaracao">Declaração de horas</option>
+              <option value="ferias">Férias</option>
+            </optgroup>
+            <optgroup label="Presente">
+              <option value="outro">Normal</option>
+              <option value="declaracao">Declaração de horas</option>
+              <option value="advertencia">Advertência</option>
+              <option value="elogio">Outro</option>
+            </optgroup>
           </select>
         </div>
         <div class="form-group" style="min-width:auto"><label>&nbsp;</label>
@@ -252,32 +260,7 @@
         <input type="hidden" name="id" />
         <div class="form-grid">
           <div class="form-group"><label>Data *</label><input type="date" name="data" required /></div>
-          <div class="form-group"><label>Tipo *</label>
-            <select name="tipo" required>
-              <option value="">Selecione…</option>
-              <option value="falta">Falta injustificada</option>
-              <option value="atestado">Justificada</option>
-              <option value="ferias">Férias</option>
-              <option value="declaracao">Declaração</option>
-              <option value="outro">Presente</option>
-              <option value="advertencia">Advertência</option>
-              <option value="elogio">Outro</option>
-            </select>
-          </div>
-          <div class="form-group">
-            <label>Presença no dia</label>
-            <select name="presenca_no_dia" id="sel-presenca-oc" style="font-weight:600">
-              <option value="true">Presente</option>
-              <option value="false">Falta</option>
-            </select>
-          </div>
-          <div class="form-group full">
-            <label style="display:flex;align-items:center;gap:10px;cursor:pointer;font-weight:600">
-              <input type="checkbox" name="conta_como_falta" id="chk-conta-falta" style="width:16px;height:16px;accent-color:#dc2626" />
-              <span>Conta como falta no KPI?</span>
-            </label>
-            <p style="margin:4px 0 0 26px;font-size:12px;color:#64748b">Marque se esta ocorrência deve ser contabilizada no contador de Faltas do mês.</p>
-          </div>
+          <div id="ocf-campos" style="display:contents"></div>
           <div class="form-group full"><label>Descrição</label><textarea name="descricao" rows="3" style="width:100%;resize:vertical"></textarea></div>
         </div>
       </form>
@@ -294,6 +277,7 @@
 <script type="module">
 import { supabase, initPage, dataBR, toast, abrirModal, fecharModal } from './js/config.js?v=12';
 import { icon } from './js/icons.js';
+import { montarFormOc, resetFormOc, preencherFormOc, lerFormOc, gravarOcorrencia, OC_LABEL, TIPOS_FALTA, rotuloOc, rotuloCal } from './js/oc-form.js?v=1';
 
 await initPage();
 
@@ -306,11 +290,11 @@ if (!colabId) {
   throw new Error('missing id');
 }
 
-const TIPO_LABEL = { falta:'Falta', atestado:'Justificada', ferias:'Férias', declaracao:'Declaração', advertencia:'Advertência', elogio:'Outro', outro:'Presente' };
-const TIPO_COR   = { falta:'background:#fee2e2;color:#991b1b', atestado:'background:#fef3c7;color:#92400e', ferias:'background:#e0f2fe;color:#075985', declaracao:'background:#ede9fe;color:#5b21b6', advertencia:'background:#ffe4e6;color:#9f1239', elogio:'background:#f1f5f9;color:#475569', outro:'background:#dcfce7;color:#166534' };
-const TIPO_PONTO = { falta:'#dc2626', atestado:'#d97706', ferias:'#0284c7', declaracao:'#7c3aed', advertencia:'#e11d48', elogio:'#94a3b8', outro:'#16a34a' };
+const TIPO_LABEL = OC_LABEL;
+const TIPO_COR   = { falta:'background:#fee2e2;color:#991b1b', atestado:'background:#fef3c7;color:#92400e', falta_declaracao:'background:#ffedd5;color:#9a3412', ferias:'background:#e0f2fe;color:#075985', declaracao:'background:#ede9fe;color:#5b21b6', advertencia:'background:#ffe4e6;color:#9f1239', elogio:'background:#f1f5f9;color:#475569', outro:'background:#dcfce7;color:#166534' };
+const TIPO_PONTO = { falta:'#dc2626', atestado:'#d97706', falta_declaracao:'#ea580c', ferias:'#0284c7', declaracao:'#7c3aed', advertencia:'#e11d48', elogio:'#94a3b8', outro:'#16a34a' };
 // No calendário, quando há mais de um registro no dia, vale o mais "grave"
-const TIPO_PESO  = { falta:0, advertencia:1, atestado:2, ferias:3, declaracao:4, elogio:5, outro:6 };
+const TIPO_PESO  = { falta:0, falta_declaracao:1, atestado:2, ferias:3, advertencia:4, declaracao:5, elogio:6, outro:7 };
 const DIAS_SEMANA = ['Dom','Seg','Ter','Qua','Qui','Sex','Sáb'];
 const DIAS_AB = ['dom','seg','ter','qua','qui','sex','sáb'];
 const MESES = ['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
@@ -432,7 +416,7 @@ function montarLayout() {
           <div class="cal-weekdays">${DIAS_SEMANA.map(d => `<div>${d}</div>`).join('')}</div>
           <div class="cal-grid" id="cal-grid"></div>
           <div class="cal-legend">
-            ${['outro','falta','atestado','ferias','declaracao','advertencia','elogio'].map(t => `<span><i style="background:${TIPO_PONTO[t]}"></i>${TIPO_LABEL[t]}</span>`).join('')}
+            ${['outro','declaracao','advertencia','elogio','falta','atestado','falta_declaracao','ferias'].map(t => `<span><i style="background:${TIPO_PONTO[t]}"></i>${TIPO_LABEL[t]}</span>`).join('')}
             <span style="margin-left:auto;font-weight:500">${isAdm ? 'Clique num dia para lançar ou editar' : ''}</span>
           </div>
         </div>
@@ -474,14 +458,7 @@ function montarLayout() {
   document.querySelectorAll('[data-close]').forEach(btn => btn.addEventListener('click', () => fecharModal(btn.dataset.close)));
   document.querySelectorAll('.modal-backdrop').forEach(m => m.addEventListener('click', e => { if(e.target===m) fecharModal(m.id); }));
 
-  document.querySelector('#form-oc [name="tipo"]').addEventListener('change', e => {
-    const tipo = e.target.value;
-    const selP = document.getElementById('sel-presenca-oc');
-    const chkF = document.getElementById('chk-conta-falta');
-    // Falta injustificada, justificada e férias contam como falta; declaração, outro e advertência não
-    if (['falta','atestado','ferias'].includes(tipo)) { selP.value = 'false'; chkF.checked = true; }
-    else { selP.value = 'true'; chkF.checked = false; }
-  });
+  montarFormOc(document.getElementById('ocf-campos'));
 
   document.getElementById('btn-salvar-oc').addEventListener('click', salvarOc);
   document.getElementById('btn-excluir-oc').addEventListener('click', excluirOcAtual);
@@ -597,21 +574,29 @@ async function carregarOcorrencias() {
 }
 
 // ── Estatísticas do colaborador ──────────────────────────────────────────────
+// Presença contada por dia: o dia é falta se tiver qualquer registro de falta; senão, com qualquer registro, é presença
+function presencaDias(lista) {
+  const dias = {};
+  lista.forEach(o => { dias[o.data] = dias[o.data] || TIPOS_FALTA.includes(o.tipo); });
+  const b = Object.keys(dias).length, p = Object.values(dias).filter(f => !f).length;
+  return { p, b, pct: b ? Math.round(p / b * 100) : null };
+}
 function renderEstatisticas() {
   const el = document.getElementById('co-stats'); if (!el) return;
   const hoje = hojeISO(), ano = hoje.slice(0, 4);
   const doAno = ocColab.filter(o => o.data.startsWith(ano) && o.data <= hoje);
   const n = (lista, t) => lista.filter(o => o.tipo === t).length;
   // Conta como falta: sem justificativa, justificada (atestado) e férias — a mesma regra do "conta como falta no KPI"
-  const nAus = lista => n(lista, 'falta') + n(lista, 'atestado') + n(lista, 'ferias');
-  const presenca = lista => { const p = n(lista, 'outro'), b = p + nAus(lista); return { p, b, pct: b ? Math.round(p / b * 100) : null }; };
+  const nAus = lista => lista.filter(o => TIPOS_FALTA.includes(o.tipo)).length;
+  const nJust = lista => n(lista, 'atestado') + n(lista, 'falta_declaracao');
+  const presenca = presencaDias;
   const corPres = v => v == null ? '' : v >= 95 ? 'verde' : v >= 85 ? 'amarelo' : 'vermelho';
-  const detalhe = lista => { const f = n(lista, 'falta'), j = n(lista, 'atestado'), o = n(lista, 'ferias');
+  const detalhe = lista => { const f = n(lista, 'falta'), j = nJust(lista), o = n(lista, 'ferias');
     return [f && `${f} sem justif.`, j && `${j} justificada${j === 1 ? '' : 's'}`, o && `${o} de férias`].filter(Boolean).join(' · ') || 'nenhuma'; };
   const pAno = presenca(doAno);
   const faltasAno = nAus(doAno), advAno = n(doAno, 'advertencia');
   // Última falta (qualquer ausência) e dias desde então
-  const ultFalta = ocColab.filter(o => ['falta','atestado','ferias'].includes(o.tipo) && o.data <= hoje).map(o => o.data).sort().pop();
+  const ultFalta = ocColab.filter(o => TIPOS_FALTA.includes(o.tipo) && o.data <= hoje).map(o => o.data).sort().pop();
   const diasDesde = dt => Math.round((new Date(hoje + 'T00:00:00') - new Date(dt + 'T00:00:00')) / 86400000);
   const ref = ultFalta || colaborador.data_admissao;
   const semFaltar = ref ? diasDesde(ref) : null;
@@ -657,20 +642,20 @@ function renderEstatisticas() {
   const pPer = presenca(doPer);
   const pAnt = ant ? presenca(ant) : null;
   const presAntTxt = pAnt && pAnt.pct != null ? ` · mês anterior ${pAnt.pct}%` : '';
-  const fP = nAus(doPer), sjP = n(doPer, 'falta'), jP = n(doPer, 'atestado'), oP = n(doPer, 'ferias');
+  const fP = nAus(doPer), sjP = n(doPer, 'falta'), jP = nJust(doPer), oP = n(doPer, 'ferias');
   const tilesPer = [
     tile('Presença', pPer.pct == null ? '—' : `${pPer.pct}%`, corPres(pPer.pct), pPer.b ? `${pPer.p} de ${pPer.b} dias${presAntTxt}` : 'sem registros'),
     tile('Faltas (total)', fP, fP ? 'vermelho' : 'verde', comp(nAus) || (fP ? '' : 'nenhuma')),
-    tile('Dias trabalhados', pPer.p, '', comp(l => n(l, 'outro')) || 'no período'),
+    tile('Dias trabalhados', pPer.p, '', comp(l => presencaDias(l).p) || 'no período'),
     tile('Sem justificativa', sjP, sjP ? 'vermelho' : '', comp(l => n(l, 'falta'))),
-    tile('Justificadas (atestado)', jP, jP ? 'amarelo' : '', comp(l => n(l, 'atestado'))),
+    tile('Justificadas', jP, jP ? 'amarelo' : '', comp(nJust) || 'atestado ou declaração'),
     tile('Férias', oP, '', comp(l => n(l, 'ferias'))),
   ].join('');
 
   // Últimos 6 meses: presenças, justificadas e faltas empilhadas
   const meses = [];
   for (let i = 5; i >= 0; i--) { const d = new Date(); d.setDate(1); d.setMonth(d.getMonth() - i); meses.push(`${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`); }
-  const porMes = meses.map(k => { const l = ocColab.filter(o => o.data.startsWith(k)); return { k, p: n(l, 'outro'), j: n(l, 'atestado'), f: n(l, 'falta'), o: n(l, 'ferias') }; });
+  const porMes = meses.map(k => { const l = ocColab.filter(o => o.data.startsWith(k)); return { k, p: presencaDias(l).p, j: nJust(l), f: n(l, 'falta'), o: n(l, 'ferias') }; });
   const maxM = Math.max(1, ...porMes.map(m => m.p + m.j + m.f + m.o));
   const MES_AB = ['jan','fev','mar','abr','mai','jun','jul','ago','set','out','nov','dez'];
   const barras = porMes.map(m => {
@@ -684,7 +669,7 @@ function renderEstatisticas() {
   }).join('');
 
   // Faltas (todas as ausências) por dia da semana (seg a sáb)
-  const ausencias = ocColab.filter(o => ['falta','atestado','ferias'].includes(o.tipo));
+  const ausencias = ocColab.filter(o => TIPOS_FALTA.includes(o.tipo));
   const porDia = [1, 2, 3, 4, 5, 6].map(w => ({ w, v: ausencias.filter(o => new Date(o.data + 'T00:00:00').getDay() === w).length }));
   const maxD = Math.max(1, ...porDia.map(x => x.v));
   const dias = ausencias.length ? porDia.map(x => `<div class="st-dia"><span>${DIAS_AB[x.w]}</span><div class="tr"><i style="width:${x.v / maxD * 100}%"></i></div><b>${x.v}</b></div>`).join('')
@@ -728,7 +713,8 @@ function ocFiltradas(doHistorico = false) {
   return ocColab.filter(o => {
     if (ini && o.data < ini) return false;
     if (fim && o.data > fim) return false;
-    if (tipo && o.tipo !== tipo) return false;
+    if (tipo === '@falta') { if (!TIPOS_FALTA.includes(o.tipo)) return false; }
+    else if (tipo && o.tipo !== tipo) return false;
     return true;
   }).sort((a,b) => b.data.localeCompare(a.data));
 }
@@ -737,9 +723,9 @@ function renderKPIs() {
   const lista = ocFiltradas();
   const count = tipo => lista.filter(o => o.tipo === tipo).length;
   // Presença no período: presentes sobre os dias com registro (justificada e férias também contam como falta)
-  const base = count('outro') + count('falta') + count('atestado') + count('ferias');
+  const pr = presencaDias(lista);
   const el = document.getElementById('co-pres');
-  if (el) el.innerHTML = base ? `${Math.round(count('outro') / base * 100)}<small>%</small>` : '—';
+  if (el) el.innerHTML = pr.pct != null ? `${pr.pct}<small>%</small>` : '—';
 }
 
 function renderHistorico() {
@@ -750,7 +736,7 @@ function renderHistorico() {
   // Resumo do que está filtrado na tela do histórico
   const cnt = t => lista.filter(o => o.tipo === t).length;
   document.getElementById('h-resumo').innerHTML = `<span style="background:#e2e8f0;color:#334155">${lista.length} registro${lista.length === 1 ? '' : 's'}</span>`
-    + ['outro','falta','atestado','ferias','declaracao','advertencia','elogio'].filter(t => cnt(t)).map(t => `<span style="${TIPO_COR[t]}">${cnt(t)} ${TIPO_LABEL[t].toLowerCase()}</span>`).join('');
+    + ['outro','declaracao','advertencia','elogio','falta','atestado','falta_declaracao','ferias'].filter(t => cnt(t)).map(t => `<span style="${TIPO_COR[t]}">${cnt(t)} ${TIPO_LABEL[t].toLowerCase()}</span>`).join('');
   if (!lista.length) { document.getElementById('hist-lista').innerHTML = '<p class="hist-empty">Nenhuma ocorrência no período selecionado.</p>'; return; }
   // Agrupa por mês
   const grupos = [];
@@ -766,7 +752,7 @@ function renderHistorico() {
       const dia = new Date(o.data + 'T00:00:00').getDay();
       return `<div class="hist-row" style="--c:${TIPO_PONTO[o.tipo] || '#94a3b8'}">
         <span class="hist-data">${dataBR(o.data).slice(0, 5)}<small>${DIAS_AB[dia]}</small></span>
-        <span class="hist-tipo" style="${TIPO_COR[o.tipo]||'background:#f1f5f9;color:#475569'}">${TIPO_LABEL[o.tipo]||esc(o.tipo)}</span>
+        <span class="hist-tipo" style="${TIPO_COR[o.tipo]||'background:#f1f5f9;color:#475569'}">${esc(rotuloOc(o))}</span>
         <span class="hist-desc" title="${esc(o.descricao || '')}">${esc(o.descricao || '')}</span>
         ${isAdm ? `<span class="hist-acoes">
           <button class="btn-icon" onclick="window._editarOc('${o.id}')" title="Editar">${icon('edit',{size:15})}</button>
@@ -793,8 +779,10 @@ function renderCalendario() {
     const princ   = ocsDia[0];
     const wd      = (startWeekday + d - 1) % 7;
     const cls = ['cal-day', princ ? `t-${princ.tipo}` : '', wd === 0 || wd === 6 ? 'fds' : '', dateStr === hoje ? 'hoje' : '', dateStr > hoje ? 'futuro' : ''].filter(Boolean).join(' ');
-    const dica = ocsDia.map(o => `${TIPO_LABEL[o.tipo] || o.tipo}${o.descricao ? ' — ' + o.descricao : ''}`).join('\n');
-    const rot = princ ? `<span class="cal-tipo" style="color:${TIPO_PONTO[princ.tipo] || '#64748b'}"><i style="background:${TIPO_PONTO[princ.tipo] || '#94a3b8'}"></i>${TIPO_LABEL[princ.tipo] || esc(princ.tipo)}${ocsDia.length > 1 ? ` +${ocsDia.length - 1}` : ''}</span>` : '';
+    const dica = ocsDia.map(o => `${rotuloOc(o)}${o.descricao ? ' — ' + o.descricao : ''}`).join('\n');
+    // Duas linhas: a situação do dia (Presente / Falta) e, embaixo, o motivo
+    const rc = princ ? rotuloCal(princ) : null;
+    const rot = princ ? `<span class="cal-tipo" style="color:${TIPO_PONTO[princ.tipo] || '#64748b'}"><i style="background:${TIPO_PONTO[princ.tipo] || '#94a3b8'}"></i>${rc.situacao}${ocsDia.length > 1 ? ` +${ocsDia.length - 1}` : ''}</span>${rc.motivo ? `<span class="cal-mot">${esc(rc.motivo)}</span>` : ''}` : '';
     cells += `<div class="${cls}" onclick="window._abrirNovaOcData('${dateStr}')" title="${esc(dica)}">
       <div class="cal-daynum">${d}</div>${rot}
     </div>`;
@@ -807,8 +795,7 @@ function abrirNovaOc(data) {
   if (perfil?.role !== 'admin') return;
   document.getElementById('modal-oc-title').textContent = 'Nova Ocorrência';
   document.getElementById('form-oc').reset();
-  document.getElementById('chk-conta-falta').checked = false;
-  document.getElementById('sel-presenca-oc').value = 'true';
+  resetFormOc();
   document.querySelector('#form-oc [name="id"]').value = '';
   document.querySelector('#form-oc [name="data"]').value = data;
   document.getElementById('btn-excluir-oc').style.display = 'none';
@@ -828,10 +815,8 @@ window._editarOc = id => {
   const f = document.getElementById('form-oc');
   f.querySelector('[name="id"]').value = o.id;
   f.querySelector('[name="data"]').value = o.data;
-  f.querySelector('[name="tipo"]').value = o.tipo;
   f.querySelector('[name="descricao"]').value = o.descricao || '';
-  document.getElementById('chk-conta-falta').checked = !!o.conta_como_falta;
-  document.getElementById('sel-presenca-oc').value = 'true';
+  preencherFormOc(o);
   document.getElementById('btn-excluir-oc').style.display = '';
   abrirModal('modal-oc');
 };
@@ -858,20 +843,18 @@ async function excluirOcAtual() {
 async function salvarOc() {
   const f = document.getElementById('form-oc');
   if (!f.checkValidity()) { f.reportValidity(); return; }
+  const oc = lerFormOc();
+  if (oc.erro) { toast(oc.erro, 'error'); return; }
   const fd = Object.fromEntries(new FormData(f));
-  const presente = document.getElementById('sel-presenca-oc').value === 'true';
-  const payload = { colaborador_id: colabId, tipo: fd.tipo, data: fd.data, descricao: fd.descricao || null, conta_como_falta: document.getElementById('chk-conta-falta').checked };
-  if (fd.id) {
-    const { error } = await supabase.from('ocorrencias').update(payload).eq('id', fd.id);
-    if (error) { toast('Erro: ' + error.message, 'error'); return; }
-    toast('Ocorrência atualizada!');
-  } else {
-    const { error } = await supabase.from('ocorrencias').insert(payload);
-    if (error) { toast('Erro: ' + error.message, 'error'); return; }
-    toast('Ocorrência registrada!');
+  const payload = { colaborador_id: colabId, tipo: oc.tipo, data: fd.data, descricao: fd.descricao || null, conta_como_falta: oc.conta_como_falta, horas: oc.horas };
+  const { error } = await gravarOcorrencia(supabase, fd.id || null, payload);
+  if (error) {
+    const msg = /tipo_check/i.test(error.message || '') ? 'Este tipo ainda não está liberado no banco. Rode o supabase-patch39.sql no Supabase.' : 'Erro: ' + error.message;
+    toast(msg, 'error'); return;
   }
+  toast(fd.id ? 'Ocorrência atualizada!' : 'Ocorrência registrada!');
   const { error: presErr } = await supabase.from('presenca_diaria').upsert(
-    [{ colaborador_id: colabId, data: fd.data, presente, observacao: fd.descricao || null }],
+    [{ colaborador_id: colabId, data: fd.data, presente: oc.presente, observacao: fd.descricao || null }],
     { onConflict: 'colaborador_id,data' }
   );
   if (presErr) toast('Erro ao salvar presença: ' + presErr.message, 'error');

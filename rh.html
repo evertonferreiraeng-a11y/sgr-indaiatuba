@@ -311,32 +311,7 @@
         <div class="form-grid">
           <div class="form-group"><label>Data *</label><input type="date" name="data" required /></div>
           <div class="form-group"><label>Colaborador *</label><select name="colaborador_id" required><option value="">Selecione…</option></select></div>
-          <div class="form-group"><label>Tipo *</label>
-            <select name="tipo" required>
-              <option value="">Selecione…</option>
-              <option value="falta">Falta injustificada</option>
-              <option value="atestado">Justificada</option>
-              <option value="ferias">Férias</option>
-              <option value="declaracao">Declaração</option>
-              <option value="outro">Presente</option>
-              <option value="advertencia">Advertência</option>
-              <option value="elogio">Outro</option>
-            </select>
-          </div>
-          <div class="form-group">
-            <label>Presença no dia</label>
-            <select name="presenca_no_dia" id="sel-presenca-oc" style="font-weight:600">
-              <option value="true">Presente</option>
-              <option value="false">Falta</option>
-            </select>
-          </div>
-          <div class="form-group full">
-            <label style="display:flex;align-items:center;gap:10px;cursor:pointer;font-weight:600">
-              <input type="checkbox" name="conta_como_falta" id="chk-conta-falta" style="width:16px;height:16px;accent-color:#dc2626" />
-              <span>Conta como falta no KPI?</span>
-            </label>
-            <p style="margin:4px 0 0 26px;font-size:12px;color:#64748b">Marque se esta ocorrência deve ser contabilizada no contador de Faltas do mês.</p>
-          </div>
+          <div id="ocf-campos" style="display:contents"></div>
           <div class="form-group full"><label>Descrição</label><textarea name="descricao" rows="3" style="width:100%;resize:vertical"></textarea></div>
         </div>
       </form>
@@ -427,6 +402,7 @@
 <script type="module">
 import { initPage, supabase, dataBR, toast, abrirModal, fecharModal } from './js/config.js?v=12';
 import { icon } from './js/icons.js';
+import { montarFormOc, resetFormOc, lerFormOc, gravarOcorrencia, TIPOS_FALTA } from './js/oc-form.js?v=1';
 
 await initPage();
 
@@ -871,10 +847,10 @@ document.getElementById('btn-lancar-faltas').addEventListener('click', () => {
 // ── Lançar faltas (tabela de todos os colaboradores) ──────────────────────────
 // Cada linha vira uma ocorrência do dia (Presente / Falta / Justificada), que é
 // o que aparece no calendário do colaborador, mais o registro em presenca_diaria.
-const SITUACOES = { outro:'Presente', falta:'Falta injustificada', atestado:'Justificada', ferias:'Férias', declaracao:'Declaração' };
-const SIT_COR   = { outro:'background:#dcfce7;color:#166534', falta:'background:#fee2e2;color:#991b1b', atestado:'background:#fef3c7;color:#92400e', ferias:'background:#e0f2fe;color:#075985', declaracao:'background:#ede9fe;color:#5b21b6' };
+const SITUACOES = { outro:'Presente', declaracao:'Presente c/ declaração', falta:'Falta injustificada', atestado:'Falta justificada', falta_declaracao:'Falta c/ declaração', ferias:'Férias' };
+const SIT_COR   = { outro:'background:#dcfce7;color:#166534', falta:'background:#fee2e2;color:#991b1b', atestado:'background:#fef3c7;color:#92400e', falta_declaracao:'background:#ffedd5;color:#9a3412', ferias:'background:#e0f2fe;color:#075985', declaracao:'background:#ede9fe;color:#5b21b6' };
 // Contam como falta no KPI: falta injustificada, justificada e férias
-const SIT_FALTA = ['falta','atestado','ferias'];
+const SIT_FALTA = TIPOS_FALTA;
 let faltasOriginal = {};
 
 function hojeISO() {
@@ -1107,31 +1083,18 @@ document.getElementById('btn-salvar-aval').addEventListener('click', async () =>
 });
 
 // ── Ocorrências ───────────────────────────────────────────────────────────────
+// Formulário compartilhado: situação do dia (Presente/Falta) + motivo + horas da declaração
+montarFormOc(document.getElementById('ocf-campos'));
+
 window.novaOcPara = colabId => {
   document.getElementById('modal-oc-title').textContent = 'Nova Ocorrência';
   document.getElementById('form-oc').reset();
-  document.getElementById('chk-conta-falta').checked = false;
-  document.getElementById('sel-presenca-oc').value = 'true';
+  resetFormOc();
   document.querySelector('#form-oc [name="id"]').value = '';
   document.querySelector('#form-oc [name="data"]').value = hojeISO();
   document.querySelector('#form-oc [name="colaborador_id"]').value = colabId;
   abrirModal('modal-oc');
 };
-
-// Auto-preenche presença ao mudar tipo
-document.querySelector('#form-oc [name="tipo"]').addEventListener('change', e => {
-  const tipo = e.target.value;
-  const selP = document.getElementById('sel-presenca-oc');
-  const chkF = document.getElementById('chk-conta-falta');
-  // Falta injustificada, justificada e férias contam como falta; declaração, outro e advertência não
-  if (['falta','atestado','ferias'].includes(tipo)) {
-    selP.value = 'false';
-    chkF.checked = true;
-  } else {
-    selP.value = 'true';
-    chkF.checked = false;
-  }
-});
 
 window.excluirOc = async id => {
   if (!confirm('Excluir esta ocorrência?')) return;
@@ -1144,21 +1107,19 @@ window.excluirOc = async id => {
 document.getElementById('btn-salvar-oc').addEventListener('click', async () => {
   const f = document.getElementById('form-oc');
   if (!f.checkValidity()) { f.reportValidity(); return; }
+  const oc = lerFormOc();
+  if (oc.erro) { toast(oc.erro, 'error'); return; }
   const fd = Object.fromEntries(new FormData(f));
-  const presente = document.getElementById('sel-presenca-oc').value === 'true';
-  const payload = { colaborador_id: fd.colaborador_id, tipo: fd.tipo, data: fd.data, descricao: fd.descricao||null, conta_como_falta: document.getElementById('chk-conta-falta').checked };
-  if (fd.id) {
-    const { error } = await supabase.from('ocorrencias').update(payload).eq('id', fd.id);
-    if (error) { toast('Erro: '+error.message,'error'); return; }
-    toast('Ocorrência atualizada!');
-  } else {
-    const { error } = await supabase.from('ocorrencias').insert(payload);
-    if (error) { toast('Erro: '+error.message,'error'); return; }
-    toast('Ocorrência registrada!');
+  const payload = { colaborador_id: fd.colaborador_id, tipo: oc.tipo, data: fd.data, descricao: fd.descricao||null, conta_como_falta: oc.conta_como_falta, horas: oc.horas };
+  const { error } = await gravarOcorrencia(supabase, fd.id || null, payload);
+  if (error) {
+    const msg = /tipo_check/i.test(error.message || '') ? 'Este tipo ainda não está liberado no banco. Rode o supabase-patch39.sql no Supabase.' : 'Erro: ' + error.message;
+    toast(msg, 'error'); return;
   }
+  toast(fd.id ? 'Ocorrência atualizada!' : 'Ocorrência registrada!');
   // Salva presença junto com a ocorrência
   const { error: presErr } = await supabase.from('presenca_diaria').upsert(
-    [{ colaborador_id: fd.colaborador_id, data: fd.data, presente, observacao: fd.descricao||null }],
+    [{ colaborador_id: fd.colaborador_id, data: fd.data, presente: oc.presente, observacao: fd.descricao||null }],
     { onConflict: 'colaborador_id,data' }
   );
   if (presErr) { toast('Erro ao salvar presença: ' + presErr.message, 'error'); }
