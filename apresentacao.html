@@ -188,10 +188,12 @@ const finAtual = () => ({
   ...(liqDRE ? { liq: liqDRE } : {}),
 });
 
-// Ponto de equilíbrio pelo resultado real (DRE): preenche os campos e avisa a fonte
+// Ponto de equilíbrio pelo resultado real (DRE): preenche os campos e avisa a fonte.
+// A partir de novembro/2026 a referência é só outubro/2026 (antes: média dos últimos 3 meses), igual ao Dashboard.
+const MES_REF_DRE = '2026-10';
 async function aplicarDRE(M) {
   const fonte = document.getElementById('fin-fonte');
-  const dre = await equilibrioDoDRE(supabase, M).catch(() => null);
+  const dre = await (M > MES_REF_DRE ? equilibrioDoDRE(supabase, MES_REF_DRE, 1) : equilibrioDoDRE(supabase, M)).catch(() => null);
   if (!dre) { liqDRE = undefined; fonte.textContent = 'Sem dados no DRE para este mês: usando os valores digitados abaixo.'; return; }
   [['pe', 'f-pe', dre.pe], ['fixos', 'f-fixos', dre.fixos]].forEach(([k, id, v]) => {
     document.getElementById(id).value = String(Math.round(v / 100) * 100);
