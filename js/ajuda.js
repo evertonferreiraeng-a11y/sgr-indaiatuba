@@ -12,7 +12,7 @@ export const AJUDA = {
     quando: 'Todo dia, para saber se o mês está no ritmo e o que precisa ser cobrado, e antes de gerar a apresentação do comitê.',
     passos: [
       'Confira os <b>4 selos</b> no topo. A marquinha preta na barra é o esperado até hoje. Clique num selo para ir direto ao assunto.',
-      '<b>1. Vamos bater a meta?</b> Veja quanto falta e quanto é preciso faturar <b>por dia útil</b> contra o ritmo atual. Na tabela, cada material contra a média dele: o que está abaixo e o que tem em estoque é onde buscar o que falta.',
+      '<b>1. Vamos bater a meta?</b> Veja quanto falta e quanto é preciso faturar <b>por dia útil</b> contra o ritmo atual. Nas barras, cada material contra o que ele vendeu em <b>outubro</b> (mês de referência): o que está abaixo e o que tem em estoque é onde buscar o que falta.',
       '<b>2. A operação está entregando?</b> Prensas contra o previsto, quantas toneladas por dia faltam para usar a capacidade, a equipe, cada prensa, o faturamento por semana, o volume por tipo e os equipamentos com problema.',
       '<b>3. Estamos dando lucro?</b> A régua mostra a projeção do mês contra o ponto de equilíbrio (calculado pelo DRE), a meta e a margem-alvo.',
       '<b>4. O que estamos fazendo?</b> As ações do comitê em aberto, com as atrasadas primeiro.',

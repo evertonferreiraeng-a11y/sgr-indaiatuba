@@ -454,7 +454,12 @@ function render(d, tarefas, fin, materiaisEst = []) {
   const porMat = r => { const o = {}; GRUPOS_K.forEach(g => Object.entries(r.g[g].mat).forEach(([n, v]) => {
     const m = (o[n] = o[n] || { fat:0, vol:0, g, gFat:0 }); m.fat += v.fat; m.vol += v.vol; if (v.fat > m.gFat) { m.g = g; m.gFat = v.fat; } })); return o; };
   const curMat = porMat(c);
-  const mesesBase = d.mesesAno.map((mk, i) => ({ mk, r:d.fatMes[i] })).filter(x => x.mk < d.M);
+  // Referência dos materiais: outubro/2026 (mês escolhido como meta de volume e valor).
+  // Para meses até outubro, continua a média dos meses anteriores do ano.
+  const MES_REF_MAT = '2026-10';
+  const mesesAnt = d.mesesAno.map((mk, i) => ({ mk, r:d.fatMes[i] })).filter(x => x.mk < d.M);
+  const refFixo = mesesAnt.some(x => x.mk === MES_REF_MAT);
+  const mesesBase = refFixo ? mesesAnt.filter(x => x.mk === MES_REF_MAT) : mesesAnt;
   const nBase = mesesBase.length;
   const somaBase = {};
   mesesBase.forEach(x => Object.entries(porMat(x.r)).forEach(([n, v]) => { const b = (somaBase[n] = somaBase[n] || { fat:0, vol:0, g:v.g }); b.fat += v.fat; b.vol += v.vol; }));
@@ -476,6 +481,8 @@ function render(d, tarefas, fin, materiaisEst = []) {
   const T = mats.reduce((t, m) => { ['fat','vol','media','mediaVol','ref','refVol','falta','faltaVol','estKg','estVal'].forEach(k => t[k] += m[k] || 0); return t; },
     { fat:0, vol:0, media:0, mediaVol:0, ref:0, refVol:0, falta:0, faltaVol:0, estKg:0, estVal:0 });
   const rotBase = nBase ? `${MES_AB[+mesesBase[0].mk.slice(5) - 1].toLowerCase()}${nBase > 1 ? `–${MES_AB[+mesesBase[nBase - 1].mk.slice(5) - 1].toLowerCase()}` : ''}` : '';
+  const nomeRef = refFixo ? 'outubro' : 'média do mês';
+  const rotRef = refFixo ? nomeRef : `média do mês${rotBase ? ` (${rotBase})` : ''}`;
   const nomeG = { prensado:'prensado', granel:'a granel', sucata:'sucata', outros:'outros' };
   const corG = { prensado:COR.verde, granel:COR.s4, sucata:COR.cinza, outros:COR.s1 };
   const vt = (r, kg) => `<b>${mil(r)}</b><br><span class="sub" style="font-size:11px">${tn(kg, 1)}</span>`;
@@ -504,8 +511,8 @@ function render(d, tarefas, fin, materiaisEst = []) {
     return `<div class="tip-t">${esc(nome)}</div>`
       + lin(d.emAndamento ? `Vendido até ${ddmm(d.corte)}` : `Vendido em ${mes}`, `${mil(m.fat)} · ${tn(m.vol, 1)}`)
       + (d.emAndamento && m.ref != null ? lin('Esperado até hoje', `${mil(m.ref)} · ${tn(m.refVol, 1)}`) : '')
-      + (m.media != null ? lin('Média mensal', `${mil(m.media)} · ${tn(m.mediaVol, 1)}`) : '')
-      + (m.falta != null ? lin('Falta p/ média', m.falta > 0 ? `${mil(m.falta)} · ${tn(m.faltaVol, 1)}` : '✓ atingida') : '')
+      + (m.media != null ? lin(refFixo ? 'Vendido em outubro' : 'Média mensal', `${mil(m.media)} · ${tn(m.mediaVol, 1)}`) : '')
+      + (m.falta != null ? lin(refFixo ? 'Falta p/ outubro' : 'Falta p/ média', m.falta > 0 ? `${mil(m.falta)} · ${tn(m.faltaVol, 1)}` : '✓ atingida') : '')
       + (d.emAndamento && m.estKg ? lin('Em estoque', `${tn(m.estKg, 1)} · ${mil(m.estVal)}`) : '')
       + lin(d.emAndamento ? 'Ritmo' : 'Variação', m.varp == null ? 'novo' : Math.abs(m.varp) < 5 ? 'no ritmo' : `<span class="${m.varp > 0 ? 'up' : 'down'}">${seta(m.varp)} ${nf(Math.abs(m.varp), 0)}%</span>`);
   };
@@ -528,12 +535,12 @@ function render(d, tarefas, fin, materiaisEst = []) {
     </div>
     <div class="mb-leg">
       <span><i class="b"></i>vendido ${d.emAndamento ? 'até hoje' : 'no mês'}</span>
-      <span><i class="m"></i>média do mês${rotBase ? ` (${rotBase})` : ''}</span>
+      <span><i class="m"></i>${refFixo ? 'vendido em outubro (referência)' : rotRef}</span>
       ${d.emAndamento ? '<span><i class="e"></i>esperado até hoje</span>' : ''}
-      <span>▲ ▼ ritmo contra ${d.emAndamento ? 'o esperado' : 'a média'}</span>
+      <span>▲ ▼ ritmo contra ${d.emAndamento ? 'o esperado' : refFixo ? 'outubro' : 'a média'}</span>
       <span class="dica">Passe o mouse numa barra para ver os valores</span>
     </div>
-    ${naoV.length ? `<p class="sub" style="margin-top:10px;font-size:12.5px"><b>${naoV.length} ${naoV.length > 1 ? 'materiais vendidos no ano ainda não saíram' : 'material vendido no ano ainda não saiu'} neste mês</b> (média de ${mil(naoVMedia)}/mês): ${naoV.slice(0, 6).map(m => esc(nomeMat(m.n))).join(', ')}${naoV.length > 6 ? ` e mais ${naoV.length - 6}` : ''}.</p>` : ''}`;
+    ${naoV.length ? `<p class="sub" style="margin-top:10px;font-size:12.5px"><b>${naoV.length} ${naoV.length > 1 ? `materiais vendidos ${refFixo ? 'em outubro' : 'no ano'} ainda não saíram` : `material vendido ${refFixo ? 'em outubro' : 'no ano'} ainda não saiu`} neste mês</b> (${refFixo ? `${mil(naoVMedia)} em outubro` : `média de ${mil(naoVMedia)}/mês`}): ${naoV.slice(0, 6).map(m => esc(nomeMat(m.n))).join(', ')}${naoV.length > 6 ? ` e mais ${naoV.length - 6}` : ''}.</p>` : ''}`;
 
   /* ── Prensagem ── */
   const atEsp = d.esperado > 0 ? d.prod / d.esperado * 100 : null;
@@ -757,7 +764,7 @@ function render(d, tarefas, fin, materiaisEst = []) {
         <div><div class="chart-wrap" style="height:240px"><canvas id="c-fat"></canvas></div></div>
         <div class="db-cards">${cardsMeta.map(cardHTML).join('')}</div>
       </div>
-      <div class="db-mini-t" style="margin-top:18px">De onde vem o faturamento: cada material × a média dele${rotBase ? ` (${rotBase})` : ''}</div>
+      <div class="db-mini-t" style="margin-top:18px">De onde vem o faturamento: ${refFixo ? 'cada material × outubro (referência)' : `cada material × a média dele${rotBase ? ` (${rotBase})` : ''}`}</div>
       ${matsHTML}
     </section>
 
