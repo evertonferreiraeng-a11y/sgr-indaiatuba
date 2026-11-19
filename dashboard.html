@@ -492,17 +492,17 @@ const COR = { verde:'#006636', verdeCl:'#8fbfa3', s1:'#2a78d6', s2:'#eb6834', s3
 let charts = {};
 // Mês ou Ano (total do ano até o mês escolhido)
 let modoAno = lsGet('sgr_db_modo') === 'ano';
-let gestaoOp = [], planoFat = null, abrirPainel = null;   // análise da gestão (preenchida no render) e abridor da janela de detalhes
+let gestaoOp = [], planoFat = null, abrirPainel = null, fatFuturo = null;   // fatFuturo: vendas lançadas com data depois do corte (não entram no faturado)
 
 // Frases da apresentação: **x** = verde (bom), *x* = vermelho (atenção)
 const fraseHTML = s => esc(s).replace(/\*\*([^*]+)\*\*/g, '<span class="ok">$1</span>').replace(/\*([^*]+)\*/g, '<span class="ruim">$1</span>');
 
-// "Dados até": mesma regra da apresentação — ontem (mês em andamento) ou fim do mês (mês fechado)
+// "Dados até": hoje (mês em andamento, inclui as vendas lançadas hoje) ou fim do mês (mês fechado). A apresentação segue com o próprio "Dados até".
 function corteDe(ym) {
   const ini = `${ym}-01`, fim = fimDoMes(ym);
   if (fim < hoje) return fim;
-  const ontem = addDias(hoje, -1);
-  return ontem < ini ? ini : ontem;
+  // mês em andamento: conta as vendas até hoje (inclusive), igual à tela Comercial
+  return hoje < ini ? ini : hoje;
 }
 
 async function fetchAll(table, fields, filters = []) {
@@ -555,6 +555,8 @@ async function carregar() {
     // Chamada do mês até hoje (tela RH): Presente / Falta / Justificada; sem lançamento = presente.
     // Hoje vai para o painel; o resto do mês serve para contar faltas repetidas.
     const ocMes = await fetchOpcional('ocorrencias', 'colaborador_id, tipo, descricao, data', [['gte','data',`${hoje.slice(0, 7)}-01`], ['lte','data',hoje]]).catch(() => []);
+    // Vendas lançadas com data futura (depois de hoje) no mês: avisadas no card, não somam no faturado
+    fatFuturo = corte < fimDoMes(M) ? await fetchAll('vendas', 'valor_total', [['gt','data',corte], ['lte','data',fimDoMes(M)]]).then(r => r.length ? { n:r.length, v:r.reduce((s, x) => s + parseFloat(x.valor_total || 0), 0) } : null).catch(() => null) : null;
     const d = calcularDados({ vendas, metas, producao, equipamentos, materiais, colaboradores, cargos, snapshots }, M, corte, hoje);
     const est = finAtual(M);
     const fin = dre ? { pe:dre.pe, fixos:dre.fixos, liq:dre.liq, alvo:est.alvo, acerto:est.acerto, dre } : est;
@@ -741,7 +743,7 @@ function render(d, tarefas, fin, materiaisEst = []) {
   const inds = [
     { alvo:'fat', rot:'Faturamento', st:noRitmo(atFatEst != null ? atFatEst / espAqui : null),
       cap:'Faturado no mês', val: mil(c.fat), solido: comEst && d.meta ? atFat : null, ext: comEst ? `+ ${mil(d.valorEstoque)} em estoque` : '',
-      sub: d.meta ? `meta de ${mil(d.meta)}` : 'sem meta cadastrada',
+      sub: (d.meta ? `meta de ${mil(d.meta)}` : 'sem meta cadastrada') + (fatFuturo ? ` · <span title="Vendas lançadas com data depois de hoje: entram quando chegar a data">${mil(fatFuturo.v)} com data futura (${fatFuturo.n})</span>` : ''),
       espVal: d.meta && d.emAndamento ? mil(d.meta * espAqui) : "",
       barra: d.meta ? [ (comEst ? atFatEst : atFat), d.emAndamento ? espAqui * 100 : null ] : null, barRot: comEst ? 'da meta, com o estoque' : 'da meta',
       mot: d.meta ? (d.emAndamento ? `faltam <b>${mil(Math.max(0, d.meta * espAqui - fatEst))}</b> para o esperado até ${ddmm(d.corte)}` : `faltaram <b>${mil(Math.max(0, d.meta - c.fat))}</b> para a meta`) : '' },
