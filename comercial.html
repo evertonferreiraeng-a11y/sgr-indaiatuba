@@ -453,15 +453,7 @@
             </select>
           </div>
           <div class="form-group"><label id="lbl-qtd">Quantidade (t) *</label><input type="number" name="peso_kg" min="0.001" step="any" required placeholder="ex: 5,98" /></div>
-          <div class="form-group"><label>Unidade</label>
-            <input type="text" name="unidade" list="dl-unidades" placeholder="toneladas — preencha só se for UN, SC…" />
-            <datalist id="dl-unidades">
-              <option value="UN"></option>
-              <option value="SC"></option>
-              <option value="M³"></option>
-              <option value="L"></option>
-            </datalist>
-          </div>
+          <input type="hidden" name="unidade" /><!-- vendas novas: sempre toneladas; guarda a unidade de vendas antigas (UN…) ao editar -->
           <div class="form-group"><label id="lbl-preco">Preço (R$/t)</label><input type="number" name="preco_kg" min="0" step="any" /><div class="vd-preco-ref" id="preco-ref"></div></div>
           <div class="form-group"><label>Desconto (R$)</label><input type="number" name="desconto" min="0" step="0.01" value="0" /></div>
           <div class="form-group"><label>Valor Total NF (R$)</label><input type="number" name="valor_total" min="0" step="0.01" /></div>
@@ -583,16 +575,6 @@ function atualizarRotulosVenda() {
   document.getElementById('lbl-preco').textContent = `Preço (R$/${un})`;
   atualizarPrecoRef();
 }
-document.querySelector('#form-venda [name="unidade"]').addEventListener('input', atualizarRotulosVenda);
-
-// preenche a Unidade automaticamente com a unidade de medida cadastrada no material (se o campo estiver vazio)
-document.querySelector('#form-venda [name="material_id"]').addEventListener('change', e => {
-  const unidadeInput = document.querySelector('#form-venda [name="unidade"]');
-  if (unidadeInput.value && unidadeInput.dataset.auto !== '1') return;
-  const mat = matData.find(m => m.id === e.target.value);
-  if (mat && mat.unidade_medida) { unidadeInput.value = normUnidade(mat.unidade_medida) || ''; atualizarRotulosVenda(); }
-});
-document.querySelector('#form-venda [name="unidade"]').addEventListener('input', e => { e.target.dataset.auto = ''; });
 
 // valores do banco (kg, R$/kg) → valores do formulário (t, R$/t)
 const qtdParaForm   = r => r.peso_kg == null ? '' : (ehUnidadePeso(r.unidade) ? arred(r.peso_kg / 1000, 3) : r.peso_kg);
@@ -833,10 +815,9 @@ function abrirNovaVenda(base = {}) {
   campoVenda('id').value = '';
   montarSelectClienteVenda(false, base.campos?.cliente_id || '');
   campoVenda('data').value = hojeLocal();
-  campoVenda('unidade').value = '';              // padrão: venda em toneladas (campo em branco)
-  campoVenda('unidade').dataset.auto = '1';      // pode ser trocada pela unidade do material
+  campoVenda('unidade').value = '';              // padrão: venda em toneladas
+  campoVenda('codigo_material').value = '';      // campo oculto: reset() não limpa input hidden
   Object.entries(base.campos || {}).forEach(([n, v]) => { if (campoVenda(n)) campoVenda(n).value = v ?? ''; });
-  if (base.campos?.unidade) campoVenda('unidade').dataset.auto = '';
   document.getElementById('btn-salvar-outra-venda').style.display = '';
   precoRef = null; precoAuto = false;
   atualizarRotulosVenda();
@@ -853,7 +834,8 @@ window.repetirVenda = id => {
     titulo: 'Nova Venda (repetindo pedido)',
     campos: {
       cliente_id: r.cliente_id, material_id: r.material_id, acondicionamento: r.acondicionamento,
-      codigo_material: r.codigo_material, unidade: normUnidade(r.unidade) || '', preco_kg: precoParaForm(r), desconto: 0,
+      // venda nova é sempre em toneladas; de uma venda antiga em outra unidade (UN…) não traz o preço
+      codigo_material: r.codigo_material, unidade: '', preco_kg: ehUnidadePeso(r.unidade) ? precoParaForm(r) : '', desconto: 0,
     },
     foco: 'peso_kg',
   });
