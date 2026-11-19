@@ -137,7 +137,14 @@
     .mb-row { display:grid; grid-template-columns:200px 1fr 26px; gap:14px; align-items:center; padding:7px 8px; border-radius:8px; cursor:default; outline:none; }
     .mb-row:hover, .mb-row:focus { background:#f8fafc; }
     .mb-row.tot { border-top:1px solid var(--border); margin-top:6px; padding-top:12px; border-radius:0 0 8px 8px; }
-    .mb-nome b { display:block; font-size:13px; } .mb-nome span { font-size:11px; color:var(--text-muted); }
+    .mb-nome > b { display:block; font-size:13px; } .mb-nome span { font-size:11px; color:var(--text-muted); } .mb-nome .mb-t { color:var(--text); font-weight:700; }
+    .ton-meses { display:grid; gap:4px; margin:6px 0 0 50px; text-align:center; font-size:11px; color:var(--text-muted); }
+    .ton-meses b { display:block; font-size:12.5px; color:var(--text); }
+    .ton-meses .cur b { color:var(--primary); }
+    .ton-meses .rot { grid-column:1 / -1; text-align:left; font-weight:800; letter-spacing:.05em; text-transform:uppercase; font-size:10.5px; margin-left:-50px; }
+    .mt-ton { margin-top:12px; padding-top:10px; border-top:2px dashed #cfe3d6; }
+    .mt-ton-hd { font-size:11px; font-weight:800; letter-spacing:.05em; text-transform:uppercase; color:var(--text-muted); margin-bottom:2px; }
+    .mt-ton .mt-ln b { font-size:14px; }
     .mb-barra { position:relative; height:16px; background:#eef2f6; border-radius:8px; }
     .mb-barra > i { position:absolute; left:0; top:0; bottom:0; border-radius:8px; }
     .mb-barra .mk { position:absolute; top:-4px; width:3px; height:24px; border-radius:2px; transform:translateX(-1px); }
@@ -835,7 +842,7 @@ function render(d, tarefas, fin, materiaisEst = []) {
   const barraMat = (m, nome, sub, cor, mx, cls = '') => {
     const st = m.varp == null ? '' : Math.abs(m.varp) < 5 ? '' : m.varp > 0 ? 'up' : 'down';
     return `<div class="mb-row ${cls}" data-tip="${esc(tipMat(m, nome))}" tabindex="0">
-      <div class="mb-nome"><b>${esc(nome)}</b><span>${sub}</span></div>
+      <div class="mb-nome"><b>${esc(nome)}</b><span>${sub} · <b class="mb-t">${tn(m.vol, 1)}</b>${m.mediaVol != null ? ` de ${tn(m.mediaVol, 1)}` : ''}</span></div>
       <div class="mb-barra"><i style="width:${Math.min(100, m.fat / mx * 100)}%;background:${cor}"></i>
         ${m.media != null ? `<span class="mk med" style="left:${Math.min(100, m.media / mx * 100)}%"></span>` : ''}
         ${d.emAndamento && m.ref != null ? `<span class="mk esp" style="left:${Math.min(100, m.ref / mx * 100)}%"></span>` : ''}
@@ -950,8 +957,18 @@ function render(d, tarefas, fin, materiaisEst = []) {
         ${batida ? `<div class="mt-ln tot"><span>A meta está ${c.fat >= d.meta ? 'batida' : 'garantida com o estoque'}</span></div>`
           : linha('', estM ? 'Falta (somando faturado + estoque)' : 'Falta para a meta', faltaMeta, 'tot')}
       </div>`;
+    // Toneladas: vendido, estoque e quanto falta vender no ticket médio atual para fechar a meta
+    const ticketT = c.vol > 0 ? c.fat / (c.vol / 1000) : (d.antCheio.vol > 0 ? d.antCheio.fat / (d.antCheio.vol / 1000) : null);
+    const tFaltaKg = !batida && ticketT ? faltaMeta / ticketT * 1000 : 0;
+    const lnT = (cls, rot, txt, extra = '') => `<div class="mt-ln ${extra}"><span>${cls != null ? `<i class="${cls}"></i>` : ''}${rot}</span><b>${txt}</b><em></em></div>`;
+    const tonHTML = `<div class="mt-ton"><div class="mt-ton-hd">Em toneladas</div>
+        ${lnT('f', `Vendido até ${ddmm(d.corte)}${ticketT && c.vol > 0 ? ` <small style="color:var(--text-muted)">· ${reais0(ticketT)}/t</small>` : ''}`, tn(c.vol, 1))}
+        ${d.estoqueKg > 0 ? lnT('e', 'Em estoque (pronto para vender)', tn(d.estoqueKg, 1)) : ''}
+        ${tFaltaKg > 0 ? lnT('', `Falta vender${ticketT ? ` <small style="color:var(--text-muted)">(no ticket de ${reais0(ticketT)}/t)</small>` : ''}`, `~${tn(tFaltaKg, 0)}`, 'tot') : ''}
+        ${d.antCheio.vol > 0 ? lnT(null, `${cap(nomeMes(d.Mant))} inteiro`, tn(d.antCheio.vol, 1)) : ''}
+      </div>`;
     cardsMeta = [
-      { rot:'Meta do mês', val:mil(d.meta), dest:true, selo: batida ? 'ritmo' : noRitmo(pG / espAqui), extra: barraMeta + linhas },
+      { rot:'Meta do mês', val:mil(d.meta), dest:true, selo: batida ? 'ritmo' : noRitmo(pG / espAqui), extra: barraMeta + linhas + tonHTML },
     ];
   }
 
@@ -1081,7 +1098,8 @@ function render(d, tarefas, fin, materiaisEst = []) {
         <section class="db-sec" id="b-meta">
           <div class="db-sec-hd"><h2 class="db-q">Vamos bater a meta do mês?</h2></div>
           <div class="db-corpo" style="margin-top:14px">
-            <div><div class="chart-wrap" style="height:260px"><canvas id="c-fat"></canvas></div></div>
+            <div><div class="chart-wrap" style="height:260px"><canvas id="c-fat"></canvas></div>
+              <div class="ton-meses" style="grid-template-columns:repeat(${d.mesesAno.length}, 1fr)"><span class="rot">Toneladas vendidas</span>${d.mesesAno.map((mk, i) => `<span class="${mk === d.M ? 'cur' : ''}"><b>${nf((d.fatMes[i].vol || 0) / 1000, 1)}</b>${MES_AB[+mk.slice(5) - 1].toLowerCase()}</span>`).join('')}</div></div>
             <div class="db-cards">${cardsMeta.map(cardHTML).join('')}</div>
           </div>
           <div class="db-mini-t" style="margin-top:18px">De onde vem o faturamento: ${refFixo ? 'cada material × outubro (referência)' : `cada material × a média dele${rotBase ? ` (${rotBase})` : ''}`}</div>
@@ -1160,6 +1178,11 @@ function graficos(d, eq) {
     ...(temEst ? [{ label:'Estoque pronto', data:d.mesesAno.map(mk => mk === d.M ? d.valorEstoque : null), backgroundColor:'#86c5a0', stack:'f', ...bar, borderSkipped:false }] : []),
     { label:'Meta', data:d.mesesAno.map(mk => (d.metaMes[mk] ?? d.meta) || null), borderColor:COR.s2, backgroundColor:COR.s2, stack:'meta', ...linha },
   ] }, options:optFat });
+  // Dica do gráfico também mostra as toneladas
+  charts.fat.options.plugins.tooltip.callbacks.afterLabel = x =>
+    x.dataset.label === 'Faturamento' ? `  ${tn(d.fatMes[x.dataIndex].vol || 0, 1)} vendidas`
+    : x.dataset.label === 'Estoque pronto' ? `  ${tn(d.estoqueKg || 0, 1)} em estoque` : '';
+  charts.fat.update('none');
 
   charts.prensa = new Chart(document.getElementById('c-prensa'), { type:'bar', data:{ labels, datasets:[
     { label:'Produção das prensas', data:d.prodMesAno.map(v => v / 1000), backgroundColor:d.mesesAno.map(mk => parcial(mk) ? COR.verdeCl : COR.verde), ...bar },
