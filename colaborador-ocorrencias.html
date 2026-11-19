@@ -397,7 +397,6 @@ function montarLayout() {
       ${isAdm ? `<button class="btn btn-primary" id="btn-nova-oc">+ Ocorrência</button>` : ''}
     </div>
 
-    <div class="co-kpis" id="co-kpis"></div>
 
     <div class="co-filters">
       <div class="form-group"><label>De</label><input type="date" id="f-ini" /></div>
@@ -687,27 +686,11 @@ function ocFiltradas(doHistorico = false) {
 function renderKPIs() {
   const lista = ocFiltradas();
   const count = tipo => lista.filter(o => o.tipo === tipo).length;
-  const tipoSel = '';
-  const kpis = [
-    { t:'falta',       val: count('falta'),       lbl: 'Falta injustificada', cor:'#dc2626', bg:'#fee2e2', ic:'x-circle' },
-    { t:'atestado',    val: count('atestado'),    lbl: 'Justificada',         cor:'#d97706', bg:'#fef3c7', ic:'file' },
-    { t:'outro',       val: count('outro'),       lbl: 'Presente',            cor:'#16a34a', bg:'#dcfce7', ic:'check' },
-    { t:'advertencia', val: count('advertencia'), lbl: 'Advertência',         cor:'#e11d48', bg:'#ffe4e6', ic:'alert-triangle' },
-    { t:'elogio',      val: count('elogio'),      lbl: 'Outro',               cor:'#64748b', bg:'#f1f5f9', ic:'list' },
-  ];
-  // Clicar num contador abre o histórico já filtrado por aquele tipo
-  document.getElementById('co-kpis').innerHTML = kpis.map(k =>
-    `<button type="button" class="co-kpi ${tipoSel === k.t ? 'on' : ''}" style="--c:${k.cor};--bg:${k.bg}" onclick="window._filtrarTipo('${k.t}')" title="Ver as ocorrências de ${k.lbl.toLowerCase()} no histórico">
-      <span class="co-kpi-ic">${icon(k.ic,{size:18})}</span>
-      <span><div class="val">${k.val}</div><div class="lbl">${k.lbl}</div></span>
-    </button>`
-  ).join('');
   // Presença no período: presentes sobre os dias com registro de presença/falta
   const base = count('outro') + count('falta') + count('atestado');
   const el = document.getElementById('co-pres');
   if (el) el.innerHTML = base ? `${Math.round(count('outro') / base * 100)}<small>%</small>` : '—';
 }
-window._filtrarTipo = t => abrirHistorico(t);
 
 function renderHistorico() {
   const lista = ocFiltradas(true);
