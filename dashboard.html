@@ -1337,14 +1337,12 @@ function render(d, tarefas, fin, materiaisEst = []) {
       </div>
     </div>
 
-    <section class="gs-box" id="db-gestao"><div class="pp-vazio">Montando a análise…</div></section>
 
     <div class="db-modal" id="db-modal" hidden>
       <div class="db-modal-fundo" data-fechar></div>
       <div class="db-modal-caixa" role="dialog" aria-modal="true">
         <button type="button" class="db-modal-x" data-fechar title="Fechar (Esc)">×</button>
 
-        ${painel('gestao', 'Análise da gestão da operação', '', '<div id="gs-full"></div>')}
 
         ${painel('fat', 'Faturamento', '<a href="comercial.html">Ver vendas →</a>', `
         <section class="db-sec" id="b-meta">
