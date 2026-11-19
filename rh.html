@@ -68,8 +68,33 @@
 
     .nota-input { width:60px; border:1px solid #e2e8f0; border-radius:6px; padding:4px 6px; font-size:14px; text-align:center; }
 
-    .kpi-turnover { background:linear-gradient(135deg,#ef4444,#dc2626); color:#fff; }
-    .kpi-turnover .kpi-label, .kpi-turnover .kpi-sub { color:#fca5a5; }
+    .main-content { overflow-x:clip; }
+    .kpi-cmp { display:inline-flex; align-items:center; gap:4px; font-size:12px; font-weight:700; padding:2px 8px; border-radius:999px; margin-top:6px; }
+    .kpi-cmp.up { background:#fee2e2; color:#991b1b; } .kpi-cmp.down { background:#dcfce7; color:#166534; } .kpi-cmp.eq { background:#f1f5f9; color:#475569; }
+    .tv-barras { display:flex; align-items:flex-end; gap:3px; height:38px; margin-top:8px; }
+    .tv-barras div { flex:1; display:flex; flex-direction:column; align-items:center; justify-content:flex-end; height:100%; gap:2px; }
+    .tv-barras i { display:block; width:100%; border-radius:3px 3px 0 0; background:#f87171; min-height:2px; }
+    .tv-barras i.vz { background:#e2e8f0; } .tv-barras i.fut { background:#f8fafc; }
+    .tv-barras span { font-size:9px; color:#94a3b8; line-height:1; }
+
+    /* Precisa de atenção */
+    .at-box { background:#fff; border:1px solid #e2e8f0; border-radius:12px; padding:14px 16px; margin-bottom:16px; }
+    .at-hd { display:flex; align-items:center; gap:10px; margin-bottom:10px; flex-wrap:wrap; }
+    .at-hd h3 { font-size:14px; font-weight:800; margin:0; color:#0f172a; }
+    .at-hd .at-n { font-size:12px; font-weight:800; color:#fff; background:#dc2626; border-radius:999px; padding:1px 9px; }
+    .at-hd .at-leg { margin-left:auto; font-size:12px; color:#64748b; }
+    .at-lista { display:grid; grid-template-columns:repeat(auto-fill, minmax(330px, 1fr)); gap:8px; }
+    .at-item { display:flex; align-items:center; gap:10px; padding:9px 12px; border-radius:10px; border:1px solid transparent; border-left:4px solid #94a3b8; background:#f8fafc; cursor:pointer; text-align:left; font:inherit; color:inherit; width:100%; }
+    .at-item:hover { box-shadow:0 2px 8px rgba(0,0,0,.08); }
+    .at-item.urg { border-left-color:#dc2626; background:#fef2f2; } .at-item.med { border-left-color:#d97706; background:#fffbeb; } .at-item.inf { border-left-color:#2563eb; background:#eff6ff; }
+    .at-av { flex:none; width:32px; height:32px; border-radius:50%; display:grid; place-items:center; font-size:12px; font-weight:800; color:#fff; background:#64748b; }
+    .at-item.urg .at-av { background:#dc2626; } .at-item.med .at-av { background:#d97706; } .at-item.inf .at-av { background:#2563eb; }
+    .at-tx { min-width:0; flex:1; display:flex; flex-direction:column; }
+    .at-tx b { font-size:13.5px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+    .at-tx span { font-size:12px; color:#475569; }
+    .at-acao { flex:none; font-size:12px; font-weight:700; color:#006636; white-space:nowrap; }
+    .at-vazio { font-size:13px; color:#16a34a; font-weight:600; }
+    .at-mais { margin-top:8px; font-size:12.5px; font-weight:700; color:#006636; background:none; border:none; cursor:pointer; padding:2px 0; }
   </style>
 </head>
 <body>
@@ -102,16 +127,19 @@
         </div>
         <div class="kpi-card"><div class="kpi-label">Em Experiência</div><div class="kpi-value" id="kpi-exp">—</div><div class="kpi-sub">1º ou 2º período</div></div>
         <div class="kpi-card"><div class="kpi-label">Nota Média Geral</div><div class="kpi-value" id="kpi-nota-media">—</div><div class="kpi-sub">ativos + experiência</div></div>
-        <div class="kpi-card"><div class="kpi-label">Faltas (mês)</div><div class="kpi-value" id="kpi-faltas">—</div><div class="kpi-sub">marcadas como falta</div></div>
-        <div class="kpi-card kpi-turnover" style="padding:14px 16px">
+        <div class="kpi-card"><div class="kpi-label">Faltas (mês)</div><div class="kpi-value" id="kpi-faltas">—</div><div class="kpi-sub" id="kpi-faltas-sub">marcadas como falta</div><div id="kpi-faltas-cmp"></div></div>
+        <div class="kpi-card" style="padding:14px 16px">
           <div class="kpi-label">Turnover</div>
-          <div style="display:flex;align-items:baseline;gap:8px;margin:2px 0 8px">
+          <div style="display:flex;align-items:baseline;gap:8px;margin:2px 0 0">
             <div class="kpi-value" id="kpi-turnover" style="font-size:26px">—</div>
             <span class="kpi-sub" id="kpi-turnover-sub" style="font-size:11px">anual</span>
           </div>
-          <div id="kpi-turnover-meses" style="display:flex;flex-wrap:wrap;gap:6px"></div>
+          <div id="kpi-turnover-meses" class="tv-barras"></div>
         </div>
       </div>
+
+      <!-- Precisa de atenção -->
+      <div id="rh-atencao"></div>
 
       <!-- Filtros -->
       <div class="filters-row mb-16" style="background:#fff;border:1px solid #e2e8f0;border-radius:8px;padding:12px 16px">
@@ -429,6 +457,7 @@ async function recarregarTudo() {
     if (elCargo) elCargo.innerHTML = '<option value="">Selecione…</option>' + cargoOpts;
 
     renderKPIs();
+    renderAtencao();
     renderColaboradores();
 
   } catch(e) {
@@ -461,16 +490,26 @@ function renderKPIs() {
       porMes[mm] = (porMes[mm] || 0) + 1;
     }
   });
-  const mesesComSaida = Object.keys(porMes).map(Number).sort((a, b) => a - b);
-  const listaMesesHtml = mesesComSaida.length
-    ? mesesComSaida.map(mm => {
-        const count = porMes[mm];
-        const hcMes = ativos.length + count;
-        const pct   = hcMes ? ((count / hcMes) * 100).toFixed(1) : '0';
-        return `<span style="background:rgba(255,255,255,.16);border-radius:6px;padding:4px 9px;font-size:11px;font-weight:600;white-space:nowrap">`
-          + `${MES_ABREV[mm - 1]}/${String(anoAtualVal).slice(2)} · ${count} · ${pct}%</span>`;
-      }).join('')
-    : '<span style="font-size:12px;font-weight:600;opacity:.85">Nenhuma saída no ano</span>';
+  // Saídas por mês do ano em mini barras (passe o mouse para ver o número)
+  const maxSaida = Math.max(1, ...Object.values(porMes));
+  const listaMesesHtml = MES_ABREV.map((nm, i) => {
+    const mm = i + 1, n = porMes[mm] || 0, fut = mm > mesAtualVal;
+    const h = fut || !n ? 2 : Math.max(6, n / maxSaida * 26);
+    return `<div title="${nm}/${String(anoAtualVal).slice(2)}: ${fut ? '—' : `${n} saída${n === 1 ? '' : 's'}`}"><i class="${fut ? 'fut' : n ? '' : 'vz'}" style="height:${h}px"></i><span>${nm[0]}</span></div>`;
+  }).join('');
+
+  // Faltas: comparação com o mesmo período do mês anterior (dia 1 até o mesmo dia)
+  const hojeL = hojeISO(), diaHoje = +hojeL.slice(8, 10);
+  const dAnt = new Date(anoAtualVal, mesAtualVal - 2, 1);
+  const ymAnt = `${dAnt.getFullYear()}-${String(dAnt.getMonth() + 1).padStart(2, '0')}`;
+  const ultAnt = new Date(dAnt.getFullYear(), dAnt.getMonth() + 1, 0).getDate();
+  const fimAntCmp = `${ymAnt}-${String(Math.min(diaHoje, ultAnt)).padStart(2, '0')}`;
+  const faltasMes = ocMes.filter(r => r.conta_como_falta);
+  const faltasAnt = ocData.filter(r => r.conta_como_falta && r.data >= `${ymAnt}-01` && r.data <= fimAntCmp).length;
+  const pessoasFalta = new Set(faltasMes.map(r => r.colaborador_id)).size;
+  const dif = faltasMes.length - faltasAnt;
+  document.getElementById('kpi-faltas-sub').textContent = faltasMes.length ? `em ${pessoasFalta} pessoa${pessoasFalta === 1 ? '' : 's'}` : 'nenhuma falta no mês';
+  document.getElementById('kpi-faltas-cmp').innerHTML = `<span class="kpi-cmp ${dif > 0 ? 'up' : dif < 0 ? 'down' : 'eq'}" title="${MES_ABREV[dAnt.getMonth()]} de 1 a ${Math.min(diaHoje, ultAnt)}: ${faltasAnt} falta${faltasAnt === 1 ? '' : 's'}">${dif > 0 ? '▲' : dif < 0 ? '▼' : '='} ${dif === 0 ? 'igual a' : `${Math.abs(dif)} vs`} ${MES_ABREV[dAnt.getMonth()].toLowerCase()}</span>`;
 
   const emFerias = ativos.filter(c => c.em_ferias);
   const ativosTrabalho = ativos.filter(c => !c.em_ferias);
@@ -478,9 +517,11 @@ function renderKPIs() {
   document.getElementById('kpi-ativos').textContent  = ativosTrabalho.length;
   document.getElementById('kpi-ferias').textContent  = emFerias.length;
   document.getElementById('kpi-exp').textContent     = emExp.length;
-  document.getElementById('kpi-faltas').textContent    = ocMes.filter(r => r.conta_como_falta).length;
+  document.getElementById('kpi-faltas').textContent    = faltasMes.length;
+  document.getElementById('kpi-faltas').style.color    = faltasMes.length ? '#dc2626' : '';
   document.getElementById('kpi-turnover').textContent  = tv + '%';
-  document.getElementById('kpi-turnover-sub').textContent = `${demAno} demissão(ões) em ${anoAtualVal}`;
+  document.getElementById('kpi-turnover-sub').textContent = demAno ? `${demAno} saída${demAno === 1 ? '' : 's'} em ${anoAtualVal}` : `nenhuma saída em ${anoAtualVal}`;
+  document.getElementById('kpi-turnover').style.color = parseFloat(tv) > 0 ? '#dc2626' : 'var(--success)';
   document.getElementById('kpi-turnover-meses').innerHTML = listaMesesHtml;
 
   // Nota média geral: ativos + em experiência com pelo menos uma avaliação
@@ -500,6 +541,69 @@ function renderKPIs() {
   elNota.textContent = notaMedia !== '—' ? notaMedia : '—';
   elNota.style.color = notaMedia === '—' ? '' : parseFloat(notaMedia) >= 7 ? 'var(--success)' : parseFloat(notaMedia) >= 5 ? '#D97706' : '#DC2626';
 }
+
+// ── Precisa de atenção ────────────────────────────────────────────────────────
+// Junta num só lugar o que pede ação: experiência vencendo, reprovado sem desligamento,
+// nota baixa e faltas repetidas no mês. Clicar abre a tela certa para resolver.
+let atencaoTodos = false;
+function renderAtencao() {
+  const el = document.getElementById('rh-atencao'); if (!el) return;
+  const hoje = hojeISO();
+  const iniMes = `${hoje.slice(0, 7)}-01`;
+  const isAdm = perfil?.role === 'admin';
+  const dias = dt => Math.round((new Date(dt + 'T00:00:00') - new Date(hoje + 'T00:00:00')) / 86400000);
+  const quando = n => n < 0 ? `venceu há ${-n} dia${n < -1 ? 's' : ''}` : n === 0 ? 'vence hoje' : n === 1 ? 'vence amanhã' : `vence em ${n} dias`;
+  const itens = [];
+  colabData.filter(c => !c.demissao).forEach(c => {
+    // Experiência sem avaliação, vencendo em até 15 dias (ou vencida há até 15)
+    const exps = [];
+    if (c.fim_experiencia_1 && c.passou_exp_1 == null) exps.push([1, c.fim_experiencia_1]);
+    if (c.fim_experiencia_2 && c.passou_exp_2 == null && c.passou_exp_1 !== false) exps.push([2, c.fim_experiencia_2]);
+    exps.forEach(([p, fim]) => {
+      const n = dias(fim);
+      if (n < -15 || n > 15) return;
+      itens.push({ c, peso: n <= 3 ? 0 : 2, cls: n <= 3 ? 'urg' : n <= 7 ? 'med' : 'inf',
+        motivo: `${p}ª experiência ${quando(n)} (${dataBR(fim)})`, acao: isAdm ? 'Definir resultado →' : 'Ver →', abrir: isAdm ? () => editarColab(c.id) : () => abrirHistoricoOc(c.id) });
+    });
+    // Reprovado na experiência e ainda sem data de demissão
+    if (c.passou_exp_1 === false || c.passou_exp_2 === false)
+      itens.push({ c, peso: 1, cls: 'urg', motivo: `Reprovado na ${c.passou_exp_2 === false ? '2ª' : '1ª'} experiência, sem desligamento registrado`, acao: isAdm ? 'Registrar →' : 'Ver →', abrir: isAdm ? () => editarColab(c.id) : () => abrirHistoricoOc(c.id) });
+    // Nota baixa (média das avaliações abaixo de 5)
+    const medias = avalData.filter(a => a.colaborador_id === c.id).map(calcMediaAval).filter(v => v !== null);
+    const nota = medias.length ? medias.reduce((a, b) => a + b, 0) / medias.length : null;
+    if (nota !== null && nota < 5)
+      itens.push({ c, peso: 3, cls: 'urg', motivo: `Nota ${nota.toFixed(1)}: não recomendado, avaliar desligamento`, acao: 'Ver avaliações →', abrir: () => verAvaliacoes(c.id) });
+    // Faltas repetidas no mês
+    const f = ocData.filter(o => o.colaborador_id === c.id && o.conta_como_falta && o.data >= iniMes && o.data <= hoje).length;
+    if (f >= 2)
+      itens.push({ c, peso: f >= 4 ? 1 : 4, cls: f >= 4 ? 'urg' : 'med', motivo: `${f} faltas neste mês`, acao: 'Ver calendário →', abrir: () => abrirHistoricoOc(c.id) });
+  });
+  // Uma linha por pessoa: o motivo mais urgente decide a cor e a ação; os outros entram no texto
+  const ORD = { urg:0, med:1, inf:2 };
+  const porPessoa = {};
+  itens.sort((a, b) => a.peso - b.peso).forEach(x => {
+    const g = porPessoa[x.c.id];
+    if (!g) porPessoa[x.c.id] = { ...x, motivos:[x.motivo] };
+    else { g.motivos.push(x.motivo); if (ORD[x.cls] < ORD[g.cls]) g.cls = x.cls; }
+  });
+  const agrupados = Object.values(porPessoa).map(g => ({ ...g, motivo: g.motivos.join(' · ') }))
+    .sort((a, b) => ORD[a.cls] - ORD[b.cls] || a.peso - b.peso || a.c.nome.localeCompare(b.c.nome));
+  itens.length = 0; itens.push(...agrupados);
+  window._atencao = itens;
+  const MAX = 6, vis = atencaoTodos ? itens : itens.slice(0, MAX);
+  const ini = n => n.trim().split(/\s+/).map(p => p[0]).filter((_, i, a) => i === 0 || i === a.length - 1).join('').toUpperCase();
+  el.innerHTML = `<div class="at-box">
+    <div class="at-hd">${icon('alert-triangle', { size:16 })}<h3>Precisa de atenção</h3>${itens.length ? `<span class="at-n">${itens.length}</span>` : ''}
+      <span class="at-leg">experiência, reprovações, nota baixa e faltas repetidas</span></div>
+    ${itens.length ? `<div class="at-lista">${vis.map((x, i) => `<button type="button" class="at-item ${x.cls}" onclick="_atencao[${i}].abrir()">
+        <span class="at-av">${ini(x.c.nome)}</span>
+        <span class="at-tx"><b>${x.c.nome}</b><span>${x.motivo}</span></span>
+        <span class="at-acao">${x.acao}</span></button>`).join('')}</div>
+      ${itens.length > MAX ? `<button type="button" class="at-mais" onclick="_alternarAtencao()">${atencaoTodos ? 'Mostrar menos' : `Ver todos (${itens.length})`}</button>` : ''}`
+      : '<div class="at-vazio">✓ Nada pendente: nenhuma experiência vencendo, reprovação em aberto, nota baixa ou falta repetida.</div>'}
+  </div>`;
+}
+window._alternarAtencao = () => { atencaoTodos = !atencaoTodos; renderAtencao(); };
 
 // ── Grid de Cards ─────────────────────────────────────────────────────────────
 function renderColaboradores() {
