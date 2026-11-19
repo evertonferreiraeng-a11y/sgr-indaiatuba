@@ -588,7 +588,6 @@ async function carregarOcorrencias() {
   ocColab = data || [];
   renderCalendario();
   renderTudoFiltrado();
-  renderEstatisticas();
 }
 
 // ── Estatísticas do colaborador ──────────────────────────────────────────────
@@ -621,6 +620,43 @@ function renderEstatisticas() {
     tile('Total de registros', ocColab.length, '', `${faltasTot} falta${faltasTot === 1 ? '' : 's'} no total`),
   ].join('');
 
+  // ── Período filtrado no topo (De / Até) ──
+  const pIni = document.getElementById('f-ini').value, pFim = document.getElementById('f-fim').value;
+  const doPer = ocFiltradas();
+  const pad2 = v => String(v).padStart(2, '0');
+  // Quando o filtro é exatamente um mês inteiro, mostra o nome do mês e compara com o mês anterior
+  let mesSel = null;
+  if (pIni && pFim && pIni.slice(8) === '01' && pIni.slice(0, 7) === pFim.slice(0, 7) && pFim === fimDoMesISO(+pIni.slice(0, 4), +pIni.slice(5, 7))) mesSel = pIni.slice(0, 7);
+  const rotPer = mesSel ? `${MESES[+mesSel.slice(5) - 1]} de ${mesSel.slice(0, 4)}`
+    : !pIni && !pFim ? 'todo o histórico'
+    : pIni.slice(0, 4) === pFim.slice(0, 4) && pIni.slice(5) === '01-01' && pFim.slice(5) === '12-31' ? `Ano de ${pIni.slice(0, 4)}`
+    : `${pIni ? dataBR(pIni) : 'início'} a ${pFim ? dataBR(pFim) : 'hoje'}`;
+  let ant = null;
+  if (mesSel) {
+    const d = new Date(+mesSel.slice(0, 4), +mesSel.slice(5, 7) - 2, 1);
+    const k = `${d.getFullYear()}-${pad2(d.getMonth() + 1)}`;
+    ant = ocColab.filter(o => o.data.startsWith(k));
+  }
+  const comp = (t, rot) => {
+    if (!ant) return '';
+    const a = n(ant, t), v = n(doPer, t);
+    if (a === v) return `igual ao mês anterior (${a})`;
+    return `${v > a ? '▲' : '▼'} ${Math.abs(v - a)} vs mês anterior (${a})`;
+  };
+  const baseP = n(doPer, 'outro') + n(doPer, 'falta') + n(doPer, 'atestado');
+  const presP = baseP ? Math.round(n(doPer, 'outro') / baseP * 100) : null;
+  let presAntTxt = '';
+  if (ant) { const bA = n(ant, 'outro') + n(ant, 'falta') + n(ant, 'atestado'); if (bA) presAntTxt = ` · mês anterior ${Math.round(n(ant, 'outro') / bA * 100)}%`; }
+  const fP = n(doPer, 'falta'), jP = n(doPer, 'atestado'), aP = n(doPer, 'advertencia'), oP = n(doPer, 'elogio');
+  const tilesPer = [
+    tile('Presença', presP == null ? '—' : `${presP}%`, presP == null ? '' : presP >= 95 ? 'verde' : presP >= 85 ? 'amarelo' : 'vermelho', baseP ? `${n(doPer, 'outro')} de ${baseP} dias${presAntTxt}` : 'sem registros'),
+    tile('Faltas', fP, fP ? 'vermelho' : 'verde', comp('falta') || (fP ? '' : 'nenhuma')),
+    tile('Justificadas', jP, jP ? 'amarelo' : '', comp('atestado')),
+    tile('Advertências', aP, aP ? 'vermelho' : 'verde', comp('advertencia') || (aP ? '' : 'nenhuma')),
+    tile('Outros registros', oP, '', comp('elogio')),
+    tile('Total de registros', doPer.length, '', 'no período'),
+  ].join('');
+
   // Últimos 6 meses: presenças, justificadas e faltas empilhadas
   const meses = [];
   for (let i = 5; i >= 0; i--) { const d = new Date(); d.setDate(1); d.setMonth(d.getMonth() - i); meses.push(`${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`); }
@@ -630,10 +666,11 @@ function renderEstatisticas() {
   const barras = porMes.map(m => {
     const tot = m.p + m.j + m.f, h = tot / maxM * 88;
     const seg = (v, c) => v ? `<i style="height:${v / tot * 100}%;background:${c}"></i>` : '';
+    const sel = m.k === mesSel;
     return `<div title="${MES_AB[+m.k.slice(5) - 1]}: ${m.p} presenças, ${m.j} justificadas, ${m.f} faltas">
       <em>${m.f ? `<span style="color:#dc2626">${m.f}</span>` : ''}</em>
-      <div class="st-pilha" style="height:${Math.max(3, h)}px">${seg(m.p, '#4ade80')}${seg(m.j, '#fbbf24')}${seg(m.f, '#ef4444')}</div>
-      <span>${MES_AB[+m.k.slice(5) - 1]}</span></div>`;
+      <div class="st-pilha" style="height:${Math.max(3, h)}px${sel ? ';box-shadow:0 0 0 2px #0f5132' : ''}">${seg(m.p, '#4ade80')}${seg(m.j, '#fbbf24')}${seg(m.f, '#ef4444')}</div>
+      <span${sel ? ' style="color:#0f5132;font-weight:800"' : ''}>${MES_AB[+m.k.slice(5) - 1]}</span></div>`;
   }).join('');
 
   // Faltas e justificadas por dia da semana (seg a sáb)
@@ -653,7 +690,9 @@ function renderEstatisticas() {
     : '<div class="st-vazio">Nenhuma avaliação registrada.</div>';
 
   el.innerHTML = `
-    <div class="st-sec">Estatísticas</div>
+    <div class="st-sec">No período · <span style="color:#0f5132">${rotPer}</span></div>
+    <div class="st-tiles">${tilesPer}</div>
+    <div class="st-sec">Consolidado</div>
     <div class="st-tiles">${tiles}</div>
     <div class="st-sec">Últimos 6 meses</div>
     <div class="st-graf">
@@ -668,6 +707,7 @@ function renderEstatisticas() {
 function renderTudoFiltrado() {
   renderKPIs();
   renderHistorico();
+  renderEstatisticas();
 }
 
 function ocFiltradas(doHistorico = false) {
