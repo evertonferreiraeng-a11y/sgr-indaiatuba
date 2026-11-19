@@ -629,7 +629,6 @@ function renderEstatisticas() {
     tile(`Advertências em ${ano}`, advAno, advAno ? 'vermelho' : 'verde', advAno ? '' : 'nenhuma'),
     tile(ultFalta ? 'Dias sem faltar' : 'Sem faltas desde a admissão', semFaltar == null ? '—' : `${semFaltar}`, semFaltar == null ? '' : semFaltar >= 30 ? 'verde' : semFaltar >= 7 ? 'amarelo' : 'vermelho', ultFalta ? `última falta em ${dataBR(ultFalta)}` : 'dias corridos'),
     tile('Média de faltas', mediaMes == null ? '—' : mediaMes.toFixed(1).replace('.', ','), '', 'por mês desde a admissão'),
-    tile('Total de registros', ocColab.length, '', `${faltasTot} falta${faltasTot === 1 ? '' : 's'} no total`),
   ].join('');
 
   // ── Período filtrado no topo (De / Até) ──
