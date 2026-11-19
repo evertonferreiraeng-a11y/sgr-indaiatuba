@@ -13,59 +13,110 @@
   <title>Ocorrências — SGR Indaiatuba</title>
   <link rel="stylesheet" href="css/style.css" />
   <style>
+    .main-content { overflow-x:clip; }
     .co-breadcrumb { display:flex; align-items:center; gap:6px; font-size:13px; color:#64748b; margin-bottom:14px; }
-    .co-breadcrumb a { color:#006636; font-weight:600; text-decoration:none; }
-    .co-breadcrumb a:hover { text-decoration:underline; }
+    .co-breadcrumb a { color:#006636; font-weight:700; text-decoration:none; display:inline-flex; align-items:center; gap:4px; padding:4px 10px 4px 6px; border-radius:999px; }
+    .co-breadcrumb a:hover { background:#ecfdf3; }
 
-    .co-header { display:flex; align-items:center; gap:14px; margin-bottom:20px; flex-wrap:wrap; }
-    .co-avatar { width:52px; height:52px; border-radius:50%; background:#006636; color:#fff; display:flex; align-items:center; justify-content:center; font-weight:800; font-size:20px; flex-shrink:0; }
-    .co-header h2 { margin:0 0 2px; font-size:20px; font-weight:800; color:#0f172a; }
-    .co-header p { margin:0; font-size:13px; color:#64748b; }
+    /* Ficha do colaborador */
+    .co-ficha { position:relative; overflow:hidden; display:flex; align-items:center; gap:18px; flex-wrap:wrap; color:#fff;
+      background:linear-gradient(135deg,#003d20 0%,#005a30 55%,#007a40 100%); border-radius:18px; padding:20px 24px; margin-bottom:16px; box-shadow:0 10px 26px rgba(0,77,40,.18); }
+    .co-ficha::after { content:"♻"; position:absolute; right:-14px; bottom:-44px; font-size:160px; line-height:1; color:rgba(255,255,255,.05); pointer-events:none; }
+    .co-ficha > * { position:relative; z-index:1; }
+    .co-avatar { width:64px; height:64px; border-radius:18px; background:rgba(255,255,255,.16); border:1px solid rgba(255,255,255,.28); color:#fff; display:grid; place-items:center; font-weight:800; font-size:22px; letter-spacing:.02em; flex-shrink:0; }
+    .co-id { min-width:0; flex:1; }
+    .co-id h2 { margin:0; font-size:22px; font-weight:800; letter-spacing:-.02em; color:#fff; }
+    .co-id .co-cargo { margin:2px 0 8px; font-size:13px; color:#bbf7d0; font-weight:500; }
+    .co-tags { display:flex; gap:6px; flex-wrap:wrap; }
+    .co-tag { font-size:12px; font-weight:700; padding:3px 10px; border-radius:999px; background:rgba(255,255,255,.14); color:#ecfdf5; white-space:nowrap; display:inline-flex; align-items:center; gap:5px; }
+    .co-tag.verde { background:#dcfce7; color:#166534; } .co-tag.amarelo { background:#fef3c7; color:#92400e; } .co-tag.vermelho { background:#fee2e2; color:#991b1b; } .co-tag.azul { background:#dbeafe; color:#1e40af; }
+    .co-resumo { display:flex; gap:22px; }
+    .co-resumo div span { display:block; font-size:10.5px; font-weight:700; text-transform:uppercase; letter-spacing:.08em; color:#a7f3d0; }
+    .co-resumo div b { font-size:24px; font-weight:800; line-height:1.15; color:#fff; }
+    .co-resumo div small { font-size:12px; font-weight:600; color:#d1fae5; }
+    .co-ficha .btn-primary { background:#fff; color:#064e3b; border-color:#fff; box-shadow:0 2px 8px rgba(0,0,0,.15); }
+    .co-ficha .btn-primary:hover { background:#ecfdf5; }
 
-    .co-kpis { display:grid; grid-template-columns:repeat(5,1fr); gap:12px; margin-bottom:20px; }
+    /* Contadores */
+    .co-kpis { display:grid; grid-template-columns:repeat(5,1fr); gap:12px; margin-bottom:16px; }
     @media(max-width:900px) { .co-kpis { grid-template-columns:repeat(2,1fr); } }
-    .co-kpi { background:#fff; border:1px solid #e2e8f0; border-radius:10px; padding:12px 14px; }
-    .co-kpi .val { font-size:22px; font-weight:800; line-height:1; }
-    .co-kpi .lbl { font-size:11px; color:#94a3b8; margin-top:4px; font-weight:600; text-transform:uppercase; letter-spacing:.3px; }
+    .co-kpi { --c:#64748b; --bg:#f1f5f9; position:relative; overflow:hidden; background:#fff; border:1px solid #e2e8f0; border-radius:14px; padding:12px 14px 12px 16px; display:flex; align-items:center; gap:12px; cursor:pointer; transition:transform .15s, box-shadow .15s; text-align:left; font:inherit; color:inherit; }
+    .co-kpi::before { content:""; position:absolute; left:0; top:0; bottom:0; width:4px; background:var(--c); }
+    .co-kpi:hover { transform:translateY(-2px); box-shadow:0 6px 16px rgba(15,23,42,.08); }
+    .co-kpi.on { border-color:var(--c); box-shadow:0 0 0 2px var(--bg); }
+    .co-kpi-ic { width:38px; height:38px; border-radius:11px; display:grid; place-items:center; background:var(--bg); color:var(--c); flex:none; font-weight:800; }
+    .co-kpi .val { font-size:24px; font-weight:800; line-height:1; color:var(--c); }
+    .co-kpi .lbl { font-size:11.5px; color:#64748b; margin-top:3px; font-weight:600; }
 
-    .co-filters { background:#fff; border:1px solid #e2e8f0; border-radius:10px; padding:14px 16px; margin-bottom:20px; display:flex; gap:14px; flex-wrap:wrap; align-items:flex-end; }
+    /* Filtros */
+    .co-filters { background:#fff; border:1px solid #e2e8f0; border-radius:14px; padding:12px 16px; margin-bottom:16px; display:flex; gap:14px; flex-wrap:wrap; align-items:flex-end; }
     .co-filters .form-group { min-width:150px; }
     .co-quick { display:flex; gap:6px; flex-wrap:wrap; }
-    .co-quick button { padding:7px 12px; border:1px solid #e2e8f0; border-radius:20px; background:#f8fafc; color:#475569; font-size:12px; font-weight:600; cursor:pointer; }
-    .co-quick button:hover { background:#f1f5f9; }
+    .co-quick button { padding:7px 14px; border:1px solid #e2e8f0; border-radius:999px; background:#fff; color:#475569; font-size:12.5px; font-weight:600; cursor:pointer; }
+    .co-quick button:hover { border-color:#94a3b8; }
     .co-quick button.active { background:#006636; border-color:#006636; color:#fff; }
 
-    .co-grid { display:grid; grid-template-columns:1fr 1fr; gap:20px; align-items:start; }
-    @media(max-width:1000px) { .co-grid { grid-template-columns:1fr; } }
+    .co-grid { display:grid; grid-template-columns:minmax(0,1.15fr) minmax(0,1fr); gap:16px; align-items:start; }
+    @media(max-width:1100px) { .co-grid { grid-template-columns:1fr; } }
+    .co-col { display:flex; flex-direction:column; gap:16px; min-width:0; }
 
-    .co-card { background:#fff; border:1px solid #e2e8f0; border-radius:12px; padding:18px 20px; }
-    .co-card h3 { font-size:13px; font-weight:800; text-transform:uppercase; letter-spacing:.06em; color:#334155; margin:0 0 14px; display:flex; align-items:center; justify-content:space-between; }
+    .co-card { background:#fff; border:1px solid #e2e8f0; border-radius:16px; padding:18px 20px; box-shadow:0 1px 3px rgba(0,0,0,.03); }
+    .co-card-hd { display:flex; align-items:center; justify-content:space-between; gap:10px; margin-bottom:14px; flex-wrap:wrap; }
+    .co-card-hd h3 { font-size:15px; font-weight:800; color:#0f172a; margin:0; display:flex; align-items:center; gap:10px; }
+    .co-card-hd h3 .ic { width:30px; height:30px; border-radius:9px; display:grid; place-items:center; background:#ecfdf3; color:#15803d; }
+    .co-card-hd .meta { font-size:12.5px; color:#94a3b8; font-weight:600; }
 
     /* Calendário */
-    .cal-nav { display:flex; align-items:center; justify-content:space-between; margin-bottom:12px; }
-    .cal-nav button { border:1px solid #e2e8f0; background:#f8fafc; border-radius:8px; width:30px; height:30px; cursor:pointer; font-size:15px; color:#334155; }
+    .cal-nav { display:flex; align-items:center; gap:6px; }
+    .cal-nav button { border:1px solid #e2e8f0; background:#fff; border-radius:9px; width:32px; height:32px; cursor:pointer; font-size:16px; color:#334155; }
     .cal-nav button:hover { background:#f1f5f9; }
-    .cal-nav-titulo { font-size:14px; font-weight:700; color:#0f172a; text-transform:capitalize; }
-    .cal-weekdays, .cal-grid { display:grid; grid-template-columns:repeat(7,1fr); gap:4px; }
-    .cal-weekdays div { text-align:center; font-size:10px; font-weight:700; color:#94a3b8; text-transform:uppercase; padding-bottom:4px; }
-    .cal-day { min-height:64px; border:1px solid #f1f5f9; border-radius:8px; padding:4px; cursor:pointer; transition:background .15s; display:flex; flex-direction:column; gap:2px; }
-    .cal-day:hover { background:#f8fafc; }
-    .cal-day-empty { border:none; cursor:default; }
-    .cal-day-empty:hover { background:none; }
-    .cal-daynum { font-size:11px; font-weight:700; color:#64748b; }
-    .cal-day-hoje .cal-daynum { color:#006636; }
-    .cal-day-hoje { border-color:#006636; }
-    .cal-day-chips { display:flex; flex-direction:column; gap:2px; overflow:hidden; }
-    .cal-chip { font-size:9px; font-weight:700; padding:1px 4px; border-radius:4px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
-    .cal-legend { display:flex; gap:10px; flex-wrap:wrap; margin-top:14px; }
-    .cal-legend span { display:flex; align-items:center; gap:5px; font-size:11px; color:#64748b; font-weight:600; }
-    .cal-legend i { width:10px; height:10px; border-radius:3px; display:inline-block; }
+    .cal-nav-titulo { font-size:14px; font-weight:800; color:#0f172a; min-width:150px; text-align:center; }
+    .cal-weekdays, .cal-grid { display:grid; grid-template-columns:repeat(7,1fr); gap:6px; }
+    .cal-weekdays div { text-align:center; font-size:11px; font-weight:700; color:#94a3b8; padding-bottom:2px; }
+    .cal-day { --c:#0f172a; min-height:62px; border:1px solid #eef2f6; background:#fff; border-radius:10px; padding:6px 7px; cursor:pointer; transition:transform .12s, box-shadow .12s; display:flex; flex-direction:column; justify-content:space-between; gap:4px; }
+    .cal-day:hover { transform:translateY(-1px); box-shadow:0 4px 10px rgba(15,23,42,.08); }
+    .cal-day.fds { background:#f8fafc; }
+    .cal-day.futuro .cal-daynum { color:#cbd5e1; }
+    .cal-day-empty { border:none; background:none; cursor:default; }
+    .cal-day-empty:hover { transform:none; box-shadow:none; }
+    .cal-daynum { font-size:12px; font-weight:800; color:#64748b; }
+    .cal-day.hoje { box-shadow:0 0 0 2px #006636; }
+    .cal-day.t-outro { background:#f0fdf4; border-color:#bbf7d0; } .cal-day.t-outro .cal-daynum { color:#15803d; }
+    .cal-day.t-falta { background:#fef2f2; border-color:#fecaca; } .cal-day.t-falta .cal-daynum { color:#b91c1c; }
+    .cal-day.t-atestado { background:#fffbeb; border-color:#fde68a; } .cal-day.t-atestado .cal-daynum { color:#b45309; }
+    .cal-day.t-advertencia { background:#fff1f2; border-color:#fda4af; } .cal-day.t-advertencia .cal-daynum { color:#9f1239; }
+    .cal-day.t-elogio { background:#f1f5f9; border-color:#e2e8f0; }
+    .cal-tipo { font-size:10.5px; font-weight:700; line-height:1.2; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; display:flex; align-items:center; gap:4px; }
+    .cal-tipo i { width:6px; height:6px; border-radius:50%; flex:none; }
+    .cal-legend { display:flex; gap:14px; flex-wrap:wrap; margin-top:14px; padding-top:12px; border-top:1px solid #f1f5f9; }
+    .cal-legend span { display:flex; align-items:center; gap:6px; font-size:12px; color:#64748b; font-weight:600; }
+    .cal-legend i { width:10px; height:10px; border-radius:50%; display:inline-block; }
 
-    /* Histórico */
-    .hist-row { display:flex; align-items:flex-start; gap:10px; padding:9px 0; border-bottom:1px solid #f1f5f9; font-size:13px; }
-    .hist-row:last-child { border-bottom:none; }
-    .hist-tipo { font-size:11px; font-weight:600; padding:2px 8px; border-radius:10px; white-space:nowrap; }
-    .hist-empty { font-size:13px; color:#94a3b8; padding:16px 0; text-align:center; }
+    /* Observações */
+    .obs-area { width:100%; min-height:130px; resize:vertical; border:1px solid #e2e8f0; border-radius:12px; padding:12px 14px; font:inherit; font-size:14px; line-height:1.55; color:#0f172a; background:#fcfdfc; }
+    .obs-area:focus { outline:none; border-color:#16a34a; box-shadow:0 0 0 3px #dcfce7; background:#fff; }
+    .obs-area[readonly] { background:#f8fafc; color:#334155; }
+    .obs-rodape { display:flex; align-items:center; justify-content:space-between; gap:10px; margin-top:10px; flex-wrap:wrap; }
+    .obs-status { font-size:12px; color:#94a3b8; }
+    .obs-status.sujo { color:#b45309; font-weight:600; }
+    .obs-aviso { font-size:12.5px; color:#92400e; background:#fffbeb; border:1px solid #fde68a; border-radius:10px; padding:10px 12px; }
+
+    /* Histórico em linha do tempo */
+    .hist-mes { font-size:11.5px; font-weight:800; letter-spacing:.06em; text-transform:uppercase; color:#94a3b8; margin:14px 0 6px; display:flex; justify-content:space-between; }
+    .hist-mes:first-child { margin-top:0; }
+    .hist-lista { max-height:640px; overflow:auto; padding-right:4px; }
+    .hist-row { position:relative; display:flex; align-items:center; gap:12px; padding:8px 8px 8px 26px; border-radius:10px; font-size:13px; }
+    .hist-row::before { content:""; position:absolute; left:10px; top:0; bottom:0; width:2px; background:#eef2f6; }
+    .hist-row::after { content:""; position:absolute; left:6px; top:50%; width:10px; height:10px; margin-top:-5px; border-radius:50%; background:var(--c, #94a3b8); box-shadow:0 0 0 3px #fff; }
+    .hist-row:hover { background:#f8fafc; }
+    .hist-data { min-width:86px; color:#334155; font-weight:700; font-size:12.5px; white-space:nowrap; }
+    .hist-data small { display:block; font-weight:500; color:#94a3b8; font-size:11px; }
+    .hist-tipo { font-size:11.5px; font-weight:700; padding:3px 10px; border-radius:999px; white-space:nowrap; }
+    .hist-desc { flex:1; min-width:0; color:#475569; overflow:hidden; text-overflow:ellipsis; }
+    .hist-acoes { display:flex; gap:2px; opacity:0; transition:opacity .15s; }
+    .hist-row:hover .hist-acoes { opacity:1; }
+    @media (hover:none) { .hist-acoes { opacity:1; } }
+    .hist-empty { font-size:13px; color:#94a3b8; padding:24px 0; text-align:center; }
 
     .co-loading { padding:60px; text-align:center; color:#94a3b8; }
   </style>
@@ -76,7 +127,7 @@
   <div class="main-content">
     <div class="page-body">
       <div class="co-breadcrumb">
-        <a href="rh.html">← RH</a>
+        <a href="rh.html">← Voltar para o RH</a>
       </div>
 
       <div id="co-content">
@@ -151,13 +202,22 @@ if (!colabId) {
 }
 
 const TIPO_LABEL = { falta:'Falta', atestado:'Justificada', advertencia:'Advertência', elogio:'Outro', outro:'Presente' };
-const TIPO_COR   = { falta:'background:#fee2e2;color:#991b1b', atestado:'background:#fef3c7;color:#92400e', advertencia:'background:#fee2e2;color:#991b1b', elogio:'background:#f1f5f9;color:#475569', outro:'background:#dcfce7;color:#166534' };
+const TIPO_COR   = { falta:'background:#fee2e2;color:#991b1b', atestado:'background:#fef3c7;color:#92400e', advertencia:'background:#ffe4e6;color:#9f1239', elogio:'background:#f1f5f9;color:#475569', outro:'background:#dcfce7;color:#166534' };
+const TIPO_PONTO = { falta:'#dc2626', atestado:'#d97706', advertencia:'#e11d48', elogio:'#94a3b8', outro:'#16a34a' };
+// No calendário, quando há mais de um registro no dia, vale o mais "grave"
+const TIPO_PESO  = { falta:0, advertencia:1, atestado:2, elogio:3, outro:4 };
 const DIAS_SEMANA = ['Dom','Seg','Ter','Qua','Qui','Sex','Sáb'];
+const DIAS_AB = ['dom','seg','ter','qua','qui','sex','sáb'];
 const MESES = ['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
+const CRITERIOS = ['relacionamento','responsabilidade','cooperacao','conhecimento_trabalho','interesse','atitude_profissional','produtividade'];
+const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;' }[c]));
+const hojeISO = () => { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`; };
+const fimDoMesISO = (y, m) => { const d = new Date(y, m, 0); return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`; };
 
-let perfil, colaborador, ocColab = [];
+let perfil, colaborador, cargoNome = '', notaMedia = null, ocColab = [];
 let calYear, calMonth; // calMonth 0-indexed
 let quickAtivo = '';
+let temCampoObs = true;
 
 async function init() {
   const { data: { user } } = await supabase.auth.getUser();
@@ -170,6 +230,17 @@ async function init() {
     return;
   }
   colaborador = c;
+  temCampoObs = 'anotacoes' in c;
+
+  // Cargo e nota média (opcionais: se falharem, a tela abre do mesmo jeito)
+  if (c.cargo) cargoNome = c.cargo;
+  else if (c.cargo_id) {
+    const { data: cg } = await supabase.from('cargos').select('nome').eq('id', c.cargo_id).single();
+    cargoNome = cg?.nome || '';
+  }
+  const { data: avals } = await supabase.from('colaborador_avaliacoes').select('*').eq('colaborador_id', colabId);
+  const medias = (avals || []).map(a => { const n = CRITERIOS.map(k => parseFloat(a[k]) || 0).filter(v => v > 0); return n.length ? n.reduce((s, v) => s + v, 0) / n.length : null; }).filter(v => v !== null);
+  notaMedia = medias.length ? medias.reduce((s, v) => s + v, 0) / medias.length : null;
 
   const hoje = new Date();
   calYear  = hoje.getFullYear();
@@ -180,16 +251,50 @@ async function init() {
   setQuick('mes');
 }
 
+// Tempo de casa: "1 ano e 8 meses", "3 meses", "12 dias"
+function tempoDeCasa(ini, fim) {
+  if (!ini) return '';
+  const a = new Date(ini + 'T00:00:00'), b = new Date((fim || hojeISO()) + 'T00:00:00');
+  let meses = (b.getFullYear() - a.getFullYear()) * 12 + (b.getMonth() - a.getMonth());
+  if (b.getDate() < a.getDate()) meses--;
+  if (meses < 1) { const d = Math.max(0, Math.round((b - a) / 86400000)); return `${d} dia${d === 1 ? '' : 's'}`; }
+  const anos = Math.floor(meses / 12), m = meses % 12;
+  const pA = anos ? `${anos} ano${anos > 1 ? 's' : ''}` : '', pM = m ? `${m} ${m > 1 ? 'meses' : 'mês'}` : '';
+  return [pA, pM].filter(Boolean).join(' e ');
+}
+
+function tagsSituacao(c) {
+  const hoje = hojeISO(), t = [];
+  if (c.demissao) t.push(['vermelho', `Desligado em ${dataBR(c.demissao)}`]);
+  else {
+    if (c.em_ferias) t.push(['azul', 'Em férias']);
+    if (c.passou_exp_1 === false || c.passou_exp_2 === false) t.push(['vermelho', `Reprovado na ${c.passou_exp_2 === false ? '2ª' : '1ª'} experiência`]);
+    else if (c.fim_experiencia_1 && hoje <= c.fim_experiencia_1) t.push(['azul', `1ª experiência até ${dataBR(c.fim_experiencia_1)}`]);
+    else if (c.fim_experiencia_2 && hoje <= c.fim_experiencia_2) t.push(['amarelo', `2ª experiência até ${dataBR(c.fim_experiencia_2)}`]);
+    else t.push(['verde', 'Efetivado']);
+  }
+  if (notaMedia !== null) t.push([notaMedia >= 7 ? 'verde' : notaMedia >= 5 ? 'amarelo' : 'vermelho', `Nota ${notaMedia.toFixed(1)}`]);
+  return t.map(([cls, tx]) => `<span class="co-tag ${cls}">${tx}</span>`).join('');
+}
+
 function montarLayout() {
   const isAdm = perfil?.role === 'admin';
+  const c = colaborador;
+  const iniciais = c.nome.trim().split(/\s+/).filter((_, i, a) => i === 0 || i === a.length - 1).map(p => p[0]).join('').toUpperCase();
+  const linhaCargo = [cargoNome, c.chapa ? `Chapa ${esc(c.chapa)}` : '', c.data_admissao ? `Admissão ${dataBR(c.data_admissao)}` : ''].filter(Boolean).join(' · ');
   contentEl.innerHTML = `
-    <div class="co-header">
-      <div class="co-avatar">${colaborador.nome.charAt(0).toUpperCase()}</div>
-      <div>
-        <h2>${colaborador.nome}</h2>
-        <p>Admissão: ${dataBR(colaborador.data_admissao)}${colaborador.demissao ? ` · Demitido em ${dataBR(colaborador.demissao)}` : ''}</p>
+    <div class="co-ficha">
+      <div class="co-avatar">${esc(iniciais)}</div>
+      <div class="co-id">
+        <h2>${esc(c.nome)}</h2>
+        <p class="co-cargo">${esc(linhaCargo)}</p>
+        <div class="co-tags">${tagsSituacao(c)}</div>
       </div>
-      ${isAdm ? `<button class="btn btn-primary" style="margin-left:auto" id="btn-nova-oc">+ Ocorrência</button>` : ''}
+      <div class="co-resumo">
+        ${c.data_admissao ? `<div><span>Tempo de casa</span><b>${tempoDeCasa(c.data_admissao, c.demissao)}</b></div>` : ''}
+        <div><span>Presença no período</span><b id="co-pres">—</b></div>
+      </div>
+      ${isAdm ? `<button class="btn btn-primary" id="btn-nova-oc">+ Ocorrência</button>` : ''}
     </div>
 
     <div class="co-kpis" id="co-kpis"></div>
@@ -219,29 +324,38 @@ function montarLayout() {
     </div>
 
     <div class="co-grid">
-      <div class="co-card">
-        <h3>
-          <span>Calendário</span>
-          <div class="cal-nav" style="margin:0">
-            <button type="button" id="cal-prev">‹</button>
-            <span class="cal-nav-titulo" id="cal-titulo"></span>
-            <button type="button" id="cal-next">›</button>
+      <div class="co-col">
+        <div class="co-card">
+          <div class="co-card-hd">
+            <h3><span class="ic">${icon('calendar',{size:16})}</span>Calendário</h3>
+            <div class="cal-nav">
+              <button type="button" id="cal-prev" title="Mês anterior">‹</button>
+              <span class="cal-nav-titulo" id="cal-titulo"></span>
+              <button type="button" id="cal-next" title="Próximo mês">›</button>
+            </div>
           </div>
-        </h3>
-        <div class="cal-weekdays">${DIAS_SEMANA.map(d => `<div>${d}</div>`).join('')}</div>
-        <div class="cal-grid" id="cal-grid"></div>
-        <div class="cal-legend">
-          <span><i style="background:#fecaca"></i>Falta</span>
-          <span><i style="background:#fde68a"></i>Justificada</span>
-          <span><i style="background:#bbf7d0"></i>Presente</span>
-          <span><i style="background:#fecaca"></i>Advertência</span>
-          <span><i style="background:#e2e8f0"></i>Outro</span>
+          <div class="cal-weekdays">${DIAS_SEMANA.map(d => `<div>${d}</div>`).join('')}</div>
+          <div class="cal-grid" id="cal-grid"></div>
+          <div class="cal-legend">
+            ${['outro','falta','atestado','advertencia','elogio'].map(t => `<span><i style="background:${TIPO_PONTO[t]}"></i>${TIPO_LABEL[t]}</span>`).join('')}
+            <span style="margin-left:auto;font-weight:500">${isAdm ? 'Clique num dia para lançar ou editar' : ''}</span>
+          </div>
+        </div>
+
+        <div class="co-card">
+          <div class="co-card-hd">
+            <h3><span class="ic">${icon('edit',{size:16})}</span>Observações sobre o colaborador</h3>
+          </div>
+          <div id="obs-box"></div>
         </div>
       </div>
 
       <div class="co-card">
-        <h3><span>Histórico</span><span id="hist-count" style="text-transform:none;font-weight:600;color:#94a3b8"></span></h3>
-        <div id="hist-lista"></div>
+        <div class="co-card-hd">
+          <h3><span class="ic">${icon('list',{size:16})}</span>Histórico</h3>
+          <span class="meta" id="hist-count"></span>
+        </div>
+        <div class="hist-lista" id="hist-lista"></div>
       </div>
     </div>
   `;
@@ -252,7 +366,7 @@ function montarLayout() {
   document.getElementById('f-fim').addEventListener('change', () => { quickAtivo=''; marcarQuick(); renderTudoFiltrado(); });
   document.getElementById('f-tipo').addEventListener('change', renderTudoFiltrado);
   document.querySelectorAll('.co-quick [data-q]').forEach(b => b.addEventListener('click', () => setQuick(b.dataset.q)));
-  document.getElementById('btn-nova-oc')?.addEventListener('click', () => abrirNovaOc(new Date().toISOString().split('T')[0]));
+  document.getElementById('btn-nova-oc')?.addEventListener('click', () => abrirNovaOc(hojeISO()));
 
   document.querySelectorAll('[data-close]').forEach(btn => btn.addEventListener('click', () => fecharModal(btn.dataset.close)));
   document.querySelectorAll('.modal-backdrop').forEach(m => m.addEventListener('click', e => { if(e.target===m) fecharModal(m.id); }));
@@ -268,7 +382,59 @@ function montarLayout() {
 
   document.getElementById('btn-salvar-oc').addEventListener('click', salvarOc);
   document.getElementById('btn-excluir-oc').addEventListener('click', excluirOcAtual);
+
+  renderObservacoes();
 }
+
+// ── Observações livres ───────────────────────────────────────────────────────
+function quandoSalvo() {
+  const c = colaborador;
+  if (!c.anotacoes_em) return c.anotacoes ? '' : 'Nenhuma observação ainda.';
+  const d = new Date(c.anotacoes_em);
+  const hh = `${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`;
+  return `Última edição em ${d.toLocaleDateString('pt-BR')} às ${hh}${c.anotacoes_por ? ` por ${esc(c.anotacoes_por)}` : ''}`;
+}
+
+function renderObservacoes() {
+  const box = document.getElementById('obs-box'); if (!box) return;
+  const isAdm = perfil?.role === 'admin';
+  if (!temCampoObs) {
+    box.innerHTML = `<div class="obs-aviso">O campo de observações ainda não foi criado no banco. Rode o arquivo <b>supabase-patch37.sql</b> no SQL Editor do Supabase e recarregue a página.</div>`;
+    return;
+  }
+  box.innerHTML = `
+    <textarea class="obs-area" id="obs-txt" ${isAdm ? '' : 'readonly'} placeholder="${isAdm ? 'Anote aqui o que for importante: combinados, pontos de atenção, elogios, conversas, restrições médicas…' : 'Sem observações.'}">${esc(colaborador.anotacoes || '')}</textarea>
+    <div class="obs-rodape">
+      <span class="obs-status" id="obs-status">${quandoSalvo()}</span>
+      ${isAdm ? '<button class="btn btn-primary" id="btn-salvar-obs">Salvar observações</button>' : ''}
+    </div>`;
+  if (!isAdm) return;
+  const txt = document.getElementById('obs-txt'), st = document.getElementById('obs-status');
+  txt.addEventListener('input', () => {
+    const sujo = txt.value !== (colaborador.anotacoes || '');
+    st.classList.toggle('sujo', sujo);
+    st.textContent = sujo ? 'Alterações não salvas' : quandoSalvo();
+  });
+  txt.addEventListener('keydown', e => { if ((e.ctrlKey || e.metaKey) && e.key === 's') { e.preventDefault(); salvarObservacoes(); } });
+  document.getElementById('btn-salvar-obs').addEventListener('click', salvarObservacoes);
+}
+
+async function salvarObservacoes() {
+  const txt = document.getElementById('obs-txt'); if (!txt) return;
+  const btn = document.getElementById('btn-salvar-obs'); btn.disabled = true;
+  const payload = { anotacoes: txt.value.trim() || null, anotacoes_em: new Date().toISOString(), anotacoes_por: perfil?.nome || null };
+  const { error } = await supabase.from('colaboradores').update(payload).eq('id', colabId);
+  btn.disabled = false;
+  if (error) { toast('Erro ao salvar observações: ' + error.message, 'error'); return; }
+  Object.assign(colaborador, payload);
+  toast('Observações salvas!');
+  const st = document.getElementById('obs-status');
+  st.classList.remove('sujo'); st.textContent = quandoSalvo();
+}
+window.addEventListener('beforeunload', e => {
+  const txt = document.getElementById('obs-txt');
+  if (txt && !txt.readOnly && txt.value !== (colaborador?.anotacoes || '')) { e.preventDefault(); e.returnValue = ''; }
+});
 
 function moverMes(delta) {
   calMonth += delta;
@@ -291,11 +457,11 @@ function setQuick(q) {
   const fFim = document.getElementById('f-fim');
   if (q === 'mes') {
     fIni.value = fmt(hoje.getFullYear(), hoje.getMonth()+1, 1);
-    fFim.value = new Date(hoje.getFullYear(), hoje.getMonth()+1, 0).toISOString().split('T')[0];
+    fFim.value = fimDoMesISO(hoje.getFullYear(), hoje.getMonth()+1);
   } else if (q === 'mes-passado') {
     const mp = new Date(hoje.getFullYear(), hoje.getMonth()-1, 1);
     fIni.value = fmt(mp.getFullYear(), mp.getMonth()+1, 1);
-    fFim.value = new Date(mp.getFullYear(), mp.getMonth()+1, 0).toISOString().split('T')[0];
+    fFim.value = fimDoMesISO(mp.getFullYear(), mp.getMonth()+1);
   } else if (q === 'ano') {
     fIni.value = fmt(hoje.getFullYear(), 1, 1);
     fFim.value = fmt(hoje.getFullYear(), 12, 31);
@@ -319,10 +485,10 @@ function renderTudoFiltrado() {
   renderHistorico();
 }
 
-function ocFiltradas() {
+function ocFiltradas(semTipo = false) {
   const ini  = document.getElementById('f-ini').value;
   const fim  = document.getElementById('f-fim').value;
-  const tipo = document.getElementById('f-tipo').value;
+  const tipo = semTipo ? '' : document.getElementById('f-tipo').value;
   return ocColab.filter(o => {
     if (ini && o.data < ini) return false;
     if (fim && o.data > fim) return false;
@@ -332,42 +498,69 @@ function ocFiltradas() {
 }
 
 function renderKPIs() {
-  const lista = ocFiltradas();
+  const lista = ocFiltradas(true);
   const count = tipo => lista.filter(o => o.tipo === tipo).length;
+  const tipoSel = document.getElementById('f-tipo').value;
   const kpis = [
-    { val: count('falta'),       lbl: 'Falta injustificada', cor:'#dc2626' },
-    { val: count('atestado'),    lbl: 'Justificada',         cor:'#d97706' },
-    { val: count('outro'),       lbl: 'Presente',            cor:'#16a34a' },
-    { val: count('advertencia'), lbl: 'Advertência',         cor:'#dc2626' },
-    { val: count('elogio'),      lbl: 'Outro',               cor:'#64748b' },
+    { t:'falta',       val: count('falta'),       lbl: 'Falta injustificada', cor:'#dc2626', bg:'#fee2e2', ic:'x-circle' },
+    { t:'atestado',    val: count('atestado'),    lbl: 'Justificada',         cor:'#d97706', bg:'#fef3c7', ic:'file' },
+    { t:'outro',       val: count('outro'),       lbl: 'Presente',            cor:'#16a34a', bg:'#dcfce7', ic:'check' },
+    { t:'advertencia', val: count('advertencia'), lbl: 'Advertência',         cor:'#e11d48', bg:'#ffe4e6', ic:'alert-triangle' },
+    { t:'elogio',      val: count('elogio'),      lbl: 'Outro',               cor:'#64748b', bg:'#f1f5f9', ic:'list' },
   ];
+  // Clicar num contador filtra o histórico por aquele tipo (clicar de novo tira o filtro)
   document.getElementById('co-kpis').innerHTML = kpis.map(k =>
-    `<div class="co-kpi"><div class="val" style="color:${k.cor}">${k.val}</div><div class="lbl">${k.lbl}</div></div>`
+    `<button type="button" class="co-kpi ${tipoSel === k.t ? 'on' : ''}" style="--c:${k.cor};--bg:${k.bg}" onclick="window._filtrarTipo('${k.t}')" title="Filtrar o histórico por ${k.lbl.toLowerCase()}">
+      <span class="co-kpi-ic">${icon(k.ic,{size:18})}</span>
+      <span><div class="val">${k.val}</div><div class="lbl">${k.lbl}</div></span>
+    </button>`
   ).join('');
+  // Presença no período: presentes sobre os dias com registro de presença/falta
+  const base = count('outro') + count('falta') + count('atestado');
+  const el = document.getElementById('co-pres');
+  if (el) el.innerHTML = base ? `${Math.round(count('outro') / base * 100)}<small>%</small>` : '—';
 }
+window._filtrarTipo = t => {
+  const sel = document.getElementById('f-tipo');
+  sel.value = sel.value === t ? '' : t;
+  renderTudoFiltrado();
+};
 
 function renderHistorico() {
   const lista = ocFiltradas();
   const isAdm = perfil?.role === 'admin';
-  document.getElementById('hist-count').textContent = lista.length ? `${lista.length} registro(s)` : '';
-  document.getElementById('hist-lista').innerHTML = lista.length ? lista.map(o => `
-    <div class="hist-row">
-      <span class="hist-tipo" style="${TIPO_COR[o.tipo]||'background:#f1f5f9;color:#475569'}">${TIPO_LABEL[o.tipo]||o.tipo}</span>
-      <span style="color:#64748b;font-size:12px;white-space:nowrap">${dataBR(o.data)}</span>
-      <span style="flex:1;color:#374151">${o.descricao||''}</span>
-      ${isAdm ? `
-        <button class="btn-icon" onclick="window._editarOc('${o.id}')">${icon('edit',{size:15})}</button>
-        <button class="btn-icon danger" onclick="window._excluirOc('${o.id}')">${icon('trash',{size:15})}</button>
-      ` : ''}
-    </div>
-  `).join('') : '<p class="hist-empty">Nenhuma ocorrência no período selecionado.</p>';
+  document.getElementById('hist-count').textContent = lista.length ? `${lista.length} registro${lista.length === 1 ? '' : 's'}` : '';
+  if (!lista.length) { document.getElementById('hist-lista').innerHTML = '<p class="hist-empty">Nenhuma ocorrência no período selecionado.</p>'; return; }
+  // Agrupa por mês
+  const grupos = [];
+  lista.forEach(o => {
+    const k = o.data.slice(0, 7);
+    let g = grupos.find(x => x.k === k);
+    if (!g) grupos.push(g = { k, itens: [] });
+    g.itens.push(o);
+  });
+  document.getElementById('hist-lista').innerHTML = grupos.map(g => {
+    const [y, m] = g.k.split('-').map(Number);
+    return `<div class="hist-mes"><span>${MESES[m - 1]} de ${y}</span><span>${g.itens.length}</span></div>` + g.itens.map(o => {
+      const dia = new Date(o.data + 'T00:00:00').getDay();
+      return `<div class="hist-row" style="--c:${TIPO_PONTO[o.tipo] || '#94a3b8'}">
+        <span class="hist-data">${dataBR(o.data).slice(0, 5)}<small>${DIAS_AB[dia]}</small></span>
+        <span class="hist-tipo" style="${TIPO_COR[o.tipo]||'background:#f1f5f9;color:#475569'}">${TIPO_LABEL[o.tipo]||esc(o.tipo)}</span>
+        <span class="hist-desc" title="${esc(o.descricao || '')}">${esc(o.descricao || '')}</span>
+        ${isAdm ? `<span class="hist-acoes">
+          <button class="btn-icon" onclick="window._editarOc('${o.id}')" title="Editar">${icon('edit',{size:15})}</button>
+          <button class="btn-icon danger" onclick="window._excluirOc('${o.id}')" title="Excluir">${icon('trash',{size:15})}</button>
+        </span>` : ''}
+      </div>`;
+    }).join('');
+  }).join('');
 }
 
 function renderCalendario() {
   const first        = new Date(calYear, calMonth, 1);
   const startWeekday = first.getDay();
   const daysInMonth  = new Date(calYear, calMonth + 1, 0).getDate();
-  const hoje         = new Date().toISOString().split('T')[0];
+  const hoje         = hojeISO();
 
   document.getElementById('cal-titulo').textContent = `${MESES[calMonth]} de ${calYear}`;
 
@@ -375,12 +568,14 @@ function renderCalendario() {
   for (let i = 0; i < startWeekday; i++) cells += `<div class="cal-day cal-day-empty"></div>`;
   for (let d = 1; d <= daysInMonth; d++) {
     const dateStr = `${calYear}-${String(calMonth+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
-    const ocsDia  = ocColab.filter(o => o.data === dateStr);
-    const isHoje  = dateStr === hoje;
-    const chips = ocsDia.map(o => `<span class="cal-chip" style="${TIPO_COR[o.tipo]||''}" onclick="event.stopPropagation();window._editarOc('${o.id}')" title="${TIPO_LABEL[o.tipo]||o.tipo}${o.descricao ? ' — '+o.descricao.replace(/"/g,'&quot;') : ''}">${TIPO_LABEL[o.tipo]||o.tipo}</span>`).join('');
-    cells += `<div class="cal-day${isHoje ? ' cal-day-hoje' : ''}" onclick="window._abrirNovaOcData('${dateStr}')">
-      <div class="cal-daynum">${d}</div>
-      <div class="cal-day-chips">${chips}</div>
+    const ocsDia  = ocColab.filter(o => o.data === dateStr).sort((a, b) => (TIPO_PESO[a.tipo] ?? 9) - (TIPO_PESO[b.tipo] ?? 9));
+    const princ   = ocsDia[0];
+    const wd      = (startWeekday + d - 1) % 7;
+    const cls = ['cal-day', princ ? `t-${princ.tipo}` : '', wd === 0 || wd === 6 ? 'fds' : '', dateStr === hoje ? 'hoje' : '', dateStr > hoje ? 'futuro' : ''].filter(Boolean).join(' ');
+    const dica = ocsDia.map(o => `${TIPO_LABEL[o.tipo] || o.tipo}${o.descricao ? ' — ' + o.descricao : ''}`).join('\n');
+    const rot = princ ? `<span class="cal-tipo" style="color:${TIPO_PONTO[princ.tipo] || '#64748b'}"><i style="background:${TIPO_PONTO[princ.tipo] || '#94a3b8'}"></i>${TIPO_LABEL[princ.tipo] || esc(princ.tipo)}${ocsDia.length > 1 ? ` +${ocsDia.length - 1}` : ''}</span>` : '';
+    cells += `<div class="${cls}" onclick="window._abrirNovaOcData('${dateStr}')" title="${esc(dica)}">
+      <div class="cal-daynum">${d}</div>${rot}
     </div>`;
   }
   document.getElementById('cal-grid').innerHTML = cells;
