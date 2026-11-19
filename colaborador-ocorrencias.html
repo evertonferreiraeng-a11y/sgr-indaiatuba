@@ -142,6 +142,15 @@
     .st-tile span { display:block; font-size:12px; font-weight:600; color:#64748b; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
     .st-tile b { display:block; font-size:20px; font-weight:800; color:#0f172a; line-height:1.2; margin-top:2px; white-space:nowrap; }
     .st-tile small { font-size:11.5px; color:#94a3b8; font-weight:500; }
+    .st-tile.st-largo { grid-column:1 / -1; display:grid; grid-template-columns:minmax(150px, 0.8fr) 3fr; gap:14px; align-items:center; }
+    @media(max-width:700px) { .st-tile.st-largo { grid-template-columns:1fr; } }
+    .st-largo-top b { font-size:26px; }
+    .st-sub { display:grid; grid-template-columns:repeat(4, minmax(0,1fr)); gap:8px; }
+    @media(max-width:600px) { .st-sub { grid-template-columns:repeat(2, minmax(0,1fr)); } }
+    .st-sub-item { background:rgba(255,255,255,.75); border:1px solid rgba(0,0,0,.05); border-radius:10px; padding:8px 10px; min-width:0; }
+    .st-sub-item b { font-size:18px !important; color:#0f172a; }
+    .st-sub-item span { white-space:normal !important; line-height:1.25; }
+    .st-sub-item small { display:block; line-height:1.3; }
     .st-tile.verde { background:#f0fdf4; border-color:#bbf7d0; } .st-tile.verde b { color:#15803d; }
     .st-tile.vermelho { background:#fef2f2; border-color:#fecaca; } .st-tile.vermelho b { color:#b91c1c; }
     .st-tile.amarelo { background:#fffbeb; border-color:#fde68a; } .st-tile.amarelo b { color:#b45309; }
@@ -653,16 +662,27 @@ function renderEstatisticas() {
   const hrs = (lista, t, campo) => lista.filter(o => o.tipo === t).reduce((s, o) => s + (parseFloat(o[campo]) || 0), 0);
   const fmtH = v => { if (!v) return ''; const hh = Math.floor(v), mm = Math.round((v - hh) * 60); return mm ? `${hh}h${String(mm).padStart(2, '0')}` : `${hh}h`; };
   const fP = nAus(doPer), sjP = n(doPer, 'falta'), jP = nJust(doPer), oP = n(doPer, 'ferias');
-  const tilesPer = [
+  // "Outro" marcado como falta
+  const nOutroF = l => l.filter(o => o.tipo === 'elogio' && ehFalta(o)).length;
+  const nAtr = l => n(l, 'atraso');
+  const hAtr = hrs(doPer, 'atraso', 'horas');
+  // Card de Faltas (largo) com o detalhamento dentro: sem justificativa, justificadas, outros e atrasos
+  // Comparação curta para os itens de dentro do card: "▲ 1 (ant. 0)"
+  const compC = fn => { if (!ant) return ''; const a = fn(ant), v = fn(doPer); return a === v ? `= mês ant. (${a})` : `${v > a ? '▲' : '▼'} ${Math.abs(v - a)} (ant. ${a})`; };
+  const sub = (rot, v, cor, c, extra = '') => `<div class="st-sub-item"><span>${rot}</span><b style="color:${v ? cor : '#0f172a'}">${v}</b><small>${c || extra || '&nbsp;'}</small></div>`;
+  const cardFaltas = `<div class="st-tile st-largo ${fP ? 'vermelho' : 'verde'}">
+      <div class="st-largo-top"><span>Faltas (total)</span><b>${fP}</b><small>${comp(nAus) || (fP ? '' : 'nenhuma')}</small></div>
+      <div class="st-sub">
+        ${sub('Sem justificativa', sjP, '#b91c1c', compC(l => n(l, 'falta')))}
+        ${sub('Justificadas', jP, '#b45309', compC(nJust), 'atestado ou declaração')}
+        ${sub('Outros', nOutroF(doPer), '#b91c1c', compC(nOutroF), '"outro" como falta')}
+        ${sub('Atrasos', nAtr(doPer), '#a16207', compC(nAtr) && hAtr ? `${fmtH(hAtr)} · ${compC(nAtr)}` : compC(nAtr), hAtr ? `${fmtH(hAtr)} no total` : 'não conta como falta')}
+      </div>
+    </div>`;
+  const tilesPer = cardFaltas + [
     tile('Presença', pPer.pct == null ? '—' : `${pPer.pct}%`, corPres(pPer.pct), pPer.b ? `${pPer.p} de ${pPer.b} dias${presAntTxt}` : 'sem registros'),
-    tile('Faltas (total)', fP, fP ? 'vermelho' : 'verde', comp(nAus) || (fP ? '' : 'nenhuma')),
-    tile('Dias trabalhados', pPer.p, '', comp(l => presencaDias(l).p) || 'no período'),
-    tile('Sem justificativa', sjP, sjP ? 'vermelho' : '', comp(l => n(l, 'falta'))),
-    tile('Justificadas', jP, jP ? 'amarelo' : '', comp(nJust) || 'atestado ou declaração'),
     tile('Férias', oP, '', comp(l => n(l, 'ferias')) || 'não conta como falta'),
-    tile('Atrasos', n(doPer, 'atraso'), n(doPer, 'atraso') ? 'amarelo' : '', comp(l => n(l, 'atraso')) || (hrs(doPer, 'atraso', 'horas') ? `${fmtH(hrs(doPer, 'atraso', 'horas'))} no total` : 'nenhum')),
     tile('Declarações', n(doPer, 'declaracao'), '', hrs(doPer, 'declaracao', 'horas') ? `${fmtH(hrs(doPer, 'declaracao', 'horas'))} · ${fmtH(hrs(doPer, 'declaracao', 'horas_abono')) || '0h'} abonadas` : 'com presença'),
-    tile('Outros', n(doPer, 'elogio'), '', comp(l => n(l, 'elogio')) || 'registros "outro"'),
   ].join('');
 
   // Últimos 6 meses: presenças, justificadas e faltas empilhadas
