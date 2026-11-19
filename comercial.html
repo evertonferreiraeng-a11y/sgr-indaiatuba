@@ -37,6 +37,61 @@
     .ms-option:hover{background:#f8fafc}
     .ms-option input{width:auto;padding:0;margin:0}
 
+    /* ── Vendas: cards ── */
+    .vd-kpis{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px;margin-bottom:16px}
+    .vd-kpi{--c:#006636;--bg:#e8f5ee;position:relative;background:#fff;border:1px solid var(--border);border-radius:14px;padding:18px 22px 18px 26px;box-shadow:0 1px 2px rgba(15,23,42,.04);overflow:hidden}
+    .vd-kpi::before{content:'';position:absolute;left:0;top:0;bottom:0;width:4px;background:var(--c)}
+    .vd-est{--c:#c2780a;--bg:#fdf3e1}
+    .vd-acum{--c:#2563eb;--bg:#e8effd}
+    .vd-kpi-top{display:flex;align-items:center;gap:10px;margin-bottom:10px}
+    .vd-ico{width:32px;height:32px;border-radius:9px;background:var(--bg);color:var(--c);display:grid;place-items:center;flex-shrink:0}
+    .vd-ico svg{width:17px;height:17px}
+    .vd-kpi-label{font-size:12px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:var(--text-muted)}
+    .vd-kpi-hint{margin-left:auto;font-size:11px;color:var(--text-muted);background:#f1f5f9;padding:2px 8px;border-radius:20px;white-space:nowrap}
+    .vd-kpi-val{font-size:28px;font-weight:800;letter-spacing:-.02em;color:var(--text);line-height:1.1;white-space:nowrap}
+    .vd-kpi-mets{display:flex;gap:0;margin-top:12px;padding-top:12px;border-top:1px solid #f1f5f9}
+    .vd-kpi-mets>div{flex:1;display:flex;flex-direction:column;gap:2px}
+    .vd-kpi-mets>div+div{padding-left:16px;border-left:1px solid #f1f5f9}
+    .vd-kpi-mets span{font-size:11px;color:var(--text-muted)}
+    .vd-kpi-mets b{font-size:14px;font-weight:700;color:var(--text)}
+    .vd-mix{display:flex;height:6px;border-radius:6px;overflow:hidden;background:#f1f5f9;margin-top:12px}
+    .vd-mix i{display:block;height:100%;transition:width .4s}
+    .vd-mix .m-fat{background:#006636}
+    .vd-mix .m-est{background:#e0a53a}
+
+    /* ── Vendas: filtros ── */
+    .vd-filtros{padding:14px 18px;border-radius:14px}
+    .vd-filtros .filters-row{align-items:flex-end}
+    .vd-filtros .form-group{margin:0}
+    .vd-filtros select,.vd-filtros input{border-radius:8px}
+    .vd-filtros #btn-filtrar{min-width:110px;height:38px}
+
+    /* ── Vendas: tabela ── */
+    .vd-tabela{border-radius:14px;overflow:hidden}
+    .vd-tabela .table-card-header{padding:16px 20px}
+    .vd-tabela h3{display:flex;align-items:center;gap:10px}
+    .vd-count{font-size:11.5px;font-weight:600;color:var(--primary);background:#e8f5ee;padding:3px 10px;border-radius:20px}
+    .vd-tabela table{font-size:13px}
+    .vd-tabela thead th{white-space:nowrap;background:#f8fafc;position:sticky;top:0;z-index:1}
+    .vd-tabela tbody td{padding-top:12px;padding-bottom:12px;vertical-align:middle}
+    .vd-tabela tbody tr{transition:background .12s}
+    .vd-tabela tbody tr:hover td{background:#f6faf8}
+    .vd-cli{font-weight:600;color:var(--text);max-width:260px}
+    .vd-data,.vd-num{color:var(--text-muted);white-space:nowrap;font-variant-numeric:tabular-nums}
+    .vd-tabela td.text-right{font-variant-numeric:tabular-nums;white-space:nowrap}
+    .vd-mat{display:inline-block;padding:3px 10px;border-radius:6px;background:#f1f5f9;color:#334155;font-size:12px;font-weight:600;white-space:nowrap}
+    .vd-qtd{font-weight:600}
+    .vd-valor{font-weight:800;color:var(--primary)}
+    .vd-desc{color:var(--danger);font-weight:600}
+    .vd-nada{color:#cbd5e1}
+    .vd-nf{font-weight:600;color:var(--text)}
+    .vd-semnf{font-size:11px;color:#94a3b8;background:#f8fafc;border:1px dashed #cbd5e1;padding:1px 7px;border-radius:5px}
+    .vd-obs span{display:inline-block;max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;vertical-align:middle}
+    .vd-acoes{white-space:nowrap}
+    .vd-acoes .btn-icon{opacity:.45;transition:opacity .12s}
+    .vd-tabela tbody tr:hover .vd-acoes .btn-icon{opacity:1}
+    @media (max-width:1100px){.vd-kpis{grid-template-columns:1fr}}
+
     /* tabelas largas rolam dentro do card em vez de alargar a página */
     .main-content{min-width:0}
     /* Análises — andamento e comparação */
@@ -85,53 +140,46 @@
       <div class="tab-pane active" id="tab-vendas">
 
       <!-- KPIs -->
-      <div class="kpi-grid" style="grid-template-columns:repeat(3,minmax(0,220px))">
-        <div class="kpi-card">
-          <div class="kpi-label">Faturamento</div>
-          <div class="kpi-value" id="kpi-fat">—</div>
-          <div style="display:flex;gap:16px;margin-top:4px;flex-wrap:wrap">
-            <div>
-              <div style="font-size:11px;color:var(--text-muted)">Volume</div>
-              <div style="font-size:13px;font-weight:600" id="kpi-fat-vol">—</div>
-            </div>
-            <div>
-              <div style="font-size:11px;color:var(--text-muted)">Ticket Médio</div>
-              <div style="font-size:13px;font-weight:600" id="kpi-fat-ticket">—</div>
-            </div>
+      <div class="vd-kpis">
+        <div class="vd-kpi vd-fat">
+          <div class="vd-kpi-top">
+            <span class="vd-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg></span>
+            <span class="vd-kpi-label">Faturamento</span>
+          </div>
+          <div class="vd-kpi-val" id="kpi-fat">—</div>
+          <div class="vd-kpi-mets">
+            <div><span>Volume</span><b id="kpi-fat-vol">—</b></div>
+            <div><span>Ticket médio</span><b id="kpi-fat-ticket">—</b></div>
           </div>
         </div>
-        <div class="kpi-card">
-          <div class="kpi-label">Estoque</div>
-          <div class="kpi-value" id="kpi-est-val">—</div>
-          <div style="display:flex;gap:16px;margin-top:4px;flex-wrap:wrap">
-            <div>
-              <div style="font-size:11px;color:var(--text-muted)">Volume</div>
-              <div style="font-size:13px;font-weight:600" id="kpi-est-vol">—</div>
-            </div>
-            <div>
-              <div style="font-size:11px;color:var(--text-muted)">Ticket Médio</div>
-              <div style="font-size:13px;font-weight:600" id="kpi-est-ticket">—</div>
-            </div>
+        <div class="vd-kpi vd-est">
+          <div class="vd-kpi-top">
+            <span class="vd-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></svg></span>
+            <span class="vd-kpi-label">Estoque</span>
+          </div>
+          <div class="vd-kpi-val" id="kpi-est-val">—</div>
+          <div class="vd-kpi-mets">
+            <div><span>Volume</span><b id="kpi-est-vol">—</b></div>
+            <div><span>Ticket médio</span><b id="kpi-est-ticket">—</b></div>
           </div>
         </div>
-        <div class="kpi-card">
-          <div class="kpi-label">Valor Acumulado</div>
-          <div class="kpi-value" id="kpi-acum-val">—</div>
-          <div style="display:flex;gap:16px;margin-top:4px;flex-wrap:wrap">
-            <div>
-              <div style="font-size:11px;color:var(--text-muted)">Volume Total</div>
-              <div style="font-size:13px;font-weight:600" id="kpi-acum-vol">—</div>
-            </div>
-            <div>
-              <div style="font-size:11px;color:var(--text-muted)">Ticket Médio</div>
-              <div style="font-size:13px;font-weight:600" id="kpi-acum-ticket">—</div>
-            </div>
+        <div class="vd-kpi vd-acum">
+          <div class="vd-kpi-top">
+            <span class="vd-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg></span>
+            <span class="vd-kpi-label">Valor acumulado</span>
+            <span class="vd-kpi-hint">faturado + estoque</span>
           </div>
+          <div class="vd-kpi-val" id="kpi-acum-val">—</div>
+          <div class="vd-kpi-mets">
+            <div><span>Volume total</span><b id="kpi-acum-vol">—</b></div>
+            <div><span>Ticket médio</span><b id="kpi-acum-ticket">—</b></div>
+          </div>
+          <div class="vd-mix" id="kpi-acum-mix" title=""><i class="m-fat"></i><i class="m-est"></i></div>
         </div>
       </div>
 
       <!-- Filtros tabela -->
-      <div class="card mb-16" style="padding:16px">
+      <div class="card mb-16 vd-filtros">
         <div class="filters-row" style="flex-wrap:wrap;gap:10px">
           <div class="form-group">
             <label>Tipo de Período</label>
@@ -154,16 +202,13 @@
       </div>
 
       <!-- Tabela -->
-      <div class="table-card">
+      <div class="table-card vd-tabela">
         <div class="table-card-header">
-          <h3>Registro de Vendas</h3>
-          <div style="display:flex;align-items:center;gap:10px">
-            <span id="vnd-count" class="text-muted" style="font-size:12px"></span>
-            <button class="btn btn-outline btn-sm" id="btn-exportar-vendas" title="Baixa as vendas filtradas no formato da planilha de comercialização">⬇ Exportar Planilha</button>
-          </div>
+          <h3>Registro de Vendas <span id="vnd-count" class="vd-count"></span></h3>
+          <button class="btn btn-outline btn-sm" id="btn-exportar-vendas" title="Baixa as vendas filtradas no formato da planilha de comercialização">⬇ Exportar Planilha</button>
         </div>
         <div class="table-scroll">
-          <table style="font-size:12px">
+          <table>
             <thead>
               <tr>
                 <th style="white-space:nowrap">Cliente</th>
@@ -614,11 +659,18 @@ async function renderKPIs() {
   document.getElementById('kpi-acum-val').textContent    = moeda(acumVal);
   document.getElementById('kpi-acum-vol').textContent    = ton(acumVol);
   document.getElementById('kpi-acum-ticket').textContent = acumVol > 0 ? moeda(acumVal/(acumVol/1000)) : '—';
+
+  // Barra do acumulado: quanto é faturado × quanto é estoque
+  const mix = document.getElementById('kpi-acum-mix');
+  const pFat = acumVal > 0 ? fat / acumVal * 100 : 0;
+  mix.querySelector('.m-fat').style.width = pFat + '%';
+  mix.querySelector('.m-est').style.width = (acumVal > 0 ? 100 - pFat : 0) + '%';
+  mix.title = acumVal > 0 ? `Faturado ${pFat.toFixed(0)}% · Estoque ${(100 - pFat).toFixed(0)}%` : '';
 }
 
 function renderTabela() {
   const isAdmin = perfil?.role === 'admin';
-  document.getElementById('vnd-count').textContent = `${vendaData.length} vendas`;
+  document.getElementById('vnd-count').textContent = `${vendaData.length} ${vendaData.length === 1 ? 'venda' : 'vendas'}`;
   const tb = document.getElementById('tb-vendas');
   if (!vendaData.length) {
     tb.innerHTML = '<tr><td colspan="14" class="table-empty">Nenhuma venda encontrada</td></tr>';
@@ -633,22 +685,23 @@ function renderTabela() {
     const precoUnit = r.preco_kg
       ? (porPeso ? moeda(r.preco_kg * 1000) : moeda(r.preco_kg))
       : '—';
+    const vazio = '<span class="vd-nada">—</span>';
     return `
     <tr>
-      <td>${r.clientes?.nome||'—'}</td>
-      <td>${dataBR(r.data)}</td>
-      <td>${r.codigo_material||'—'}</td>
-      <td>${r.materiais?.nome||'—'}</td>
-      <td class="text-right">${qtd}</td>
-      <td>${r.unidade||'—'}</td>
+      <td class="vd-cli">${r.clientes?.nome||'—'}</td>
+      <td class="vd-data">${dataBR(r.data)}</td>
+      <td class="vd-num">${r.codigo_material||vazio}</td>
+      <td><span class="vd-mat">${r.materiais?.nome||'—'}</span></td>
+      <td class="text-right vd-qtd">${qtd}</td>
+      <td class="vd-num">${r.unidade||vazio}</td>
       <td class="text-right">${precoUnit}</td>
-      <td class="text-right">${r.desconto ? moeda(r.desconto) : '—'}</td>
-      <td class="text-right fw-600">${moeda(r.valor_total||0)}</td>
-      <td class="text-right">${ticket ? moeda(ticket) : '—'}</td>
-      <td>${r.ordem_venda||'—'}</td>
-      <td>${r.nf||'—'}</td>
-      <td>${r.observacao||'—'}</td>
-      <td>
+      <td class="text-right">${r.desconto ? `<span class="vd-desc">−${moeda(r.desconto)}</span>` : vazio}</td>
+      <td class="text-right vd-valor">${moeda(r.valor_total||0)}</td>
+      <td class="text-right">${ticket ? moeda(ticket) : vazio}</td>
+      <td class="vd-num">${r.ordem_venda||vazio}</td>
+      <td class="vd-num">${r.nf ? `<span class="vd-nf">${r.nf}</span>` : '<span class="vd-semnf" title="Venda sem nota fiscal informada">sem NF</span>'}</td>
+      <td class="vd-obs">${r.observacao ? `<span title="${String(r.observacao).replace(/"/g,'&quot;')}">${r.observacao}</span>` : vazio}</td>
+      <td class="vd-acoes">
         ${isAdmin ? `
           <button class="btn-icon" onclick="editarVenda('${r.id}')">${icon('edit', { size: 15 })}</button>
           <button class="btn-icon danger" onclick="excluirVenda('${r.id}')">${icon('trash', { size: 15 })}</button>
