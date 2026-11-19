@@ -96,6 +96,26 @@
     .mt-ln i.f { background:var(--primary); } .mt-ln i.e { background:#86c5a0; }
     .mt-ln.tot { border-top:1px solid var(--primary-border); margin-top:2px; padding-top:9px; }
     .mt-ln.tot span { font-weight:700; } .mt-ln.tot b { font-size:18px; color:#b45309; }
+    .mt-barra .mk { position:absolute; top:0; bottom:0; width:2px; background:#0f172a; transform:translateX(-1px); }
+    .mt-ln i.m { background:#0f172a; width:3px; border-radius:1px; }
+    /* prensas */
+    .pr-grid { display:grid; grid-template-columns:repeat(auto-fill, minmax(170px, 1fr)); gap:10px; }
+    .pr-card { border:1px solid var(--border); border-radius:var(--radius); padding:12px 14px; background:#fff; }
+    .pr-hd { display:flex; justify-content:space-between; align-items:baseline; gap:8px; font-size:13px; }
+    .pr-pct { font-size:20px; font-weight:800; font-variant-numeric:tabular-nums; }
+    .pr-card .mt-barra { height:8px; margin-top:8px; }
+    .pr-card .mt-barra i { border-radius:999px; }
+    .pr-sub { font-size:12px; color:var(--text-muted); margin-top:6px; }
+    /* equipamentos com problema */
+    .pb-lista { display:flex; flex-direction:column; gap:8px; }
+    .pb-item { border:1px solid var(--border); border-left:4px solid #d97706; border-radius:var(--radius); padding:10px 12px; background:#fff; }
+    .pb-item.par { border-left-color:var(--danger); }
+    .pb-hd { display:flex; justify-content:space-between; align-items:center; gap:8px; font-size:13.5px; }
+    .pb-st { font-size:10.5px; font-weight:800; letter-spacing:.04em; text-transform:uppercase; padding:3px 8px; border-radius:999px; background:#fef3c7; color:#92400e; white-space:nowrap; }
+    .pb-item.par .pb-st { background:#fee2e2; color:#991b1b; }
+    .pb-prob { font-size:13px; margin-top:4px; } .pb-prob i { color:var(--text-muted); }
+    .pb-meta { font-size:12px; color:var(--text-muted); margin-top:4px; }
+    .pb-ok { border:1px dashed var(--border); border-radius:var(--radius); padding:12px; font-size:13px; color:var(--success); font-weight:600; }
     .chart-wrap { position:relative; height:280px; }
     .up { color:var(--success); } .down { color:var(--danger); } .amb-t { color:#b45309; }
 
@@ -549,10 +569,13 @@ function render(d, tarefas, fin, materiaisEst = []) {
       : { rot:'Capacidade do mês', val:`${tCap(d.capMes)} t`, sub:`${d.prensas.length} prensas${d.perdaCap > 0.5 ? ` (−${nf(d.perdaCap / 1000, 1)} t manutenção)` : ''}` },
     { rot:'Ritmo por dia útil', val:`${nf(ritmoR / 1000, 1)} t/dia`, cls: ritmoR >= d.metaDia ? 'up' : '', sub:`meta: ${nf(d.metaDia / 1000, 1)} t/dia` },
   ];
-  const porPrensaHTML = d.porPrensa.length ? `<div class="db-mini-t" style="margin-top:16px">Cada prensa: produzido × previsto até ${ddmm(d.corte)}</div>` + d.porPrensa.map(x =>
-    `<div class="hb"><span><b>${esc(x.e.frota || x.e.nome)}</b>${x.diasParado ? `<br><span class="down" style="font-size:11px">parada ${x.diasParado} dia${x.diasParado > 1 ? 's' : ''}</span>` : ''}</span>
-      <div class="trilho"><i style="width:${Math.min(100, x.pct || 0)}%;background:${corAt(x.pct)}"></i></div>
-      <span class="v"><b>${pct(x.pct, 0)}</b> · ${nf(x.prod / 1000, 1)} de ${nf(x.prev / 1000, 1)} t</span></div>`).join('') : '';
+  // Cada prensa num cartão pequeno: % do previsto em destaque, barra e toneladas
+  const porPrensaHTML = d.porPrensa.length ? `<div class="db-mini-t">Cada prensa × previsto ${d.emAndamento ? `até ${ddmm(d.corte)}` : 'no mês'}</div>
+    <div class="pr-grid">` + d.porPrensa.map(x => `<div class="pr-card">
+      <div class="pr-hd"><b>${esc(x.e.frota || x.e.nome)}</b><span class="pr-pct" style="color:${corAt(x.pct)}">${pct(x.pct, 0)}</span></div>
+      <div class="mt-barra"><i style="width:${Math.min(100, x.pct || 0)}%;background:${corAt(x.pct)}"></i></div>
+      <div class="pr-sub">${nf(x.prod / 1000, 1)} de ${nf(x.prev / 1000, 1)} t${x.diasParado ? ` · <span class="down">parada ${x.diasParado} dia${x.diasParado > 1 ? 's' : ''}</span>` : ''}</div>
+    </div>`).join('') + '</div>' : '';
 
   /* ── Equipamentos e equipe ── */
   const corDisp = v => v == null ? '' : v >= 99.5 ? 'up' : v >= 90 ? 'amb-t' : 'down';
@@ -562,14 +585,16 @@ function render(d, tarefas, fin, materiaisEst = []) {
     ['Equipe', d.colab != null ? `${d.colab} de ${d.quadro}` : '—', d.colab == null ? '' : incompleta ? 'amb-t' : 'up', d.colab != null ? `${nf(d.colab / d.quadro * 100, 0)}% do quadro previsto` : 'sem colaboradores no RH'],
     ['Vagas em aberto', d.vagas != null ? String(d.vagas) : '—', d.vagas ? 'amb-t' : 'up', d.vagas ? 'em reposição' : 'quadro completo'],
   ];
-  const probHTML = d.problemas.length ? `<div class="table-scroll"><table class="db"><thead><tr><th>Equipamento</th><th>Problema</th><th>Desde</th><th>Previsão de volta</th><th style="text-align:right">Parado no mês</th></tr></thead><tbody>` +
-    d.problemas.map(({ e, prob, desde, prev, pctPar, diasPar }) => `<tr>
-      <td><b class="${e.st === 'parado' ? 'down' : 'amb-t'}">${esc(e.nome)}</b><br><span class="sub" style="font-size:12px">${esc(e.frota || '')}${e.st === 'restricao' ? ` · com restrição${e.capacidade_pct ? ` (${e.capacidade_pct}%)` : ''}` : ' · parado'}</span></td>
-      <td>${prob ? esc(prob) : '<i class="sub">sem observação</i>'}</td>
-      <td>${desde ? ddmm(desde) : '—'}</td>
-      <td>${prev ? `<b class="${prev < hoje ? 'down' : ''}">${ddmm(prev)}</b>${prev < hoje ? ' <span class="down" style="font-size:11px">vencida</span>' : ''}` : '<i class="sub">a definir</i>'}</td>
-      <td class="n"><b class="${pctPar > 0 ? 'down' : ''}">${nf(pctPar, 0)}%</b>${diasPar ? `<br><span class="sub" style="font-size:11px">${diasPar} dia${diasPar > 1 ? 's' : ''}</span>` : ''}</td></tr>`).join('') + '</tbody></table></div>'
-    : `<div class="vazio">✓ Todos os equipamentos operando ${d.rotDisp}.</div>`;
+  // Equipamentos com problema: lista compacta (nome + situação, problema, datas numa linha só)
+  const probHTML = d.problemas.length ? '<div class="pb-lista">' + d.problemas.map(({ e, prob, desde, prev, pctPar, diasPar }) => {
+      const parado = e.st === 'parado';
+      const volta = prev ? `<b class="${prev < hoje ? 'down' : ''}">${ddmm(prev)}${prev < hoje ? ' (vencida)' : ''}</b>` : 'a definir';
+      return `<div class="pb-item ${parado ? 'par' : 'res'}">
+        <div class="pb-hd"><b>${esc(e.nome)}</b><span class="pb-st">${parado ? 'Parado' : `Com restrição${e.capacidade_pct ? ` · ${e.capacidade_pct}%` : ''}`}</span></div>
+        <div class="pb-prob">${prob ? esc(prob) : '<i>sem observação</i>'}</div>
+        <div class="pb-meta">${esc(e.frota || '')}${desde ? ` · desde ${ddmm(desde)}` : ''} · volta: ${volta}${pctPar > 0 ? ` · <span class="down">parado ${nf(pctPar, 0)}% do mês${diasPar ? ` (${diasPar} dia${diasPar > 1 ? 's' : ''})` : ''}</span>` : ''}</div>
+      </div>`; }).join('') + '</div>'
+    : `<div class="pb-ok">✓ Todos os equipamentos operando ${d.rotDisp}.</div>`;
   const voltaram = d.comParada.filter(x => x.e.st === 'operando');
 
   /* ── Rumo ao equilíbrio ── */
@@ -651,15 +676,23 @@ function render(d, tarefas, fin, materiaisEst = []) {
   }
 
   /* ══ 2. A operação está entregando? ══ */
-  const duRestP = Math.max(0, d.duPrensa - d.dpPrensa);
   const faltaCap = Math.max(0, d.capMes - d.prod);
-  const necT = duRestP > 0 ? faltaCap / duRestP : null;
-  const apertadoP = necT != null && necT > ritmoR * 1.05;
+  // Card principal no mesmo formato da meta: capacidade, barra (produzido + marca do previsto) e as parcelas
+  let cardCap = null;
+  if (d.capMes > 0) {
+    const wC = v => Math.max(0, Math.min(100, v / d.capMes * 100));
+    const lnC = (cls, rot, kg, extra = '') => `<div class="mt-ln ${extra}"><span>${cls != null ? `<i class="${cls}"></i>` : ''}${rot}</span><b>${nf(kg / 1000, 1)} t</b><em>${pct(kg / d.capMes * 100, 0)}</em></div>`;
+    const barraC = `<div class="mt-barra"><i class="f" style="width:${wC(d.prod)}%"></i>${d.emAndamento ? `<span class="mk" style="left:${wC(d.esperado)}%"></span>` : ''}</div>`;
+    const linhasC = `<div class="mt-lns">
+        ${lnC('f', d.emAndamento ? `Produzido até ${ddmm(d.corte)}` : `Produzido em ${mes}`, d.prod)}
+        ${d.emAndamento ? lnC('m', 'Previsto até hoje', d.esperado) : ''}
+        ${faltaCap > 0 ? lnC(null, d.emAndamento ? 'Falta para a capacidade' : 'Ficou abaixo da capacidade', faltaCap, 'tot') : '<div class="mt-ln tot"><span>Capacidade do mês atingida</span></div>'}
+      </div>`;
+    cardCap = { rot:'Capacidade do mês', val:`${tCap(d.capMes)} t`, dest:true, selo: noRitmo(d.emAndamento ? atEsp : atProd),
+      sub: d.perdaCap > 0.5 ? `já descontados ${nf(d.perdaCap / 1000, 1)} t de manutenção` : '', extra: barraC + linhasC };
+  }
   const cardsOper = [
-    cardsPrensa[0],
-    d.emAndamento && necT != null
-      ? { rot:'Precisa prensar por dia útil', val:`${nf(necT / 1000, 1)} t/dia`, cls: apertadoP ? 'down' : 'up', sub:`ritmo atual ${nf(ritmoR / 1000, 1)} t/dia · ${duRestP} dias úteis restantes` }
-      : cardsPrensa[2],
+    cardCap || cardsPrensa[0],
     { rot:'Equipe', val: d.colab != null ? `${d.colab} de ${d.quadro}` : '—', cls: d.colab == null ? '' : incompleta ? 'amb-t' : 'up', sub: d.vagas ? `${d.vagas} vaga${d.vagas > 1 ? 's' : ''} em reposição` : 'quadro completo' },
   ];
 
@@ -764,10 +797,13 @@ function render(d, tarefas, fin, materiaisEst = []) {
         <div><div class="chart-wrap" style="height:240px"><canvas id="c-prensa"></canvas></div></div>
         <div class="db-cards">${cardsOper.filter(Boolean).map(cardHTML).join('')}</div>
       </div>
-      <div style="margin-top:6px">${porPrensaHTML}</div>
-      <div class="db-mini-t" style="margin-top:18px">Equipamentos com problema</div>
-      ${probHTML}
-      ${voltaram.length ? `<p class="sub" style="margin-top:10px">Pararam no mês e já voltaram: ${voltaram.map(x => `${esc(nomeEq(x.e))} (${x.dias} dia${x.dias > 1 ? 's' : ''})`).join(' · ')}.</p>` : ''}
+      <div class="db-corpo" style="margin-top:18px">
+        <div>${porPrensaHTML}</div>
+        <div><div class="db-mini-t">Equipamentos com problema</div>
+          ${probHTML}
+          ${voltaram.length ? `<p class="sub" style="margin-top:8px;font-size:12px">Pararam no mês e já voltaram: ${voltaram.map(x => `${esc(nomeEq(x.e))} (${x.dias} dia${x.dias > 1 ? 's' : ''})`).join(' · ')}.</p>` : ''}
+        </div>
+      </div>
     </section>
 
     ${lucroHTML}
@@ -813,9 +849,12 @@ function graficos(d, eq) {
     { label:'Meta', data:d.mesesAno.map(mk => (d.metaMes[mk] ?? d.meta) || null), borderColor:COR.s2, backgroundColor:COR.s2, stack:'meta', ...linha },
   ] }, options:optFat });
 
-  charts.prensa = new Chart(document.getElementById('c-prensa'), { type:'bar', data:{ labels, datasets:[
-    { label:'Produção das prensas', data:d.prodMesAno.map(v => v / 1000), backgroundColor:d.mesesAno.map(mk => parcial(mk) ? COR.verdeCl : COR.verde), ...bar },
-    { label:'Capacidade', data:d.capMesAno.map(v => v / 1000), borderColor:COR.s1, backgroundColor:COR.s1, ...linha },
+  // Prensas: começa no primeiro mês com produção (mínimo 3 meses), sem a fileira de meses vazios
+  const i0 = Math.max(0, Math.min(d.prodMesAno.findIndex(v => v > 0) < 0 ? 0 : d.prodMesAno.findIndex(v => v > 0), d.mesesAno.length - 3));
+  const mesesP = d.mesesAno.slice(i0);
+  charts.prensa = new Chart(document.getElementById('c-prensa'), { type:'bar', data:{ labels:labels.slice(i0), datasets:[
+    { label:'Produção das prensas', data:d.prodMesAno.slice(i0).map(v => v / 1000), backgroundColor:mesesP.map(mk => parcial(mk) ? COR.verdeCl : COR.verde), ...bar, maxBarThickness:56 },
+    { label:'Capacidade', data:d.capMesAno.slice(i0).map(v => v / 1000), borderColor:COR.s1, backgroundColor:COR.s1, ...linha },
   ] }, options:opts(v => `${nf(v, 0)} t`) });
 
   if (eq && document.getElementById('c-equil')) {
