@@ -119,6 +119,65 @@
     .hist-empty { font-size:13px; color:#94a3b8; padding:24px 0; text-align:center; }
 
     .co-loading { padding:60px; text-align:center; color:#94a3b8; }
+
+    /* Botão do histórico */
+    .btn-hist { display:flex; align-items:center; gap:14px; width:100%; text-align:left; font:inherit; color:inherit; cursor:pointer; background:#f8fafc; border:1px dashed #cbd5e1; border-radius:14px; padding:14px 16px; transition:all .15s; }
+    .btn-hist:hover { background:#ecfdf3; border-color:#16a34a; border-style:solid; }
+    .btn-hist .ic { width:42px; height:42px; border-radius:12px; display:grid; place-items:center; background:#006636; color:#fff; flex:none; }
+    .btn-hist b { display:block; font-size:14.5px; color:#0f172a; }
+    .btn-hist span.sub { font-size:12.5px; color:#64748b; }
+    .btn-hist .seta { margin-left:auto; font-size:20px; color:#006636; }
+
+    /* Estatísticas */
+    .st-sec { font-size:11.5px; font-weight:800; letter-spacing:.06em; text-transform:uppercase; color:#94a3b8; margin:18px 0 8px; }
+    .st-tiles { display:grid; grid-template-columns:repeat(3, minmax(0,1fr)); gap:8px; }
+    @media(max-width:600px) { .st-tiles { grid-template-columns:repeat(2, minmax(0,1fr)); } }
+    .st-tile { background:#f8fafc; border:1px solid #eef2f6; border-radius:12px; padding:10px 12px; min-width:0; }
+    .st-tile span { display:block; font-size:12px; font-weight:600; color:#64748b; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+    .st-tile b { display:block; font-size:20px; font-weight:800; color:#0f172a; line-height:1.2; margin-top:2px; white-space:nowrap; }
+    .st-tile small { font-size:11.5px; color:#94a3b8; font-weight:500; }
+    .st-tile.verde { background:#f0fdf4; border-color:#bbf7d0; } .st-tile.verde b { color:#15803d; }
+    .st-tile.vermelho { background:#fef2f2; border-color:#fecaca; } .st-tile.vermelho b { color:#b91c1c; }
+    .st-tile.amarelo { background:#fffbeb; border-color:#fde68a; } .st-tile.amarelo b { color:#b45309; }
+    .st-graf { display:grid; grid-template-columns:minmax(0,1.3fr) minmax(0,1fr); gap:10px; }
+    @media(max-width:700px) { .st-graf { grid-template-columns:1fr; } }
+    .st-box { background:#fff; border:1px solid #eef2f6; border-radius:12px; padding:12px 14px; min-width:0; }
+    .st-box h4 { margin:0 0 10px; font-size:12.5px; font-weight:700; color:#334155; }
+    .st-barras { display:flex; align-items:flex-end; gap:6px; height:110px; }
+    .st-barras > div { flex:1; min-width:0; height:100%; display:flex; flex-direction:column; justify-content:flex-end; align-items:center; gap:4px; }
+    .st-pilha { width:100%; max-width:34px; display:flex; flex-direction:column-reverse; border-radius:6px 6px 2px 2px; overflow:hidden; background:#f1f5f9; min-height:3px; }
+    .st-pilha i { display:block; width:100%; }
+    .st-barras em { font-style:normal; font-size:11px; font-weight:800; color:#334155; line-height:1; }
+    .st-barras span { font-size:10.5px; color:#94a3b8; font-weight:600; }
+    .st-leg { display:flex; gap:12px; margin-top:8px; font-size:11.5px; color:#64748b; }
+    .st-leg i { display:inline-block; width:8px; height:8px; border-radius:2px; margin-right:4px; }
+    .st-dias { display:flex; flex-direction:column; gap:6px; }
+    .st-dia { display:grid; grid-template-columns:34px 1fr 22px; align-items:center; gap:8px; font-size:12px; color:#475569; font-weight:600; }
+    .st-dia .tr { height:10px; background:#f1f5f9; border-radius:999px; overflow:hidden; }
+    .st-dia .tr i { display:block; height:100%; background:#f87171; border-radius:999px; }
+    .st-dia b { text-align:right; color:#0f172a; }
+    .st-aval { display:flex; flex-direction:column; gap:6px; }
+    .st-aval-row { display:flex; align-items:center; gap:10px; font-size:12.5px; }
+    .st-aval-row span { width:74px; color:#64748b; }
+    .st-aval-row .tr { flex:1; height:8px; background:#f1f5f9; border-radius:999px; overflow:hidden; }
+    .st-aval-row .tr i { display:block; height:100%; border-radius:999px; }
+    .st-aval-row b { width:30px; text-align:right; }
+    .st-vazio { font-size:12.5px; color:#94a3b8; padding:6px 0; }
+
+    /* Modal do histórico */
+    #modal-hist .modal { max-width:980px; width:calc(100% - 32px); }
+    .mh-filtros { display:flex; gap:12px; flex-wrap:wrap; align-items:flex-end; margin-bottom:12px; }
+    .mh-filtros .form-group { min-width:140px; }
+    .mh-resumo { display:flex; gap:8px; flex-wrap:wrap; margin-bottom:12px; padding:10px 12px; background:#f8fafc; border-radius:12px; }
+    .mh-resumo span { font-size:12.5px; font-weight:700; padding:3px 10px; border-radius:999px; }
+    #modal-hist .hist-lista { max-height:min(60vh, 620px); }
+    @media print {
+      body.imprimindo-hist .app-layout, body.imprimindo-hist #modal-oc, body.imprimindo-hist .modal-header .modal-close, body.imprimindo-hist .modal-footer, body.imprimindo-hist .mh-filtros, body.imprimindo-hist .hist-acoes, body.imprimindo-hist #ajuda-btn, body.imprimindo-hist .sidebar-toggle { display:none !important; }
+      body.imprimindo-hist #modal-hist { position:static !important; background:none !important; display:block !important; }
+      body.imprimindo-hist #modal-hist .modal { max-width:none; width:100%; box-shadow:none; max-height:none; }
+      body.imprimindo-hist #modal-hist .hist-lista { max-height:none; overflow:visible; }
+      body.imprimindo-hist .modal-body { overflow:visible !important; max-height:none !important; }
+    }
   </style>
 </head>
 <body>
@@ -133,6 +192,46 @@
       <div id="co-content">
         <div class="co-loading">Carregando…</div>
       </div>
+    </div>
+  </div>
+</div>
+
+<!-- Modal: Histórico (para conferir com o cartão ponto) -->
+<div class="modal-backdrop" id="modal-hist">
+  <div class="modal">
+    <div class="modal-header">
+      <h3 id="modal-hist-title">Histórico de ocorrências</h3>
+      <button class="modal-close" data-close="modal-hist">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="mh-filtros">
+        <div class="form-group"><label>De</label><input type="date" id="h-ini" /></div>
+        <div class="form-group"><label>Até</label><input type="date" id="h-fim" /></div>
+        <div class="form-group"><label>Tipo</label>
+          <select id="h-tipo">
+            <option value="">Todos</option>
+            <option value="falta">Falta injustificada</option>
+            <option value="atestado">Justificada</option>
+            <option value="outro">Presente</option>
+            <option value="advertencia">Advertência</option>
+            <option value="elogio">Outro</option>
+          </select>
+        </div>
+        <div class="form-group" style="min-width:auto"><label>&nbsp;</label>
+          <div class="co-quick" id="h-quick">
+            <button type="button" data-q="mes">Este mês</button>
+            <button type="button" data-q="mes-passado">Mês passado</button>
+            <button type="button" data-q="ano">Este ano</button>
+            <button type="button" data-q="tudo">Tudo</button>
+          </div>
+        </div>
+      </div>
+      <div class="mh-resumo" id="h-resumo"></div>
+      <div class="hist-lista" id="hist-lista"></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-outline" id="btn-imprimir-hist" style="margin-right:auto">Imprimir para conferência</button>
+      <button class="btn btn-primary" data-close="modal-hist">Fechar</button>
     </div>
   </div>
 </div>
@@ -214,7 +313,7 @@ const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({ '&':'&amp;', '<':'&l
 const hojeISO = () => { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`; };
 const fimDoMesISO = (y, m) => { const d = new Date(y, m, 0); return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`; };
 
-let perfil, colaborador, cargoNome = '', notaMedia = null, ocColab = [];
+let perfil, colaborador, cargoNome = '', notaMedia = null, ocColab = [], avalsColab = [];
 let calYear, calMonth; // calMonth 0-indexed
 let quickAtivo = '';
 let temCampoObs = true;
@@ -239,6 +338,7 @@ async function init() {
     cargoNome = cg?.nome || '';
   }
   const { data: avals } = await supabase.from('colaborador_avaliacoes').select('*').eq('colaborador_id', colabId);
+  avalsColab = avals || [];
   const medias = (avals || []).map(a => { const n = CRITERIOS.map(k => parseFloat(a[k]) || 0).filter(v => v > 0); return n.length ? n.reduce((s, v) => s + v, 0) / n.length : null; }).filter(v => v !== null);
   notaMedia = medias.length ? medias.reduce((s, v) => s + v, 0) / medias.length : null;
 
@@ -302,16 +402,6 @@ function montarLayout() {
     <div class="co-filters">
       <div class="form-group"><label>De</label><input type="date" id="f-ini" /></div>
       <div class="form-group"><label>Até</label><input type="date" id="f-fim" /></div>
-      <div class="form-group"><label>Tipo</label>
-        <select id="f-tipo">
-          <option value="">Todos</option>
-          <option value="falta">Falta injustificada</option>
-          <option value="atestado">Justificada</option>
-          <option value="outro">Presente</option>
-          <option value="advertencia">Advertência</option>
-          <option value="elogio">Outro</option>
-        </select>
-      </div>
       <div class="form-group" style="min-width:auto">
         <label>&nbsp;</label>
         <div class="co-quick">
@@ -351,11 +441,12 @@ function montarLayout() {
       </div>
 
       <div class="co-card">
-        <div class="co-card-hd">
-          <h3><span class="ic">${icon('list',{size:16})}</span>Histórico</h3>
-          <span class="meta" id="hist-count"></span>
-        </div>
-        <div class="hist-lista" id="hist-lista"></div>
+        <button type="button" class="btn-hist" id="btn-abrir-hist">
+          <span class="ic">${icon('list',{size:20})}</span>
+          <span><b>Abrir histórico de ocorrências</b><span class="sub" id="hist-count">Para conferir com o cartão ponto, com filtro de período</span></span>
+          <span class="seta">→</span>
+        </button>
+        <div id="co-stats"></div>
       </div>
     </div>
   `;
@@ -364,8 +455,15 @@ function montarLayout() {
   document.getElementById('cal-next').addEventListener('click', () => { moverMes(1); });
   document.getElementById('f-ini').addEventListener('change', () => { quickAtivo=''; marcarQuick(); renderTudoFiltrado(); });
   document.getElementById('f-fim').addEventListener('change', () => { quickAtivo=''; marcarQuick(); renderTudoFiltrado(); });
-  document.getElementById('f-tipo').addEventListener('change', renderTudoFiltrado);
-  document.querySelectorAll('.co-quick [data-q]').forEach(b => b.addEventListener('click', () => setQuick(b.dataset.q)));
+  document.querySelectorAll('.co-filters .co-quick [data-q]').forEach(b => b.addEventListener('click', () => setQuick(b.dataset.q)));
+  document.getElementById('btn-abrir-hist').addEventListener('click', () => abrirHistorico());
+  ['h-ini','h-fim'].forEach(id => document.getElementById(id).addEventListener('change', () => { marcarQuickH(''); renderHistorico(); }));
+  document.getElementById('h-tipo').addEventListener('change', renderHistorico);
+  document.querySelectorAll('#h-quick [data-q]').forEach(b => b.addEventListener('click', () => setQuickH(b.dataset.q)));
+  document.getElementById('btn-imprimir-hist').addEventListener('click', () => {
+    document.body.classList.add('imprimindo-hist');
+    setTimeout(() => { window.print(); document.body.classList.remove('imprimindo-hist'); }, 50);
+  });
   document.getElementById('btn-nova-oc')?.addEventListener('click', () => abrirNovaOc(hojeISO()));
 
   document.querySelectorAll('[data-close]').forEach(btn => btn.addEventListener('click', () => fecharModal(btn.dataset.close)));
@@ -444,32 +542,45 @@ function moverMes(delta) {
 }
 
 function marcarQuick() {
-  document.querySelectorAll('.co-quick [data-q]').forEach(b => b.classList.toggle('active', b.dataset.q === quickAtivo));
+  document.querySelectorAll('.co-filters .co-quick [data-q]').forEach(b => b.classList.toggle('active', b.dataset.q === quickAtivo));
+}
+
+// Período dos atalhos (Este mês, Mês passado, Este ano, Tudo)
+function periodoQuick(q) {
+  const hoje = new Date();
+  const pad = n => String(n).padStart(2,'0');
+  const fmt = (y,m,d) => `${y}-${pad(m)}-${pad(d)}`;
+  if (q === 'mes') return [fmt(hoje.getFullYear(), hoje.getMonth()+1, 1), fimDoMesISO(hoje.getFullYear(), hoje.getMonth()+1)];
+  if (q === 'mes-passado') { const mp = new Date(hoje.getFullYear(), hoje.getMonth()-1, 1); return [fmt(mp.getFullYear(), mp.getMonth()+1, 1), fimDoMesISO(mp.getFullYear(), mp.getMonth()+1)]; }
+  if (q === 'ano') return [fmt(hoje.getFullYear(), 1, 1), fmt(hoje.getFullYear(), 12, 31)];
+  return ['', ''];
 }
 
 function setQuick(q) {
   quickAtivo = q;
   marcarQuick();
-  const hoje = new Date();
-  const pad = n => String(n).padStart(2,'0');
-  const fmt = (y,m,d) => `${y}-${pad(m)}-${pad(d)}`;
-  const fIni = document.getElementById('f-ini');
-  const fFim = document.getElementById('f-fim');
-  if (q === 'mes') {
-    fIni.value = fmt(hoje.getFullYear(), hoje.getMonth()+1, 1);
-    fFim.value = fimDoMesISO(hoje.getFullYear(), hoje.getMonth()+1);
-  } else if (q === 'mes-passado') {
-    const mp = new Date(hoje.getFullYear(), hoje.getMonth()-1, 1);
-    fIni.value = fmt(mp.getFullYear(), mp.getMonth()+1, 1);
-    fFim.value = fimDoMesISO(mp.getFullYear(), mp.getMonth()+1);
-  } else if (q === 'ano') {
-    fIni.value = fmt(hoje.getFullYear(), 1, 1);
-    fFim.value = fmt(hoje.getFullYear(), 12, 31);
-  } else if (q === 'tudo') {
-    fIni.value = '';
-    fFim.value = '';
-  }
+  [document.getElementById('f-ini').value, document.getElementById('f-fim').value] = periodoQuick(q);
   renderTudoFiltrado();
+}
+
+// ── Tela do histórico ────────────────────────────────────────────────────────
+function marcarQuickH(q) {
+  document.querySelectorAll('#h-quick [data-q]').forEach(b => b.classList.toggle('active', b.dataset.q === q));
+}
+function setQuickH(q) {
+  marcarQuickH(q);
+  [document.getElementById('h-ini').value, document.getElementById('h-fim').value] = periodoQuick(q);
+  renderHistorico();
+}
+// Abre com o mesmo período do topo da tela (e, se vier, já filtrado por um tipo)
+function abrirHistorico(tipo = '') {
+  document.getElementById('h-ini').value = document.getElementById('f-ini').value;
+  document.getElementById('h-fim').value = document.getElementById('f-fim').value;
+  document.getElementById('h-tipo').value = tipo;
+  marcarQuickH(quickAtivo);
+  document.getElementById('modal-hist-title').textContent = `Histórico de ocorrências · ${colaborador.nome}`;
+  renderHistorico();
+  abrirModal('modal-hist');
 }
 
 async function carregarOcorrencias() {
@@ -478,6 +589,81 @@ async function carregarOcorrencias() {
   ocColab = data || [];
   renderCalendario();
   renderTudoFiltrado();
+  renderEstatisticas();
+}
+
+// ── Estatísticas do colaborador ──────────────────────────────────────────────
+function renderEstatisticas() {
+  const el = document.getElementById('co-stats'); if (!el) return;
+  const hoje = hojeISO(), ano = hoje.slice(0, 4);
+  const doAno = ocColab.filter(o => o.data.startsWith(ano) && o.data <= hoje);
+  const n = (lista, t) => lista.filter(o => o.tipo === t).length;
+  const baseAno = n(doAno, 'outro') + n(doAno, 'falta') + n(doAno, 'atestado');
+  const presAno = baseAno ? Math.round(n(doAno, 'outro') / baseAno * 100) : null;
+  const faltasAno = n(doAno, 'falta'), justAno = n(doAno, 'atestado'), advAno = n(doAno, 'advertencia');
+  // Última falta e dias desde então
+  const ultFalta = ocColab.filter(o => o.tipo === 'falta' && o.data <= hoje).map(o => o.data).sort().pop();
+  const diasDesde = dt => Math.round((new Date(hoje + 'T00:00:00') - new Date(dt + 'T00:00:00')) / 86400000);
+  const ref = ultFalta || colaborador.data_admissao;
+  const semFaltar = ref ? diasDesde(ref) : null;
+  // Média mensal de faltas desde a admissão (ou desde o 1º registro)
+  const ini = colaborador.data_admissao || ocColab.map(o => o.data).sort()[0];
+  const mesesCasa = ini ? Math.max(1, (new Date().getFullYear() - +ini.slice(0, 4)) * 12 + (new Date().getMonth() + 1 - +ini.slice(5, 7)) + 1) : null;
+  const faltasTot = n(ocColab, 'falta');
+  const mediaMes = mesesCasa ? faltasTot / mesesCasa : null;
+
+  const tile = (rot, val, cls = '', sub = '') => `<div class="st-tile ${cls}"><span>${rot}</span><b>${val}</b>${sub ? `<small>${sub}</small>` : ''}</div>`;
+  const tiles = [
+    tile(`Presença em ${ano}`, presAno == null ? '—' : `${presAno}%`, presAno == null ? '' : presAno >= 95 ? 'verde' : presAno >= 85 ? 'amarelo' : 'vermelho', baseAno ? `${n(doAno, 'outro')} de ${baseAno} dias` : 'sem registros'),
+    tile(`Faltas em ${ano}`, faltasAno, faltasAno ? 'vermelho' : 'verde', `${justAno} justificada${justAno === 1 ? '' : 's'}`),
+    tile(`Advertências em ${ano}`, advAno, advAno ? 'vermelho' : 'verde', advAno ? '' : 'nenhuma'),
+    tile(ultFalta ? 'Dias sem faltar' : 'Sem faltas desde a admissão', semFaltar == null ? '—' : `${semFaltar}`, semFaltar == null ? '' : semFaltar >= 30 ? 'verde' : semFaltar >= 7 ? 'amarelo' : 'vermelho', ultFalta ? `última falta em ${dataBR(ultFalta)}` : 'dias corridos'),
+    tile('Média de faltas', mediaMes == null ? '—' : mediaMes.toFixed(1).replace('.', ','), '', 'por mês desde a admissão'),
+    tile('Total de registros', ocColab.length, '', `${faltasTot} falta${faltasTot === 1 ? '' : 's'} no total`),
+  ].join('');
+
+  // Últimos 6 meses: presenças, justificadas e faltas empilhadas
+  const meses = [];
+  for (let i = 5; i >= 0; i--) { const d = new Date(); d.setDate(1); d.setMonth(d.getMonth() - i); meses.push(`${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`); }
+  const porMes = meses.map(k => { const l = ocColab.filter(o => o.data.startsWith(k)); return { k, p: n(l, 'outro'), j: n(l, 'atestado'), f: n(l, 'falta') }; });
+  const maxM = Math.max(1, ...porMes.map(m => m.p + m.j + m.f));
+  const MES_AB = ['jan','fev','mar','abr','mai','jun','jul','ago','set','out','nov','dez'];
+  const barras = porMes.map(m => {
+    const tot = m.p + m.j + m.f, h = tot / maxM * 88;
+    const seg = (v, c) => v ? `<i style="height:${v / tot * 100}%;background:${c}"></i>` : '';
+    return `<div title="${MES_AB[+m.k.slice(5) - 1]}: ${m.p} presenças, ${m.j} justificadas, ${m.f} faltas">
+      <em>${m.f ? `<span style="color:#dc2626">${m.f}</span>` : ''}</em>
+      <div class="st-pilha" style="height:${Math.max(3, h)}px">${seg(m.p, '#4ade80')}${seg(m.j, '#fbbf24')}${seg(m.f, '#ef4444')}</div>
+      <span>${MES_AB[+m.k.slice(5) - 1]}</span></div>`;
+  }).join('');
+
+  // Faltas e justificadas por dia da semana (seg a sáb)
+  const ausencias = ocColab.filter(o => o.tipo === 'falta' || o.tipo === 'atestado');
+  const porDia = [1, 2, 3, 4, 5, 6].map(w => ({ w, v: ausencias.filter(o => new Date(o.data + 'T00:00:00').getDay() === w).length }));
+  const maxD = Math.max(1, ...porDia.map(x => x.v));
+  const dias = ausencias.length ? porDia.map(x => `<div class="st-dia"><span>${DIAS_AB[x.w]}</span><div class="tr"><i style="width:${x.v / maxD * 100}%"></i></div><b>${x.v}</b></div>`).join('')
+    : '<div class="st-vazio">Nenhuma falta ou justificada registrada.</div>';
+
+  // Avaliações: média por critério
+  const ROT = { relacionamento:'Relacion.', responsabilidade:'Respons.', cooperacao:'Cooperação', conhecimento_trabalho:'Conhecim.', interesse:'Interesse', atitude_profissional:'Atitude', produtividade:'Produtiv.' };
+  const corNota = v => v >= 7 ? '#22c55e' : v >= 5 ? '#f59e0b' : '#ef4444';
+  const crit = CRITERIOS.map(k => { const vs = avalsColab.map(a => parseFloat(a[k]) || 0).filter(v => v > 0); return { k, v: vs.length ? vs.reduce((s, x) => s + x, 0) / vs.length : null }; }).filter(x => x.v != null);
+  const ultAval = avalsColab.map(a => a.data_avaliacao).filter(Boolean).sort().pop();
+  const avalHTML = crit.length ? `<div class="st-aval">${crit.map(x => `<div class="st-aval-row"><span>${ROT[x.k]}</span><div class="tr"><i style="width:${x.v * 10}%;background:${corNota(x.v)}"></i></div><b style="color:${corNota(x.v)}">${x.v.toFixed(1)}</b></div>`).join('')}</div>
+      <div class="st-leg" style="margin-top:10px">${avalsColab.length} avaliaç${avalsColab.length === 1 ? 'ão' : 'ões'}${ultAval ? ` · última em ${dataBR(ultAval)}` : ''}</div>`
+    : '<div class="st-vazio">Nenhuma avaliação registrada.</div>';
+
+  el.innerHTML = `
+    <div class="st-sec">Estatísticas</div>
+    <div class="st-tiles">${tiles}</div>
+    <div class="st-sec">Últimos 6 meses</div>
+    <div class="st-graf">
+      <div class="st-box"><h4>Presenças e ausências por mês</h4><div class="st-barras">${barras}</div>
+        <div class="st-leg"><span><i style="background:#4ade80"></i>Presente</span><span><i style="background:#fbbf24"></i>Justificada</span><span><i style="background:#ef4444"></i>Falta</span></div></div>
+      <div class="st-box"><h4>Ausências por dia da semana</h4><div class="st-dias">${dias}</div></div>
+    </div>
+    <div class="st-sec">Avaliação de desempenho</div>
+    <div class="st-box">${avalHTML}</div>`;
 }
 
 function renderTudoFiltrado() {
@@ -485,10 +671,11 @@ function renderTudoFiltrado() {
   renderHistorico();
 }
 
-function ocFiltradas(semTipo = false) {
-  const ini  = document.getElementById('f-ini').value;
-  const fim  = document.getElementById('f-fim').value;
-  const tipo = semTipo ? '' : document.getElementById('f-tipo').value;
+function ocFiltradas(doHistorico = false) {
+  const p = doHistorico ? 'h' : 'f';
+  const ini  = document.getElementById(`${p}-ini`).value;
+  const fim  = document.getElementById(`${p}-fim`).value;
+  const tipo = doHistorico ? document.getElementById('h-tipo').value : '';
   return ocColab.filter(o => {
     if (ini && o.data < ini) return false;
     if (fim && o.data > fim) return false;
@@ -498,9 +685,9 @@ function ocFiltradas(semTipo = false) {
 }
 
 function renderKPIs() {
-  const lista = ocFiltradas(true);
+  const lista = ocFiltradas();
   const count = tipo => lista.filter(o => o.tipo === tipo).length;
-  const tipoSel = document.getElementById('f-tipo').value;
+  const tipoSel = '';
   const kpis = [
     { t:'falta',       val: count('falta'),       lbl: 'Falta injustificada', cor:'#dc2626', bg:'#fee2e2', ic:'x-circle' },
     { t:'atestado',    val: count('atestado'),    lbl: 'Justificada',         cor:'#d97706', bg:'#fef3c7', ic:'file' },
@@ -508,9 +695,9 @@ function renderKPIs() {
     { t:'advertencia', val: count('advertencia'), lbl: 'Advertência',         cor:'#e11d48', bg:'#ffe4e6', ic:'alert-triangle' },
     { t:'elogio',      val: count('elogio'),      lbl: 'Outro',               cor:'#64748b', bg:'#f1f5f9', ic:'list' },
   ];
-  // Clicar num contador filtra o histórico por aquele tipo (clicar de novo tira o filtro)
+  // Clicar num contador abre o histórico já filtrado por aquele tipo
   document.getElementById('co-kpis').innerHTML = kpis.map(k =>
-    `<button type="button" class="co-kpi ${tipoSel === k.t ? 'on' : ''}" style="--c:${k.cor};--bg:${k.bg}" onclick="window._filtrarTipo('${k.t}')" title="Filtrar o histórico por ${k.lbl.toLowerCase()}">
+    `<button type="button" class="co-kpi ${tipoSel === k.t ? 'on' : ''}" style="--c:${k.cor};--bg:${k.bg}" onclick="window._filtrarTipo('${k.t}')" title="Ver as ocorrências de ${k.lbl.toLowerCase()} no histórico">
       <span class="co-kpi-ic">${icon(k.ic,{size:18})}</span>
       <span><div class="val">${k.val}</div><div class="lbl">${k.lbl}</div></span>
     </button>`
@@ -520,16 +707,17 @@ function renderKPIs() {
   const el = document.getElementById('co-pres');
   if (el) el.innerHTML = base ? `${Math.round(count('outro') / base * 100)}<small>%</small>` : '—';
 }
-window._filtrarTipo = t => {
-  const sel = document.getElementById('f-tipo');
-  sel.value = sel.value === t ? '' : t;
-  renderTudoFiltrado();
-};
+window._filtrarTipo = t => abrirHistorico(t);
 
 function renderHistorico() {
-  const lista = ocFiltradas();
+  const lista = ocFiltradas(true);
   const isAdm = perfil?.role === 'admin';
-  document.getElementById('hist-count').textContent = lista.length ? `${lista.length} registro${lista.length === 1 ? '' : 's'}` : '';
+  const nTop = ocFiltradas().length;
+  document.getElementById('hist-count').textContent = `${nTop} registro${nTop === 1 ? '' : 's'} no período · para conferir com o cartão ponto`;
+  // Resumo do que está filtrado na tela do histórico
+  const cnt = t => lista.filter(o => o.tipo === t).length;
+  document.getElementById('h-resumo').innerHTML = `<span style="background:#e2e8f0;color:#334155">${lista.length} registro${lista.length === 1 ? '' : 's'}</span>`
+    + ['outro','falta','atestado','advertencia','elogio'].filter(t => cnt(t)).map(t => `<span style="${TIPO_COR[t]}">${cnt(t)} ${TIPO_LABEL[t].toLowerCase()}</span>`).join('');
   if (!lista.length) { document.getElementById('hist-lista').innerHTML = '<p class="hist-empty">Nenhuma ocorrência no período selecionado.</p>'; return; }
   // Agrupa por mês
   const grupos = [];
