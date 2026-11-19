@@ -103,6 +103,49 @@
     .vd-excluir-resumo div{display:flex;justify-content:space-between;gap:12px;font-size:13px}
     .vd-excluir-resumo span{color:var(--text-muted)}
     .vd-excluir-resumo b{text-align:right}
+    /* ── Formulário de venda ── */
+    .vf-modal{max-width:640px}
+    .vf-modal .modal-header{align-items:flex-start}
+    .vf-sub{font-size:11.5px;color:var(--text-muted);margin-top:2px;font-weight:400}
+    .vf-modal .modal-body{padding:6px 24px 10px;background:#fafbfc}
+    .vf-sec{background:#fff;border:1px solid var(--border);border-radius:12px;padding:14px 16px 4px;margin-top:12px}
+    .vf-sec-tit{display:flex;align-items:center;gap:8px;font-size:12px;font-weight:800;letter-spacing:.04em;text-transform:uppercase;color:#334155;margin-bottom:10px}
+    .vf-n{width:20px;height:20px;border-radius:50%;background:#e8f5ee;color:var(--primary);display:grid;place-items:center;font-size:11px;font-weight:800}
+    .vf-opc{margin-left:4px;font-size:10.5px;font-weight:600;text-transform:none;letter-spacing:0;color:var(--text-muted);background:#f1f5f9;padding:1px 8px;border-radius:10px}
+    .vf-grid{display:grid;grid-template-columns:1fr 1fr;gap:0 14px}
+    .vf-g-cli{grid-template-columns:1.6fr 1fr}
+    .vf-g-3{grid-template-columns:1fr 1.2fr 1fr}
+    .vf-full{grid-column:1/-1}
+    .vf-sec .form-group{margin-bottom:12px}
+    .vf-cli{display:flex;gap:6px}
+    .vf-cli select{flex:1;min-width:0}
+    .vf-cli .btn{padding:0 12px;white-space:nowrap;font-size:12.5px}
+    .vf-inp{display:flex;align-items:center;border:1.5px solid var(--border);border-radius:8px;background:#fff;transition:border-color .12s,box-shadow .12s}
+    .vf-inp:focus-within{border-color:var(--primary);box-shadow:0 0 0 3px rgba(0,102,54,.1)}
+    .vf-inp input{border:none!important;box-shadow:none!important;background:transparent;flex:1;min-width:0;padding-left:10px;padding-right:6px}
+    .vf-inp input:focus{outline:none}
+    .vf-pre,.vf-suf{font-size:12.5px;font-weight:600;color:#94a3b8;white-space:nowrap}
+    .vf-pre{padding-left:10px}
+    .vf-pre+input{padding-left:6px}
+    .vf-suf{padding-right:10px}
+    .vf-seg{display:flex;background:#f1f5f9;border-radius:9px;padding:3px;gap:3px}
+    .vf-seg button{flex:1;border:none;background:none;border-radius:7px;padding:8px 6px;font:inherit;font-size:13px;font-weight:600;color:#64748b;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:7px;transition:.12s}
+    .vf-seg button:hover{color:var(--text)}
+    .vf-seg button.on{background:#fff;color:var(--text);box-shadow:0 1px 3px rgba(15,23,42,.14)}
+    .acd{width:9px;height:9px;border-radius:50%;display:inline-block}
+    .acd-p{background:#7c3aed}.acd-g{background:#f59e0b}
+    .vf-oculto{position:absolute!important;width:1px!important;height:1px!important;opacity:0;pointer-events:none}
+    .vf-oculto-lbl{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}
+    .vf-sec .vd-preco-ref{margin:-4px 0 10px}
+    .vf-total{display:flex;align-items:center;justify-content:space-between;gap:16px;background:linear-gradient(135deg,#f0faf4,#e6f4ec);border:1px solid #bfe3cc;border-radius:10px;padding:12px 14px;margin:2px 0 12px}
+    .vf-total-rot{font-size:11.5px;font-weight:800;letter-spacing:.04em;text-transform:uppercase;color:var(--primary)}
+    .vf-total-conta{font-size:12px;color:#4b6355;margin-top:3px}
+    .vf-total-conta.aj{color:#92400e}
+    .vf-total-campo{margin:0!important;width:200px;flex-shrink:0}
+    .vf-inp-total{border-color:#9fd4b3;background:#fff}
+    .vf-inp-total input{font-size:20px;font-weight:800;color:var(--primary);text-align:right;padding:8px 12px 8px 4px}
+    .vf-inp-total .vf-pre{font-size:14px;color:var(--primary)}
+    @media (max-width:640px){.vf-grid,.vf-g-cli,.vf-g-3{grid-template-columns:1fr}.vf-total{flex-direction:column;align-items:stretch}.vf-total-campo{width:auto}}
     @media (max-width:1100px){.vd-kpis{grid-template-columns:1fr}}
 
     /* tabelas largas rolam dentro do card em vez de alargar a página */
@@ -427,39 +470,88 @@
 
 <!-- Modal: Nova / Editar Venda -->
 <div class="modal-backdrop" id="modal-venda">
-  <div class="modal">
+  <div class="modal vf-modal">
     <div class="modal-header">
-      <h3 id="modal-venda-title">Nova Venda</h3>
+      <div>
+        <h3 id="modal-venda-title">Nova Venda</h3>
+        <div class="vf-sub">Campos com * são obrigatórios</div>
+      </div>
       <button class="modal-close" data-close="modal-venda">✕</button>
     </div>
     <div class="modal-body">
       <form id="form-venda">
         <input type="hidden" name="id" />
-        <div class="form-grid">
-          <div class="form-group"><label>Cliente *</label>
-            <div style="display:flex;gap:6px">
-              <select name="cliente_id" required style="flex:1"><option value="">Selecione…</option></select>
-              <button type="button" class="btn btn-outline" id="btn-novo-cliente-venda" title="Cadastrar novo cliente" style="padding:0 12px">+</button>
+        <input type="hidden" name="codigo_material" /><!-- mantido oculto: guarda o código vindo da importação ao editar -->
+        <input type="hidden" name="unidade" /><!-- vendas novas: sempre toneladas; guarda a unidade de vendas antigas (UN…) ao editar -->
+
+        <!-- 1. Comprador -->
+        <div class="vf-sec">
+          <div class="vf-sec-tit"><span class="vf-n">1</span> Comprador</div>
+          <div class="vf-grid vf-g-cli">
+            <div class="form-group"><label>Cliente *</label>
+              <div class="vf-cli">
+                <select name="cliente_id" required><option value="">Selecione…</option></select>
+                <button type="button" class="btn btn-outline" id="btn-novo-cliente-venda" title="Cadastrar novo cliente">+ Novo</button>
+              </div>
+            </div>
+            <div class="form-group"><label>Data *</label><input type="date" name="data" required /></div>
+          </div>
+        </div>
+
+        <!-- 2. Material -->
+        <div class="vf-sec">
+          <div class="vf-sec-tit"><span class="vf-n">2</span> Material</div>
+          <div class="vf-grid">
+            <div class="form-group"><label>Tipo de Material *</label><select name="material_id" required><option value="">Selecione…</option></select></div>
+            <div class="form-group"><label>Acondicionamento</label>
+              <div class="vf-seg" id="vf-acond" role="radiogroup">
+                <button type="button" data-v="prensa"><i class="acd acd-p"></i>Prensado</button>
+                <button type="button" data-v="granel"><i class="acd acd-g"></i>A granel</button>
+              </div>
+              <select name="acondicionamento" class="vf-oculto" tabindex="-1" aria-hidden="true">
+                <option value="">Selecione…</option>
+                <option value="prensa">Prensado</option>
+                <option value="granel">A Granel</option>
+              </select>
             </div>
           </div>
-          <div class="form-group"><label>Data *</label><input type="date" name="data" required /></div>
-          <input type="hidden" name="codigo_material" /><!-- mantido oculto: guarda o código vindo da importação ao editar -->
-          <div class="form-group"><label>Tipo de Material *</label><select name="material_id" required><option value="">Selecione…</option></select></div>
-          <div class="form-group"><label>Acondicionamento</label>
-            <select name="acondicionamento">
-              <option value="">Selecione…</option>
-              <option value="prensa">Prensado</option>
-              <option value="granel">A Granel</option>
-            </select>
+        </div>
+
+        <!-- 3. Valores -->
+        <div class="vf-sec">
+          <div class="vf-sec-tit"><span class="vf-n">3</span> Quantidade e preço</div>
+          <div class="vf-grid vf-g-3">
+            <div class="form-group"><label id="lbl-qtd">Quantidade (t) *</label>
+              <div class="vf-inp"><input type="number" name="peso_kg" min="0.001" step="any" required placeholder="0,000" /><span class="vf-suf" id="suf-qtd">t</span></div>
+            </div>
+            <div class="form-group"><label id="lbl-preco">Preço (R$/t)</label>
+              <div class="vf-inp"><span class="vf-pre">R$</span><input type="number" name="preco_kg" min="0" step="any" placeholder="0,00" /><span class="vf-suf" id="suf-preco">/t</span></div>
+            </div>
+            <div class="form-group"><label>Desconto (R$)</label>
+              <div class="vf-inp"><span class="vf-pre">R$</span><input type="number" name="desconto" min="0" step="0.01" value="0" /></div>
+            </div>
           </div>
-          <div class="form-group"><label id="lbl-qtd">Quantidade (t) *</label><input type="number" name="peso_kg" min="0.001" step="any" required placeholder="ex: 5,98" /></div>
-          <input type="hidden" name="unidade" /><!-- vendas novas: sempre toneladas; guarda a unidade de vendas antigas (UN…) ao editar -->
-          <div class="form-group"><label id="lbl-preco">Preço (R$/t)</label><input type="number" name="preco_kg" min="0" step="any" /><div class="vd-preco-ref" id="preco-ref"></div></div>
-          <div class="form-group"><label>Desconto (R$)</label><input type="number" name="desconto" min="0" step="0.01" value="0" /></div>
-          <div class="form-group"><label>Valor Total NF (R$)</label><input type="number" name="valor_total" min="0" step="0.01" /></div>
-          <div class="form-group"><label>Ordem de Venda</label><input type="text" name="ordem_venda" /></div>
-          <div class="form-group"><label>NF</label><input type="text" name="nf" /></div>
-          <div class="form-group full"><label>Observação</label><input type="text" name="observacao" /></div>
+          <div class="vd-preco-ref" id="preco-ref"></div>
+
+          <div class="vf-total">
+            <div>
+              <div class="vf-total-rot">Valor total da NF</div>
+              <div class="vf-total-conta" id="vf-conta">Informe quantidade e preço</div>
+            </div>
+            <div class="form-group vf-total-campo"><label class="vf-oculto-lbl">Valor Total NF (R$)</label>
+              <div class="vf-inp vf-inp-total"><span class="vf-pre">R$</span><input type="number" name="valor_total" min="0" step="0.01" title="Calculado sozinho; pode ser ajustado se a NF saiu com outro valor" /></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 4. Documentos -->
+        <div class="vf-sec">
+          <div class="vf-sec-tit"><span class="vf-n">4</span> Documentos <span class="vf-opc">opcional</span></div>
+          <div class="vf-grid">
+            <div class="form-group"><label>Ordem de Venda</label><input type="text" name="ordem_venda" placeholder="nº da OV no Protheus" /></div>
+            <div class="form-group"><label>NF</label><input type="text" name="nf" placeholder="pode preencher depois" /></div>
+            <div class="form-group vf-full"><label>Observação</label><input type="text" name="observacao" placeholder="ex: latinha, carga parcial…" /></div>
+          </div>
         </div>
       </form>
     </div>
@@ -553,7 +645,7 @@ function recalcVenda() {
   const desc= parseFloat(f.querySelector('[name="desconto"]').value)||0;
   const total = Math.max(0, pk*pr - desc);
   f.querySelector('[name="valor_total"]').value = total.toFixed(2);
-
+  atualizarConta();
 }
 ['peso_kg','preco_kg','desconto'].forEach(n =>
   document.querySelector(`#form-venda [name="${n}"]`).addEventListener('input', recalcVenda)
@@ -573,8 +665,52 @@ function atualizarRotulosVenda() {
   const un = peso ? 't' : (document.querySelector('#form-venda [name="unidade"]').value.trim().toUpperCase() || 'un');
   document.getElementById('lbl-qtd').textContent = `Quantidade (${un}) *`;
   document.getElementById('lbl-preco').textContent = `Preço (R$/${un})`;
+  document.getElementById('suf-qtd').textContent = un;
+  document.getElementById('suf-preco').textContent = '/' + un;
+  syncAcond();
+  atualizarConta();
   atualizarPrecoRef();
 }
+
+// Acondicionamento em botões (o select oculto continua sendo o campo do formulário)
+const selAcond = () => document.querySelector('#form-venda [name="acondicionamento"]');
+function syncAcond() {
+  const v = selAcond().value;
+  document.querySelectorAll('#vf-acond button').forEach(b => {
+    b.classList.toggle('on', b.dataset.v === v);
+    b.setAttribute('aria-checked', b.dataset.v === v);
+  });
+}
+document.querySelectorAll('#vf-acond button').forEach(b => b.addEventListener('click', () => {
+  selAcond().value = selAcond().value === b.dataset.v ? '' : b.dataset.v;   // clicar de novo desmarca
+  syncAcond();
+}));
+
+// Material escolhido: puxa o acondicionamento cadastrado no Estoque (se ainda não foi marcado)
+document.querySelector('#form-venda [name="material_id"]').addEventListener('change', e => {
+  const mat = matData.find(m => m.id === e.target.value);
+  if (mat?.acondicionamento && !selAcond().value) { selAcond().value = mat.acondicionamento; syncAcond(); }
+});
+
+// Conta mostrada junto do total: quantidade × preço − desconto
+function atualizarConta() {
+  const f = document.getElementById('form-venda');
+  const q = parseFloat(f.querySelector('[name="peso_kg"]').value) || 0;
+  const p = parseFloat(f.querySelector('[name="preco_kg"]').value) || 0;
+  const d = parseFloat(f.querySelector('[name="desconto"]').value) || 0;
+  const tot = parseFloat(f.querySelector('[name="valor_total"]').value) || 0;
+  const el = document.getElementById('vf-conta');
+  if (!q || !p) { el.textContent = 'Informe quantidade e preço'; el.classList.remove('aj'); return; }
+  const un = document.getElementById('suf-qtd').textContent;
+  const calc = Math.max(0, q * p - d);
+  const n = v => v.toLocaleString('pt-BR', { maximumFractionDigits: 3 });
+  let txt = `${n(q)} ${un} × ${moeda(p)}/${un}${d ? ` − ${moeda(d)} de desconto` : ''}`;
+  const ajustado = tot > 0 && Math.abs(tot - calc) >= 0.01;
+  if (ajustado) txt += ` = ${moeda(calc)} · valor ajustado à mão`;
+  el.textContent = txt;
+  el.classList.toggle('aj', ajustado);
+}
+document.querySelector('#form-venda [name="valor_total"]').addEventListener('input', atualizarConta);
 
 // valores do banco (kg, R$/kg) → valores do formulário (t, R$/t)
 const qtdParaForm   = r => r.peso_kg == null ? '' : (ehUnidadePeso(r.unidade) ? arred(r.peso_kg / 1000, 3) : r.peso_kg);
