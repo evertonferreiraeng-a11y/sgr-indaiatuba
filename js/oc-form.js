@@ -121,8 +121,8 @@ export function montarFormOc(container) {
     </div>
     <div class="form-group full ocf-hide" id="ocf-atraso"><label>Atraso</label>
       <div class="ocf-box">
-        <div class="ocf-linha"><b>Chegou às</b><input type="time" name="hora_chegada" style="width:120px" /><small>opcional</small></div>
-        <div class="ocf-linha"><b>Horas de atraso *</b><input type="number" name="horas_atraso" min="0.25" max="24" step="0.25" placeholder="ex.: 4" /><small>1,5 = 1h30</small></div>
+        <div class="ocf-linha"><b>Chegou às *</b><input type="time" name="hora_chegada" style="width:120px" /><small id="ocf-jornada">entrada às 07:00</small></div>
+        <div class="ocf-linha"><b>Horas de atraso</b><input type="number" name="horas_atraso" min="0.01" max="24" step="any" placeholder="automático" /><small id="ocf-atraso-calc">calculado pela hora de chegada</small></div>
         <div class="ocf-aviso">O dia conta como presença; o atraso fica registrado.</div>
       </div>
     </div>
@@ -145,12 +145,36 @@ export function montarFormOc(container) {
     atraso: container.querySelector('#ocf-atraso'),
     chegada: container.querySelector('[name="hora_chegada"]'),
     horasAtraso: container.querySelector('[name="horas_atraso"]'),
+    jornada: container.querySelector('#ocf-jornada'),
+    atrasoCalc: container.querySelector('#ocf-atraso-calc'),
+    data: container.closest('form')?.querySelector('[name="data"]'),
   };
   el.sit.forEach(b => b.addEventListener('click', () => { setSituacao(b.dataset.sit); setTipo(b.dataset.sit === 'falta' ? 'falta' : 'outro'); }));
   // Ao digitar as horas, sugere abonar todas (enquanto o abono não for mexido)
   el.horas.addEventListener('input', () => { if (!el.abono.dataset.mexido) el.abono.value = el.horas.value; avisoDec(); });
   el.abono.addEventListener('input', () => { el.abono.dataset.mexido = '1'; });
+  // Atraso: calcula sozinho pela hora de chegada e pelo dia da semana
+  el.chegada.addEventListener('input', calcAtraso);
+  el.data?.addEventListener('change', () => { if (el.tipo.value === 'atraso') calcAtraso(); });
   setSituacao('');
+}
+
+// Jornada: entrada 07:00 de segunda a sexta; saída 17:00 (seg–qui) e 16:00 (sex)
+const ENTRADA = 7 * 60;
+const SAIDA = { 1: 17 * 60, 2: 17 * 60, 3: 17 * 60, 4: 17 * 60, 5: 16 * 60 };
+
+function calcAtraso() {
+  const dt = el.data?.value ? new Date(el.data.value + 'T00:00:00') : null;
+  const wd = dt ? dt.getDay() : null;
+  const saida = SAIDA[wd];
+  el.jornada.textContent = saida ? `entrada às 07:00 · saída às ${saida / 60}:00` : 'fim de semana: sem jornada definida';
+  const [hh, mm] = (el.chegada.value || '').split(':').map(Number);
+  if (isNaN(hh)) { el.atrasoCalc.textContent = 'calculado pela hora de chegada'; return; }
+  if (!saida) { el.atrasoCalc.textContent = 'informe as horas na mão'; return; }
+  const chegou = hh * 60 + (mm || 0);
+  const min = Math.max(0, Math.min(chegou, saida) - ENTRADA);
+  el.horasAtraso.value = min ? +(min / 60).toFixed(2) : '';
+  el.atrasoCalc.textContent = min ? `= ${fmtHoras(min / 60)} de atraso` : 'chegou no horário';
 }
 
 function avisoDec() {
@@ -181,6 +205,7 @@ function setTipo(t) {
   mostrar(el.outro, t === 'elogio');
   mostrar(el.ferias, t === 'ferias');
   mostrar(el.atraso, t === 'atraso');
+  if (t === 'atraso') calcAtraso();
   avisoDec();
 }
 const outroConta = () => [...el.outroConta].find(r => r.checked)?.value || 'presenca';
@@ -214,7 +239,7 @@ export function lerFormOc() {
   let horas = null, horas_abono = null, hora_chegada = null;
   if (tipo === 'atraso') {
     horas = num(el.horasAtraso.value);
-    if (!horas || horas <= 0) { el.horasAtraso.focus(); return { erro: 'Informe quantas horas de atraso.' }; }
+    if (!horas || horas <= 0) { el.chegada.focus(); return { erro: el.chegada.value ? 'Pelo horário informado não houve atraso (entrada às 07:00).' : 'Informe a hora em que a pessoa chegou.' }; }
     hora_chegada = el.chegada.value || null;
   }
   if (TIPOS_COM_HORAS.includes(tipo)) {
