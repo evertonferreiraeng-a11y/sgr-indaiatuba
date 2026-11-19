@@ -621,22 +621,16 @@ function render(d, tarefas, fin, materiaisEst = []) {
   </section>`;
 
   /* ══ 1. Vamos bater a meta do mês? ══ */
-  const dr = Math.max(0, d.du - d.dp);
   const estM = d.emAndamento ? d.valorEstoque : 0;
   // o estoque pronto para vender já conta como vendido: o que falta é meta − faturado − estoque
   const garantido = c.fat + estM;
   const faltaMeta = d.meta > 0 ? Math.max(0, d.meta - garantido) : null;
-  let fraseMeta, cardsMeta;
+  let cardsMeta;
   if (!d.emAndamento || !d.meta) {
-    fraseMeta = fraseHTML(fr.fat);
     cardsMeta = cardsFat.filter(Boolean).filter(k => !/equilíbrio/i.test(k.rot)).slice(0, 3);
   } else {
     const pG = garantido / d.meta * 100;
-    const comEstTxt = estM ? ` + <b>${mil(estM)}</b> em estoque = <b>${mil(garantido)}</b>` : '';
     const batida = faltaMeta <= 0;
-    fraseMeta = `Faturamos <b>${mil(c.fat)}</b> até ${ddmm(d.corte)}${comEstTxt}, ${pct(pG, 0)} da meta de ${mil(d.meta)}. `
-      + (batida ? `<span class="ok">${c.fat >= d.meta ? 'Meta do mês já batida.' : 'Vendendo o estoque, a meta está garantida.'}</span>`
-        : dr > 0 ? `Faltam <b>${mil(faltaMeta)}</b> em ${dr} dia${dr > 1 ? 's' : ''} út${dr > 1 ? 'eis' : 'il'}.` : `<span class="ruim">Faltam ${mil(faltaMeta)} e não restam dias úteis.</span>`);
     // barra: faturado | estoque pronto | o que resta (fundo)
     const w = v => Math.max(0, Math.min(100, v / d.meta * 100));
     const barraMeta = `<div class="mt-barra"><i class="f" style="width:${w(c.fat)}%"></i>${estM ? `<i class="e" style="left:${w(c.fat)}%;width:${w(garantido) - w(c.fat)}%"></i>` : ''}</div>
@@ -759,8 +753,7 @@ function render(d, tarefas, fin, materiaisEst = []) {
 
     <section class="db-sec" id="b-meta">
       <div class="db-sec-hd"><div><span class="db-q-n">1</span><h2 class="db-q">Vamos bater a meta do mês?</h2></div><a href="comercial.html">Ver vendas →</a></div>
-      <p class="db-frase">${fraseMeta}</p>
-      <div class="db-corpo">
+      <div class="db-corpo" style="margin-top:14px">
         <div><div class="chart-wrap" style="height:240px"><canvas id="c-fat"></canvas></div></div>
         <div class="db-cards">${cardsMeta.map(cardHTML).join('')}</div>
       </div>
