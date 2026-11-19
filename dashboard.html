@@ -138,6 +138,9 @@
     .mb-row:hover, .mb-row:focus { background:#f8fafc; }
     .mb-row.tot { border-top:1px solid var(--border); margin-top:6px; padding-top:12px; border-radius:0 0 8px 8px; }
     .mb-nome > b { display:block; font-size:13px; } .mb-nome span { font-size:11px; color:var(--text-muted); } .mb-nome .mb-t { color:var(--text); font-weight:700; }
+    .ton-per { display:flex; align-items:baseline; justify-content:space-between; gap:10px; margin-top:10px; padding:10px 14px; background:#f8fafc; border:1px solid #e2e8f0; border-radius:10px; }
+    .ton-per span { font-size:12px; font-weight:800; letter-spacing:.04em; text-transform:uppercase; color:var(--text-muted); }
+    .ton-per b { font-size:20px; color:var(--primary); }
     .ton-meses { display:grid; gap:4px; margin:6px 0 0 50px; text-align:center; font-size:11px; color:var(--text-muted); }
     .ton-meses b { display:block; font-size:12.5px; color:var(--text); }
     .ton-meses .cur b { color:var(--primary); }
@@ -1099,7 +1102,13 @@ function render(d, tarefas, fin, materiaisEst = []) {
           <div class="db-sec-hd"><h2 class="db-q">Vamos bater a meta do mês?</h2></div>
           <div class="db-corpo" style="margin-top:14px">
             <div><div class="chart-wrap" style="height:260px"><canvas id="c-fat"></canvas></div>
-              <div class="ton-meses" style="grid-template-columns:repeat(${d.mesesAno.length}, 1fr)"><span class="rot">Toneladas vendidas</span>${d.mesesAno.map((mk, i) => `<span class="${mk === d.M ? 'cur' : ''}"><b>${nf((d.fatMes[i].vol || 0) / 1000, 1)}</b>${MES_AB[+mk.slice(5) - 1].toLowerCase()}</span>`).join('')}</div></div>
+              ${(() => {
+                // Toneladas só do período selecionado: o mês escolhido ou, no modo ano, o acumulado até o mês
+                const volAno = d.mesesAno.reduce((s, mk, i) => s + (mk <= d.M ? (d.fatMes[i].vol || 0) : 0), 0);
+                const vol = modoAno ? volAno : (c.vol || 0);
+                const rot = modoAno ? `Toneladas vendidas em ${ano}${anoCorrente ? ` (jan–${MES_AB[+d.M.slice(5) - 1].toLowerCase()})` : ''}` : `Toneladas vendidas em ${mes}${d.emAndamento ? ` (até ${ddmm(d.corte)})` : ''}`;
+                return `<div class="ton-per"><span>${rot}</span><b>${tn(vol, 1)}</b></div>`;
+              })()}</div>
             <div class="db-cards">${cardsMeta.map(cardHTML).join('')}</div>
           </div>
         </section>
