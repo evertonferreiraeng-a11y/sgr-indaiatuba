@@ -1439,7 +1439,7 @@ function kpiBox(s, x, y, w, h, label, val, sub, bg) {
 function fmtTon(v) { return ((v??0)/1000).toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2})+' ton'; }
 function fmtQtdMaterial(kg) {
   const v = parseFloat(kg||0);
-  return v > 0 && v < 1000 ? v.toLocaleString('pt-BR',{maximumFractionDigits:2})+' kg' : fmtTon(v);
+  return fmtTon(v);   // sistema todo em toneladas
 }
 function fmtM(v)   { return new Intl.NumberFormat('pt-BR',{style:'currency',currency:'BRL'}).format(v??0); }
 function pctR(v,t) { return t>0?((v/t)*100).toFixed(1)+'%':'—'; }

@@ -110,11 +110,11 @@
         <!-- Gráficos prensagem -->
         <div class="charts-grid" style="margin-bottom:20px">
           <div class="chart-card">
-            <h3>Produção Diária no Mês (kg)</h3>
+            <h3>Produção Diária no Mês (t)</h3>
             <div class="chart-wrap"><canvas id="chart-diario"></canvas></div>
           </div>
           <div class="chart-card">
-            <h3>Produção por Operador (kg)</h3>
+            <h3>Produção por Operador (t)</h3>
             <div class="chart-wrap"><canvas id="chart-operador"></canvas></div>
           </div>
         </div>
@@ -124,7 +124,7 @@
           <div class="table-card-header"><h3>Ranking de Operadores no Período</h3></div>
           <div class="table-scroll">
             <table>
-              <thead><tr><th>#</th><th>Operador</th><th class="text-right">Registros</th><th class="text-right">Total (kg)</th><th class="text-right">Fardos</th><th class="text-right">Média/Dia</th></tr></thead>
+              <thead><tr><th>#</th><th>Operador</th><th class="text-right">Registros</th><th class="text-right">Total (t)</th><th class="text-right">Fardos</th><th class="text-right">Média/Dia</th></tr></thead>
               <tbody id="tb-ranking"></tbody>
             </table>
           </div>
@@ -135,7 +135,7 @@
           <div class="table-card-header"><h3>Registros de Produção</h3><span id="prod-count" class="text-muted" style="font-size:12px"></span></div>
           <div class="table-scroll">
             <table>
-              <thead><tr><th>Data</th><th>Equipamento</th><th>Material</th><th>Operador</th><th class="text-right">Peso (kg)</th><th class="text-right">Fardos</th><th>Ações</th></tr></thead>
+              <thead><tr><th>Data</th><th>Equipamento</th><th>Material</th><th>Operador</th><th class="text-right">Peso (t)</th><th class="text-right">Fardos</th><th>Ações</th></tr></thead>
               <tbody id="tb-producao"></tbody>
             </table>
           </div>
@@ -149,8 +149,8 @@
         <!-- KPIs capacidade -->
         <div class="kpi-grid" style="grid-template-columns:repeat(auto-fill,minmax(170px,1fr));margin-bottom:20px">
           <div class="kpi-card"><div class="kpi-label">Triagens Registradas</div><div class="kpi-value" id="tri-kpi-total">—</div><div class="kpi-sub">sessões no período</div></div>
-          <div class="kpi-card"><div class="kpi-label">Total Triado</div><div class="kpi-value" id="tri-kpi-kg">—</div><div class="kpi-sub">kg no período</div></div>
-          <div class="kpi-card"><div class="kpi-label">Velocidade Média</div><div class="kpi-value" id="tri-kpi-vel">—</div><div class="kpi-sub">kg por hora</div></div>
+          <div class="kpi-card"><div class="kpi-label">Total Triado</div><div class="kpi-value" id="tri-kpi-kg">—</div><div class="kpi-sub">toneladas no período</div></div>
+          <div class="kpi-card"><div class="kpi-label">Velocidade Média</div><div class="kpi-value" id="tri-kpi-vel">—</div><div class="kpi-sub">toneladas por hora</div></div>
           <div class="kpi-card"><div class="kpi-label">Capacidade/Dia</div><div class="kpi-value" id="tri-kpi-dia">—</div><div class="kpi-sub">projeção em 8h de trabalho</div></div>
           <div class="kpi-card"><div class="kpi-label">Capacidade/Mês</div><div class="kpi-value" id="tri-kpi-mes">—</div><div class="kpi-sub" id="tri-kpi-mes-sub">projeção nos dias úteis do mês</div></div>
         </div>
@@ -168,11 +168,11 @@
         <!-- Gráficos triagem -->
         <div class="charts-grid" style="margin-bottom:20px">
           <div class="chart-card">
-            <h3>Velocidade por Cliente (kg/h)</h3>
+            <h3>Velocidade por Cliente (t/h)</h3>
             <div class="chart-wrap"><canvas id="tri-chart-cliente"></canvas></div>
           </div>
           <div class="chart-card">
-            <h3>Velocidade por Operador (kg/h)</h3>
+            <h3>Velocidade por Operador (t/h)</h3>
             <div class="chart-wrap"><canvas id="tri-chart-op"></canvas></div>
           </div>
         </div>
@@ -182,7 +182,7 @@
           <div class="table-card-header"><h3>Médias por Cliente</h3><span class="text-muted" style="font-size:12px">Baseado nas triagens registradas</span></div>
           <div class="table-scroll">
             <table>
-              <thead><tr><th>Cliente</th><th class="text-right">Triagens</th><th class="text-right">Média Tempo</th><th class="text-right">Média kg</th><th class="text-right">Velocidade (kg/h)</th></tr></thead>
+              <thead><tr><th>Cliente</th><th class="text-right">Triagens</th><th class="text-right">Média Tempo</th><th class="text-right">Média (t)</th><th class="text-right">Velocidade (t/h)</th></tr></thead>
               <tbody id="tri-tb-clientes"></tbody>
             </table>
           </div>
@@ -193,7 +193,7 @@
           <div class="table-card-header"><h3>Registros de Triagem</h3><span id="tri-count" class="text-muted" style="font-size:12px"></span></div>
           <div class="table-scroll">
             <table>
-              <thead><tr><th>Data</th><th>Cliente</th><th>Equipe</th><th class="text-right">Início</th><th class="text-right">Fim</th><th class="text-right">Pausa</th><th class="text-right">Duração</th><th class="text-right">Peso (kg)</th><th class="text-right">kg/h</th><th>Obs.</th><th>Ações</th></tr></thead>
+              <thead><tr><th>Data</th><th>Cliente</th><th>Equipe</th><th class="text-right">Início</th><th class="text-right">Fim</th><th class="text-right">Pausa</th><th class="text-right">Duração</th><th class="text-right">Peso (t)</th><th class="text-right">t/h</th><th>Obs.</th><th>Ações</th></tr></thead>
               <tbody id="tri-tb"></tbody>
             </table>
           </div>
@@ -219,7 +219,7 @@
           <div class="form-group"><label>Equipamento *</label><select name="equipamento_id" required><option value="">Selecione…</option></select></div>
           <div class="form-group"><label>Material *</label><select name="material_id" required><option value="">Selecione…</option></select></div>
           <div class="form-group"><label>Operador</label><select name="operador_id"><option value="">— Nenhum —</option></select></div>
-          <div class="form-group"><label>Peso Produzido (kg) *</label><input type="number" name="peso_produzido_kg" min="0.01" step="any" required /><small id="peso-prod-ton" class="text-muted" style="font-size:11px"></small></div>
+          <div class="form-group"><label>Peso Produzido (t) *</label><input type="number" name="peso_produzido_kg" min="0.001" step="any" required placeholder="ex: 1,250" /><small id="peso-prod-ton" class="text-muted" style="font-size:11px"></small></div>
           <div class="form-group"><label>Quantidade de Fardos</label><input type="number" name="quantidade_fardos" min="0" step="1" placeholder="Unidades prensadas" /></div>
         </div>
         <div id="alerta-capacidade" style="display:none;margin-top:12px;padding:8px 12px;background:var(--danger-light);color:var(--danger);border-radius:6px;font-size:12px;align-items:center;gap:6px">
@@ -246,7 +246,7 @@
     <div class="modal-body">
       <div class="table-scroll">
         <table>
-          <thead><tr><th>Equipamento</th><th>Material</th><th>Operador</th><th class="text-right">Peso (kg)</th><th class="text-right">Fardos</th><th>Ações</th></tr></thead>
+          <thead><tr><th>Equipamento</th><th>Material</th><th>Operador</th><th class="text-right">Peso (t)</th><th class="text-right">Fardos</th><th>Ações</th></tr></thead>
           <tbody id="tb-dia-registros"></tbody>
         </table>
       </div>
@@ -273,7 +273,7 @@
           <div class="form-group"><label>Hora Início *</label><input type="time" name="hora_inicio" required /></div>
           <div class="form-group"><label>Hora Fim *</label><input type="time" name="hora_fim" required /></div>
           <div class="form-group"><label>Pausa (min)</label><input type="number" name="pausa_minutos" min="0" step="1" placeholder="Ex: 60 para 1h de almoço" /></div>
-          <div class="form-group"><label>Peso Triado (kg) *</label><input type="number" name="peso_kg" min="0.01" step="0.01" required placeholder="kg triados nessa carga" /></div>
+          <div class="form-group"><label>Peso Triado (t) *</label><input type="number" name="peso_kg" min="0.001" step="any" required placeholder="toneladas triadas nessa carga" /></div>
           <div class="form-group"><label>Material Triado</label><input type="text" name="material" placeholder="Ex: Recicláveis Mistos" /></div>
           <div class="form-group full"><label>Observações</label><textarea name="observacoes" rows="2" placeholder="Detalhes da triagem…"></textarea></div>
         </div>
@@ -302,6 +302,11 @@ import { ehDiaUtil, diasBaseCapacidade, feriadosDoMes } from './js/feriados.js?v
 import { icon } from './js/icons.js';
 
 await initPage();
+
+// Pesos: na tela em toneladas, no banco em kg
+const tParaKg = v => Math.round((parseFloat(v) || 0) * 1000 * 1000) / 1000;
+const kgParaT = v => Math.round(parseFloat(v) || 0) / 1000;   // 3 casas (precisão de 1 kg)
+const tn3 = kg => ((kg || 0) / 1000).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
 let perfil, equipamentos = [], materiais = [], colaboradores = [], producaoData = [], triagemData = [];
 let chartDiario, chartOperador, chartTriaDia, chartTriaOp;
@@ -715,7 +720,7 @@ function renderMetaPrensas() {
   const semanasKeys = Object.keys(semanas).sort();
 
   if (!prensas.length) {
-    const msg = idsFiltro ? 'Nenhuma prensa com capacidade mensal cadastrada dentro do filtro de equipamento selecionado.' : 'Nenhuma prensa com capacidade mensal cadastrada. Defina a "Capacidade Mensal (kg)" em Equipamentos para ver o acompanhamento de meta.';
+    const msg = idsFiltro ? 'Nenhuma prensa com capacidade mensal cadastrada dentro do filtro de equipamento selecionado.' : 'Nenhuma prensa com capacidade mensal cadastrada. Defina a "Capacidade Mensal (t)" em Equipamentos para ver o acompanhamento de meta.';
     wrap.innerHTML = `<div class="card mb-16" style="padding:16px"><p class="text-muted" style="font-size:13px;margin:0">${msg}</p></div>`;
     return {};
   }
@@ -804,8 +809,8 @@ async function carregarProducao() {
     data: {
       labels: diasSorted.map(d => { const [,, dd] = d.split('-'); return dd+'/'+d.split('-')[1]; }),
       datasets: [
-        { type: 'bar', label: 'Produzido', data: diasSorted.map(d=>diasMap[d]), backgroundColor:'#006636', borderRadius:4 },
-        ...(temMetaChart ? [{ type: 'line', label: 'Meta diária', data: diasSorted.map(d => metaPorDiaChart[d] ?? null), borderColor:'#dc2626', borderWidth:2, borderDash:[6,4], pointRadius:0, fill:false, spanGaps:true }] : []),
+        { type: 'bar', label: 'Produzido (t)', data: diasSorted.map(d=>diasMap[d] / 1000), backgroundColor:'#006636', borderRadius:4 },
+        ...(temMetaChart ? [{ type: 'line', label: 'Meta diária', data: diasSorted.map(d => metaPorDiaChart[d] != null ? metaPorDiaChart[d] / 1000 : null), borderColor:'#dc2626', borderWidth:2, borderDash:[6,4], pointRadius:0, fill:false, spanGaps:true }] : []),
       ]
     },
     options: { responsive:true, maintainAspectRatio:false, plugins:{legend:{display: temMetaChart, position:'top', align:'end', labels:{boxWidth:12,font:{size:10}}}}, scales:{x:{grid:{display:false},ticks:{font:{size:10}}}, y:{grid:{color:'#F0F0F0'}}} }
@@ -825,7 +830,7 @@ async function carregarProducao() {
     type: 'bar',
     data: {
       labels: opSorted.map(([n])=>n),
-      datasets: [{ data: opSorted.map(([,v])=>v), backgroundColor:'#2E9E5B', borderRadius:4 }]
+      datasets: [{ data: opSorted.map(([,v])=>v / 1000), backgroundColor:'#2E9E5B', borderRadius:4 }]
     },
     options: { indexAxis:'y', responsive:true, maintainAspectRatio:false, plugins:{legend:{display:false}}, scales:{x:{grid:{color:'#F0F0F0'}}, y:{grid:{display:false},ticks:{font:{size:11}}}} }
   });
@@ -866,9 +871,13 @@ function kgH(kg, min) {
   return Math.round((kg / (min / 60)) * 10) / 10;
 }
 
+// velocidade: calculada em kg/h, mostrada em t/h
+function fmtVel(kgPorH) { return (kgPorH / 1000).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' t/h'; }
+const tPorH = kgPorH => Math.round(kgPorH / 10) / 100;
+
 function fmtKg(v) {
   if (!v || v <= 0) return '—';
-  return v >= 1000 ? (v/1000).toFixed(2) + ' ton' : Math.round(v) + ' kg';
+  return (v/1000).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' ton';
 }
 
 async function carregarTriagem() {
@@ -912,7 +921,7 @@ async function carregarTriagem() {
 
   document.getElementById('tri-kpi-total').textContent = triagemData.length;
   document.getElementById('tri-kpi-kg').textContent    = fmtKg(totalKg);
-  document.getElementById('tri-kpi-vel').textContent   = velMedia > 0 ? velMedia + ' kg/h' : '—';
+  document.getElementById('tri-kpi-vel').textContent   = velMedia > 0 ? fmtVel(velMedia) : '—';
   document.getElementById('tri-kpi-dia').textContent   = fmtKg(capDia);
   document.getElementById('tri-kpi-mes').textContent   = fmtKg(capMes);
   document.getElementById('tri-kpi-mes-sub').textContent = `projeção em ${diasCapTri} dias úteis`;
@@ -945,8 +954,8 @@ async function carregarTriagem() {
       <td><strong>${nome}</strong></td>
       <td class="text-right">${n} ${confianca}</td>
       <td class="text-right">${fmtTempo(avgTempo)}</td>
-      <td class="text-right">${avgKg > 0 ? avgKg + ' kg' : '—'}</td>
-      <td class="text-right fw-600" style="color:#006636">${avgVel > 0 ? avgVel + ' kg/h' : '—'}</td>
+      <td class="text-right">${avgKg > 0 ? tn3(avgKg) + ' t' : '—'}</td>
+      <td class="text-right fw-600" style="color:#006636">${avgVel > 0 ? fmtVel(avgVel) : '—'}</td>
     </tr>`;
   }).join('') : '<tr><td colspan="5" class="table-empty">Nenhum dado ainda</td></tr>';
 
@@ -959,12 +968,12 @@ async function carregarTriagem() {
     type: 'bar',
     data: {
       labels: cliVel.map(([n])=>n),
-      datasets: [{ data: cliVel.map(([,v])=>v), backgroundColor:'#006636', borderRadius:4 }]
+      datasets: [{ data: cliVel.map(([,v])=>tPorH(v)), backgroundColor:'#006636', borderRadius:4 }]
     },
     options: {
       responsive:true, maintainAspectRatio:false,
-      plugins:{ legend:{display:false}, tooltip:{callbacks:{label:ctx=>ctx.raw+' kg/h'}} },
-      scales:{ x:{grid:{display:false},ticks:{font:{size:10}}}, y:{grid:{color:'#F0F0F0'},title:{display:true,text:'kg/h',font:{size:10}}} }
+      plugins:{ legend:{display:false}, tooltip:{callbacks:{label:ctx=>ctx.raw.toLocaleString('pt-BR')+' t/h'}} },
+      scales:{ x:{grid:{display:false},ticks:{font:{size:10}}}, y:{grid:{color:'#F0F0F0'},title:{display:true,text:'t/h',font:{size:10}}} }
     }
   });
 
@@ -993,12 +1002,12 @@ async function carregarTriagem() {
     type: 'bar',
     data: {
       labels: opVelSorted.map(([n])=>n),
-      datasets: [{ data: opVelSorted.map(([,v])=>v), backgroundColor:'#2E9E5B', borderRadius:4 }]
+      datasets: [{ data: opVelSorted.map(([,v])=>tPorH(v)), backgroundColor:'#2E9E5B', borderRadius:4 }]
     },
     options: {
       indexAxis:'y', responsive:true, maintainAspectRatio:false,
-      plugins:{ legend:{display:false}, tooltip:{callbacks:{label:ctx=>ctx.raw+' kg/h'}} },
-      scales:{ x:{grid:{color:'#F0F0F0'},title:{display:true,text:'kg/h',font:{size:10}}}, y:{grid:{display:false},ticks:{font:{size:11}}} }
+      plugins:{ legend:{display:false}, tooltip:{callbacks:{label:ctx=>ctx.raw.toLocaleString('pt-BR')+' t/h'}} },
+      scales:{ x:{grid:{color:'#F0F0F0'},title:{display:true,text:'t/h',font:{size:10}}}, y:{grid:{display:false},ticks:{font:{size:11}}} }
     }
   });
 
@@ -1024,7 +1033,7 @@ async function carregarTriagem() {
       <td class="text-right" style="color:#D97706">${r.pausa_minutos>0 ? fmtTempo(r.pausa_minutos) : '—'}</td>
       <td class="text-right fw-600">${fmtTempo(min)}</td>
       <td class="text-right">${r.peso_kg ? ton(r.peso_kg) : '—'}</td>
-      <td class="text-right" style="color:#006636;font-weight:700">${vel > 0 ? vel+' kg/h' : '—'}</td>
+      <td class="text-right" style="color:#006636;font-weight:700">${vel > 0 ? fmtVel(vel) : '—'}</td>
       <td style="max-width:100px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis" title="${r.observacoes||''}">${r.observacoes||'—'}</td>
       <td>${isAdmin?`<button class="btn-icon" onclick="editarTriagem('${r.id}')">${icon('edit',{size:15})}</button><button class="btn-icon danger" onclick="excluirTriagem('${r.id}')">${icon('trash',{size:15})}</button>`:'—'}</td>
     </tr>`;
@@ -1106,7 +1115,7 @@ document.getElementById('btn-salvar-triagem').addEventListener('click', async ()
     pausa_minutos, tempo_minutos,
     equipe,
     material: fd.material || null,
-    peso_kg: fd.peso_kg ? parseFloat(fd.peso_kg) : null,
+    peso_kg: fd.peso_kg ? tParaKg(fd.peso_kg) : null,   // tela em t, banco em kg
     observacoes: fd.observacoes || null,
     criado_por: user.id,
   };
@@ -1135,7 +1144,7 @@ window.editarTriagem = id => {
   f.querySelector('[name="hora_fim"]').value       = r.hora_fim?.slice(0,5)||'';
   f.querySelector('[name="pausa_minutos"]').value  = r.pausa_minutos||'';
   f.querySelector('[name="material"]').value       = r.material||'';
-  f.querySelector('[name="peso_kg"]').value        = r.peso_kg||'';
+  f.querySelector('[name="peso_kg"]').value        = r.peso_kg ? kgParaT(r.peso_kg) : '';
   f.querySelector('[name="observacoes"]').value    = r.observacoes||'';
   const ids = Array.isArray(r.equipe) ? r.equipe.map(c=>c.operador_id).filter(Boolean) : [];
   renderColabChecks(ids);
@@ -1164,7 +1173,7 @@ function abrirNovaProd() {
 
 function atualizarPesoTon() {
   const v = parseFloat(document.querySelector('#form-prod [name="peso_produzido_kg"]').value);
-  document.getElementById('peso-prod-ton').textContent = v > 0 ? `= ${ton(v)}` : '';
+  document.getElementById('peso-prod-ton').textContent = v > 0 ? `= ${tParaKg(v).toLocaleString('pt-BR')} kg` : '';
 }
 document.querySelector('#form-prod [name="peso_produzido_kg"]').addEventListener('input', atualizarPesoTon);
 
@@ -1175,7 +1184,7 @@ document.querySelector('#form-prod [name="peso_produzido_kg"]').addEventListener
 async function verificarCapacidade() {
   const eqId  = document.querySelector('#form-prod [name="equipamento_id"]').value;
   const data  = document.querySelector('#form-prod [name="data"]').value;
-  const pesoV = parseFloat(document.querySelector('#form-prod [name="peso_produzido_kg"]').value)||0;
+  const pesoV = tParaKg(document.querySelector('#form-prod [name="peso_produzido_kg"]').value);
   const alerta = document.getElementById('alerta-capacidade');
   if (!eqId || !data || !pesoV) { alerta.style.display='none'; return; }
   const eq = equipamentos.find(e=>e.id===eqId);
@@ -1202,7 +1211,7 @@ window.editarProd = id => {
   }
   selMat.value = r.material_id;
   f.querySelector('[name="operador_id"]').value       = r.operador_id || '';
-  f.querySelector('[name="peso_produzido_kg"]').value = r.peso_produzido_kg;
+  f.querySelector('[name="peso_produzido_kg"]').value = kgParaT(r.peso_produzido_kg);
   f.querySelector('[name="quantidade_fardos"]').value = r.quantidade_fardos || '';
   atualizarPesoTon();
   const btnExcluir = document.getElementById('btn-excluir-prod');
@@ -1231,7 +1240,7 @@ document.getElementById('btn-salvar-prod').addEventListener('click', async () =>
   const payload = {
     equipamento_id: fd.equipamento_id, material_id: fd.material_id,
     operador_id: fd.operador_id || null,
-    peso_produzido_kg: parseFloat(fd.peso_produzido_kg),
+    peso_produzido_kg: tParaKg(fd.peso_produzido_kg),   // tela em t, banco em kg
     quantidade_fardos: fd.quantidade_fardos ? parseInt(fd.quantidade_fardos) : null,
     data: fd.data, criado_por: user.id,
   };

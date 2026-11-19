@@ -56,7 +56,7 @@ export const AJUDA = {
     passos: [
       'Na aba <b>Prensagem</b>, clique em <b>+ Novo Registro</b>.',
       'Informe <b>Data</b>, <b>Equipamento</b> e <b>Operador</b>. Em <b>Material</b>, escolha <b>Aparas de Papelão</b> ou <b>Aparas de Plástico</b>.',
-      'Preencha o <b>Peso Produzido (kg)</b> e a <b>Quantidade de Fardos</b>.',
+      'Preencha o <b>Peso Produzido (t)</b>, em toneladas, e a <b>Quantidade de Fardos</b>.',
       'Clique em <b>Salvar</b>. Repita para cada prensa ou operador do dia.',
       'Se houve triagem, abra a aba <b>Triagem de Cargas</b> e clique em <b>+ Nova Triagem</b>. Preencha cliente, horário de início e fim, pausa e peso triado.',
     ],
@@ -67,10 +67,10 @@ export const AJUDA = {
   },
   'estoque.html': {
     titulo: 'Estoque',
-    resumo: 'Quantos kg de cada material estão em estoque na unidade.',
+    resumo: 'Quantas toneladas de cada material estão em estoque na unidade.',
     quando: '<b>Todo dia, no fim da tarde</b>, depois que a produção do dia terminou.',
     passos: [
-      'Em <b>Materiais em Estoque</b>, clique no campo <b>Kg em Estoque</b> de cada material.',
+      'Em <b>Materiais em Estoque</b>, clique no campo <b>Estoque (t)</b> de cada material e informe em toneladas.',
       'Digite a quantidade atual e clique fora do campo. O valor é salvo sozinho.',
       'Se mudou o preço ou a observação, edite esses campos do mesmo jeito.',
     ],
@@ -239,7 +239,7 @@ export const ROTINA_DIA = [
   '<b>Início do dia:</b> Equipamentos (status → Salvar dia) e RH (Lançar Faltas)',
   '<b>Durante o dia:</b> Tarefas (ver o que vence hoje)',
   '<b>À tarde:</b> RH, revisar as faltas',
-  '<b>Fim do dia:</b> Produção (prensagem e triagem) e Estoque (atualizar os kg)',
+  '<b>Fim do dia:</b> Produção (prensagem e triagem) e Estoque (atualizar as toneladas)',
 ];
 
 export const ROTINA_PERIODICA = [

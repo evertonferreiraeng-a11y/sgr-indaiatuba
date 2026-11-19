@@ -33,7 +33,7 @@
         <div class="kpi-card">
           <div class="kpi-label">Volume Total em Estoque</div>
           <div class="kpi-value" id="kpi-kg">—</div>
-          <div class="kpi-sub">kg</div>
+          <div class="kpi-sub">toneladas</div>
         </div>
         <div class="kpi-card">
           <div class="kpi-label">Valor Total em Estoque</div>
@@ -54,8 +54,8 @@
               <tr>
                 <th>Material</th>
                 <th>Acondicionamento</th>
-                <th class="text-right">Kg em Estoque</th>
-                <th class="text-right">Valor Unitário (R$/kg)</th>
+                <th class="text-right">Estoque (t)</th>
+                <th class="text-right">Valor Unitário (R$/t)</th>
                 <th class="text-right">Valor Total</th>
                 <th>Observação</th>
                 <th></th>
@@ -129,7 +129,7 @@ function renderTabela() {
   if (!matsData.length) {
     tb.innerHTML = `<tr><td colspan="7" class="table-empty">Nenhum material adicionado ao estoque. Clique em "+ Adicionar Material".</td></tr>`;
     document.getElementById('tf-estoque').innerHTML = '';
-    document.getElementById('kpi-kg').textContent    = '0';
+    document.getElementById('kpi-kg').textContent    = '0,00 ton';
     document.getElementById('kpi-valor').textContent = 'R$ 0,00';
     return;
   }
@@ -144,12 +144,12 @@ function renderTabela() {
     totalValor += vTotal;
 
     const tdKg = isAdmin
-      ? `<td class="text-right edit-cell" title="Clique para editar" onclick="editNum(this,'${m.id}','estoque_kg',${kg})">${fmtKg(kg)}</td>`
+      ? `<td class="text-right edit-cell" title="Clique para editar" onclick="editNum(this,'${m.id}','estoque_kg',${kg},0.001)">${fmtKg(kg)}</td>`
       : `<td class="text-right">${fmtKg(kg)}</td>`;
 
     const tdVu = isAdmin
-      ? `<td class="text-right edit-cell" title="Clique para editar" onclick="editNum(this,'${m.id}','valor_unitario',${vUnit})">${fmtNum(vUnit)}</td>`
-      : `<td class="text-right">${fmtNum(vUnit)}</td>`;
+      ? `<td class="text-right edit-cell" title="Clique para editar" onclick="editNum(this,'${m.id}','valor_unitario',${vUnit},1000)">${fmtNum(vUnit * 1000)}</td>`
+      : `<td class="text-right">${fmtNum(vUnit * 1000)}</td>`;
 
     const tdObs = isAdmin
       ? `<td class="edit-cell" title="Clique para editar" onclick="editTxt(this,'${m.id}','observacao','${(m.observacao||'').replace(/'/g,'\\')}')">
@@ -201,14 +201,16 @@ function fmtNum(v)   { return v.toLocaleString('pt-BR',{minimumFractionDigits:2,
 function fmtMoeda(v) { return 'R$ ' + v.toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2}); }
 
 // ── Edição inline numérica ────────────────────────────────────────────────────
-window.editNum = (td, matId, campo, valorAtual) => {
+// "fator" converte o valor do banco para a tela: estoque kg → t (0.001); preço R$/kg → R$/t (1000)
+window.editNum = (td, matId, campo, valorAtual, fator = 1) => {
   if (td.querySelector('input')) return;
   const orig = td.innerHTML;
-  td.innerHTML = `<input class="inline-input" type="number" min="0" step="0.01" value="${valorAtual}" style="text-align:right" />`;
+  const naTela = Math.round(valorAtual * fator * 1000) / 1000;
+  td.innerHTML = `<input class="inline-input" type="number" min="0" step="any" value="${naTela}" style="text-align:right" />`;
   const inp = td.querySelector('input');
   inp.focus(); inp.select();
   const salvar = async () => {
-    const val = parseFloat(inp.value) || 0;
+    const val = (parseFloat(inp.value) || 0) / fator;
     const { error } = await supabase.from('materiais').update({ [campo]: val }).eq('id', matId);
     if (error) { toast('Erro: ' + error.message, 'error'); td.innerHTML = orig; return; }
     const m = matsData.find(x => x.id === matId);

@@ -452,11 +452,10 @@
               <option value="granel">A Granel</option>
             </select>
           </div>
-          <div class="form-group"><label>Quantidade *</label><input type="number" name="peso_kg" min="0.01" step="0.01" required /></div>
+          <div class="form-group"><label id="lbl-qtd">Quantidade (t) *</label><input type="number" name="peso_kg" min="0.001" step="any" required placeholder="ex: 5,98" /></div>
           <div class="form-group"><label>Unidade</label>
-            <input type="text" name="unidade" list="dl-unidades" placeholder="ex: KG, TON, UN" />
+            <input type="text" name="unidade" list="dl-unidades" placeholder="TON (ou UN, SC…)" />
             <datalist id="dl-unidades">
-              <option value="KG"></option>
               <option value="TON"></option>
               <option value="UN"></option>
               <option value="SC"></option>
@@ -464,10 +463,10 @@
               <option value="L"></option>
             </datalist>
           </div>
-          <div class="form-group"><label>Preço Material (R$)</label><input type="number" name="preco_kg" min="0" step="0.01" /><div class="vd-preco-ref" id="preco-ref"></div></div>
+          <div class="form-group"><label id="lbl-preco">Preço (R$/t)</label><input type="number" name="preco_kg" min="0" step="any" /><div class="vd-preco-ref" id="preco-ref"></div></div>
           <div class="form-group"><label>Desconto (R$)</label><input type="number" name="desconto" min="0" step="0.01" value="0" /></div>
           <div class="form-group"><label>Valor Total NF (R$)</label><input type="number" name="valor_total" min="0" step="0.01" /></div>
-          <div class="form-group"><label>Ticket Médio</label><input type="number" name="ticket_medio" min="0" step="0.01" readonly style="background:#f8fafc" /></div>
+          <div class="form-group"><label id="lbl-ticket">Ticket Médio (R$/t)</label><input type="number" name="ticket_medio" min="0" step="0.01" readonly style="background:#f8fafc" /></div>
           <div class="form-group"><label>Ordem de Venda</label><input type="text" name="ordem_venda" /></div>
           <div class="form-group"><label>NF</label><input type="text" name="nf" /></div>
           <div class="form-group full"><label>Observação</label><input type="text" name="observacao" /></div>
@@ -536,7 +535,7 @@ await initPage();
 let perfil, vendaData = [], clienteData = [], matData = [], colunasVendas = new Set();
 
 // materiais vendidos por UNIDADE (ou outra unidade que não seja peso) não entram nos totais de tonelagem — só no faturamento
-const UNIDADES_PESO = new Set(['', 'KG', 'TON']);
+const UNIDADES_PESO = new Set(['', 'KG', 'TON', 'T']);
 const vendaPorPeso = r => UNIDADES_PESO.has((r.unidade || '').trim().toUpperCase());
 const pesoVenda = r => vendaPorPeso(r) ? parseFloat(r.peso_kg || 0) : 0;
 
@@ -564,19 +563,42 @@ function recalcVenda() {
   const desc= parseFloat(f.querySelector('[name="desconto"]').value)||0;
   const total = Math.max(0, pk*pr - desc);
   f.querySelector('[name="valor_total"]').value = total.toFixed(2);
-  f.querySelector('[name="ticket_medio"]').value = pk ? (total/pk).toFixed(4) : '';
+  f.querySelector('[name="ticket_medio"]').value = pk ? (total/pk).toFixed(2) : '';
 }
 ['peso_kg','preco_kg','desconto'].forEach(n =>
   document.querySelector(`#form-venda [name="${n}"]`).addEventListener('input', recalcVenda)
 );
 
+// ── Toneladas na tela, kg no banco ──
+// Venda por peso: o formulário trabalha em t e R$/t; o banco continua em kg e R$/kg (peso_kg / preco_kg).
+// Venda em outra unidade (UN, SC…): quantidade e preço ficam na própria unidade.
+const ehUnidadePeso = u => UNIDADES_PESO.has(String(u || '').trim().toUpperCase()) || /^TONELADAS?$/i.test(String(u || '').trim());
+const normUnidade = u => { const s = String(u || '').trim().toUpperCase(); return ehUnidadePeso(s) ? 'TON' : (s || null); };
+const formPorPeso = () => ehUnidadePeso(document.querySelector('#form-venda [name="unidade"]').value);
+const arred = (v, c) => Math.round(v * 10 ** c) / 10 ** c;
+
+function atualizarRotulosVenda() {
+  const peso = formPorPeso();
+  const un = peso ? 't' : (document.querySelector('#form-venda [name="unidade"]').value.trim().toUpperCase() || 'un');
+  document.getElementById('lbl-qtd').textContent = `Quantidade (${un}) *`;
+  document.getElementById('lbl-preco').textContent = `Preço (R$/${un})`;
+  document.getElementById('lbl-ticket').textContent = `Ticket Médio (R$/${un})`;
+  atualizarPrecoRef();
+}
+document.querySelector('#form-venda [name="unidade"]').addEventListener('input', atualizarRotulosVenda);
+
 // preenche a Unidade automaticamente com a unidade de medida cadastrada no material (se o campo estiver vazio)
 document.querySelector('#form-venda [name="material_id"]').addEventListener('change', e => {
   const unidadeInput = document.querySelector('#form-venda [name="unidade"]');
-  if (unidadeInput.value) return;
+  if (unidadeInput.value && unidadeInput.dataset.auto !== '1') return;
   const mat = matData.find(m => m.id === e.target.value);
-  if (mat && mat.unidade_medida) unidadeInput.value = mat.unidade_medida.toUpperCase();
+  if (mat && mat.unidade_medida) { unidadeInput.value = normUnidade(mat.unidade_medida) || 'TON'; atualizarRotulosVenda(); }
 });
+document.querySelector('#form-venda [name="unidade"]').addEventListener('input', e => { e.target.dataset.auto = ''; });
+
+// valores do banco (kg, R$/kg) → valores do formulário (t, R$/t)
+const qtdParaForm   = r => r.peso_kg == null ? '' : (ehUnidadePeso(r.unidade) ? arred(r.peso_kg / 1000, 3) : r.peso_kg);
+const precoParaForm = r => r.preco_kg == null ? '' : (ehUnidadePeso(r.unidade) ? arred(r.preco_kg * 1000, 2) : r.preco_kg);
 
 // ── clientes ──────────────────────────────────────────────────────────────────
 async function carregarClientesDropdowns(selecionarId) {
@@ -741,7 +763,7 @@ function renderTabela() {
       <td class="vd-num">${r.codigo_material||vazio}</td>
       <td><span class="vd-mat">${r.materiais?.nome||'—'}</span></td>
       <td class="text-right vd-qtd">${qtd}</td>
-      <td class="vd-num">${r.unidade||vazio}</td>
+      <td class="vd-num">${porPeso ? 't' : (r.unidade||vazio)}</td>
       <td class="text-right">${precoUnit}</td>
       <td class="text-right">${r.desconto ? `<span class="vd-desc">−${moeda(r.desconto)}</span>` : vazio}</td>
       <td class="text-right vd-valor">${moeda(r.valor_total||0)}</td>
@@ -775,10 +797,13 @@ function abrirNovaVenda(base = {}) {
   document.getElementById('form-venda').reset();
   campoVenda('id').value = '';
   campoVenda('data').value = hojeLocal();
+  campoVenda('unidade').value = 'TON';           // padrão: venda em toneladas
+  campoVenda('unidade').dataset.auto = '1';      // pode ser trocada pela unidade do material
   Object.entries(base.campos || {}).forEach(([n, v]) => { if (campoVenda(n)) campoVenda(n).value = v ?? ''; });
+  if (base.campos?.unidade) campoVenda('unidade').dataset.auto = '';
   document.getElementById('btn-salvar-outra-venda').style.display = '';
   precoRef = null; precoAuto = false;
-  atualizarPrecoRef();
+  atualizarRotulosVenda();
   abrirModal('modal-venda');
   setTimeout(() => (base.foco ? campoVenda(base.foco) : campoVenda('cliente_id'))?.focus(), 50);
 }
@@ -792,7 +817,7 @@ window.repetirVenda = id => {
     titulo: 'Nova Venda (repetindo pedido)',
     campos: {
       cliente_id: r.cliente_id, material_id: r.material_id, acondicionamento: r.acondicionamento,
-      codigo_material: r.codigo_material, unidade: r.unidade, preco_kg: r.preco_kg, desconto: 0,
+      codigo_material: r.codigo_material, unidade: normUnidade(r.unidade) || 'TON', preco_kg: precoParaForm(r), desconto: 0,
     },
     foco: 'peso_kg',
   });
@@ -815,9 +840,12 @@ async function buscarPrecoRef(preencher = true) {
   const rows = data || [];
   const doCliente = cli && rows.find(r => r.cliente_id === cli);
   const ref = doCliente || rows[0];
-  precoRef = ref ? { valor: +ref.preco_kg, data: ref.data, unidade: ref.unidade, doCliente: !!doCliente, cliente: ref.clientes?.nome } : null;
+  // preço guardado em R$/kg → mostra em R$/t quando a venda é por peso
+  const refPeso = ref && ehUnidadePeso(ref.unidade);
+  precoRef = ref ? { valor: refPeso ? arred(ref.preco_kg * 1000, 2) : +ref.preco_kg, peso: refPeso, data: ref.data,
+    unidade: refPeso ? 't' : String(ref.unidade || 'un').toLowerCase(), doCliente: !!doCliente, cliente: ref.clientes?.nome } : null;
   const preco = campoVenda('preco_kg');
-  if (preencher && precoRef && (!preco.value || precoAuto)) {
+  if (preencher && precoRef && precoRef.peso === formPorPeso() && (!preco.value || precoAuto)) {
     preco.value = precoRef.valor;
     precoAuto = true;
     recalcVenda();
@@ -828,12 +856,12 @@ async function buscarPrecoRef(preencher = true) {
 function atualizarPrecoRef() {
   const el = document.getElementById('preco-ref');
   if (!precoRef) { el.innerHTML = ''; el.className = 'vd-preco-ref'; return; }
-  const un = (precoRef.unidade || 'kg').toLowerCase();
+  const un = precoRef.unidade;
   const quem = precoRef.doCliente ? 'Última venda para este cliente' : `Última venda deste material (${precoRef.cliente || 'outro cliente'})`;
   let txt = `${quem}: <b>${fmtPreco(precoRef.valor)}/${un}</b> em ${dataBR(precoRef.data)}`;
   let cls = 'vd-preco-ref';
   const atual = parseFloat(campoVenda('preco_kg').value);
-  if (atual > 0 && precoRef.valor > 0) {
+  if (atual > 0 && precoRef.valor > 0 && precoRef.peso === formPorPeso()) {
     const dif = (atual - precoRef.valor) / precoRef.valor * 100;
     if (Math.abs(dif) >= 15) {
       cls += ' alerta';
@@ -856,15 +884,16 @@ window.editarVenda = id => {
   const set = (n,v) => { const el=f.querySelector(`[name="${n}"]`); if(el) el.value=v??''; };
   set('id',r.id); set('data',r.data); set('cliente_id',r.cliente_id);
   set('material_id',r.material_id); set('acondicionamento',r.acondicionamento);
-  set('peso_kg',r.peso_kg);
-  set('preco_kg',r.preco_kg); set('valor_total',r.valor_total);
-  set('codigo_material',r.codigo_material); set('unidade',r.unidade);
+  set('peso_kg',qtdParaForm(r));
+  set('preco_kg',precoParaForm(r)); set('valor_total',r.valor_total);
+  set('codigo_material',r.codigo_material); set('unidade',normUnidade(r.unidade) || 'TON');
   set('desconto',r.desconto||0); set('ordem_venda',r.ordem_venda);
   set('nf',r.nf); set('observacao',r.observacao);
-  const ticket = r.peso_kg ? (r.valor_total||0)/r.peso_kg : 0;
-  set('ticket_medio', ticket ? ticket.toFixed(4) : '');
+  const qf = parseFloat(qtdParaForm(r)) || 0;
+  const ticket = qf ? (r.valor_total||0)/qf : 0;
+  set('ticket_medio', ticket ? ticket.toFixed(2) : '');
   document.getElementById('btn-salvar-outra-venda').style.display = 'none';
-  precoRef = null; atualizarPrecoRef();
+  precoRef = null; atualizarRotulosVenda();
   abrirModal('modal-venda');
 };
 
@@ -913,16 +942,20 @@ async function salvarVendaInterno(lancarOutra) {
   const f = document.getElementById('form-venda');
   if (!f.checkValidity()) { f.reportValidity(); return; }
   const fd = Object.fromEntries(new FormData(f));
-  const pk   = parseFloat(fd.peso_kg)||0;
-  const pr   = parseFloat(fd.preco_kg)||0;
+  const qtd  = parseFloat(fd.peso_kg)||0;    // na tela: t (ou a unidade da venda)
+  const prT  = parseFloat(fd.preco_kg)||0;   // na tela: R$/t (ou R$/unidade)
   const desc = parseFloat(fd.desconto)||0;
-  const total= parseFloat(fd.valor_total)||(pk*pr - desc);
+  const total= parseFloat(fd.valor_total)||(qtd*prT - desc);
+  const porPeso = ehUnidadePeso(fd.unidade);
+  // no banco continua em kg e R$/kg
+  const pk = porPeso ? arred(qtd * 1000, 3) : qtd;
+  const pr = porPeso ? prT / 1000 : prT;
   const payload = {
     data:fd.data, cliente_id:fd.cliente_id, material_id:fd.material_id,
     acondicionamento:fd.acondicionamento||null,
     peso_kg:pk, preco_kg:pr||null, valor_total:total,
     codigo_material:fd.codigo_material||null,
-    unidade:fd.unidade||null,
+    unidade:normUnidade(fd.unidade),
     desconto:desc||null,
     ordem_venda:fd.ordem_venda||null,
     nf:fd.nf||null,
@@ -1943,7 +1976,7 @@ document.getElementById('btn-an-exportar').addEventListener('click', () => {
     Cliente: r.clientes?.nome || '—',
     Data: dataBR(r.data),
     Material: r.materiais?.nome || r.codigo_material || '—',
-    'Volume (kg)': pesoVenda(r),
+    'Volume (t)': pesoVenda(r) / 1000,
     'Preço/ton (R$)': r.preco_kg && vendaPorPeso(r) ? (r.preco_kg * 1000) : '',
     'Valor Total (R$)': r.valor_total || 0,
     'Ticket (R$/ton)': pesoVenda(r) > 0 ? (r.valor_total || 0) / (pesoVenda(r) / 1000) : '',

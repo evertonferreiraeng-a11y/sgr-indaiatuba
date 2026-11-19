@@ -283,7 +283,7 @@
 
           <div class="fm-sec">Capacidade</div>
           <div class="form-group"><label>Capacidade</label><input type="text" name="capacidade" placeholder="Ex: 30 t de força" /></div>
-          <div class="form-group"><label>Capacidade mensal (kg)</label><input type="number" name="capacidade_kg_mes" min="0" step="1" placeholder="Ex: 24000" /></div>
+          <div class="form-group"><label>Capacidade mensal (t)</label><input type="number" name="capacidade_kg_mes" min="0" step="any" placeholder="Ex: 24" /></div>
 
           <div class="fm-sec">Observações</div>
           <div class="form-group full"><textarea name="observacao" rows="2" style="width:100%;resize:vertical;min-height:64px" placeholder="Motivo da parada ou restrição, previsão de retorno…" aria-label="Observações"></textarea></div>
@@ -840,7 +840,7 @@ window.editarEq = id => {
   const set = (n, v) => { const el = form.querySelector(`[name="${n}"]`); if (el) el.value = v ?? ''; };
   set('id', e.id); set('nome', e.nome); set('frota', e.frota);
   set('descricao', e.descricao); set('funcao', e.funcao);
-  set('capacidade', e.capacidade); set('capacidade_kg_mes', e.capacidade_kg_mes);
+  set('capacidade', e.capacidade); set('capacidade_kg_mes', e.capacidade_kg_mes != null ? Math.round(e.capacidade_kg_mes) / 1000 : '');   // banco em kg, tela em t
   set('observacao', e.observacao);
   abrirModal('modal-eq');
 };
@@ -871,7 +871,7 @@ document.getElementById('btn-salvar-eq').addEventListener('click', async () => {
     descricao:  fd.descricao  || null,
     funcao:     fd.funcao     || null,
     capacidade:     fd.capacidade     || null,
-    capacidade_kg_mes: fd.capacidade_kg_mes ? parseFloat(fd.capacidade_kg_mes) : null,
+    capacidade_kg_mes: fd.capacidade_kg_mes ? Math.round(parseFloat(fd.capacidade_kg_mes) * 1000) : null,   // tela em t, banco em kg
     observacao: fd.observacao || null,
   };
   if (fd.id) {
