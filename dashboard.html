@@ -222,6 +222,39 @@
     .vazio { text-align:center; padding:28px; color:var(--text-muted); font-size:13px; }
     .carregando { text-align:center; padding:60px; color:var(--text-muted); }
 
+    /* ── Tela inicial: 4 cards grandes no meio ── */
+    .db-home { min-height:calc(100vh - 300px); display:grid; align-content:center; padding:24px 0; }
+    .db-home .db-sem { gap:18px; margin:0; }
+    .db-home .db-ind { padding:26px 26px 22px; border-left-width:8px; border-radius:var(--radius-lg); display:flex; flex-direction:column; min-height:240px; }
+    .db-home .db-ind .rot { font-size:12.5px; }
+    .db-home .db-ind .val { font-size:28px; margin:14px 0 4px; }
+    .db-home .db-ind .sub { font-size:13.5px; }
+    .db-home .db-ind .barra { height:8px; margin-top:16px; }
+    .db-home .db-ind .barra .esp { height:14px; }
+    .db-home .db-ind .mot { font-size:13px; margin-top:14px; padding-top:12px; }
+    .db-ind .ver { margin-top:auto; padding-top:16px; font-size:12.5px; font-weight:700; color:var(--primary); opacity:.75; transition:opacity .15s; }
+    .db-ind:hover .ver { opacity:1; }
+
+    /* ── Janela de detalhes ── */
+    .db-modal { position:fixed; inset:0; z-index:50; display:flex; justify-content:center; align-items:flex-start; padding:28px 20px; }
+    .db-modal[hidden] { display:none; }
+    .db-modal-fundo { position:absolute; inset:0; background:rgba(15,23,42,.55); backdrop-filter:blur(2px); }
+    .db-modal-caixa { position:relative; width:min(1400px, 100%); max-height:calc(100vh - 56px); overflow:auto; background:var(--bg); border-radius:16px; padding:22px 24px 12px; box-shadow:0 24px 60px rgba(0,0,0,.3); animation:dbSobe .18s ease-out; }
+    @keyframes dbSobe { from { opacity:0; transform:translateY(12px); } to { opacity:1; transform:none; } }
+    .db-modal-x { position:sticky; top:0; float:right; z-index:2; width:38px; height:38px; border-radius:50%; border:1px solid var(--border); background:#fff; font-size:22px; line-height:1; cursor:pointer; color:var(--text-muted); margin:-6px -8px 0 12px; }
+    .db-modal-x:hover { color:var(--text); box-shadow:var(--shadow); }
+    .db-modal-hd { display:flex; align-items:baseline; gap:16px; flex-wrap:wrap; margin:2px 0 14px; }
+    .db-modal-hd h2 { font-size:22px; font-weight:800; margin:0; color:var(--text); }
+    .db-modal-links { display:flex; gap:14px; } .db-modal-links a { font-size:13px; font-weight:600; color:var(--primary); text-decoration:none; }
+    .db-modal .db-q-n { display:none; }
+    .db-grid2 { display:grid; grid-template-columns:repeat(2, 1fr); gap:12px; }
+    body.db-modal-aberto { overflow:hidden; }
+    /* preparando a impressão: tudo em sequência, sem a janela por cima */
+    body.db-imprimindo .db-modal { position:static; padding:0; display:block; }
+    body.db-imprimindo .db-modal-fundo, body.db-imprimindo .db-modal-x { display:none; }
+    body.db-imprimindo .db-modal-caixa { max-height:none; overflow:visible; box-shadow:none; padding:0; width:auto; animation:none; }
+    @media (max-width: 600px) { .db-modal { padding:0; } .db-modal-caixa { max-height:100vh; border-radius:0; padding:16px; } .db-grid2 { grid-template-columns:1fr; } .db-home { min-height:0; } .db-home .db-ind { min-height:0; } }
+
     @media (max-width: 1100px) { .db-sem, .db-grid4 { grid-template-columns:repeat(2,1fr); } .db-corpo { grid-template-columns:1fr; } }
     @media (max-width: 600px) {
       .db-sem, .db-grid4 { grid-template-columns:1fr; }
@@ -236,6 +269,12 @@
       .sidebar, .bottom-nav, .sidebar-toggle, .db-nav, .db-controles, .exp-lembrete, .db-hero-mes, .db-hero-acoes, #btn-print, #ajuda-btn { display:none !important; }
       .main-content { margin:0 !important; padding:0 !important; }
       .db-sec { break-inside:avoid; } .db-mais > summary { display:none; }
+      /* impressão: todos os detalhes, um abaixo do outro */
+      .db-modal, .db-modal[hidden], .db-painel[hidden] { display:block !important; position:static; padding:0; }
+      .db-modal-fundo, .db-modal-x, .db-ind .ver { display:none !important; }
+      .db-modal-caixa { max-height:none; overflow:visible; box-shadow:none; padding:0; width:auto; animation:none; }
+      .db-home { min-height:0; padding:0 0 12px; }
+      body.db-modal-aberto { overflow:visible; }
     }
   </style>
 </head>
@@ -406,20 +445,20 @@ function render(d, tarefas, fin, materiaisEst = []) {
   const lstEq = d.problemas.slice(0, 2).map(({ e, prev }) => `${esc(nomeEq(e))} (${e.st === 'restricao' ? 'restrição, ' : ''}${prev ? `volta ${ddmm(prev)}` : 'sem previsão'})`);
   const incompleta = d.colab != null && d.colab < d.quadro;
   const inds = [
-    { alvo:'b-meta', rot:'Faturamento', st:noRitmo(atFatEst != null ? atFatEst / espAqui : null),
+    { alvo:'fat', rot:'Faturamento', st:noRitmo(atFatEst != null ? atFatEst / espAqui : null),
       val: mil(c.fat) + (comEst ? ` <span style="font-size:13px;color:var(--primary)">+ ${mil(d.valorEstoque)} em estoque</span>` : ''),
       sub: d.meta ? `${pct(comEst ? atFatEst : atFat, 0)} da meta de ${mil(d.meta)}${d.emAndamento ? ` · esperado ${pct(espAqui * 100, 0)}` : ''}` : 'sem meta cadastrada',
       barra: d.meta ? [ (comEst ? atFatEst : atFat), d.emAndamento ? espAqui * 100 : null ] : null,
       mot: d.meta ? (d.emAndamento ? `faltam <b>${mil(Math.max(0, d.meta * espAqui - fatEst))}</b> para o esperado até ${ddmm(d.corte)}` : `faltaram <b>${mil(Math.max(0, d.meta - c.fat))}</b> para a meta`) : '' },
-    { alvo:'b-oper', rot:'Prensagem', st:noRitmo(atProdRef), val:`${nf(d.prod / 1000, 1)} t produzidas`,
+    { alvo:'prensa', rot:'Prensagem', st:noRitmo(atProdRef), val:`${nf(d.prod / 1000, 1)} t produzidas`,
       sub: d.capMes > 0 ? `${pct(atProd, 0)} da capacidade do mês${d.emAndamento ? ` · esperado ${pct(d.esperado / d.capMes * 100, 0)}` : ''}` : 'sem capacidade cadastrada',
       barra: d.capMes > 0 ? [atProd, d.emAndamento ? d.esperado / d.capMes * 100 : null] : null,
       mot: d.capNominal > 0 && d.perdaCap / d.capNominal > 0.05 ? `<b>${esc(textoPerdaCap(d))}</b>` : d.dpPrensa > 0 ? `ritmo de <b>${nf(ritmoR / 1000, 1)} t/dia</b> · meta ${nf(d.metaDia / 1000, 1)} t/dia` : '' },
-    { alvo:'b-oper', rot:'Equipamentos', st:d.eqSt, val:`${d.nOp + d.nRes} de ${d.eqs.length} disponíveis`,
+    { alvo:'equip', rot:'Equipamentos', st:d.eqSt, val:`${d.nOp + d.nRes} de ${d.eqs.length} disponíveis`,
       sub:`${d.disp != null ? `${pct(d.disp, 0)} disponíveis ${d.rotDisp}` : d.rotDisp}${d.dispMes != null ? ` · média do mês ${pct(d.dispMes, 0)}` : ''}`,
       barra: d.disp != null ? [d.disp, null] : null,
       mot: lstEq.length ? `<b>${lstEq.join(' · ')}</b>${d.problemas.length > 2 ? ` e mais ${d.problemas.length - 2}` : ''}` : '' },
-    { alvo:'b-oper', rot:'Equipe', st:d.colab == null ? 'nd' : incompleta ? 'amb' : 'ok', val: d.colab != null ? `${d.colab} de ${d.quadro} colaboradores` : '—',
+    { alvo:'equipe', rot:'Equipe', st:d.colab == null ? 'nd' : incompleta ? 'amb' : 'ok', val: d.colab != null ? `${d.colab} de ${d.quadro} colaboradores` : '—',
       sub: d.colab != null ? `${nf(d.colab / d.quadro * 100, 0)}% do quadro previsto` : 'sem colaboradores no RH',
       barra: d.colab != null ? [d.colab / d.quadro * 100, null] : null,
       mot: d.vagas ? `<b>${d.vagas} vaga${d.vagas > 1 ? 's' : ''}</b> em reposição` : '' },
@@ -433,6 +472,7 @@ function render(d, tarefas, fin, materiaisEst = []) {
       <div class="val">${k.val}</div><div class="sub">${k.sub}</div>
       ${k.barra ? `<div class="barra"><i style="width:${Math.max(0, Math.min(100, p || 0))}%;background:${corSel(k.st)}"></i>${esp != null ? `<span class="esp" style="left:${Math.min(100, esp)}%" title="esperado até aqui"></span>` : ''}</div>` : ''}
       ${!['ok','ritmo','nd'].includes(k.st) && k.mot ? `<div class="mot">${k.mot}</div>` : ''}
+      <div class="ver">Ver detalhes →</div>
     </button>`;
   }).join('');
 
@@ -778,41 +818,69 @@ function render(d, tarefas, fin, materiaisEst = []) {
     </div>`;
 
   /* ── Montagem ── */
+  // Tela inicial: só os 4 cards; cada um abre uma janela com os gráficos e detalhes dele
+  const cardEq = ([rot, val, cls, sub]) => cardHTML({ rot, val, cls, sub });
+  const painel = (id, titulo, links, corpo) => `<div class="db-painel" data-painel="${id}" hidden>
+      <div class="db-modal-hd"><h2>${titulo}</h2><span class="db-modal-links">${links}</span></div>${corpo}</div>`;
   $('#db-conteudo').innerHTML = `
-    <div class="db-sem">${semHTML}</div>
+    <div class="db-home"><div class="db-sem">${semHTML}</div></div>
 
-    <section class="db-sec" id="b-meta">
-      <div class="db-sec-hd"><div><span class="db-q-n">1</span><h2 class="db-q">Vamos bater a meta do mês?</h2></div><a href="comercial.html">Ver vendas →</a></div>
-      <div class="db-corpo" style="margin-top:14px">
-        <div><div class="chart-wrap" style="height:240px"><canvas id="c-fat"></canvas></div></div>
-        <div class="db-cards">${cardsMeta.map(cardHTML).join('')}</div>
-      </div>
-      <div class="db-mini-t" style="margin-top:18px">De onde vem o faturamento: ${refFixo ? 'cada material × outubro (referência)' : `cada material × a média dele${rotBase ? ` (${rotBase})` : ''}`}</div>
-      ${matsHTML}
-    </section>
+    <div class="db-modal" id="db-modal" hidden>
+      <div class="db-modal-fundo" data-fechar></div>
+      <div class="db-modal-caixa" role="dialog" aria-modal="true">
+        <button type="button" class="db-modal-x" data-fechar title="Fechar (Esc)">×</button>
 
-    <section class="db-sec" id="b-oper">
-      <div class="db-sec-hd"><div><span class="db-q-n">2</span><h2 class="db-q">A operação está entregando?</h2></div><span style="display:flex;gap:12px"><a href="producao.html">Produção →</a><a href="equipamentos.html">Equipamentos →</a></span></div>
-      <div class="db-corpo" style="margin-top:14px">
-        <div><div class="chart-wrap" style="height:240px"><canvas id="c-prensa"></canvas></div></div>
-        <div class="db-cards">${cardsOper.filter(Boolean).map(cardHTML).join('')}</div>
-      </div>
-      <div class="db-corpo" style="margin-top:18px">
-        <div>${porPrensaHTML}</div>
-        <div><div class="db-mini-t">Equipamentos com problema</div>
+        ${painel('fat', 'Faturamento', '<a href="comercial.html">Ver vendas →</a>', `
+        <section class="db-sec" id="b-meta">
+          <div class="db-sec-hd"><h2 class="db-q">Vamos bater a meta do mês?</h2></div>
+          <div class="db-corpo" style="margin-top:14px">
+            <div><div class="chart-wrap" style="height:260px"><canvas id="c-fat"></canvas></div></div>
+            <div class="db-cards">${cardsMeta.map(cardHTML).join('')}</div>
+          </div>
+          <div class="db-mini-t" style="margin-top:18px">De onde vem o faturamento: ${refFixo ? 'cada material × outubro (referência)' : `cada material × a média dele${rotBase ? ` (${rotBase})` : ''}`}</div>
+          ${matsHTML}
+        </section>
+        ${lucroHTML}`)}
+
+        ${painel('prensa', 'Prensagem', '<a href="producao.html">Produção →</a>', `
+        <section class="db-sec" id="b-oper">
+          <div class="db-corpo">
+            <div><div class="chart-wrap" style="height:260px"><canvas id="c-prensa"></canvas></div></div>
+            <div class="db-cards">${cardHTML(cardsOper[0])}</div>
+          </div>
+          <div style="margin-top:18px">${porPrensaHTML}</div>
+        </section>`)}
+
+        ${painel('equip', 'Equipamentos', '<a href="equipamentos.html">Equipamentos →</a>', `
+        <section class="db-sec">
+          <div class="db-grid2">${kEq.slice(0, 2).map(cardEq).join('')}</div>
+          <div class="db-mini-t" style="margin-top:18px">Equipamentos com problema</div>
           ${probHTML}
           ${voltaram.length ? `<p class="sub" style="margin-top:8px;font-size:12px">Pararam no mês e já voltaram: ${voltaram.map(x => `${esc(nomeEq(x.e))} (${x.dias} dia${x.dias > 1 ? 's' : ''})`).join(' · ')}.</p>` : ''}
-        </div>
+        </section>`)}
+
+        ${painel('equipe', 'Equipe', '<a href="rh.html">RH →</a><a href="tarefas.html">Tarefas →</a>', `
+        <section class="db-sec">
+          <div class="db-grid2">${kEq.slice(2, 4).map(cardEq).join('')}</div>
+        </section>
+        ${plano4}`)}
+
+        <p class="sub" style="text-align:center;margin:4px 0 8px">Precisa do balanço de entradas, dos clientes ou das avaliações da equipe? <a href="dashboard-detalhado.html" style="color:var(--primary);font-weight:600">Abrir o relatório detalhado →</a></p>
       </div>
-    </section>
-
-    ${lucroHTML}
-    ${plano4}
-
-    <p class="sub" style="text-align:center;margin:8px 0 24px">Precisa do balanço de entradas, dos clientes ou das avaliações da equipe? <a href="dashboard-detalhado.html" style="color:var(--primary);font-weight:600">Abrir o relatório detalhado →</a></p>
+    </div>
   `;
 
-  document.querySelectorAll('.db-ind').forEach(b => b.onclick = () => document.getElementById(b.dataset.alvo)?.scrollIntoView({ behavior:'smooth', block:'start' }));
+  const modal = $('#db-modal');
+  const abrir = id => {
+    modal.querySelectorAll('.db-painel').forEach(p => { p.hidden = p.dataset.painel !== id; });
+    modal.hidden = false; document.body.classList.add('db-modal-aberto');
+    modal.querySelector('.db-modal-caixa').scrollTop = 0;
+    Object.values(charts).forEach(ch => ch?.resize?.());
+  };
+  const fechar = () => { modal.hidden = true; document.body.classList.remove('db-modal-aberto'); };
+  document.querySelectorAll('.db-ind').forEach(b => b.onclick = () => abrir(b.dataset.alvo));
+  modal.querySelectorAll('[data-fechar]').forEach(x => x.onclick = fechar);
+  document.onkeydown = e => { if (e.key === 'Escape' && !modal.hidden) fechar(); };
   graficos(d, eq);
 }
 
@@ -892,7 +960,18 @@ const mudarMes = n => { const [y, m] = $('#f-mes').value.split('-').map(Number);
   $('#f-mes').value = `${dt.getFullYear()}-${String(dt.getMonth() + 1).padStart(2, '0')}`; carregar(); };
 $('#mes-ant').onclick = () => mudarMes(-1);
 $('#mes-prox').onclick = () => mudarMes(1);
-$('#btn-print').onclick = () => { document.querySelectorAll('.db-mais').forEach(m => m.open = true); setTimeout(() => window.print(), 300); };
+$('#btn-print').onclick = () => {
+  document.querySelectorAll('.db-mais').forEach(m => m.open = true);
+  // mostra todos os detalhes (gráficos escondidos não têm tamanho) e volta como estava depois de imprimir
+  const modal = $('#db-modal'), escondidos = modal ? [modal, ...modal.querySelectorAll('.db-painel')].filter(x => x.hidden) : [];
+  document.body.classList.add('db-imprimindo');
+  escondidos.forEach(x => { x.hidden = false; });
+  requestAnimationFrame(() => { Object.values(charts).forEach(ch => ch?.resize?.()); setTimeout(() => {
+    window.print();
+    escondidos.forEach(x => { x.hidden = true; });
+    document.body.classList.remove('db-imprimindo');
+  }, 300); });
+};
 carregar();
 </script>
 </body>
