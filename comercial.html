@@ -443,7 +443,7 @@
             </div>
           </div>
           <div class="form-group"><label>Data *</label><input type="date" name="data" required /></div>
-          <div class="form-group"><label>Cód. Material</label><input type="text" name="codigo_material" /></div>
+          <input type="hidden" name="codigo_material" /><!-- mantido oculto: guarda o código vindo da importação ao editar -->
           <div class="form-group"><label>Tipo de Material *</label><select name="material_id" required><option value="">Selecione…</option></select></div>
           <div class="form-group"><label>Acondicionamento</label>
             <select name="acondicionamento">
@@ -454,9 +454,8 @@
           </div>
           <div class="form-group"><label id="lbl-qtd">Quantidade (t) *</label><input type="number" name="peso_kg" min="0.001" step="any" required placeholder="ex: 5,98" /></div>
           <div class="form-group"><label>Unidade</label>
-            <input type="text" name="unidade" list="dl-unidades" placeholder="TON (ou UN, SC…)" />
+            <input type="text" name="unidade" list="dl-unidades" placeholder="toneladas — preencha só se for UN, SC…" />
             <datalist id="dl-unidades">
-              <option value="TON"></option>
               <option value="UN"></option>
               <option value="SC"></option>
               <option value="M³"></option>
@@ -466,7 +465,6 @@
           <div class="form-group"><label id="lbl-preco">Preço (R$/t)</label><input type="number" name="preco_kg" min="0" step="any" /><div class="vd-preco-ref" id="preco-ref"></div></div>
           <div class="form-group"><label>Desconto (R$)</label><input type="number" name="desconto" min="0" step="0.01" value="0" /></div>
           <div class="form-group"><label>Valor Total NF (R$)</label><input type="number" name="valor_total" min="0" step="0.01" /></div>
-          <div class="form-group"><label id="lbl-ticket">Ticket Médio (R$/t)</label><input type="number" name="ticket_medio" min="0" step="0.01" readonly style="background:#f8fafc" /></div>
           <div class="form-group"><label>Ordem de Venda</label><input type="text" name="ordem_venda" /></div>
           <div class="form-group"><label>NF</label><input type="text" name="nf" /></div>
           <div class="form-group full"><label>Observação</label><input type="text" name="observacao" /></div>
@@ -563,7 +561,7 @@ function recalcVenda() {
   const desc= parseFloat(f.querySelector('[name="desconto"]').value)||0;
   const total = Math.max(0, pk*pr - desc);
   f.querySelector('[name="valor_total"]').value = total.toFixed(2);
-  f.querySelector('[name="ticket_medio"]').value = pk ? (total/pk).toFixed(2) : '';
+
 }
 ['peso_kg','preco_kg','desconto'].forEach(n =>
   document.querySelector(`#form-venda [name="${n}"]`).addEventListener('input', recalcVenda)
@@ -573,7 +571,8 @@ function recalcVenda() {
 // Venda por peso: o formulário trabalha em t e R$/t; o banco continua em kg e R$/kg (peso_kg / preco_kg).
 // Venda em outra unidade (UN, SC…): quantidade e preço ficam na própria unidade.
 const ehUnidadePeso = u => UNIDADES_PESO.has(String(u || '').trim().toUpperCase()) || /^TONELADAS?$/i.test(String(u || '').trim());
-const normUnidade = u => { const s = String(u || '').trim().toUpperCase(); return ehUnidadePeso(s) ? 'TON' : (s || null); };
+// peso (t) é o padrão: fica em branco na tela e vazio no banco; só UN, SC… são gravadas
+const normUnidade = u => { const s = String(u || '').trim().toUpperCase(); return ehUnidadePeso(s) ? null : s; };
 const formPorPeso = () => ehUnidadePeso(document.querySelector('#form-venda [name="unidade"]').value);
 const arred = (v, c) => Math.round(v * 10 ** c) / 10 ** c;
 
@@ -582,7 +581,6 @@ function atualizarRotulosVenda() {
   const un = peso ? 't' : (document.querySelector('#form-venda [name="unidade"]').value.trim().toUpperCase() || 'un');
   document.getElementById('lbl-qtd').textContent = `Quantidade (${un}) *`;
   document.getElementById('lbl-preco').textContent = `Preço (R$/${un})`;
-  document.getElementById('lbl-ticket').textContent = `Ticket Médio (R$/${un})`;
   atualizarPrecoRef();
 }
 document.querySelector('#form-venda [name="unidade"]').addEventListener('input', atualizarRotulosVenda);
@@ -592,7 +590,7 @@ document.querySelector('#form-venda [name="material_id"]').addEventListener('cha
   const unidadeInput = document.querySelector('#form-venda [name="unidade"]');
   if (unidadeInput.value && unidadeInput.dataset.auto !== '1') return;
   const mat = matData.find(m => m.id === e.target.value);
-  if (mat && mat.unidade_medida) { unidadeInput.value = normUnidade(mat.unidade_medida) || 'TON'; atualizarRotulosVenda(); }
+  if (mat && mat.unidade_medida) { unidadeInput.value = normUnidade(mat.unidade_medida) || ''; atualizarRotulosVenda(); }
 });
 document.querySelector('#form-venda [name="unidade"]').addEventListener('input', e => { e.target.dataset.auto = ''; });
 
@@ -601,16 +599,53 @@ const qtdParaForm   = r => r.peso_kg == null ? '' : (ehUnidadePeso(r.unidade) ? 
 const precoParaForm = r => r.preco_kg == null ? '' : (ehUnidadePeso(r.unidade) ? arred(r.preco_kg * 1000, 2) : r.preco_kg);
 
 // ── clientes ──────────────────────────────────────────────────────────────────
+// A tabela "clientes" é a mesma das Entradas/Cargas (quem traz material).
+// Na venda só aparecem os compradores: quem já tem venda lançada, ou foi cadastrado pelo "+" desta tela.
+let compradoresIds = new Set();
+const VER_TODOS = '__todos__';
+
+async function buscarCompradores() {
+  const ids = new Set();
+  for (let ini = 0; ; ini += 1000) {
+    const { data, error } = await supabase.from('vendas').select('cliente_id').range(ini, ini + 999);
+    if (error || !data) break;
+    data.forEach(r => r.cliente_id && ids.add(r.cliente_id));
+    if (data.length < 1000) break;
+  }
+  return ids;
+}
+
+function opcoesClientes(lista) { return lista.map(c => `<option value="${c.id}">${c.nome}</option>`).join(''); }
+
+// monta o select de cliente da venda: só compradores (mais o cliente já escolhido, se for outro)
+function montarSelectClienteVenda(todos = false, manterId = '') {
+  const sel = document.querySelector('#form-venda [name="cliente_id"]');
+  const lista = todos ? clienteData : clienteData.filter(c => compradoresIds.has(c.id) || c.id === manterId);
+  sel.innerHTML = '<option value="">Selecione…</option>' + opcoesClientes(lista) +
+    (todos ? '' : `<option value="${VER_TODOS}">— Ver todos os cadastrados (inclui fornecedores) —</option>`);
+  sel.value = manterId || '';
+}
+
+document.querySelector('#form-venda [name="cliente_id"]').addEventListener('change', e => {
+  if (e.target.value !== VER_TODOS) return;
+  e.stopImmediatePropagation();   // não dispara a busca de preço com o valor "ver todos"
+  montarSelectClienteVenda(true);
+  e.target.focus();
+});
+
 async function carregarClientesDropdowns(selecionarId) {
-  const { data: clientes } = await supabase.from('clientes').select('*').order('nome');
+  const [{ data: clientes }, ids] = await Promise.all([
+    supabase.from('clientes').select('*').order('nome'),
+    buscarCompradores(),
+  ]);
   clienteData = clientes || [];
-  const cliOpts = clienteData.map(c=>`<option value="${c.id}">${c.nome}</option>`).join('');
+  compradoresIds = ids;
+  if (selecionarId) compradoresIds.add(selecionarId);   // cliente novo cadastrado pelo "+"
+  const compradores = clienteData.filter(c => compradoresIds.has(c.id));
 
-  document.getElementById('f-cliente').innerHTML    = '<option value="">Todos</option>' + cliOpts;
-  document.querySelector('#form-venda [name="cliente_id"]').innerHTML = '<option value="">Selecione…</option>' + cliOpts;
-  initMultiSelect('cliente', clienteData);
-
-  if (selecionarId) document.querySelector('#form-venda [name="cliente_id"]').value = selecionarId;
+  document.getElementById('f-cliente').innerHTML    = '<option value="">Todos</option>' + opcoesClientes(compradores);
+  montarSelectClienteVenda(false, selecionarId || '');
+  initMultiSelect('cliente', compradores);
 }
 
 document.getElementById('btn-novo-cliente-venda').addEventListener('click', () => {
@@ -796,8 +831,9 @@ function abrirNovaVenda(base = {}) {
   document.getElementById('modal-venda-title').textContent = base.titulo || 'Nova Venda';
   document.getElementById('form-venda').reset();
   campoVenda('id').value = '';
+  montarSelectClienteVenda(false, base.campos?.cliente_id || '');
   campoVenda('data').value = hojeLocal();
-  campoVenda('unidade').value = 'TON';           // padrão: venda em toneladas
+  campoVenda('unidade').value = '';              // padrão: venda em toneladas (campo em branco)
   campoVenda('unidade').dataset.auto = '1';      // pode ser trocada pela unidade do material
   Object.entries(base.campos || {}).forEach(([n, v]) => { if (campoVenda(n)) campoVenda(n).value = v ?? ''; });
   if (base.campos?.unidade) campoVenda('unidade').dataset.auto = '';
@@ -817,7 +853,7 @@ window.repetirVenda = id => {
     titulo: 'Nova Venda (repetindo pedido)',
     campos: {
       cliente_id: r.cliente_id, material_id: r.material_id, acondicionamento: r.acondicionamento,
-      codigo_material: r.codigo_material, unidade: normUnidade(r.unidade) || 'TON', preco_kg: precoParaForm(r), desconto: 0,
+      codigo_material: r.codigo_material, unidade: normUnidade(r.unidade) || '', preco_kg: precoParaForm(r), desconto: 0,
     },
     foco: 'peso_kg',
   });
@@ -882,16 +918,14 @@ window.editarVenda = id => {
   document.getElementById('modal-venda-title').textContent = 'Editar Venda';
   const f = document.getElementById('form-venda');
   const set = (n,v) => { const el=f.querySelector(`[name="${n}"]`); if(el) el.value=v??''; };
+  montarSelectClienteVenda(false, r.cliente_id || '');
   set('id',r.id); set('data',r.data); set('cliente_id',r.cliente_id);
   set('material_id',r.material_id); set('acondicionamento',r.acondicionamento);
   set('peso_kg',qtdParaForm(r));
   set('preco_kg',precoParaForm(r)); set('valor_total',r.valor_total);
-  set('codigo_material',r.codigo_material); set('unidade',normUnidade(r.unidade) || 'TON');
+  set('codigo_material',r.codigo_material); set('unidade',normUnidade(r.unidade) || '');
   set('desconto',r.desconto||0); set('ordem_venda',r.ordem_venda);
   set('nf',r.nf); set('observacao',r.observacao);
-  const qf = parseFloat(qtdParaForm(r)) || 0;
-  const ticket = qf ? (r.valor_total||0)/qf : 0;
-  set('ticket_medio', ticket ? ticket.toFixed(2) : '');
   document.getElementById('btn-salvar-outra-venda').style.display = 'none';
   precoRef = null; atualizarRotulosVenda();
   abrirModal('modal-venda');
@@ -972,6 +1006,7 @@ async function salvarVendaInterno(lancarOutra) {
       material_id:payload.material_id, tipo:'saida', peso_kg:pk,
       origem_tipo:'venda', origem_id:nova.id, data:payload.data,
     });
+    compradoresIds.add(payload.cliente_id);
     toast('Venda registrada!');
   }
   if (lancarOutra && !fd.id) {
