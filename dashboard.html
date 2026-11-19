@@ -85,6 +85,12 @@
     .db-card .rot { font-size:11px; font-weight:800; letter-spacing:.06em; text-transform:uppercase; color:var(--text-muted); display:flex; justify-content:space-between; gap:8px; align-items:center; }
     .db-card .val { font-size:20px; font-weight:800; margin:4px 0 2px; }
     .db-card .sub { font-size:12.5px; color:var(--text-muted); }
+    .mt-barra { position:relative; height:10px; background:#e5e7eb; border-radius:999px; overflow:hidden; margin-top:10px; }
+    .mt-barra i { position:absolute; top:0; bottom:0; left:0; }
+    .mt-barra i.f { background:var(--primary); } .mt-barra i.e { background:#86c5a0; }
+    .mt-leg { display:flex; gap:12px; flex-wrap:wrap; margin-top:6px; font-size:11.5px; color:var(--text-muted); }
+    .mt-leg i { display:inline-block; width:8px; height:8px; border-radius:2px; background:#e5e7eb; margin-right:4px; vertical-align:0; }
+    .mt-leg i.f { background:var(--primary); } .mt-leg i.e { background:#86c5a0; }
     .chart-wrap { position:relative; height:280px; }
     .up { color:var(--success); } .down { color:var(--danger); } .amb-t { color:#b45309; }
 
@@ -629,14 +635,21 @@ function render(d, tarefas, fin, materiaisEst = []) {
       { rot:'Ritmo atual', val:`${mil(ritmoDia)}/dia`, sub:`${dr} dias úteis restantes` },
     ];
   } else {
-    fraseMeta = `Faltam <b>${mil(faltaMeta)}</b> para a meta de ${mil(d.meta)}${estM ? `; o estoque pronto para vender (${mil(estM)}) ${estM >= faltaMeta ? '<span class="ok">cobre tudo</span>' : `cobre ${pct(estM / faltaMeta * 100, 0)}`}` : ''}. `
-      + (dr > 0 ? `Para chegar lá é preciso faturar ${apertado ? `<span class="ruim">${mil(necDia)} por dia útil</span>` : `<span class="ok">${mil(necDia)} por dia útil</span>`} nos ${dr} dias que restam; o ritmo atual é de ${mil(ritmoDia)}/dia.` : 'Não restam dias úteis no mês.');
+    fraseMeta = `Faturamos <b>${mil(c.fat)}</b> até ${ddmm(d.corte)}, ${pct(atFat, 0)} da meta de ${mil(d.meta)}. `
+      + (dr > 0 ? `Faltam <b>${mil(faltaMeta)}</b> em ${dr} dia${dr > 1 ? 's' : ''} út${dr > 1 ? 'eis' : 'il'}.` : `<span class="ruim">Faltam ${mil(faltaMeta)} e não restam dias úteis.</span>`);
+    // barra: faturado | estoque pronto | o que falta (fundo)
+    const w = v => Math.max(0, Math.min(100, v / d.meta * 100));
+    const barraMeta = `<div class="mt-barra"><i class="f" style="width:${w(c.fat)}%"></i>${estM ? `<i class="e" style="left:${w(c.fat)}%;width:${w(c.fat + estM) - w(c.fat)}%"></i>` : ''}</div>
+      <div class="mt-leg"><span><i class="f"></i>faturado ${pct(atFat, 0)}</span>${estM ? `<span><i class="e"></i>estoque ${pct(estM / d.meta * 100, 0)}</span>` : ''}<span><i></i>resta ${pct(faltaPosEst / d.meta * 100, 0)}</span></div>`;
+    const vezes = necDia != null && ritmoDia > 0 ? necDia / ritmoDia : null;
     cardsMeta = [
-      { rot: estM ? 'Projeção do mês + estoque' : 'Projeção do mês', val:mil(d.projecao + estM), dest:true,
-        selo:noRitmo((c.fat + estM) / d.meta * 100 / espAqui), sub:`${pct((d.projecao + estM) / d.meta * 100, 0)} da meta de ${mil(d.meta)}` },
-      { rot:'Falta para a meta', val:mil(faltaMeta), cls:'amb-t', sub: estM ? (faltaPosEst > 0 ? `vendendo o estoque, faltam ${mil(faltaPosEst)}` : 'o estoque cobre o que falta') : `${pct(atFat, 0)} da meta faturados` },
-      { rot:'Precisa faturar por dia útil', val: necDia != null ? mil(necDia) : '—', cls: apertado ? 'down' : 'up', sub:`ritmo atual ${mil(ritmoDia)}/dia · ${dr} dias úteis restantes` },
-    ];
+      { rot:'Falta para a meta', val:mil(faltaMeta), dest:true, selo:noRitmo((c.fat + estM) / d.meta * 100 / espAqui),
+        sub:`de ${mil(d.meta)}`, extra:barraMeta },
+      dr > 0 ? { rot:'Precisa faturar por dia útil', val:mil(necDia), cls: apertado ? 'down' : 'up',
+        sub:`hoje o ritmo é ${mil(ritmoDia)}/dia${apertado && vezes ? ` (precisa de ${nf(vezes, 1)}×)` : ''}` } : null,
+      estM ? { rot:'Estoque pronto para vender', val:mil(estM),
+        sub: estM >= faltaMeta ? '<span class="up">cobre tudo o que falta</span>' : `cobre ${pct(estM / faltaMeta * 100, 0)} do que falta` } : null,
+    ].filter(Boolean);
   }
 
   /* ══ 2. A operação está entregando? ══ */
@@ -783,7 +796,7 @@ function cardHTML(k) {
   if (!k) return '';
   const s = k.selo ? SEL[k.selo] : null;
   return `<div class="db-card ${k.dest ? 'dest' : ''}"><div class="rot"><span>${k.rot}</span>${s ? `<span class="selo ${s[1]}">${s[0]}</span>` : ''}</div>
-    <div class="val ${k.cls || ''}">${k.val}</div><div class="sub">${k.sub || ''}</div></div>`;
+    <div class="val ${k.cls || ''}">${k.val}</div><div class="sub">${k.sub || ''}</div>${k.extra || ''}</div>`;
 }
 
 /* ═════════════ Gráficos ═════════════ */
