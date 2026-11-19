@@ -262,8 +262,6 @@
     .pp-obs { font-size:12px; color:var(--text-muted); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; min-width:0; }
     .pp-tag { margin-left:auto; font-size:10.5px; font-weight:800; letter-spacing:.04em; text-transform:uppercase; white-space:nowrap; color:var(--text-muted); }
     .pp-aus.falta .pp-tag { color:#991b1b; } .pp-aus.just .pp-tag { color:#92400e; } .pp-aus.fer .pp-tag { color:#1e40af; }
-    .pp-chips { display:flex; flex-wrap:wrap; gap:6px; overflow:auto; min-height:0; }
-    .pp-chips span { font-size:12.5px; padding:4px 10px; border-radius:999px; background:#ecfdf3; color:#166534; border:1px solid #bbf7d0; }
     .pp-vazio { font-size:13px; color:var(--text-muted); padding:6px 2px; } .pp-vazio.ok { color:var(--success); font-weight:600; }
     .db-home-hd h2 { font-size:22px; font-weight:800; letter-spacing:-.02em; color:var(--text); margin:0; }
     .db-home-hd p { margin:4px 0 0; font-size:13.5px; color:var(--text-muted); }
@@ -496,8 +494,6 @@ function renderPessoas(colabs, ocHoje) {
       <div class="pp-stats">${stat(presentes.length, 'presentes', 'ok')}${stat(faltas.length, 'faltas', faltas.length ? 'ruim' : '')}${stat(justif.length, 'justificadas', justif.length ? 'amb' : '')}${stat(ferias.length, 'férias', '')}</div>
       <div class="pp-sub">Faltas e ausências</div>
       <div class="pp-auss">${ausHTML}</div>
-      <div class="pp-sub">Presentes (${presentes.length})</div>
-      <div class="pp-chips">${presentes.map(c => `<span>${esc(c.nome)}</span>`).join('') || '<div class="pp-vazio">—</div>'}</div>
     </div>`;
 }
 
