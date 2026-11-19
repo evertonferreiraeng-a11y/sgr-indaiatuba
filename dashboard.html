@@ -633,15 +633,14 @@ function renderGestao(pessoas = []) {
   const n = k => todos.filter(x => x.nivel === k).length;
   const NIV = { crit:['Agir agora', 'crit'], aten:['Atenção', 'aten'], info:['Acompanhar', 'info'], ok:['Indo bem', 'ok'] };
   const item = x => `<div class="gs-it ${x.nivel}"><span class="gs-ar">${x.area}</span><div><b>${x.titulo}</b><p>${x.acao}</p></div></div>`;
-  const prior = todos.filter(x => x.nivel === 'crit' || x.nivel === 'aten');
-  const top = prior.slice(0, 4);
+  const top = todos.filter(x => x.nivel === 'crit');   // no campo: só os pontos críticos (o restante fica na análise completa)
   el.innerHTML = `
     <div class="gs-hd">
       <span class="gs-ic"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg></span>
       <div><h2>Análise da gestão da operação</h2><p>Leitura geral da unidade: faturamento, volumes, preço, materiais, resultado, prensagem, equipamentos, tarefas e pessoas. Referência: outubro, nosso melhor mês.</p></div>
-      <div class="gs-cont">${['crit', 'aten', 'ok'].map(k => `<span class="${k}"><b>${n(k)}</b>${NIV[k][0].toLowerCase()}</span>`).join('')}</div>
+      <div class="gs-cont">${['crit'].map(k => `<span class="${k}"><b>${n(k)}</b>${NIV[k][0].toLowerCase()}</span>`).join('')}</div>
     </div>
-    ${top.length ? `<div class="gs-top">${top.map(item).join('')}</div>` : '<div class="gs-vazio">✓ Nenhum ponto crítico ou de atenção no momento.</div>'}
+    ${top.length ? `<div class="gs-top">${top.map(item).join('')}</div>` : '<div class="gs-vazio">✓ Nenhum ponto crítico no momento.</div>'}
     <button type="button" class="gs-btn" id="gs-abrir">Ver análise completa (${todos.length} pontos) →</button>`;
   const full = $('#gs-full');
   if (full) full.innerHTML = `<p class="gs-meta">Leitura automática por regras, com os dados do período selecionado no topo. Serve de apoio: confira nos detalhes de cada área antes de agir.</p>`
