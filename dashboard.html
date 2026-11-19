@@ -405,6 +405,7 @@ async function fetchAll(table, fields, filters = []) {
   return all;
 }
 const fetchOpcional = (...a) => fetchAll(...a).catch(() => []);
+const MES_REF_DRE = '2026-10';   // mês do DRE usado como referência no "Estamos dando lucro?"
 
 // Estudo financeiro e acerto do mês: os mesmos valores salvos na tela Apresentação
 function finAtual(M) {
@@ -433,7 +434,8 @@ async function carregar() {
       fetchAll('tarefas', 'id, titulo, status, categoria, responsavel, data_vencimento, andamento')
         .catch(() => fetchOpcional('tarefas', 'id, titulo, status, categoria, responsavel, data_vencimento')),
       // Ponto de equilíbrio pelo resultado real (DRE); sem DRE, cai no estudo financeiro da tela Apresentação
-      equilibrioDoDRE(supabase, M).catch(() => null),
+      // A partir de novembro/2026 a referência do lucro é só outubro/2026 (antes: média dos últimos 3 meses do DRE)
+      (M > MES_REF_DRE ? equilibrioDoDRE(supabase, MES_REF_DRE, 1) : equilibrioDoDRE(supabase, M)).catch(() => null),
     ]);
     // Chamada de hoje (tela RH): Presente / Falta / Justificada; sem lançamento = presente
     const ocHoje = await fetchOpcional('ocorrencias', 'colaborador_id, tipo, descricao', [['eq','data',hoje]]).catch(() => []);
@@ -863,7 +865,7 @@ function render(d, tarefas, fin, materiaisEst = []) {
         </div>
         <div class="db-cards">
           ${cardHTML({ rot:'EBITDA estimado do mês', val:`${eb < 0 ? '−' : ''}${mil(Math.abs(eb))}`, cls: eb >= 0 ? 'up' : 'down', dest: eb >= 0, sub: mg != null ? `margem de ${nf(mg, 1)}% sobre a receita líquida` : '' })}
-          ${fin.dre ? cardHTML({ rot:`EBITDA real (DRE ${fin.dre.periodo})`, val:`${fin.dre.ebitdaMes < 0 ? '−' : ''}${mil(Math.abs(fin.dre.ebitdaMes))}/mês`, cls: fin.dre.ebitdaMes >= 0 ? 'up' : 'down', sub:'média dos meses fechados no DRE' }) : ''}
+          ${fin.dre ? cardHTML({ rot:`EBITDA real (DRE ${fin.dre.periodo})`, val:`${fin.dre.ebitdaMes < 0 ? '−' : ''}${mil(Math.abs(fin.dre.ebitdaMes))}${fin.dre.n > 1 ? '/mês' : ''}`, cls: fin.dre.ebitdaMes >= 0 ? 'up' : 'down', sub: fin.dre.n > 1 ? 'média dos meses fechados no DRE' : 'resultado do mês de referência no DRE' }) : ''}
         </div>
       </div>
     </section>`;
