@@ -295,7 +295,16 @@
     .db-home .db-ind .barra .esp { top:-4px; height:18px; width:3px; }
     .barra-leg { display:flex; justify-content:space-between; margin-top:6px; font-size:12px; color:var(--text-muted); }
     .barra-leg b { font-size:13px; }
-    .db-home .db-ind .mot { font-size:13px; line-height:1.4; margin-top:10px; padding:8px 12px; border:0; border-radius:10px; background:var(--st-bg); }
+    .db-home .db-ind .mot { font-size:13px; line-height:1.4; margin-top:10px; padding:8px 12px; border:0; border-radius:10px; background:var(--st-bg); display:flex; align-items:flex-start; gap:8px; }
+    .db-home .db-ind .mot .mot-ic { flex:none; display:flex; margin-top:1px; color:var(--st); }
+    .db-home .db-ind .selo { display:inline-flex; align-items:center; gap:6px; padding:4px 10px; }
+    .db-home .db-ind .selo::before { content:""; width:7px; height:7px; border-radius:50%; background:currentColor; }
+    .ind-cap { margin-top:14px; font-size:11.5px; font-weight:700; letter-spacing:.04em; color:var(--text-muted); }
+    .ind-cap + .val-row { margin-top:2px; }
+    .db-home .db-ind .barra i { position:relative; }
+    .db-home .db-ind .barra i.seg-est { position:absolute; left:0; top:0; opacity:.32; }
+    .db-home .barra-leg b { font-size:16px; letter-spacing:-.01em; }
+    .barra-leg .leg-dt { display:inline-block; width:8px; height:8px; border-radius:50%; margin:0 4px 0 8px; }
     .db-ind .ver { margin-top:auto; padding-top:10px; display:flex; align-items:center; justify-content:space-between; font-size:13px; font-weight:700; color:var(--primary); }
     .db-ind .ver span { width:26px; height:26px; border-radius:50%; display:grid; place-items:center; background:var(--primary-bg); transition:transform .18s, background .18s, color .18s; }
     .db-ind:hover .ver span { transform:translateX(3px); background:var(--primary); color:#fff; }
@@ -558,19 +567,19 @@ function render(d, tarefas, fin, materiaisEst = []) {
   const incompleta = d.colab != null && d.colab < d.quadro;
   const inds = [
     { alvo:'fat', rot:'Faturamento', st:noRitmo(atFatEst != null ? atFatEst / espAqui : null),
-      val: mil(c.fat), ext: comEst ? `+ ${mil(d.valorEstoque)} em estoque` : '',
+      cap:'Faturado no mês', val: mil(c.fat), solido: comEst && d.meta ? atFat : null, ext: comEst ? `+ ${mil(d.valorEstoque)} em estoque` : '',
       sub: d.meta ? `meta de ${mil(d.meta)}` : 'sem meta cadastrada',
       barra: d.meta ? [ (comEst ? atFatEst : atFat), d.emAndamento ? espAqui * 100 : null ] : null, barRot: comEst ? 'da meta, com o estoque' : 'da meta',
       mot: d.meta ? (d.emAndamento ? `faltam <b>${mil(Math.max(0, d.meta * espAqui - fatEst))}</b> para o esperado até ${ddmm(d.corte)}` : `faltaram <b>${mil(Math.max(0, d.meta - c.fat))}</b> para a meta`) : '' },
-    { alvo:'prensa', rot:'Prensagem', st:noRitmo(atProdRef), val:`${nf(d.prod / 1000, 1)} t produzidas`,
+    { alvo:'prensa', rot:'Prensagem', st:noRitmo(atProdRef), cap:'Produzido no mês', val:`${nf(d.prod / 1000, 1)} t`,
       sub: d.capMes > 0 ? `capacidade do mês: ${nf(d.capMes / 1000, 0)} t` : 'sem capacidade cadastrada',
       barra: d.capMes > 0 ? [atProd, d.emAndamento ? d.esperado / d.capMes * 100 : null] : null, barRot: 'da capacidade',
       mot: d.capNominal > 0 && d.perdaCap / d.capNominal > 0.05 ? `<b>${esc(textoPerdaCap(d))}</b>` : d.dpPrensa > 0 ? `ritmo de <b>${nf(ritmoR / 1000, 1)} t/dia</b> · meta ${nf(d.metaDia / 1000, 1)} t/dia` : '' },
-    { alvo:'equip', rot:'Equipamentos', st:d.eqSt, val:`${d.nOp + d.nRes} de ${d.eqs.length} disponíveis`,
+    { alvo:'equip', rot:'Equipamentos', st:d.eqSt, cap:'Disponíveis', val:`${d.nOp + d.nRes} de ${d.eqs.length}`,
       sub: d.dispMes != null ? `média do mês: ${pct(d.dispMes, 0)}` : '',
       barra: d.disp != null ? [d.disp, null] : null, barRot: `disponíveis ${d.rotDisp}`,
       mot: lstEq.length ? `<b>${lstEq.join(' · ')}</b>${d.problemas.length > 2 ? ` e mais ${d.problemas.length - 2}` : ''}` : '' },
-    { alvo:'equipe', rot:'Equipe', st:d.colab == null ? 'nd' : incompleta ? 'amb' : 'ok', val: d.colab != null ? `${d.colab} de ${d.quadro} colaboradores` : '—',
+    { alvo:'equipe', rot:'Equipe', st:d.colab == null ? 'nd' : incompleta ? 'amb' : 'ok', cap:'Colaboradores', val: d.colab != null ? `${d.colab} de ${d.quadro}` : '—',
       sub: d.colab != null ? '' : 'sem colaboradores no RH',
       barra: d.colab != null ? [d.colab / d.quadro * 100, null] : null, barRot: 'do quadro previsto',
       mot: d.vagas ? `<b>${d.vagas} vaga${d.vagas > 1 ? 's' : ''}</b> em reposição` : '' },
@@ -584,16 +593,30 @@ function render(d, tarefas, fin, materiaisEst = []) {
     equip:  svgI('<path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/>'),
     equipe: svgI('<path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>'),
   };
+  // Ícones pequenos da faixa de aviso
+  const svgP = p => `<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">${p}</svg>`;
+  const MOT_ICO = {
+    fat:    svgP('<polyline points="22 17 13.5 8.5 8.5 13.5 2 7"/><polyline points="16 17 22 17 22 11"/>'),
+    prensa: svgP('<circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>'),
+    equip:  svgP('<path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/>'),
+    equipe: svgP('<circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>'),
+  };
   const semHTML = inds.map(k => {
     const [rot, cls] = SEL[k.st];
     const [p, esp] = k.barra || [];
     const pw = Math.max(0, Math.min(100, p || 0));
+    const cor = corSel(k.st);
+    // Faturamento com estoque: parte cheia = faturado, parte clara = estoque
+    const duas = k.solido != null;
+    const sw = duas ? Math.max(0, Math.min(100, k.solido)) : pw;
     return `<button class="db-ind ${cls}" data-alvo="${k.alvo}">
       <div class="hd"><span class="ind-ic">${ICO[k.alvo] || ''}</span><span class="rot">${k.rot}</span><span class="selo ${cls}">${rot}</span></div>
+      ${k.cap ? `<div class="ind-cap">${k.cap}</div>` : ''}
       <div class="val-row"><div class="val">${k.val}</div>${k.ext ? `<div class="ind-ext">${k.ext}</div>` : ''}</div><div class="sub">${k.sub}</div>
-      ${k.barra ? `<div class="barra"><i style="width:${pw}%;background:${corSel(k.st)}"></i>${esp != null ? `<span class="esp" style="left:${Math.min(100, esp)}%" title="esperado até aqui"></span>` : ''}</div>
-        <div class="barra-leg"><span><b style="color:${corSel(k.st)}">${pct(p, 0)}</b>${k.barRot ? ` ${k.barRot}` : ''}</span>${esp != null ? `<span>esperado ${pct(esp, 0)}</span>` : ''}</div>` : ''}
-      ${!['ok','ritmo','nd'].includes(k.st) && k.mot ? `<div class="mot">${k.mot}</div>` : ''}
+      ${k.barra ? `<div class="barra">${duas ? `<i class="seg-est" style="width:${pw}%;background:${cor}"></i>` : ''}<i style="width:${sw}%;background:${cor}"></i>${esp != null ? `<span class="esp" style="left:${Math.min(100, esp)}%" title="esperado até aqui"></span>` : ''}</div>
+        <div class="barra-leg"><span><b style="color:${cor}">${pct(p, 0)}</b>${k.barRot ? ` ${k.barRot}` : ''}</span>${esp != null ? `<span>esperado ${pct(esp, 0)}</span>` : ''}</div>
+        ${duas ? `<div class="barra-leg" style="justify-content:flex-start;margin-top:2px"><span><span class="leg-dt" style="background:${cor};margin-left:0"></span>faturado <span class="leg-dt" style="background:${cor};opacity:.32"></span>estoque</span></div>` : ''}` : ''}
+      ${!['ok','ritmo','nd'].includes(k.st) && k.mot ? `<div class="mot"><span class="mot-ic">${MOT_ICO[k.alvo] || ''}</span><span>${k.mot}</span></div>` : ''}
       <div class="ver">Ver detalhes <span>→</span></div>
     </button>`;
   }).join('');
