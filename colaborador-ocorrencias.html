@@ -172,6 +172,8 @@
     .st-dia .tr i { display:block; height:100%; background:#f87171; border-radius:999px; }
     .st-dia b { text-align:right; color:#0f172a; }
     .aval-item { background:#f8fafc; border-radius:8px; padding:12px; margin-bottom:8px; }
+    .aval-resumo { cursor:pointer; margin-bottom:0; transition:background .15s; }
+    .aval-resumo:hover { background:#eef6f1; }
     .aval-top  { display:flex; align-items:center; justify-content:space-between; margin-bottom:8px; flex-wrap:wrap; gap:6px; }
     .aval-nota { font-size:22px; font-weight:800; }
     .aval-criterios { display:grid; grid-template-columns:repeat(7,1fr); gap:4px; }
@@ -265,6 +267,17 @@
       <button class="btn btn-outline" id="btn-imprimir-hist" style="margin-right:auto">Imprimir para conferência</button>
       <button class="btn btn-primary" data-close="modal-hist">Fechar</button>
     </div>
+  </div>
+</div>
+
+<!-- Modal: Histórico de avaliações -->
+<div class="modal-backdrop" id="modal-aval">
+  <div class="modal">
+    <div class="modal-header">
+      <h3>Histórico de avaliações</h3>
+      <button class="modal-close" data-close="modal-aval">✕</button>
+    </div>
+    <div class="modal-body" id="modal-aval-body"></div>
   </div>
 </div>
 
@@ -726,14 +739,26 @@ function renderEstatisticas() {
   const corQ = v => v >= 7 ? '#16a34a' : v >= 5 ? '#d97706' : v > 0 ? '#dc2626' : '#94a3b8';
   const mediaAv = a => { const vs = CRITERIOS.map(k => parseFloat(a[k]) || 0).filter(v => v > 0); return vs.length ? vs.reduce((s, x) => s + x, 0) / vs.length : null; };
   const avalOrd = [...avalsColab].sort((a, b) => (b.data_avaliacao || '').localeCompare(a.data_avaliacao || ''));
-  const avalHTML = avalOrd.length ? avalOrd.map(a => {
+  const pills = val => CRITERIOS.map((k, i) => { const v = val(k); return `<div class="crit-pill"><div class="cn" style="color:${corQ(v)}">${v == null || isNaN(v) ? '—' : +v.toFixed(1)}</div><div class="cl">${ROT_Q[i]}</div></div>`; }).join('');
+  // Histórico completo (abre no modal ao clicar na média final)
+  avalHistHTML = avalOrd.map(a => {
       const m = mediaAv(a);
       return `<div class="aval-item">
         <div class="aval-top"><span style="font-size:12px;color:#64748b">${dataBR(a.data_avaliacao) || ''}${a.avaliador ? ` · ${a.avaliador}` : ''}</span>
           <span class="aval-nota" style="color:${corQ(m)}">${m !== null ? m.toFixed(1) : '—'}</span></div>
-        <div class="aval-criterios">${CRITERIOS.map((k, i) => { const v = parseFloat(a[k]); return `<div class="crit-pill"><div class="cn" style="color:${corQ(v)}">${isNaN(v) ? '—' : v}</div><div class="cl">${ROT_Q[i]}</div></div>`; }).join('')}</div>
+        <div class="aval-criterios">${pills(k => parseFloat(a[k]))}</div>
+        ${a.observacoes ? `<p style="margin:8px 0 0;font-size:12px;color:#475569;background:#fff;padding:6px 10px;border-radius:6px;border:1px solid #e2e8f0">${a.observacoes}</p>` : ''}
       </div>`;
-    }).join('') + `<div class="st-leg" style="margin-top:10px">${avalsColab.length} avaliaç${avalsColab.length === 1 ? 'ão' : 'ões'}${crit.length ? ` · média geral ${(crit.reduce((s, x) => s + x.v, 0) / crit.length).toFixed(1)}` : ''}${ultAval ? ` · última em ${dataBR(ultAval)}` : ''}</div>`
+    }).join('');
+  // No painel: só a média final (média de cada critério em todas as avaliações)
+  const mediaFinal = crit.length ? crit.reduce((s, x) => s + x.v, 0) / crit.length : null;
+  const mediaCrit = Object.fromEntries(crit.map(x => [x.k, x.v]));
+  const avalHTML = avalOrd.length ? `<div class="aval-item aval-resumo" id="aval-resumo" title="Clique para ver o histórico completo">
+        <div class="aval-top"><span style="font-size:12px;color:#64748b;font-weight:700">MÉDIA FINAL</span>
+          <span class="aval-nota" style="color:${corQ(mediaFinal)}">${mediaFinal !== null ? mediaFinal.toFixed(1) : '—'}</span></div>
+        <div class="aval-criterios">${pills(k => mediaCrit[k] ?? null)}</div>
+      </div>
+      <div class="st-leg" style="margin-top:10px">${avalsColab.length} avaliaç${avalsColab.length === 1 ? 'ão' : 'ões'}${ultAval ? ` · última em ${dataBR(ultAval)}` : ''} · <a href="#" id="aval-ver" style="color:#0f5132;font-weight:700">ver histórico →</a></div>`
     : '<div class="st-vazio">Nenhuma avaliação registrada.</div>';
 
   el.innerHTML = `
@@ -749,7 +774,11 @@ function renderEstatisticas() {
     </div>
     <div class="st-sec">Avaliação de desempenho</div>
     <div class="st-box">${avalHTML}</div>`;
+  const abrirHistAval = e => { e?.preventDefault(); document.getElementById('modal-aval-body').innerHTML = avalHistHTML; abrirModal('modal-aval'); };
+  document.getElementById('aval-resumo')?.addEventListener('click', abrirHistAval);
+  document.getElementById('aval-ver')?.addEventListener('click', abrirHistAval);
 }
+let avalHistHTML = '';
 
 function renderTudoFiltrado() {
   renderKPIs();
