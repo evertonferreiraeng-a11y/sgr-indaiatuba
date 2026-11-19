@@ -142,16 +142,6 @@
     .ton-meses b { display:block; font-size:12.5px; color:var(--text); }
     .ton-meses .cur b { color:var(--primary); }
     .ton-meses .rot { grid-column:1 / -1; text-align:left; font-weight:800; letter-spacing:.05em; text-transform:uppercase; font-size:10.5px; margin-left:-50px; }
-    .cp-barras { display:flex; flex-direction:column; gap:8px; margin-bottom:12px; }
-    .cp-lin { display:grid; grid-template-columns:150px 1fr; gap:12px; align-items:center; }
-    .cp-lin > span { font-size:12.5px; color:var(--text-muted); display:flex; flex-direction:column; }
-    .cp-lin > span b { font-size:15px; color:var(--text); }
-    .cp-lin.ant { opacity:.75; }
-    .cp-bar { display:flex; height:26px; border-radius:7px; overflow:hidden; background:#f1f5f9; gap:2px; }
-    .cp-bar i { display:flex; align-items:center; justify-content:center; color:#fff; font-style:normal; font-size:11.5px; font-weight:700; }
-    .cp-dot { display:inline-block; width:10px; height:10px; border-radius:3px; margin-right:8px; vertical-align:middle; }
-    .cp-tab .cp-tot td { border-top:2px solid #e2e8f0; }
-    @media (max-width:600px) { .cp-lin { grid-template-columns:96px 1fr; } }
     .mt-ton { margin-top:12px; padding-top:10px; border-top:2px dashed #cfe3d6; }
     .mt-ton-hd { font-size:11px; font-weight:800; letter-spacing:.05em; text-transform:uppercase; color:var(--text-muted); margin-bottom:2px; }
     .mt-ton .mt-ln b { font-size:14px; }
@@ -875,29 +865,6 @@ function render(d, tarefas, fin, materiaisEst = []) {
     </div>
     ${naoV.length ? `<p class="sub" style="margin-top:10px;font-size:12.5px"><b>${naoV.length} ${naoV.length > 1 ? `materiais vendidos ${refFixo ? 'em outubro' : 'no ano'} ainda não saíram` : `material vendido ${refFixo ? 'em outubro' : 'no ano'} ainda não saiu`} neste mês</b> (${refFixo ? `${mil(naoVMedia)} em outubro` : `média de ${mil(naoVMedia)}/mês`}): ${naoV.slice(0, 6).map(m => esc(nomeMat(m.n))).join(', ')}${naoV.length > 6 ? ` e mais ${naoV.length - 6}` : ''}.</p>` : ''}`;
 
-  /* ── Composição por forma de venda (toneladas e R$): prensado × a granel × sucata ── */
-  const GR_COMP = [['prensado', 'Prensado', COR.verde], ['granel', 'A granel', COR.s4], ['sucata', 'Sucata ferrosa', COR.cinza], ['outros', 'Outros', COR.s1]];
-  const ant = d.antCheio, antNome = cap(nomeMes(d.Mant));
-  const compL = GR_COMP.map(([k, rot, cor]) => ({ k, rot, cor, vol:c.g[k].vol || 0, fat:c.g[k].fat || 0, preco:c.g[k].preco,
-    volA:ant.g[k].vol || 0, fatA:ant.g[k].fat || 0, precoA:ant.g[k].preco })).filter(x => x.vol > 0 || x.volA > 0);
-  const volT = compL.reduce((s, x) => s + x.vol, 0), volTA = compL.reduce((s, x) => s + x.volA, 0);
-  const fatT = compL.reduce((s, x) => s + x.fat, 0);
-  const segs = (campo, tot) => compL.filter(x => x[campo] > 0).map(x => `<i style="width:${x[campo] / tot * 100}%;background:${x.cor}" title="${x.rot}: ${tn(x[campo], 1)} (${pct(x[campo] / tot * 100, 0)})">${x[campo] / tot >= .12 ? `${pct(x[campo] / tot * 100, 0)}` : ''}</i>`).join('');
-  const compHTML = !compL.length ? '<div class="vazio">Nenhuma venda no mês.</div>' : `
-    <div class="cp-barras">
-      <div class="cp-lin"><span>${d.emAndamento ? `Até ${ddmm(d.corte)}` : cap(mes)}<b>${tn(volT, 1)}</b></span><div class="cp-bar">${segs('vol', volT || 1)}</div></div>
-      ${volTA ? `<div class="cp-lin ant"><span>${antNome} inteiro<b>${tn(volTA, 1)}</b></span><div class="cp-bar">${segs('volA', volTA)}</div></div>` : ''}
-    </div>
-    <div class="table-scroll"><table class="db cp-tab"><thead><tr><th>Forma</th><th style="text-align:right">Toneladas</th><th style="text-align:right">% do volume</th><th style="text-align:right">Faturamento</th><th style="text-align:right">Preço médio</th><th style="text-align:right">${antNome} (inteiro)</th></tr></thead><tbody>
-      ${compL.map(x => `<tr><td><i class="cp-dot" style="background:${x.cor}"></i><b>${x.rot}</b></td>
-        <td class="n"><b>${tn(x.vol, 1)}</b></td><td class="n">${pct(volT ? x.vol / volT * 100 : 0, 0)}</td>
-        <td class="n">${mil(x.fat)}<br><span class="sub" style="font-size:11px">${pct(fatT ? x.fat / fatT * 100 : 0, 0)} da receita</span></td>
-        <td class="n">${x.preco ? `${reais0(x.preco)}/t` : '—'}${x.preco && x.precoA ? `<br><span class="sub" style="font-size:11px">${(v => `<b class="${v >= 0 ? 'up' : 'down'}">${seta(v)} ${nf(Math.abs(v), 0)}%</b>`)(varPct(x.preco, x.precoA))} vs ${antNome.slice(0, 3).toLowerCase()}</span>` : ''}</td>
-        <td class="n">${tn(x.volA, 1)}<br><span class="sub" style="font-size:11px">${pct(volTA ? x.volA / volTA * 100 : 0, 0)} · ${x.precoA ? `${reais0(x.precoA)}/t` : '—'}</span></td></tr>`).join('')}
-      <tr class="cp-tot"><td><b>Total</b></td><td class="n"><b>${tn(volT, 1)}</b></td><td class="n">100%</td><td class="n"><b>${mil(fatT)}</b></td><td class="n">${volT ? `${reais0(fatT / (volT / 1000))}/t` : '—'}</td><td class="n">${tn(volTA, 1)}</td></tr>
-    </tbody></table></div>
-    ${c.pctPrensado != null ? `<p class="sub" style="margin-top:8px;font-size:12.5px">Do material que pode ser prensado, <b>${pct(c.pctPrensado, 0)}</b> saiu prensado${ant.pctPrensado != null ? ` (${antNome.toLowerCase()}: ${pct(ant.pctPrensado, 0)})` : ''}${ratioPG ? ` · o prensado vale <b>${nf(ratioPG, 1)}×</b> o a granel` : ''}.</p>` : ''}`;
-
   /* ── Prensagem ── */
   const atEsp = d.esperado > 0 ? d.prod / d.esperado * 100 : null;
   const pProj = d.capMes > 0 ? d.projProd / d.capMes * 100 : null;
@@ -1137,8 +1104,6 @@ function render(d, tarefas, fin, materiaisEst = []) {
           </div>
           <div class="db-mini-t" style="margin-top:18px">De onde vem o faturamento: ${refFixo ? 'cada material × outubro (referência)' : `cada material × a média dele${rotBase ? ` (${rotBase})` : ''}`}</div>
           ${matsHTML}
-          <div class="db-mini-t" style="margin-top:22px">Composição do que saiu: prensado, a granel e sucata</div>
-          ${compHTML}
         </section>
         ${lucroHTML}`)}
 
