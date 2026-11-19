@@ -136,6 +136,7 @@ const ROTEIROS = {
   ],
 
   'dashboard.html': [
+    { alvo: () => document.querySelector('.db-modo'), texto: 'Escolha <b>Mês</b> ou <b>Ano</b>. No Ano, os cards somam de janeiro até agora.' },
     { alvo: '#f-mes', texto: 'Escolha o <b>mês</b>. O mês atual mostra os dados até ontem.' },
     { alvo: () => document.querySelector('.db-sem'), texto: 'Os <b>4 selos</b> do mês. A marquinha preta é o esperado até hoje. Clique num selo para ver o detalhe.' },
     { alvo: () => document.querySelector('.exp-lembrete'), texto: 'Se houver experiência vencendo em até 7 dias, aparece este <b>lembrete</b>. Clique em <b>Avaliar no RH</b>.' },

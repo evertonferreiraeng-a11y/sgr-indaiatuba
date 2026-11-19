@@ -11,6 +11,7 @@ export const AJUDA = {
     resumo: 'Acompanhamento do mês. No topo, os 4 selos (Faturamento, Prensagem, Equipamentos e Equipe). Embaixo, 4 perguntas: vamos bater a meta, a operação está entregando, estamos dando lucro e o que estamos fazendo. Os números vêm sozinhos das outras telas, então aqui não se digita nada.',
     quando: 'Todo dia, para saber se o mês está no ritmo e o que precisa ser cobrado, e antes de gerar a apresentação do comitê.',
     passos: [
+      'No topo, escolha <b>Mês</b> ou <b>Ano</b>. No Ano, Faturamento e Prensagem somam de janeiro até o mês atual (ou o ano inteiro, em anos fechados).',
       'Confira os <b>4 selos</b> no topo. A marquinha preta na barra é o esperado até hoje. Clique num selo para ir direto ao assunto.',
       '<b>1. Vamos bater a meta?</b> Veja quanto falta e quanto é preciso faturar <b>por dia útil</b> contra o ritmo atual. Nas barras, cada material contra o que ele vendeu em <b>outubro</b> (mês de referência): o que está abaixo e o que tem em estoque é onde buscar o que falta.',
       '<b>2. A operação está entregando?</b> Prensas contra o previsto, quantas toneladas por dia faltam para usar a capacidade, a equipe, cada prensa, o faturamento por semana, o volume por tipo e os equipamentos com problema.',
