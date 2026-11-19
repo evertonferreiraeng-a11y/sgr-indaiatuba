@@ -715,7 +715,10 @@ function render(d, tarefas, fin, materiaisEst = []) {
       // Quadro: atual · esperado · diferença p/ esperado · diferença p/ meta
       const rotMeta = k.alvo === 'fat' ? 'meta' : 'capacidade';
       const cel = (rot, v, cls = '', sub = '') => `<div class="ind-num ${cls}"><span>${rot}</span><b>${v}</b>${sub ? `<em>${sub}</em>` : ''}</div>`;
-      const difCel = (rot, v) => v > 0.5 ? cel(`Falta p/ ${rot}`, k.fmtGap(v), 'falta') : cel(`Acima ${rot === 'esperado' ? 'do' : 'da'} ${rot}`, `+${k.fmtGap(-v)}`, 'acima');
+      // % em relação à meta/capacidade (mesma base do Atual e do Esperado: 56% + 7% = 63%)
+      const pAt = Math.round(p || 0);
+      const pTot = rot => pct(Math.abs((rot === 'esperado' ? Math.round(alvoP) : 100) - pAt), 0);
+      const difCel = (rot, v) => v > 0.5 ? cel(`Falta p/ ${rot} · ${pTot(rot)}`, k.fmtGap(v), 'falta') : cel(`Acima ${rot === 'esperado' ? 'do' : 'da'} ${rot} · ${pTot(rot)}`, `+${k.fmtGap(-v)}`, 'acima');
       const faltaMeta = k.tot - atual;
       nums = `<div class="ind-nums ${esp != null ? '' : 'tres'}">
         ${cel(`${k.alvo === 'fat' && duas ? 'Atual (com estoque)' : 'Atual'} · ${pct(p, 0)}`, k.fmtGap(atual), 'atual')}
