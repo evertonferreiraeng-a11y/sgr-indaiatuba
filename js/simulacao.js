@@ -116,7 +116,6 @@ const ROTEIROS = {
   ],
 
   'comercial.html': [
-    { alvo: '.com-tab[data-tab="vendas"]', clicar: true, texto: 'Na aba <b>Vendas</b> ficam os lançamentos.' },
     { alvo: '#btn-nova-venda', clicar: true, texto: 'A cada venda de recicláveis, clique em <b>+ Nova Venda</b>.' },
     { alvo: campo('#modal-venda', 'Cliente'), digitar: 'Cliente (exemplo)', texto: 'Escolha o <b>Cliente</b>.' },
     { alvo: campo('#modal-venda', 'Data'), digitar: hoje(), texto: 'A <b>Data</b> da venda.' },

@@ -112,9 +112,8 @@ export const AJUDA = {
       '<b>Salvar e lançar outra:</b> salva e deixa a janela aberta com o mesmo cliente, data, ordem de venda e NF, para lançar o próximo material do pedido.',
       'O aviso amarelo <b>pedidos aguardando NF</b> mostra as vendas sem nota; clique nele para ver só essas e completar a NF depois.',
       '<b>Pedido de venda no Protheus:</b> abra o último pedido do mesmo comprador, faça uma cópia e altere o volume (e o valor, se mudou).',
-      'Se o cliente não aparecer na lista, cadastre em <b>Novo Cliente</b>.',
+      'A lista de clientes mostra só quem já comprou. Para um comprador novo, use <b>+ Novo</b> ou, no fim da lista, <b>Ver todos os cadastrados</b>.',
       '<b>⬇ Exportar Planilha</b> (em Registro de Vendas) baixa a planilha de comercialização com as vendas filtradas, no mesmo formato aceito pelo <b>Importar Excel</b>.',
-      'Na aba Análises Comerciais, <b>⬇ Exportar Excel</b> gera uma planilha com as vendas filtradas lá.',
     ],
   },
   'notas-fiscais.html': {
