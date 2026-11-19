@@ -29,3 +29,6 @@ ALTER TABLE public.ocorrencias
   CHECK (tipo IN ('falta','atestado','falta_declaracao','ferias','outro','declaracao','advertencia','elogio'));
 
 NOTIFY pgrst, 'reload schema';
+
+-- Férias passa a ser só informativo: não conta como falta no KPI
+UPDATE public.ocorrencias SET conta_como_falta = false WHERE tipo = 'ferias' AND conta_como_falta IS TRUE;

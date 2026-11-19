@@ -277,7 +277,7 @@
 <script type="module">
 import { supabase, initPage, dataBR, toast, abrirModal, fecharModal } from './js/config.js?v=12';
 import { icon } from './js/icons.js';
-import { montarFormOc, resetFormOc, preencherFormOc, lerFormOc, gravarOcorrencia, OC_LABEL, TIPOS_FALTA, ehFalta, rotuloOc, rotuloCal } from './js/oc-form.js?v=2';
+import { montarFormOc, resetFormOc, preencherFormOc, lerFormOc, gravarOcorrencia, OC_LABEL, TIPOS_FALTA, ehFalta, rotuloOc, rotuloCal } from './js/oc-form.js?v=3';
 
 await initPage();
 
@@ -574,11 +574,15 @@ async function carregarOcorrencias() {
 }
 
 // ── Estatísticas do colaborador ──────────────────────────────────────────────
-// Presença contada por dia: o dia é falta se tiver qualquer registro de falta; senão, com qualquer registro, é presença
+// Presença contada por dia: o dia é falta se tiver registro de falta; férias não conta nem como falta nem como presença;
+// qualquer outro registro conta como presença
 function presencaDias(lista) {
   const dias = {};
-  lista.forEach(o => { dias[o.data] = dias[o.data] || ehFalta(o); });
-  const b = Object.keys(dias).length, p = Object.values(dias).filter(f => !f).length;
+  lista.forEach(o => {
+    if (ehFalta(o)) dias[o.data] = 'f';
+    else if (o.tipo !== 'ferias' && !dias[o.data]) dias[o.data] = 'p';
+  });
+  const b = Object.keys(dias).length, p = Object.values(dias).filter(v => v === 'p').length;
   return { p, b, pct: b ? Math.round(p / b * 100) : null };
 }
 function renderEstatisticas() {
@@ -586,13 +590,13 @@ function renderEstatisticas() {
   const hoje = hojeISO(), ano = hoje.slice(0, 4);
   const doAno = ocColab.filter(o => o.data.startsWith(ano) && o.data <= hoje);
   const n = (lista, t) => lista.filter(o => o.tipo === t).length;
-  // Conta como falta: sem justificativa, justificada (atestado) e férias — a mesma regra do "conta como falta no KPI"
+  // Conta como falta: injustificada, justificada, falta com declaração e "outro" marcado como falta (férias não conta)
   const nAus = lista => lista.filter(ehFalta).length;
-  const nJust = lista => lista.filter(o => o.tipo === 'atestado' || o.tipo === 'falta_declaracao' || (o.tipo === 'declaracao' && o.conta_como_falta)).length;
+  const nJust = lista => lista.filter(o => o.tipo === 'atestado' || o.tipo === 'falta_declaracao').length;
   const presenca = presencaDias;
   const corPres = v => v == null ? '' : v >= 95 ? 'verde' : v >= 85 ? 'amarelo' : 'vermelho';
-  const detalhe = lista => { const f = n(lista, 'falta'), j = nJust(lista), o = n(lista, 'ferias');
-    return [f && `${f} sem justif.`, j && `${j} justificada${j === 1 ? '' : 's'}`, o && `${o} de férias`].filter(Boolean).join(' · ') || 'nenhuma'; };
+  const detalhe = lista => { const f = n(lista, 'falta'), j = nJust(lista), o = nAus(lista) - f - j;
+    return [f && `${f} sem justif.`, j && `${j} justificada${j === 1 ? '' : 's'}`, o && `${o} outro${o === 1 ? '' : 's'}`].filter(Boolean).join(' · ') || 'nenhuma'; };
   const pAno = presenca(doAno);
   const faltasAno = nAus(doAno), advAno = n(doAno, 'advertencia');
   // Última falta (qualquer ausência) e dias desde então
@@ -649,20 +653,20 @@ function renderEstatisticas() {
     tile('Dias trabalhados', pPer.p, '', comp(l => presencaDias(l).p) || 'no período'),
     tile('Sem justificativa', sjP, sjP ? 'vermelho' : '', comp(l => n(l, 'falta'))),
     tile('Justificadas', jP, jP ? 'amarelo' : '', comp(nJust) || 'atestado ou declaração'),
-    tile('Férias', oP, '', comp(l => n(l, 'ferias'))),
+    tile('Férias', oP, '', comp(l => n(l, 'ferias')) || 'não conta como falta'),
   ].join('');
 
   // Últimos 6 meses: presenças, justificadas e faltas empilhadas
   const meses = [];
   for (let i = 5; i >= 0; i--) { const d = new Date(); d.setDate(1); d.setMonth(d.getMonth() - i); meses.push(`${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`); }
-  const porMes = meses.map(k => { const l = ocColab.filter(o => o.data.startsWith(k)); return { k, p: presencaDias(l).p, j: nJust(l), f: n(l, 'falta'), o: n(l, 'ferias') }; });
+  const porMes = meses.map(k => { const l = ocColab.filter(o => o.data.startsWith(k)); return { k, p: presencaDias(l).p, j: nJust(l), f: nAus(l) - nJust(l), o: n(l, 'ferias') }; });
   const maxM = Math.max(1, ...porMes.map(m => m.p + m.j + m.f + m.o));
   const MES_AB = ['jan','fev','mar','abr','mai','jun','jul','ago','set','out','nov','dez'];
   const barras = porMes.map(m => {
-    const aus = m.j + m.f + m.o, tot = m.p + aus, h = tot / maxM * 88;
+    const aus = m.j + m.f, tot = m.p + aus + m.o, h = tot / maxM * 88;
     const seg = (v, c) => v ? `<i style="height:${v / tot * 100}%;background:${c}"></i>` : '';
     const sel = m.k === mesSel;
-    return `<div title="${MES_AB[+m.k.slice(5) - 1]}: ${m.p} presenças, ${aus} faltas (${m.f} sem justif., ${m.j} justificadas, ${m.o} férias)">
+    return `<div title="${MES_AB[+m.k.slice(5) - 1]}: ${m.p} presenças, ${aus} faltas (${m.f} sem justif., ${m.j} justificadas) · ${m.o} dias de férias">
       <em>${aus ? `<span style="color:#dc2626">${aus}</span>` : ''}</em>
       <div class="st-pilha" style="height:${Math.max(3, h)}px${sel ? ';box-shadow:0 0 0 2px #0f5132' : ''}">${seg(m.p, '#4ade80')}${seg(m.o, '#38bdf8')}${seg(m.j, '#fbbf24')}${seg(m.f, '#ef4444')}</div>
       <span${sel ? ' style="color:#0f5132;font-weight:800"' : ''}>${MES_AB[+m.k.slice(5) - 1]}</span></div>`;
