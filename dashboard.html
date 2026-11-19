@@ -434,9 +434,6 @@ function render(d, tarefas, fin, materiaisEst = []) {
   ];
   if (fin.pe > 0 && !d.inicioMes) cardsFat.push({ rot: refPe >= fin.pe ? 'Acima do ponto de equilíbrio' : 'Abaixo do ponto de equilíbrio', val:mil(Math.abs(refPe - fin.pe)),
     cls: refPe >= fin.pe ? 'up' : 'down', sub:`equilíbrio: ${mil(fin.pe)}/mês de receita${fin.dre ? ` (DRE ${fin.dre.periodo})` : ' (estudo financeiro)'}` });
-  const semanasHTML = d.semFat.length && d.meta ? `<div class="db-mini-t" style="margin-top:16px">Faturamento por semana × meta da semana</div>` + d.semFat.map(s =>
-    `<div class="hb"><span>Semana ${s.i}${s.parcial ? ' <span class="sub">(parcial)</span>' : ''}<br><span class="sub" style="font-size:11px">${ddmm(s.s.ini)} a ${ddmm(s.s.fim > d.corte ? d.corte : s.s.fim)}</span></span>
-      <div class="trilho"><i style="width:${Math.min(100, s.p || 0)}%;background:${corAt(s.p)}"></i></div><span class="v"><b>${pct(s.p, 0)}</b> · ${mil(s.fat)}</span></div>`).join('') : '';
 
   /* ── Composição de vendas ── */
   const a = d.antCheio, antAb = MES_AB[+d.Mant.slice(5) - 1];
@@ -660,11 +657,6 @@ function render(d, tarefas, fin, materiaisEst = []) {
   const faltaCap = Math.max(0, d.capMes - d.prod);
   const necT = duRestP > 0 ? faltaCap / duRestP : null;
   const apertadoP = necT != null && necT > ritmoR * 1.05;
-  const fraseOper = d.emAndamento && d.capMes > 0
-    ? `Prensas em ${atEsp != null && Math.round(atEsp) >= 97 ? `<span class="ok">${pct(atEsp, 0)} do previsto</span>` : `<span class="ruim">${pct(atEsp, 0)} do previsto</span>`} até hoje (${nf(d.prod / 1000, 1)} de ${nf(d.esperado / 1000, 1)} t). `
-      + (duRestP > 0 ? `Para usar toda a capacidade do mês (${tCap(d.capMes)} t) faltam ${nf(faltaCap / 1000, 1)} t: ${apertadoP ? `<span class="ruim">${nf(necT / 1000, 1)} t por dia útil</span>` : `<span class="ok">${nf(necT / 1000, 1)} t por dia útil</span>`}; o ritmo atual é de ${nf(ritmoR / 1000, 1)} t/dia.` : '')
-      + (d.perdaCap > 0.5 ? ` <span class="ruim">A manutenção tirou ${nf(d.perdaCap / 1000, 1)} t da capacidade.</span>` : '')
-    : fraseHTML(fr.prensa);
   const cardsOper = [
     cardsPrensa[0],
     d.emAndamento && necT != null
@@ -770,12 +762,11 @@ function render(d, tarefas, fin, materiaisEst = []) {
 
     <section class="db-sec" id="b-oper">
       <div class="db-sec-hd"><div><span class="db-q-n">2</span><h2 class="db-q">A operação está entregando?</h2></div><span style="display:flex;gap:12px"><a href="producao.html">Produção →</a><a href="equipamentos.html">Equipamentos →</a></span></div>
-      <p class="db-frase">${fraseOper}</p>
-      <div class="db-corpo">
+      <div class="db-corpo" style="margin-top:14px">
         <div><div class="chart-wrap" style="height:240px"><canvas id="c-prensa"></canvas></div></div>
         <div class="db-cards">${cardsOper.filter(Boolean).map(cardHTML).join('')}</div>
       </div>
-      <div class="db-corpo" style="margin-top:6px"><div>${porPrensaHTML}</div><div>${semanasHTML}</div></div>
+      <div style="margin-top:6px">${porPrensaHTML}</div>
       <div class="db-mini-t" style="margin-top:18px">Para onde foi o volume vendido (${tn(volT, 1)})</div>
       ${volT > 0 ? `<div class="pilha">${grupos.filter(([g]) => c.g[g].vol > 0).map(([g, n, cor]) => `<i style="width:${c.g[g].vol / volT * 100}%;background:${cor}" title="${n}: ${tn(c.g[g].vol, 1)}"></i>`).join('')}</div>
       <div class="leg">${grupos.filter(([g]) => c.g[g].vol > 0).map(([g, n, cor]) => `<span style="--c:${cor}">${n}: <b>${pct(c.g[g].vol / volT * 100, 0)}</b> (${tn(c.g[g].vol, 1)})</span>`).join('')}</div>` : '<div class="vazio">Sem vendas no período.</div>'}
