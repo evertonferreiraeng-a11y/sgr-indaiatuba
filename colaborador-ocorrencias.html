@@ -85,6 +85,8 @@
     .cal-day.t-falta { background:#fef2f2; border-color:#fecaca; } .cal-day.t-falta .cal-daynum { color:#b91c1c; }
     .cal-day.t-atestado { background:#fffbeb; border-color:#fde68a; } .cal-day.t-atestado .cal-daynum { color:#b45309; }
     .cal-day.t-advertencia { background:#fff1f2; border-color:#fda4af; } .cal-day.t-advertencia .cal-daynum { color:#9f1239; }
+    .cal-day.t-ferias { background:#f0f9ff; border-color:#7dd3fc; } .cal-day.t-ferias .cal-daynum { color:#075985; }
+    .cal-day.t-declaracao { background:#f5f3ff; border-color:#c4b5fd; } .cal-day.t-declaracao .cal-daynum { color:#5b21b6; }
     .cal-day.t-elogio { background:#f1f5f9; border-color:#e2e8f0; }
     .cal-tipo { font-size:10.5px; font-weight:700; line-height:1.2; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; display:flex; align-items:center; gap:4px; }
     .cal-tipo i { width:6px; height:6px; border-radius:50%; flex:none; }
@@ -212,6 +214,8 @@
             <option value="">Todos</option>
             <option value="falta">Falta injustificada</option>
             <option value="atestado">Justificada</option>
+            <option value="ferias">Férias</option>
+            <option value="declaracao">Declaração</option>
             <option value="outro">Presente</option>
             <option value="advertencia">Advertência</option>
             <option value="elogio">Outro</option>
@@ -253,6 +257,8 @@
               <option value="">Selecione…</option>
               <option value="falta">Falta injustificada</option>
               <option value="atestado">Justificada</option>
+              <option value="ferias">Férias</option>
+              <option value="declaracao">Declaração</option>
               <option value="outro">Presente</option>
               <option value="advertencia">Advertência</option>
               <option value="elogio">Outro</option>
@@ -300,11 +306,11 @@ if (!colabId) {
   throw new Error('missing id');
 }
 
-const TIPO_LABEL = { falta:'Falta', atestado:'Justificada', advertencia:'Advertência', elogio:'Outro', outro:'Presente' };
-const TIPO_COR   = { falta:'background:#fee2e2;color:#991b1b', atestado:'background:#fef3c7;color:#92400e', advertencia:'background:#ffe4e6;color:#9f1239', elogio:'background:#f1f5f9;color:#475569', outro:'background:#dcfce7;color:#166534' };
-const TIPO_PONTO = { falta:'#dc2626', atestado:'#d97706', advertencia:'#e11d48', elogio:'#94a3b8', outro:'#16a34a' };
+const TIPO_LABEL = { falta:'Falta', atestado:'Justificada', ferias:'Férias', declaracao:'Declaração', advertencia:'Advertência', elogio:'Outro', outro:'Presente' };
+const TIPO_COR   = { falta:'background:#fee2e2;color:#991b1b', atestado:'background:#fef3c7;color:#92400e', ferias:'background:#e0f2fe;color:#075985', declaracao:'background:#ede9fe;color:#5b21b6', advertencia:'background:#ffe4e6;color:#9f1239', elogio:'background:#f1f5f9;color:#475569', outro:'background:#dcfce7;color:#166534' };
+const TIPO_PONTO = { falta:'#dc2626', atestado:'#d97706', ferias:'#0284c7', declaracao:'#7c3aed', advertencia:'#e11d48', elogio:'#94a3b8', outro:'#16a34a' };
 // No calendário, quando há mais de um registro no dia, vale o mais "grave"
-const TIPO_PESO  = { falta:0, advertencia:1, atestado:2, elogio:3, outro:4 };
+const TIPO_PESO  = { falta:0, advertencia:1, atestado:2, ferias:3, declaracao:4, elogio:5, outro:6 };
 const DIAS_SEMANA = ['Dom','Seg','Ter','Qua','Qui','Sex','Sáb'];
 const DIAS_AB = ['dom','seg','ter','qua','qui','sex','sáb'];
 const MESES = ['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
@@ -426,7 +432,7 @@ function montarLayout() {
           <div class="cal-weekdays">${DIAS_SEMANA.map(d => `<div>${d}</div>`).join('')}</div>
           <div class="cal-grid" id="cal-grid"></div>
           <div class="cal-legend">
-            ${['outro','falta','atestado','advertencia','elogio'].map(t => `<span><i style="background:${TIPO_PONTO[t]}"></i>${TIPO_LABEL[t]}</span>`).join('')}
+            ${['outro','falta','atestado','ferias','declaracao','advertencia','elogio'].map(t => `<span><i style="background:${TIPO_PONTO[t]}"></i>${TIPO_LABEL[t]}</span>`).join('')}
             <span style="margin-left:auto;font-weight:500">${isAdm ? 'Clique num dia para lançar ou editar' : ''}</span>
           </div>
         </div>
@@ -472,8 +478,8 @@ function montarLayout() {
     const tipo = e.target.value;
     const selP = document.getElementById('sel-presenca-oc');
     const chkF = document.getElementById('chk-conta-falta');
-    if (tipo === 'falta') { selP.value = 'false'; chkF.checked = true; }
-    else if (tipo === 'atestado') { selP.value = 'false'; chkF.checked = false; }
+    // Falta injustificada, justificada e férias contam como falta; declaração, outro e advertência não
+    if (['falta','atestado','ferias'].includes(tipo)) { selP.value = 'false'; chkF.checked = true; }
     else { selP.value = 'true'; chkF.checked = false; }
   });
 
@@ -596,16 +602,16 @@ function renderEstatisticas() {
   const hoje = hojeISO(), ano = hoje.slice(0, 4);
   const doAno = ocColab.filter(o => o.data.startsWith(ano) && o.data <= hoje);
   const n = (lista, t) => lista.filter(o => o.tipo === t).length;
-  // Toda ausência conta como falta: sem justificativa, justificada (atestado) e "outro"
-  const nAus = lista => n(lista, 'falta') + n(lista, 'atestado') + n(lista, 'elogio');
+  // Conta como falta: sem justificativa, justificada (atestado) e férias — a mesma regra do "conta como falta no KPI"
+  const nAus = lista => n(lista, 'falta') + n(lista, 'atestado') + n(lista, 'ferias');
   const presenca = lista => { const p = n(lista, 'outro'), b = p + nAus(lista); return { p, b, pct: b ? Math.round(p / b * 100) : null }; };
   const corPres = v => v == null ? '' : v >= 95 ? 'verde' : v >= 85 ? 'amarelo' : 'vermelho';
-  const detalhe = lista => { const f = n(lista, 'falta'), j = n(lista, 'atestado'), o = n(lista, 'elogio');
-    return [f && `${f} sem justif.`, j && `${j} justificada${j === 1 ? '' : 's'}`, o && `${o} outro${o === 1 ? '' : 's'}`].filter(Boolean).join(' · ') || 'nenhuma'; };
+  const detalhe = lista => { const f = n(lista, 'falta'), j = n(lista, 'atestado'), o = n(lista, 'ferias');
+    return [f && `${f} sem justif.`, j && `${j} justificada${j === 1 ? '' : 's'}`, o && `${o} de férias`].filter(Boolean).join(' · ') || 'nenhuma'; };
   const pAno = presenca(doAno);
   const faltasAno = nAus(doAno), advAno = n(doAno, 'advertencia');
   // Última falta (qualquer ausência) e dias desde então
-  const ultFalta = ocColab.filter(o => ['falta','atestado','elogio'].includes(o.tipo) && o.data <= hoje).map(o => o.data).sort().pop();
+  const ultFalta = ocColab.filter(o => ['falta','atestado','ferias'].includes(o.tipo) && o.data <= hoje).map(o => o.data).sort().pop();
   const diasDesde = dt => Math.round((new Date(hoje + 'T00:00:00') - new Date(dt + 'T00:00:00')) / 86400000);
   const ref = ultFalta || colaborador.data_admissao;
   const semFaltar = ref ? diasDesde(ref) : null;
@@ -651,34 +657,34 @@ function renderEstatisticas() {
   const pPer = presenca(doPer);
   const pAnt = ant ? presenca(ant) : null;
   const presAntTxt = pAnt && pAnt.pct != null ? ` · mês anterior ${pAnt.pct}%` : '';
-  const fP = nAus(doPer), sjP = n(doPer, 'falta'), jP = n(doPer, 'atestado'), oP = n(doPer, 'elogio');
+  const fP = nAus(doPer), sjP = n(doPer, 'falta'), jP = n(doPer, 'atestado'), oP = n(doPer, 'ferias');
   const tilesPer = [
     tile('Presença', pPer.pct == null ? '—' : `${pPer.pct}%`, corPres(pPer.pct), pPer.b ? `${pPer.p} de ${pPer.b} dias${presAntTxt}` : 'sem registros'),
     tile('Faltas (total)', fP, fP ? 'vermelho' : 'verde', comp(nAus) || (fP ? '' : 'nenhuma')),
     tile('Dias trabalhados', pPer.p, '', comp(l => n(l, 'outro')) || 'no período'),
     tile('Sem justificativa', sjP, sjP ? 'vermelho' : '', comp(l => n(l, 'falta'))),
     tile('Justificadas (atestado)', jP, jP ? 'amarelo' : '', comp(l => n(l, 'atestado'))),
-    tile('Outros', oP, oP ? 'amarelo' : '', comp(l => n(l, 'elogio'))),
+    tile('Férias', oP, '', comp(l => n(l, 'ferias'))),
   ].join('');
 
   // Últimos 6 meses: presenças, justificadas e faltas empilhadas
   const meses = [];
   for (let i = 5; i >= 0; i--) { const d = new Date(); d.setDate(1); d.setMonth(d.getMonth() - i); meses.push(`${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`); }
-  const porMes = meses.map(k => { const l = ocColab.filter(o => o.data.startsWith(k)); return { k, p: n(l, 'outro'), j: n(l, 'atestado'), f: n(l, 'falta'), o: n(l, 'elogio') }; });
+  const porMes = meses.map(k => { const l = ocColab.filter(o => o.data.startsWith(k)); return { k, p: n(l, 'outro'), j: n(l, 'atestado'), f: n(l, 'falta'), o: n(l, 'ferias') }; });
   const maxM = Math.max(1, ...porMes.map(m => m.p + m.j + m.f + m.o));
   const MES_AB = ['jan','fev','mar','abr','mai','jun','jul','ago','set','out','nov','dez'];
   const barras = porMes.map(m => {
     const aus = m.j + m.f + m.o, tot = m.p + aus, h = tot / maxM * 88;
     const seg = (v, c) => v ? `<i style="height:${v / tot * 100}%;background:${c}"></i>` : '';
     const sel = m.k === mesSel;
-    return `<div title="${MES_AB[+m.k.slice(5) - 1]}: ${m.p} presenças, ${aus} faltas (${m.f} sem justif., ${m.j} justificadas, ${m.o} outros)">
+    return `<div title="${MES_AB[+m.k.slice(5) - 1]}: ${m.p} presenças, ${aus} faltas (${m.f} sem justif., ${m.j} justificadas, ${m.o} férias)">
       <em>${aus ? `<span style="color:#dc2626">${aus}</span>` : ''}</em>
-      <div class="st-pilha" style="height:${Math.max(3, h)}px${sel ? ';box-shadow:0 0 0 2px #0f5132' : ''}">${seg(m.p, '#4ade80')}${seg(m.o, '#94a3b8')}${seg(m.j, '#fbbf24')}${seg(m.f, '#ef4444')}</div>
+      <div class="st-pilha" style="height:${Math.max(3, h)}px${sel ? ';box-shadow:0 0 0 2px #0f5132' : ''}">${seg(m.p, '#4ade80')}${seg(m.o, '#38bdf8')}${seg(m.j, '#fbbf24')}${seg(m.f, '#ef4444')}</div>
       <span${sel ? ' style="color:#0f5132;font-weight:800"' : ''}>${MES_AB[+m.k.slice(5) - 1]}</span></div>`;
   }).join('');
 
   // Faltas (todas as ausências) por dia da semana (seg a sáb)
-  const ausencias = ocColab.filter(o => ['falta','atestado','elogio'].includes(o.tipo));
+  const ausencias = ocColab.filter(o => ['falta','atestado','ferias'].includes(o.tipo));
   const porDia = [1, 2, 3, 4, 5, 6].map(w => ({ w, v: ausencias.filter(o => new Date(o.data + 'T00:00:00').getDay() === w).length }));
   const maxD = Math.max(1, ...porDia.map(x => x.v));
   const dias = ausencias.length ? porDia.map(x => `<div class="st-dia"><span>${DIAS_AB[x.w]}</span><div class="tr"><i style="width:${x.v / maxD * 100}%"></i></div><b>${x.v}</b></div>`).join('')
@@ -701,7 +707,7 @@ function renderEstatisticas() {
     <div class="st-sec">Últimos 6 meses</div>
     <div class="st-graf">
       <div class="st-box"><h4>Presenças e ausências por mês</h4><div class="st-barras">${barras}</div>
-        <div class="st-leg"><span><i style="background:#4ade80"></i>Presente</span><span><i style="background:#ef4444"></i>Sem justif.</span><span><i style="background:#fbbf24"></i>Justificada</span><span><i style="background:#94a3b8"></i>Outro</span></div></div>
+        <div class="st-leg"><span><i style="background:#4ade80"></i>Presente</span><span><i style="background:#ef4444"></i>Sem justif.</span><span><i style="background:#fbbf24"></i>Justificada</span><span><i style="background:#38bdf8"></i>Férias</span></div></div>
       <div class="st-box"><h4>Faltas por dia da semana</h4><div class="st-dias">${dias}</div></div>
     </div>
     <div class="st-sec">Avaliação de desempenho</div>
@@ -730,8 +736,8 @@ function ocFiltradas(doHistorico = false) {
 function renderKPIs() {
   const lista = ocFiltradas();
   const count = tipo => lista.filter(o => o.tipo === tipo).length;
-  // Presença no período: presentes sobre os dias com registro (justificada e "outro" também contam como falta)
-  const base = count('outro') + count('falta') + count('atestado') + count('elogio');
+  // Presença no período: presentes sobre os dias com registro (justificada e férias também contam como falta)
+  const base = count('outro') + count('falta') + count('atestado') + count('ferias');
   const el = document.getElementById('co-pres');
   if (el) el.innerHTML = base ? `${Math.round(count('outro') / base * 100)}<small>%</small>` : '—';
 }
@@ -744,7 +750,7 @@ function renderHistorico() {
   // Resumo do que está filtrado na tela do histórico
   const cnt = t => lista.filter(o => o.tipo === t).length;
   document.getElementById('h-resumo').innerHTML = `<span style="background:#e2e8f0;color:#334155">${lista.length} registro${lista.length === 1 ? '' : 's'}</span>`
-    + ['outro','falta','atestado','advertencia','elogio'].filter(t => cnt(t)).map(t => `<span style="${TIPO_COR[t]}">${cnt(t)} ${TIPO_LABEL[t].toLowerCase()}</span>`).join('');
+    + ['outro','falta','atestado','ferias','declaracao','advertencia','elogio'].filter(t => cnt(t)).map(t => `<span style="${TIPO_COR[t]}">${cnt(t)} ${TIPO_LABEL[t].toLowerCase()}</span>`).join('');
   if (!lista.length) { document.getElementById('hist-lista').innerHTML = '<p class="hist-empty">Nenhuma ocorrência no período selecionado.</p>'; return; }
   // Agrupa por mês
   const grupos = [];

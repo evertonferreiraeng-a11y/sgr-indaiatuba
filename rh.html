@@ -316,6 +316,8 @@
               <option value="">Selecione…</option>
               <option value="falta">Falta injustificada</option>
               <option value="atestado">Justificada</option>
+              <option value="ferias">Férias</option>
+              <option value="declaracao">Declaração</option>
               <option value="outro">Presente</option>
               <option value="advertencia">Advertência</option>
               <option value="elogio">Outro</option>
@@ -869,8 +871,10 @@ document.getElementById('btn-lancar-faltas').addEventListener('click', () => {
 // ── Lançar faltas (tabela de todos os colaboradores) ──────────────────────────
 // Cada linha vira uma ocorrência do dia (Presente / Falta / Justificada), que é
 // o que aparece no calendário do colaborador, mais o registro em presenca_diaria.
-const SITUACOES = { outro:'Presente', falta:'Falta injustificada', atestado:'Justificada' };
-const SIT_COR   = { outro:'background:#dcfce7;color:#166534', falta:'background:#fee2e2;color:#991b1b', atestado:'background:#fef3c7;color:#92400e' };
+const SITUACOES = { outro:'Presente', falta:'Falta injustificada', atestado:'Justificada', ferias:'Férias', declaracao:'Declaração' };
+const SIT_COR   = { outro:'background:#dcfce7;color:#166534', falta:'background:#fee2e2;color:#991b1b', atestado:'background:#fef3c7;color:#92400e', ferias:'background:#e0f2fe;color:#075985', declaracao:'background:#ede9fe;color:#5b21b6' };
+// Contam como falta no KPI: falta injustificada, justificada e férias
+const SIT_FALTA = ['falta','atestado','ferias'];
 let faltasOriginal = {};
 
 function hojeISO() {
@@ -927,9 +931,9 @@ document.getElementById('btn-salvar-faltas').addEventListener('click', async () 
     const obs = tr.querySelector('.faltas-obs').value.trim();
     // Já lançado e sem mudança: nada a fazer. Sem lançamento: grava o que estiver na linha.
     if (o.ocId && sit === o.sit && obs === o.obs) return;
-    const payload = { colaborador_id:id, data, tipo:sit, descricao:obs||null, conta_como_falta: sit === 'falta' };
+    const payload = { colaborador_id:id, data, tipo:sit, descricao:obs||null, conta_como_falta: SIT_FALTA.includes(sit) };
     if (o.ocId) updates.push({ id:o.ocId, payload }); else inserts.push(payload);
-    presencas.push({ colaborador_id:id, data, presente: sit === 'outro', observacao: obs||null });
+    presencas.push({ colaborador_id:id, data, presente: !SIT_FALTA.includes(sit), observacao: obs||null });
   });
   if (!presencas.length) { toast('Nada a salvar'); fecharModal('modal-faltas'); return; }
 
@@ -1119,12 +1123,10 @@ document.querySelector('#form-oc [name="tipo"]').addEventListener('change', e =>
   const tipo = e.target.value;
   const selP = document.getElementById('sel-presenca-oc');
   const chkF = document.getElementById('chk-conta-falta');
-  if (tipo === 'falta') {
+  // Falta injustificada, justificada e férias contam como falta; declaração, outro e advertência não
+  if (['falta','atestado','ferias'].includes(tipo)) {
     selP.value = 'false';
     chkF.checked = true;
-  } else if (tipo === 'atestado') {
-    selP.value = 'false';
-    chkF.checked = false;
   } else {
     selP.value = 'true';
     chkF.checked = false;

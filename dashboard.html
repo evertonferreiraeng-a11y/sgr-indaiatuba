@@ -541,10 +541,10 @@ function renderPessoas(colabs, ocMes) {
     + (expResto > 0 ? `<a class="pp-mais" href="rh.html">e mais ${expResto} nos próximos 15 dias →</a>` : '');
 
   // Presença de hoje
-  const ocPor = {}; ocHoje.forEach(o => { if (['outro','falta','atestado'].includes(o.tipo)) ocPor[o.colaborador_id] = o; });
+  const ocPor = {}; ocHoje.forEach(o => { if (['outro','falta','atestado','ferias','declaracao'].includes(o.tipo)) ocPor[o.colaborador_id] = o; });
   const lancados = ativos.filter(c => ocPor[c.id]).length;
-  const ferias = ativos.filter(c => c.em_ferias);
-  const trab = ativos.filter(c => !c.em_ferias);
+  const ferias = ativos.filter(c => c.em_ferias || ocPor[c.id]?.tipo === 'ferias');
+  const trab = ativos.filter(c => !c.em_ferias && ocPor[c.id]?.tipo !== 'ferias');
   const faltas = trab.filter(c => ocPor[c.id]?.tipo === 'falta');
   const justif = trab.filter(c => ocPor[c.id]?.tipo === 'atestado');
   const presentes = trab.filter(c => !['falta','atestado'].includes(ocPor[c.id]?.tipo));
