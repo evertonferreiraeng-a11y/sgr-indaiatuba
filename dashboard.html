@@ -321,7 +321,8 @@
     .ind-num span { display:block; font-size:10.5px; font-weight:700; letter-spacing:.03em; color:var(--text-muted); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
     .ind-num b { display:block; font-size:16px; font-weight:800; color:var(--text); white-space:nowrap; letter-spacing:-.01em; margin-top:1px; }
     .ind-num em { font-style:normal; font-size:10.5px; color:var(--text-muted); }
-    .ind-num.esp { border-color:#cbd5e1; } .ind-num.esp b::before { content:""; display:inline-block; width:3px; height:11px; background:#0f172a; border-radius:1px; margin-right:6px; vertical-align:-1px; }
+    .ind-num.esp { border-color:#cbd5e1; }
+    .db-home .barra-leg.sem-barra { margin-top:12px; }
     .ind-num.falta { background:#fef2f2; border-color:#fecaca; } .ind-num.falta span { color:#b91c1c; } .ind-num.falta b { color:#991b1b; }
     .ind-num.acima { background:#ecfdf3; border-color:#bbf7d0; } .ind-num.acima span { color:#15803d; } .ind-num.acima b { color:#166534; }
     .barra-leg.leg2 { align-items:center; margin-top:6px; gap:8px; flex-wrap:wrap; }
@@ -727,9 +728,9 @@ function render(d, tarefas, fin, materiaisEst = []) {
       <div class="hd"><span class="ind-ic">${ICO[k.alvo] || ''}</span><span class="rot">${k.rot}</span><span class="selo ${cls}">${rot}</span></div>
       ${k.cap ? `<div class="ind-cap">${k.cap}</div>` : ''}
       <div class="val-row"><div class="val">${k.val}</div>${k.ext ? `<div class="ind-ext">${k.ext}</div>` : ''}</div><div class="sub">${k.sub}</div>
-      ${k.barra ? `<div class="barra">${duas ? `<i class="seg-est" style="width:${pw}%;background:${cor}"></i>` : ''}<i style="width:${sw}%;background:${cor}"></i>${gapSeg}${esp != null ? `<span class="esp" style="left:${Math.min(100, esp)}%" title="esperado até aqui"></span>` : ''}</div>
-        <div class="barra-leg"><span><b style="color:${cor}">${pct(p, 0)}</b>${k.barRot ? ` ${k.barRot}` : ''}</span>${duas ? `<span class="esp-txt"><span class="leg-dt" style="background:${cor};margin-left:0"></span>faturado <span class="leg-dt" style="background:${cor};opacity:.32"></span>estoque</span>` : ''}</div>
-        ${nums}` : ''}
+      ${k.barra && nums ? `<div class="barra-leg sem-barra"><span><b style="color:${cor}">${pct(p, 0)}</b>${k.barRot ? ` ${k.barRot}` : ''}</span></div>${nums}`
+      : k.barra ? `<div class="barra"><i style="width:${sw}%;background:${cor}"></i>${esp != null ? `<span class="esp" style="left:${Math.min(100, esp)}%" title="esperado até aqui"></span>` : ''}</div>
+        <div class="barra-leg"><span><b style="color:${cor}">${pct(p, 0)}</b>${k.barRot ? ` ${k.barRot}` : ''}</span></div>` : ''}
       ${!['ok','ritmo','nd'].includes(k.st) && k.mot ? `<div class="mot"><span class="mot-ic">${MOT_ICO[k.alvo] || ''}</span><span>${k.mot}</span></div>` : ''}
       <div class="ver">Ver detalhes <span>→</span></div>
     </button>`;
