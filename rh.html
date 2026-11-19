@@ -13,13 +13,29 @@
   <title>RH — SGR Indaiatuba</title>
   <link rel="stylesheet" href="css/style.css" />
   <style>
-    .colab-card { background:#fff; border:1px solid #e2e8f0; border-radius:12px; overflow:hidden; box-shadow:0 1px 3px rgba(0,0,0,.04); transition:box-shadow .15s; }
+    .colab-card { background:#fff; border:1px solid #e2e8f0; border-radius:12px; overflow:hidden; box-shadow:0 1px 3px rgba(0,0,0,.04); transition:box-shadow .15s; display:flex; flex-direction:column; }
     .colab-card:hover { box-shadow:0 4px 12px rgba(0,0,0,.08); }
-    .colab-summary { padding:0; display:flex; flex-direction:column; }
+    .colab-summary { padding:0; display:flex; flex-direction:column; flex:1; }
+    .colab-summary .colab-stats { margin-top:auto; border-top:1px solid #f1f5f9; }
+    .colab-summary .colab-top { border-bottom:0; }
+    .colab-info h4 { white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+
+    /* Filtros rápidos */
+    .rh-filtros { background:#fff; border:1px solid #e2e8f0; border-radius:12px; padding:12px 16px; }
+    .rh-cont { margin-left:auto; align-self:flex-end; font-size:12.5px; color:#64748b; padding-bottom:9px; white-space:nowrap; }
+    .rh-chips { display:flex; flex-wrap:wrap; gap:8px; margin-top:10px; padding-top:10px; border-top:1px solid #f1f5f9; }
+    .rh-chip { display:inline-flex; align-items:center; gap:6px; border:1px solid #e2e8f0; background:#fff; color:#334155; font:inherit; font-size:12.5px; font-weight:600; padding:5px 12px; border-radius:999px; cursor:pointer; transition:all .12s; }
+    .rh-chip:hover { border-color:#94a3b8; }
+    .rh-chip b { font-size:11.5px; min-width:18px; text-align:center; padding:0 5px; border-radius:999px; background:#f1f5f9; color:#475569; }
+    .rh-chip i { width:8px; height:8px; border-radius:50%; display:inline-block; }
+    .rh-chip.on { background:#006636; border-color:#006636; color:#fff; }
+    .rh-chip.on b { background:rgba(255,255,255,.22); color:#fff; }
+    .btn-excluir-colab { margin-right:auto; color:#dc2626 !important; border-color:#fecaca !important; }
+    .btn-excluir-colab:hover { background:#fef2f2 !important; }
 
     /* Topo colorido por status */
     .colab-top { padding:14px 16px 12px; display:flex; align-items:flex-start; gap:12px; border-bottom:1px solid #f1f5f9; }
-    .colab-avatar  { width:44px; height:44px; border-radius:50%; color:#fff; display:flex; align-items:center; justify-content:center; font-weight:800; font-size:17px; flex-shrink:0; }
+    .colab-avatar  { width:44px; height:44px; border-radius:50%; color:#fff; display:flex; align-items:center; justify-content:center; font-weight:800; font-size:15px; letter-spacing:.02em; flex-shrink:0; }
     .colab-info    { flex:1; min-width:0; }
     .colab-info h4 { margin:0 0 1px; font-size:14px; font-weight:700; color:#0f172a; line-height:1.3; }
     .colab-info .sub { font-size:11px; color:#64748b; margin:0; line-height:1.4; }
@@ -142,19 +158,28 @@
       <div id="rh-atencao"></div>
 
       <!-- Filtros -->
-      <div class="filters-row mb-16" style="background:#fff;border:1px solid #e2e8f0;border-radius:8px;padding:12px 16px">
-        <div class="form-group"><label>Buscar</label><input type="text" id="busca-colab" placeholder="Nome…" /></div>
-        <div class="form-group"><label>Situação</label>
-          <select id="f-sit">
-            <option value="">Todos (inclui desligados)</option>
-            <option value="ativo" selected>Ativos</option>
-            <option value="exp">Em experiência</option>
-            <option value="demitido">Desligados</option>
-          </select>
+      <div class="rh-filtros mb-16">
+        <div class="filters-row" style="margin:0">
+          <div class="form-group"><label>Buscar</label><input type="search" id="busca-colab" placeholder="Nome ou chapa" /></div>
+          <div class="form-group"><label>Situação</label>
+            <select id="f-sit">
+              <option value="">Todos (inclui desligados)</option>
+              <option value="ativo" selected>Ativos</option>
+              <option value="exp">Em experiência</option>
+              <option value="demitido">Desligados</option>
+            </select>
+          </div>
+          <div class="form-group"><label>Ordenar por</label>
+            <select id="f-ordem">
+              <option value="nome">Nome</option>
+              <option value="nota">Nota (menor primeiro)</option>
+              <option value="faltas">Faltas no mês (mais primeiro)</option>
+              <option value="admissao">Admissão (mais recentes)</option>
+            </select>
+          </div>
+          <div class="rh-cont" id="rh-cont"></div>
         </div>
-        <div class="form-group" style="justify-content:flex-end"><label>&nbsp;</label>
-          <button class="btn btn-primary" id="btn-filtrar-colab">Filtrar</button>
-        </div>
+        <div class="rh-chips" id="rh-chips"></div>
       </div>
 
       <!-- Grid -->
@@ -230,6 +255,7 @@
       </form>
     </div>
     <div class="modal-footer">
+      <button class="btn btn-outline btn-excluir-colab" id="btn-excluir-colab" hidden>Excluir colaborador</button>
       <button class="btn btn-outline" data-close="modal-colab">Cancelar</button>
       <button class="btn btn-primary" id="btn-salvar-colab">Salvar</button>
     </div>
@@ -614,8 +640,12 @@ function renderColaboradores() {
   const iniMes = `${anoAtualVal}-${String(mesAtualVal).padStart(2,'0')}-01`;
   const fimMes = new Date(anoAtualVal, mesAtualVal, 0).toISOString().split('T')[0];
 
-  const lista = colabData.filter(c => {
-    if (busca && !c.nome.toLowerCase().includes(busca)) return false;
+  const ordem  = document.getElementById('f-ordem')?.value || 'nome';
+  const semAc  = s => s.normalize('NFD').replace(/[̀-ͯ]/g, '');
+  const buscaN = semAc(busca);
+
+  const base = colabData.filter(c => {
+    if (buscaN && !semAc(c.nome.toLowerCase()).includes(buscaN) && !String(c.chapa || '').includes(buscaN)) return false;
     if (sit === 'ativo'   && c.demissao) return false;
     if (sit === 'demitido'&& !c.demissao) return false;
     if (sit === 'exp') {
@@ -627,18 +657,51 @@ function renderColaboradores() {
     return true;
   });
 
+  // Dados de cada pessoa para os filtros rápidos e a ordenação
+  const info = c => {
+    const medias = avalData.filter(a => a.colaborador_id === c.id).map(calcMediaAval).filter(v => v !== null);
+    const nota = medias.length ? medias.reduce((a, b) => a + b, 0) / medias.length : null;
+    const faltas = ocData.filter(o => o.colaborador_id === c.id && o.conta_como_falta && o.data >= iniMes && o.data <= fimMes).length;
+    const exp = !c.demissao && ((c.fim_experiencia_1 && hoje <= c.fim_experiencia_1) || (c.fim_experiencia_2 && hoje <= c.fim_experiencia_2));
+    return { nota, faltas, exp };
+  };
+  const inf = new Map(base.map(c => [c.id, info(c)]));
+  const CHIPS = [
+    ['', 'Todos', null, () => true],
+    ['exp', 'Em experiência', '#2563eb', x => x.exp],
+    ['ok', 'Recomendados', '#16a34a', x => x.nota !== null && x.nota >= 7],
+    ['obs', 'Em observação', '#d97706', x => x.nota !== null && x.nota >= 5 && x.nota < 7],
+    ['nao', 'Não recomendados', '#dc2626', x => x.nota !== null && x.nota < 5],
+    ['sem', 'Sem avaliação', '#94a3b8', x => x.nota === null],
+    ['faltas', 'Com faltas no mês', '#dc2626', x => x.faltas > 0],
+  ];
+  if (!CHIPS.some(k => k[0] === filtroRapido)) filtroRapido = '';
+  document.getElementById('rh-chips').innerHTML = CHIPS.map(([k, rot, cor, fn]) => {
+    const n = base.filter(c => fn(inf.get(c.id))).length;
+    return `<button type="button" class="rh-chip ${filtroRapido === k ? 'on' : ''}" onclick="_filtroRapido('${k}')">${cor ? `<i style="background:${cor}"></i>` : ''}${rot}<b>${n}</b></button>`;
+  }).join('');
+  const fnSel = CHIPS.find(k => k[0] === filtroRapido)[3];
+  const lista = base.filter(c => fnSel(inf.get(c.id)));
+  document.getElementById('rh-cont').textContent = `${lista.length} de ${base.length} colaborador${base.length === 1 ? '' : 'es'}`;
+
   const grid = document.getElementById('grid-colaboradores');
   if (!lista.length) {
-    grid.innerHTML = '<p class="text-muted" style="padding:16px">Nenhum colaborador encontrado.</p>';
+    grid.innerHTML = '<p class="text-muted" style="padding:16px">Nenhum colaborador encontrado com esses filtros.</p>';
     return;
   }
 
   const listaOrdenada = [...lista].sort((a, b) => {
-    if (!!a.demissao === !!b.demissao) return a.nome.localeCompare(b.nome);
-    return a.demissao ? 1 : -1;
+    if (!!a.demissao !== !!b.demissao) return a.demissao ? 1 : -1;
+    const A = inf.get(a.id), B = inf.get(b.id);
+    if (ordem === 'nota') { const na = A.nota ?? 99, nb = B.nota ?? 99; if (na !== nb) return na - nb; }
+    if (ordem === 'faltas' && A.faltas !== B.faltas) return B.faltas - A.faltas;
+    if (ordem === 'admissao' && (a.data_admissao || '') !== (b.data_admissao || '')) return (b.data_admissao || '').localeCompare(a.data_admissao || '');
+    return a.nome.localeCompare(b.nome);
   });
   grid.innerHTML = listaOrdenada.map(c => cardHTML(c, isAdm, hoje, iniMes, fimMes)).join('');
 }
+let filtroRapido = '';
+window._filtroRapido = k => { filtroRapido = k; renderColaboradores(); };
 
 function cardHTML(c, isAdm, hoje, iniMes, fimMes) {
   const avals   = avalData.filter(a => a.colaborador_id === c.id)
@@ -701,7 +764,7 @@ function cardHTML(c, isAdm, hoje, iniMes, fimMes) {
   return `<div class="colab-card" onclick="abrirHistoricoOc('${c.id}')" title="Abrir calendário e histórico">
     <div class="colab-summary">
       <div class="colab-top">
-        <div class="colab-avatar" style="background:${avatarBg}">${c.nome.charAt(0).toUpperCase()}</div>
+        <div class="colab-avatar" style="background:${avatarBg}">${c.nome.trim().split(/\s+/).filter((_, i, a) => i === 0 || i === a.length - 1).map(p => p[0]).join("").toUpperCase()}</div>
         <div class="colab-info">
           <h4>${c.nome}</h4>
           <p class="sub">${cargoNome}${c.chapa ? ` · Chapa ${c.chapa}` : ''}</p>
@@ -709,8 +772,7 @@ function cardHTML(c, isAdm, hoje, iniMes, fimMes) {
           ${expTag ? `<div style="margin-top:4px">${expTag}</div>` : ''}
         </div>
         ${isAdm ? `<div class="colab-actions" onclick="event.stopPropagation()">
-          <button class="btn-icon" onclick="editarColab('${c.id}')">${icon('edit',{size:15})}</button>
-          <button class="btn-icon danger" onclick="excluirColab('${c.id}')">${icon('trash',{size:15})}</button>
+          <button class="btn-icon" onclick="editarColab('${c.id}')" title="Editar">${icon('edit',{size:15})}</button>
         </div>` : ''}
       </div>
       <div class="colab-stats">
@@ -905,7 +967,15 @@ document.getElementById('btn-novo-colab').addEventListener('click', () => {
   document.getElementById('modal-colab-title').textContent = 'Novo Colaborador';
   document.getElementById('form-colab').reset();
   document.querySelector('#form-colab [name="id"]').value = '';
+  document.getElementById('btn-excluir-colab').hidden = true;
   abrirModal('modal-colab');
+});
+// Excluir fica dentro do editar (evita clique sem querer no card)
+document.getElementById('btn-excluir-colab').addEventListener('click', async () => {
+  const id = document.querySelector('#form-colab [name="id"]').value; if (!id) return;
+  const antes = colabData.length;
+  await excluirColab(id);
+  if (colabData.length < antes || !colabData.find(c => c.id === id)) fecharModal('modal-colab');
 });
 
 window.editarColab = id => {
@@ -921,6 +991,7 @@ window.editarColab = id => {
   set('passou_exp_2', c.passou_exp_2 === true ? 'true' : c.passou_exp_2 === false ? 'false' : '');
   set('demissao', c.demissao);
   document.getElementById('chk-ferias').checked = !!c.em_ferias;
+  document.getElementById('btn-excluir-colab').hidden = perfil?.role !== 'admin';
   abrirModal('modal-colab');
 };
 
@@ -1094,8 +1165,8 @@ document.getElementById('btn-salvar-oc').addEventListener('click', async () => {
 });
 
 // ── Filtros e fechamentos ─────────────────────────────────────────────────────
-document.getElementById('btn-filtrar-colab').addEventListener('click', renderColaboradores);
 document.getElementById('busca-colab').addEventListener('input', renderColaboradores);
+document.getElementById('f-ordem').addEventListener('change', renderColaboradores);
 document.getElementById('f-sit').addEventListener('change', renderColaboradores);
 document.querySelectorAll('[data-close]').forEach(btn => btn.addEventListener('click', () => fecharModal(btn.dataset.close)));
 document.querySelectorAll('.modal-backdrop').forEach(m => m.addEventListener('click', e => { if(e.target===m) fecharModal(m.id); }));

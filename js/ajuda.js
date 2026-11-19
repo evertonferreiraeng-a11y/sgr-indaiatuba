@@ -149,6 +149,7 @@ export const AJUDA = {
     quando: '<b>Todo dia, no início do dia</b> para lançar as faltas, e <b>à tarde</b> para revisar. As outras funções só quando acontecer algo.',
     passos: [
       'Comece pelo quadro <b>Precisa de atenção</b>: experiências vencendo, reprovados sem desligamento, nota baixa e faltas repetidas. Clique na linha para resolver.',
+      'Use os <b>filtros rápidos</b> (Em experiência, Em observação, Com faltas…) e o <b>Ordenar por</b> para achar quem precisa de acompanhamento. A busca aceita nome ou chapa.',
       'De manhã, clique em <b>Lançar Faltas</b> e marque quem faltou no dia. Depois salve.',
       'À tarde, abra <b>Lançar Faltas</b> de novo e confira se mudou algo (alguém chegou atrasado ou saiu mais cedo, por exemplo).',
       'Para registrar um atraso, advertência ou atestado, clique em <b>+ Ocorrência</b>.',
