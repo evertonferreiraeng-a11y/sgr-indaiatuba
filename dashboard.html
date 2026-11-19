@@ -238,7 +238,14 @@
     .pp-hd h3 { font-size:12.5px; font-weight:800; letter-spacing:.08em; text-transform:uppercase; color:var(--text-muted); margin:0; }
     .pp-hd h3 span { margin-left:6px; color:var(--text); letter-spacing:0; }
     .pp-hd a { font-size:12.5px; font-weight:700; color:var(--primary); text-decoration:none; white-space:nowrap; }
-    .pp-exps { display:flex; flex-direction:column; gap:6px; max-height:180px; overflow:auto; }
+    .pp-exps { display:flex; flex-direction:column; gap:6px; }
+    .pp-mais { align-self:flex-start; font-size:12.5px; font-weight:700; color:var(--primary); text-decoration:none; padding:4px 2px 0; }
+    .pp-mais:hover { text-decoration:underline; }
+    a.pp-aus { text-decoration:none; color:inherit; transition:filter .15s, box-shadow .15s; }
+    a.pp-aus:hover { box-shadow:var(--shadow); filter:brightness(.98); }
+    a.pp-aus:hover b { text-decoration:underline; }
+    .pp-rep { font-size:11px; font-weight:800; white-space:nowrap; color:#fff; background:var(--danger); border-radius:999px; padding:2px 8px; }
+    .pp-aus.just .pp-rep { background:#d97706; }
     .pp-exp { display:grid; grid-template-columns:34px minmax(0,1fr) auto auto; gap:10px; align-items:center; padding:8px 10px; border-radius:12px; background:#f8fafc; text-decoration:none; color:inherit; border:1px solid transparent; }
     .pp-exp:hover { border-color:var(--primary-border); background:var(--primary-bg); }
     .pp-av { width:34px; height:34px; border-radius:50%; display:grid; place-items:center; font-size:12px; font-weight:800; background:#e2e8f0; color:#334155; }
@@ -437,13 +444,14 @@ async function carregar() {
       // A partir de novembro/2026 a referência do lucro é só outubro/2026 (antes: média dos últimos 3 meses do DRE)
       (M > MES_REF_DRE ? equilibrioDoDRE(supabase, MES_REF_DRE, 1) : equilibrioDoDRE(supabase, M)).catch(() => null),
     ]);
-    // Chamada de hoje (tela RH): Presente / Falta / Justificada; sem lançamento = presente
-    const ocHoje = await fetchOpcional('ocorrencias', 'colaborador_id, tipo, descricao', [['eq','data',hoje]]).catch(() => []);
+    // Chamada do mês até hoje (tela RH): Presente / Falta / Justificada; sem lançamento = presente.
+    // Hoje vai para o painel; o resto do mês serve para contar faltas repetidas.
+    const ocMes = await fetchOpcional('ocorrencias', 'colaborador_id, tipo, descricao, data', [['gte','data',`${hoje.slice(0, 7)}-01`], ['lte','data',hoje]]).catch(() => []);
     const d = calcularDados({ vendas, metas, producao, equipamentos, materiais, colaboradores, cargos, snapshots }, M, corte, hoje);
     const est = finAtual(M);
     const fin = dre ? { pe:dre.pe, fixos:dre.fixos, liq:dre.liq, alvo:est.alvo, acerto:est.acerto, dre } : est;
     render(d, tarefas, fin, materiais);
-    renderPessoas(colaboradores, ocHoje || []);
+    renderPessoas(colaboradores, ocMes || []);
   } catch (e) {
     console.error(e);
     $('#db-conteudo').innerHTML = `<div class="card vazio">Não foi possível carregar os indicadores: ${esc(e.message)}</div>`;
@@ -452,7 +460,10 @@ async function carregar() {
 
 /* ═════════════ Painel da equipe (metade direita da tela inicial) ═════════════ */
 // Vencimento de experiência (próximos 30 dias) + presença de hoje, pela chamada da tela RH
-function renderPessoas(colabs, ocHoje) {
+function renderPessoas(colabs, ocMes) {
+  const ocHoje = ocMes.filter(o => o.data === hoje);
+  // quantas vezes no mês (até hoje) cada pessoa teve cada tipo de ausência
+  const nMes = {}; ocMes.forEach(o => { const k = `${o.colaborador_id}|${o.tipo}`; nMes[k] = (nMes[k] || 0) + 1; });
   const alvo = $('#db-pessoas'); if (!alvo) return;
   const diasAte = dt => Math.round((new Date(dt + 'T00:00:00') - new Date(hoje + 'T00:00:00')) / 86400000);
   const ativos = colabs.filter(c => !c.demissao && (!c.data_admissao || c.data_admissao <= hoje)).sort((a, b) => a.nome.localeCompare(b.nome));
@@ -463,13 +474,16 @@ function renderPessoas(colabs, ocHoje) {
     if (c.fim_experiencia_1 && c.passou_exp_1 == null) exp.push({ c, p:1, fim:c.fim_experiencia_1 });
     if (c.fim_experiencia_2 && c.passou_exp_2 == null && c.passou_exp_1 !== false) exp.push({ c, p:2, fim:c.fim_experiencia_2 });
   });
-  const expLista = exp.map(x => ({ ...x, dias:diasAte(x.fim) })).filter(x => x.dias >= -7 && x.dias <= 30).sort((a, b) => a.dias - b.dias);
+  // próximos 15 dias (e as vencidas há até 7 dias sem avaliação); no máximo 4 na tela, o resto vira "e mais X"
+  const EXP_MAX = 4;
+  const expTodas = exp.map(x => ({ ...x, dias:diasAte(x.fim) })).filter(x => x.dias >= -7 && x.dias <= 15).sort((a, b) => a.dias - b.dias);
+  const expLista = expTodas.slice(0, EXP_MAX), expResto = expTodas.length - expLista.length;
   const quando = n => n < 0 ? `venceu há ${-n} dia${n < -1 ? 's' : ''}` : n === 0 ? 'vence hoje' : n === 1 ? 'vence amanhã' : `vence em ${n} dias`;
-  const expHTML = expLista.length ? expLista.map(x => `<a class="pp-exp ${x.dias <= 0 ? 'urg' : x.dias <= 7 ? 'prox' : ''}" href="rh.html" title="Avaliar no RH">
+  const expHTML = !expLista.length ? '<div class="pp-vazio">Nenhuma experiência vencendo nos próximos 15 dias.</div>' : expLista.map(x => `<a class="pp-exp ${x.dias <= 0 ? 'urg' : x.dias <= 7 ? 'prox' : ''}" href="rh.html" title="Avaliar no RH">
       <span class="pp-av">${esc(x.c.nome.trim().split(/\s+/).map(p => p[0]).slice(0, 2).join('').toUpperCase())}</span>
       <span class="pp-nm"><b>${esc(x.c.nome)}</b><span>${x.p}ª experiência · ${ddmm(x.fim)}</span></span>
       <span class="pp-q">${quando(x.dias)}</span><em>Avaliar →</em></a>`).join('')
-    : '<div class="pp-vazio">Nenhuma experiência vencendo nos próximos 30 dias.</div>';
+    + (expResto > 0 ? `<a class="pp-mais" href="rh.html">e mais ${expResto} nos próximos 15 dias →</a>` : '');
 
   // Presença de hoje
   const ocPor = {}; ocHoje.forEach(o => { if (['outro','falta','atestado'].includes(o.tipo)) ocPor[o.colaborador_id] = o; });
@@ -480,8 +494,13 @@ function renderPessoas(colabs, ocHoje) {
   const justif = trab.filter(c => ocPor[c.id]?.tipo === 'atestado');
   const presentes = trab.filter(c => !['falta','atestado'].includes(ocPor[c.id]?.tipo));
   const obs = c => ocPor[c.id]?.descricao ? `<span class="pp-obs">${esc(ocPor[c.id].descricao)}</span>` : '';
-  const pessoaAus = (c, cls, rot) => `<div class="pp-aus ${cls}"><b>${esc(c.nome)}</b>${obs(c)}<span class="pp-tag">${rot}</span></div>`;
-  const ausHTML = [...faltas.map(c => pessoaAus(c, 'falta', 'Falta')), ...justif.map(c => pessoaAus(c, 'just', 'Justificada')), ...ferias.map(c => pessoaAus(c, 'fer', 'Férias'))].join('')
+  // Nome abre o histórico do colaborador; "3ª no mês" mostra quando a ausência se repete
+  const pessoaAus = (c, cls, rot, tipo) => {
+    const n = tipo ? nMes[`${c.id}|${tipo}`] || 1 : 0;
+    return `<a class="pp-aus ${cls}" href="colaborador-ocorrencias.html?id=${encodeURIComponent(c.id)}" title="Abrir o histórico de ${esc(c.nome)}">
+      <b>${esc(c.nome)}</b>${obs(c)}${n > 1 ? `<span class="pp-rep">${n}ª no mês</span>` : ''}<span class="pp-tag">${rot}</span></a>`;
+  };
+  const ausHTML = [...faltas.map(c => pessoaAus(c, 'falta', 'Falta', 'falta')), ...justif.map(c => pessoaAus(c, 'just', 'Justificada', 'atestado')), ...ferias.map(c => pessoaAus(c, 'fer', 'Férias'))].join('')
     || '<div class="pp-vazio ok">✓ Ninguém faltou hoje.</div>';
   const stat = (n, rot, cls) => `<div class="pp-stat ${cls}"><b>${n}</b><span>${rot}</span></div>`;
 
@@ -540,20 +559,20 @@ function render(d, tarefas, fin, materiaisEst = []) {
   const inds = [
     { alvo:'fat', rot:'Faturamento', st:noRitmo(atFatEst != null ? atFatEst / espAqui : null),
       val: mil(c.fat), ext: comEst ? `+ ${mil(d.valorEstoque)} em estoque` : '',
-      sub: d.meta ? `${pct(comEst ? atFatEst : atFat, 0)} da meta de ${mil(d.meta)}${d.emAndamento ? ` · esperado ${pct(espAqui * 100, 0)}` : ''}` : 'sem meta cadastrada',
-      barra: d.meta ? [ (comEst ? atFatEst : atFat), d.emAndamento ? espAqui * 100 : null ] : null,
+      sub: d.meta ? `meta de ${mil(d.meta)}` : 'sem meta cadastrada',
+      barra: d.meta ? [ (comEst ? atFatEst : atFat), d.emAndamento ? espAqui * 100 : null ] : null, barRot: comEst ? 'da meta, com o estoque' : 'da meta',
       mot: d.meta ? (d.emAndamento ? `faltam <b>${mil(Math.max(0, d.meta * espAqui - fatEst))}</b> para o esperado até ${ddmm(d.corte)}` : `faltaram <b>${mil(Math.max(0, d.meta - c.fat))}</b> para a meta`) : '' },
     { alvo:'prensa', rot:'Prensagem', st:noRitmo(atProdRef), val:`${nf(d.prod / 1000, 1)} t produzidas`,
-      sub: d.capMes > 0 ? `${pct(atProd, 0)} da capacidade do mês${d.emAndamento ? ` · esperado ${pct(d.esperado / d.capMes * 100, 0)}` : ''}` : 'sem capacidade cadastrada',
-      barra: d.capMes > 0 ? [atProd, d.emAndamento ? d.esperado / d.capMes * 100 : null] : null,
+      sub: d.capMes > 0 ? `capacidade do mês: ${nf(d.capMes / 1000, 0)} t` : 'sem capacidade cadastrada',
+      barra: d.capMes > 0 ? [atProd, d.emAndamento ? d.esperado / d.capMes * 100 : null] : null, barRot: 'da capacidade',
       mot: d.capNominal > 0 && d.perdaCap / d.capNominal > 0.05 ? `<b>${esc(textoPerdaCap(d))}</b>` : d.dpPrensa > 0 ? `ritmo de <b>${nf(ritmoR / 1000, 1)} t/dia</b> · meta ${nf(d.metaDia / 1000, 1)} t/dia` : '' },
     { alvo:'equip', rot:'Equipamentos', st:d.eqSt, val:`${d.nOp + d.nRes} de ${d.eqs.length} disponíveis`,
-      sub:`${d.disp != null ? `${pct(d.disp, 0)} disponíveis ${d.rotDisp}` : d.rotDisp}${d.dispMes != null ? ` · média do mês ${pct(d.dispMes, 0)}` : ''}`,
-      barra: d.disp != null ? [d.disp, null] : null,
+      sub: d.dispMes != null ? `média do mês: ${pct(d.dispMes, 0)}` : '',
+      barra: d.disp != null ? [d.disp, null] : null, barRot: `disponíveis ${d.rotDisp}`,
       mot: lstEq.length ? `<b>${lstEq.join(' · ')}</b>${d.problemas.length > 2 ? ` e mais ${d.problemas.length - 2}` : ''}` : '' },
     { alvo:'equipe', rot:'Equipe', st:d.colab == null ? 'nd' : incompleta ? 'amb' : 'ok', val: d.colab != null ? `${d.colab} de ${d.quadro} colaboradores` : '—',
-      sub: d.colab != null ? `${nf(d.colab / d.quadro * 100, 0)}% do quadro previsto` : 'sem colaboradores no RH',
-      barra: d.colab != null ? [d.colab / d.quadro * 100, null] : null,
+      sub: d.colab != null ? '' : 'sem colaboradores no RH',
+      barra: d.colab != null ? [d.colab / d.quadro * 100, null] : null, barRot: 'do quadro previsto',
       mot: d.vagas ? `<b>${d.vagas} vaga${d.vagas > 1 ? 's' : ''}</b> em reposição` : '' },
   ];
   const corSel = st => ({ ritmo:COR.ok, ok:COR.ok, amb:COR.amb, abaixo:COR.ruim, verm:COR.ruim, nd:COR.cinza }[st]);
@@ -573,7 +592,7 @@ function render(d, tarefas, fin, materiaisEst = []) {
       <div class="hd"><span class="ind-ic">${ICO[k.alvo] || ''}</span><span class="rot">${k.rot}</span><span class="selo ${cls}">${rot}</span></div>
       <div class="val-row"><div class="val">${k.val}</div>${k.ext ? `<div class="ind-ext">${k.ext}</div>` : ''}</div><div class="sub">${k.sub}</div>
       ${k.barra ? `<div class="barra"><i style="width:${pw}%;background:${corSel(k.st)}"></i>${esp != null ? `<span class="esp" style="left:${Math.min(100, esp)}%" title="esperado até aqui"></span>` : ''}</div>
-        <div class="barra-leg"><b style="color:${corSel(k.st)}">${pct(p, 0)}</b>${esp != null ? `<span>esperado ${pct(esp, 0)}</span>` : ''}</div>` : ''}
+        <div class="barra-leg"><span><b style="color:${corSel(k.st)}">${pct(p, 0)}</b>${k.barRot ? ` ${k.barRot}` : ''}</span>${esp != null ? `<span>esperado ${pct(esp, 0)}</span>` : ''}</div>` : ''}
       ${!['ok','ritmo','nd'].includes(k.st) && k.mot ? `<div class="mot">${k.mot}</div>` : ''}
       <div class="ver">Ver detalhes <span>→</span></div>
     </button>`;
