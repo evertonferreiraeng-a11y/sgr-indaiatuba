@@ -849,12 +849,9 @@ function graficos(d, eq) {
     { label:'Meta', data:d.mesesAno.map(mk => (d.metaMes[mk] ?? d.meta) || null), borderColor:COR.s2, backgroundColor:COR.s2, stack:'meta', ...linha },
   ] }, options:optFat });
 
-  // Prensas: começa no primeiro mês com produção (mínimo 3 meses), sem a fileira de meses vazios
-  const i0 = Math.max(0, Math.min(d.prodMesAno.findIndex(v => v > 0) < 0 ? 0 : d.prodMesAno.findIndex(v => v > 0), d.mesesAno.length - 3));
-  const mesesP = d.mesesAno.slice(i0);
-  charts.prensa = new Chart(document.getElementById('c-prensa'), { type:'bar', data:{ labels:labels.slice(i0), datasets:[
-    { label:'Produção das prensas', data:d.prodMesAno.slice(i0).map(v => v / 1000), backgroundColor:mesesP.map(mk => parcial(mk) ? COR.verdeCl : COR.verde), ...bar, maxBarThickness:56 },
-    { label:'Capacidade', data:d.capMesAno.slice(i0).map(v => v / 1000), borderColor:COR.s1, backgroundColor:COR.s1, ...linha },
+  charts.prensa = new Chart(document.getElementById('c-prensa'), { type:'bar', data:{ labels, datasets:[
+    { label:'Produção das prensas', data:d.prodMesAno.map(v => v / 1000), backgroundColor:d.mesesAno.map(mk => parcial(mk) ? COR.verdeCl : COR.verde), ...bar },
+    { label:'Capacidade', data:d.capMesAno.map(v => v / 1000), borderColor:COR.s1, backgroundColor:COR.s1, ...linha },
   ] }, options:opts(v => `${nf(v, 0)} t`) });
 
   if (eq && document.getElementById('c-equil')) {
