@@ -87,6 +87,7 @@
     .cal-day.t-advertencia { background:#fff1f2; border-color:#fda4af; } .cal-day.t-advertencia .cal-daynum { color:#9f1239; }
     .cal-day.t-falta_declaracao { background:#fff7ed; border-color:#fdba74; } .cal-day.t-falta_declaracao .cal-daynum { color:#9a3412; }
     .cal-day.t-atraso { background:#fefce8; border-color:#fde047; } .cal-day.t-atraso .cal-daynum { color:#854d0e; }
+    .cal-day.t-feriado { background:#f0fdfa; border-color:#99f6e4; border-style:dashed; } .cal-day.t-feriado .cal-daynum { color:#0f766e; }
     .cal-day.t-ferias { background:#f0f9ff; border-color:#7dd3fc; } .cal-day.t-ferias .cal-daynum { color:#075985; }
     .cal-day.t-declaracao { background:#f5f3ff; border-color:#c4b5fd; } .cal-day.t-declaracao .cal-daynum { color:#5b21b6; }
     .cal-day.t-elogio { background:#f1f5f9; border-color:#e2e8f0; }
@@ -279,6 +280,7 @@
 <script type="module">
 import { supabase, initPage, dataBR, toast, abrirModal, fecharModal } from './js/config.js?v=12';
 import { icon } from './js/icons.js';
+import { nomeFeriado } from './js/feriados.js?v=3';
 import { montarFormOc, resetFormOc, preencherFormOc, lerFormOc, gravarOcorrencia, OC_LABEL, TIPOS_FALTA, ehFalta, rotuloOc, rotuloCal } from './js/oc-form.js?v=5';
 
 await initPage();
@@ -418,7 +420,7 @@ function montarLayout() {
           <div class="cal-weekdays">${DIAS_SEMANA.map(d => `<div>${d}</div>`).join('')}</div>
           <div class="cal-grid" id="cal-grid"></div>
           <div class="cal-legend">
-            ${['outro','atraso','declaracao','elogio','advertencia','falta','atestado','falta_declaracao','ferias'].map(t => `<span><i style="background:${TIPO_PONTO[t]}"></i>${TIPO_LABEL[t]}</span>`).join('')}
+            ${['outro','atraso','declaracao','elogio','advertencia','falta','atestado','falta_declaracao','ferias'].map(t => `<span><i style="background:${TIPO_PONTO[t]}"></i>${TIPO_LABEL[t]}</span>`).join('')}<span><i style="background:#14b8a6"></i>Feriado</span>
             <span style="margin-left:auto;font-weight:500">${isAdm ? 'Clique num dia para lançar ou editar' : ''}</span>
           </div>
         </div>
@@ -787,14 +789,21 @@ function renderCalendario() {
   for (let i = 0; i < startWeekday; i++) cells += `<div class="cal-day cal-day-empty"></div>`;
   for (let d = 1; d <= daysInMonth; d++) {
     const dateStr = `${calYear}-${String(calMonth+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
-    const ocsDia  = ocColab.filter(o => o.data === dateStr).sort((a, b) => (TIPO_PESO[a.tipo] ?? 9) - (TIPO_PESO[b.tipo] ?? 9));
+    // Registro principal do dia: qualquer falta vem primeiro; depois a ordem de "gravidade"
+    const ocsDia  = ocColab.filter(o => o.data === dateStr).sort((a, b) => (ehFalta(b) - ehFalta(a)) || ((TIPO_PESO[a.tipo] ?? 9) - (TIPO_PESO[b.tipo] ?? 9)));
     const princ   = ocsDia[0];
     const wd      = (startWeekday + d - 1) % 7;
-    const cls = ['cal-day', princ ? `t-${princ.tipo}` : '', wd === 0 || wd === 6 ? 'fds' : '', dateStr === hoje ? 'hoje' : '', dateStr > hoje ? 'futuro' : ''].filter(Boolean).join(' ');
-    const dica = ocsDia.map(o => `${rotuloOc(o)}${o.descricao ? ' — ' + o.descricao : ''}`).join('\n');
+    const falta   = princ && ehFalta(princ);
+    const feriado = nomeFeriado(dateStr);
+    // Falta (com ou sem justificativa) sempre em vermelho; feriado sem lançamento fica marcado como feriado
+    const tCls = falta ? 't-falta' : princ ? `t-${princ.tipo}` : feriado ? 't-feriado' : '';
+    const cls = ['cal-day', tCls, wd === 0 || wd === 6 ? 'fds' : '', dateStr === hoje ? 'hoje' : '', dateStr > hoje ? 'futuro' : ''].filter(Boolean).join(' ');
+    const dica = [feriado && `Feriado: ${feriado}`, ...ocsDia.map(o => `${rotuloOc(o)}${o.descricao ? ' — ' + o.descricao : ''}`)].filter(Boolean).join('\n');
     // Duas linhas: a situação do dia (Presente / Falta) e, embaixo, o motivo
     const rc = princ ? rotuloCal(princ) : null;
-    const rot = princ ? `<span class="cal-tipo" style="color:${TIPO_PONTO[princ.tipo] || '#64748b'}"><i style="background:${TIPO_PONTO[princ.tipo] || '#94a3b8'}"></i>${rc.situacao}${ocsDia.length > 1 ? ` +${ocsDia.length - 1}` : ''}</span>${rc.motivo ? `<span class="cal-mot">${esc(rc.motivo)}</span>` : ''}` : '';
+    const corTxt = falta ? '#dc2626' : (TIPO_PONTO[princ?.tipo] || '#64748b');
+    const rot = princ ? `<span class="cal-tipo" style="color:${corTxt}"><i style="background:${TIPO_PONTO[princ.tipo] || '#94a3b8'}"></i>${rc.situacao}${ocsDia.length > 1 ? ` +${ocsDia.length - 1}` : ''}</span>${rc.motivo || feriado ? `<span class="cal-mot">${esc(rc.motivo || 'feriado')}${rc.motivo && feriado ? ' · feriado' : ''}</span>` : ''}`
+      : feriado ? `<span class="cal-tipo" style="color:#0f766e"><i style="background:#14b8a6"></i>Feriado</span><span class="cal-mot">${esc(feriado)}</span>` : '';
     cells += `<div class="${cls}" onclick="window._abrirNovaOcData('${dateStr}')" title="${esc(dica)}">
       <div class="cal-daynum">${d}</div>${rot}
     </div>`;

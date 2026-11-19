@@ -24,6 +24,16 @@ function feriadosDoAno(ano) {
   return (_cache[ano] = set);
 }
 
+// Nome do feriado (para mostrar no calendário). Só informativo: não muda nenhuma conta.
+const NOMES = { '01-01': 'Confraternização Universal', '04-21': 'Tiradentes', '05-01': 'Dia do Trabalho', '09-07': 'Independência',
+  '10-12': 'Nossa Sra. Aparecida', '11-02': 'Finados', '11-15': 'Proclamação da República', '11-20': 'Consciência Negra', '12-25': 'Natal' };
+export function nomeFeriado(iso) {
+  if (!ehFeriado(iso)) return '';
+  if (NOMES[iso.slice(5, 10)]) return NOMES[iso.slice(5, 10)];
+  const ano = +iso.slice(0, 4), s = pascoa(ano); s.setDate(s.getDate() - 2);
+  return iso.slice(0, 10) === `${ano}-${pad(s.getMonth() + 1)}-${pad(s.getDate())}` ? 'Sexta-feira Santa' : 'Feriado';
+}
+
 // iso = 'AAAA-MM-DD'
 export const ehFeriado = iso => feriadosDoAno(+iso.slice(0, 4)).has(iso.slice(0, 10));
 // Dia útil = segunda a sexta e não feriado
